@@ -1,0 +1,116 @@
+import { Metadata } from "next"
+import Link from "next/link"
+import Image from "next/image"
+import { prisma } from "@/lib/db"
+import { Card } from "@/components/ui/card"
+
+export const metadata: Metadata = {
+  title: "Skin & Bone (Deri & Kemik) - Turkish Short Stories in English",
+  description:
+    "Explore contemporary Turkish short fiction in English translation. Literary narratives by deri and kemik.",
+}
+
+export default async function EnglishHomePage() {
+  const stories = await prisma.story.findMany({
+    where: { language: "en" },
+    orderBy: { publishedAt: "desc" },
+    take: 10,
+  })
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="py-20 px-4 text-center border-b border-primary/10">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-5xl md:text-6xl font-serif font-bold text-primary">
+              Skin and Bone
+            </h1>
+            <p className="text-sm text-muted-foreground">(Deri & Kemik)</p>
+          </div>
+
+          <p className="text-xl md:text-2xl text-muted-foreground font-serif italic">
+            Contemporary Turkish Short Stories
+          </p>
+          <p className="text-lg text-foreground/80 max-w-2xl mx-auto leading-relaxed">
+            A literary journey through the human condition, exploring themes of identity,
+            memory, and transformation through the distinctive voices of two Turkish authors.
+          </p>
+          <div className="flex gap-4 justify-center pt-4">
+            <Link
+              href="/en/deri"
+              className="px-8 py-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors rounded-md font-medium"
+            >
+              Read Stories
+            </Link>
+            <Link
+              href="/en/about"
+              className="px-8 py-3 border border-primary text-primary hover:bg-primary/5 transition-colors rounded-md font-medium"
+            >
+              About Us
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Stories Grid */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-serif font-bold mb-8 text-center">Latest Stories</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stories.map((story) => (
+              <Link key={story.id} href={`/en/story/${story.slug}`}>
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+                  <div className="relative aspect-[4/3] bg-muted">
+                    <Image src={story.illustrationUrl} alt={story.title} fill className="object-cover" />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-serif font-bold mb-2 line-clamp-2">{story.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      by {story.author} {" "}
+                      {new Date(story.publishedAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p className="text-foreground/80 line-clamp-3">{story.excerpt}</p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {stories.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-xl text-muted-foreground">No stories available yet. Check back soon!</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <h2 className="text-3xl font-serif font-bold">About the Authors</h2>
+          <div className="grid md:grid-cols-2 gap-8 text-left">
+            <div className="space-y-3">
+              <h3 className="text-2xl font-serif font-bold text-primary">deri (Skin)</h3>
+              <p className="text-foreground/80 leading-relaxed">
+                A voice that explores the fragile boundaries between reality and perception,
+                crafting narratives that delve into the depths of human psychology and emotion.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-serif font-bold text-primary">kemik (Bone)</h3>
+              <p className="text-foreground/80 leading-relaxed">
+                Coming soon. Stories that examine the structural essence of existence,
+                the frameworks that hold us together and the moments that break us apart.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}

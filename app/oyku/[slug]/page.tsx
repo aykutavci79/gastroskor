@@ -1,0 +1,189 @@
+import StoryCardImage from "@/components/StoryCardImage";
+import { prisma } from "@/lib/db";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Calendar, User, ArrowLeft } from "lucide-react";
+import StoryCard from "@/components/story-card";
+import CommentSection from "@/components/comment-section";
+import ViewCounter from "@/components/view-counter";
+import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+
+const LANGUAGE = "tr" as const;
+
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const story = await prisma.story.findUnique({
+    where: {
+      language_slug: {
+        language: LANGUAGE,
+        slug: params?.slug,
+      },
+    },
+  });
+
+  if (!story) {
+    return {
+      title: "Öykü Bulunamadı | Deri ve Kemik",
+    };
+  }
+
+  return {
+    title: `${story?.title ?? ""} | Deri ve Kemik`,
+    description: story?.excerpt ?? "",
+    openGraph: {
+      title: story?.title ?? "",
+      description: story?.excerpt ?? "",
+      images: [story?.illustrationUrl ?? ""],
+    },
+  };
+}
+
+export default async function StoryPage({ params }: PageProps) {
+  const story = await prisma.story.findUnique({
+    where: {
+      language_slug: {
+        language: LANGUAGE,
+        slug: params?.slug,
+      },
+    },
+  });
+
+  if (!story) {
+    notFound();
+  }
+
+  const authorName = story.author === "deri" ? "Deri" : "Kemik";
+  const authorUrl = story.author === "deri" ? "/deri" : "/kemik";
+
+  const formattedDate = new Date(story.publishedAt ?? new Date()).toLocaleDateString("tr-TR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Get related stories (aynı dilde, aynı yazar, farklı id)
+  const relatedStoriesRaw = await prisma.story.findMany({
+    where: {
+      language: LANGUAGE,
+      author: story.author,
+      id: { not: story.id },
+    },
+    take: 3,
+    orderBy: { publishedAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      author: true,
+      illustrationUrl: true,
+      publishedAt: true,
+      viewCount: true,
+    },
+  });
+
+  // StoryCard tip uyumu için normalize et (publishedAt string olmalı)
+  const relatedStories = relatedStoriesRaw.map((s) => ({
+    ...s,
+    excerpt: s.excerpt ?? null,
+    illustrationUrl: s.illustrationUrl ?? null,
+    publishedAt: s.publishedAt.toISOString(),
+    viewCount: s.viewCount ?? 0,
+  }));
+
+  return (
+    <div className="min-h-screen py-12">
+      {/* View Counter - invisible component that tracks page views */}
+      <ViewCounter slug={story.slug ?? ""} />
+
+      <article className="container mx-auto max-w-4xl px-4">
+        {/* Back Button */}
+        <Link
+          href={authorUrl}
+          className="inline-flex items-center gap-2 font-inter text-sm text-muted-foreground hover:text-primary transition-colors mb-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {authorName}'in diğer öykülerine dön
+        </Link>
+
+        {/* Story Header */}
+        <header className="mb-8">
+          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-primary mb-6 leading-tight">
+            {story.title ?? ""}
+          </h1>
+
+          <div className="flex items-center gap-6 font-inter text-sm text-muted-foreground">
+            <Link href={authorUrl} className="flex items-center gap-2 hover:text-primary transition-colors">
+              <User className="h-4 w-4" />
+              {authorName}
+            </Link>
+
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {formattedDate}
+            </span>
+          </div>
+        </header>
+
+        {/* Story Illustration */}
+        <div className="relative aspect-[3/2] bg-muted rounded-lg overflow-hidden mb-12 shadow-lg">
+          <StoryCardImage
+            src={story.illustrationUrl ?? ""}
+            alt={story.title ?? ""}
+            className="object-cover"
+          />
+        </div>
+
+        {/* Story Content */}
+        <div className="story-content mb-16">
+          {story.content?.split?.("\n\n")?.map?.((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          )) ?? null}
+        </div>
+
+        {/* Author Info */}
+        <div className="mb-16 p-6 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 shadow-md">
+          <div className="flex items-center gap-3 mb-3">
+            <User className="h-6 w-6 text-primary" />
+            <h3 className="font-playfair text-xl font-semibold text-primary">Yazar: {authorName}</h3>
+          </div>
+
+          <Link
+            href={authorUrl}
+            className="inline-flex items-center gap-2 font-inter text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            {authorName}'in tüm öykülerini gör
+            <ArrowLeft className="h-4 w-4 rotate-180" />
+          </Link>
+        </div>
+
+        {/* Comments */}
+        <CommentSection storyId={story.id ?? ""} />
+      </article>
+
+      {/* Related Stories */}
+      {relatedStories.length > 0 && (
+        <section className="py-16 bg-muted/30 mt-16">
+          <div className="container mx-auto max-w-6xl px-4">
+            <h2 className="font-playfair text-3xl font-bold text-primary text-center mb-12">
+              {authorName}'in Diğer Öyküleri
+            </h2>
+
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {relatedStories.map((relatedStory) => (
+                <StoryCard key={relatedStory.id} story={relatedStory} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "title": "Bina",
+    "slug": "bina",
+    "language": "tr",
+    "author": "Deri",
+    "excerpt": "Kısa özet (opsiyonel)",
+    "content": "BURAYA TÜRKÇE ÖYKÜ METNİ"
+  },
+  {
+    "title": "The Building",
+    "slug": "bina-en",
+    "language": "en",
+    "author": "Deri",
+    "originalSlug": "bina",
+    "excerpt": "Short excerpt (optional)",
+    "content": "PUT ENGLISH STORY TEXT HERE"
+  }
+]

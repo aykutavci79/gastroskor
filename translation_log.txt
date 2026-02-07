@@ -1,0 +1,23 @@
+
+📚 Loaded 11 stories to translate
+
+
+============================================================
+🌍 TRANSLATING TO ENGLISH (en)
+============================================================
+
+[1/11] Translating: "Son Gösteri"
+  Length: 20032 chars
+  ✅ SUCCESS
+
+[2/11] Translating: "Öldür Onu"
+  Length: 7996 chars
+Error translating "Öldür Onu": SyntaxError: Bad control character in string literal in JSON at position 167 (line 4 column 15)
+    at JSON.parse (<anonymous>)
+    at translateSingleStory (/home/ubuntu/derivekemik_new/nextjs_space/translate_stories_v2.ts:101:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async main (/home/ubuntu/derivekemik_new/nextjs_space/translate_stories_v2.ts:136:28)
+  ❌ FAILED
+
+[3/11] Translating: "Düşüş"
+  Length: 12396 chars

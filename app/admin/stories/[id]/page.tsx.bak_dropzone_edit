@@ -1,0 +1,286 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter, useParams } from 'next/navigation'
+import { Save, Loader2 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+
+export default function EditStoryPage() {
+  const { data: session, status } = useSession() || {}
+  const router = useRouter()
+  const params = useParams()
+  const storyId = params?.id as string
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    slug: '',
+    author: 'deri',
+    excerpt: '',
+    content: '',
+    illustrationUrl: '',
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success')
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router?.replace?.('/admin/login')
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    if (session && storyId) {
+      fetchStory()
+    }
+  }, [session, storyId])
+
+  const fetchStory = async () => {
+    try {
+      const response = await fetch(`/api/admin/stories/${storyId}`)
+      const data = await response?.json?.()
+
+      if (response?.ok && data?.story) {
+        setFormData({
+          title: data?.story?.title ?? '',
+          slug: data?.story?.slug ?? '',
+          author: data?.story?.author ?? 'deri',
+          excerpt: data?.story?.excerpt ?? '',
+          content: data?.story?.content ?? '',
+          illustrationUrl: data?.story?.illustrationUrl ?? '',
+        })
+      } else {
+        setMessage('Öykü bulunamadı')
+        setMessageType('error')
+      }
+    } catch (error) {
+      console.error('Fetch story error:', error)
+      setMessage('Öykü yüklenemedi')
+      setMessageType('error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateSlug = (title: string) => {
+    return title
+      ?.toLowerCase?.()
+      ?.replace(/ğ/g, 'g')
+      ?.replace(/ü/g, 'u')
+      ?.replace(/ş/g, 's')
+      ?.replace(/ı/g, 'i')
+      ?.replace(/ö/g, 'o')
+      ?.replace(/ç/g, 'c')
+      ?.replace(/[^a-z0-9]+/g, '-')
+      ?.replace(/(^-|-$)/g, '') ?? ''
+  }
+
+  const handleTitleChange = (title: string) => {
+    setFormData({
+      ...formData,
+      title,
+      slug: generateSlug(title),
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e?.preventDefault?.()
+    
+    if (!formData?.title || !formData?.author || !formData?.excerpt || !formData?.content) {
+      setMessage('Lütfen tüm zorunlu alanları doldurun')
+      setMessageType('error')
+      return
+    }
+
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const response = await fetch(`/api/admin/stories/${storyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response?.json?.()
+
+      if (response?.ok) {
+        setMessage('Öykü başarıyla güncellendi!')
+        setMessageType('success')
+        setTimeout(() => {
+          router?.push?.('/admin/stories')
+        }, 1500)
+      } else {
+        setMessage(data?.error ?? 'Bir hata oluştu')
+        setMessageType('error')
+      }
+    } catch (error) {
+      console.error('Update story error:', error)
+      setMessage('Bağlantı hatası oluştu')
+      setMessageType('error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (status === 'loading' || loading || !session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto max-w-4xl px-4">
+        <div className="mb-8">
+          <h1 className="font-playfair text-3xl font-bold text-primary mb-2">
+            Öykü Düzenle
+          </h1>
+          <Link
+            href="/admin/stories"
+            className="font-inter text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            ← Öykü Listesine Dön
+          </Link>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-xl bg-card p-8 shadow-md space-y-6">
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                Başlık *
+              </label>
+              <input
+                type="text"
+                value={formData?.title}
+                onChange={(e) => handleTitleChange(e?.target?.value ?? '')}
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-inter text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={saving}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                URL Slug
+              </label>
+              <input
+                type="text"
+                value={formData?.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e?.target?.value ?? '' })}
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-inter text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={saving}
+              />
+              <p className="mt-1 font-inter text-xs text-muted-foreground">
+                Otomatik oluşturulur, düzenleme opsiyoneldir
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                Yazar *
+              </label>
+              <select
+                value={formData?.author}
+                onChange={(e) => setFormData({ ...formData, author: e?.target?.value ?? 'deri' })}
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-inter text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={saving}
+                required
+              >
+                <option value="deri">Deri</option>
+                <option value="kemik">Kemik</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                İllustrasyon URL
+              </label>
+              <input
+                type="url"
+                value={formData?.illustrationUrl}
+                onChange={(e) => setFormData({ ...formData, illustrationUrl: e?.target?.value ?? '' })}
+                placeholder="https://i.ytimg.com/vi/tgMMG0HdQ-0/hqdefault.jpg"
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-inter text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={saving}
+              />
+            </div>
+
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                Özet *
+              </label>
+              <textarea
+                value={formData?.excerpt}
+                onChange={(e) => setFormData({ ...formData, excerpt: e?.target?.value ?? '' })}
+                rows={3}
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-inter text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                disabled={saving}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block font-inter text-sm font-medium text-foreground mb-2">
+                Öykü İçeriği *
+              </label>
+              <textarea
+                value={formData?.content}
+                onChange={(e) => setFormData({ ...formData, content: e?.target?.value ?? '' })}
+                rows={15}
+                className="w-full rounded-lg border border-input bg-background px-4 py-3 font-crimson text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                disabled={saving}
+                required
+              />
+              <p className="mt-1 font-inter text-xs text-muted-foreground">
+                Paragrafları ayırmak için iki satır boşluk bırakın
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-primary px-8 py-3 font-inter text-sm font-medium text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Kaydediliyor...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5" />
+                  Değişiklikleri Kaydet
+                </>
+              )}
+            </button>
+            <Link
+              href="/admin/stories"
+              className="rounded-lg bg-muted px-8 py-3 font-inter text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+            >
+              İptal
+            </Link>
+          </div>
+
+          {message && (
+            <div
+              className={`p-4 rounded-lg ${
+                messageType === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}
+            >
+              <p className="font-inter text-sm">{message}</p>
+            </div>
+          )}
+        </form>
+      </div>
+    </div>
+  )
+}

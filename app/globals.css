@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 38 20% 96%; /* cream #F5F1E8 */
+    --foreground: 20 14% 18%; /* dark brown */
+    --card: 38 20% 98%;
+    --card-foreground: 20 14% 18%;
+    --popover: 38 20% 98%;
+    --popover-foreground: 20 14% 18%;
+    --primary: 25 30% 55%; /* warm brown #8B7355 */
+    --primary-foreground: 38 20% 96%;
+    --secondary: 140 15% 20%; /* dark green #2C3E2E */
+    --secondary-foreground: 38 20% 96%;
+    --muted: 38 15% 92%;
+    --muted-foreground: 25 10% 45%;
+    --accent: 25 30% 55%;
+    --accent-foreground: 38 20% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 38 20% 96%;
+    --border: 25 20% 85%;
+    --input: 25 20% 85%;
+    --ring: 25 30% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Suppress hydration errors */
+  [data-hydration-error] {
+    display: none !important;
+  }
+}
+
+/* Literary Typography */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-crimson {
+  font-family: 'Crimson Text', serif;
+}
+
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom Story Content Styles */
+.story-content {
+  @apply text-lg leading-relaxed;
+  font-family: 'Crimson Text', serif;
+}
+
+.story-content p {
+  @apply mb-6;
+}
+
+.story-content h2 {
+  @apply text-2xl font-playfair font-semibold mt-8 mb-4 text-primary;
+}
+
+.story-content h3 {
+  @apply text-xl font-playfair font-semibold mt-6 mb-3 text-primary;
+}
+
+.story-content blockquote {
+  @apply border-l-4 border-primary pl-6 italic my-6 text-muted-foreground;
+}
+
+.story-content ul,
+.story-content ol {
+  @apply ml-6 mb-6;
+}
+
+.story-content li {
+  @apply mb-2;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary;
+}
