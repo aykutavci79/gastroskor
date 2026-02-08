@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+ï»¿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth-options";
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   if (newPassword.length < 10) {
     return NextResponse.json(
-      { error: "Yeni þifre en az 10 karakter olmalý." },
+      { error: "Yeni ÅŸifre en az 10 karakter olmalÄ±." },
       { status: 400 }
     );
   }
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
   const ok = await bcrypt.compare(currentPassword, user.password);
   if (!ok) {
-    return NextResponse.json({ error: "Mevcut þifre yanlýþ." }, { status: 400 });
+    return NextResponse.json({ error: "Mevcut ÅŸifre yanlÄ±ÅŸ." }, { status: 400 });
   }
 
   const hash = await bcrypt.hash(newPassword, 12);
