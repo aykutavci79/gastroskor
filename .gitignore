@@ -29,3 +29,13 @@ dev_*.db
 
 # misc
 .DS_Store
+
+# Local/temporary prisma generated client (do not commit)
+prisma/generated/
+prisma/schema.sqlite.prisma
+
+# Local helper scripts (do not commit)
+scripts/check-sqlite-tables.js
+scripts/check_sqlite_story_count.cjs
+scripts/check_sqlite_story_count.js
+scripts/bootstrap-admin.js

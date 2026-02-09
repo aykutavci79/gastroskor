@@ -1,40 +1,62 @@
+﻿import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
+
 export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
+function pickFileFromFormData(formData: FormData): File | null {
+  const candidates = ["file", "image", "illustration", "upload"];
+  for (const key of candidates) {
+    const v = formData.get(key);
+    if (v instanceof File) return v;
+  }
+  for (const [, v] of formData.entries()) {
+    if (v instanceof File) return v;
+  }
+  return null;
+}
+
+function extFromFile(file: File): string {
+  const name = file.name || "";
+  const dot = name.lastIndexOf(".");
+  if (dot !== -1 && dot < name.length - 1) return name.slice(dot + 1).toLowerCase();
+
+  const t = (file.type || "").toLowerCase();
+  if (t.includes("png")) return "png";
+  if (t.includes("jpeg") || t.includes("jpg")) return "jpg";
+  if (t.includes("webp")) return "webp";
+  if (t.includes("gif")) return "gif";
+  return "bin";
+}
 
 export async function POST(req: Request) {
   try {
-    const form = await req.formData();
-    const file = form.get("file");
+    const formData = await req.formData();
+    const file = pickFileFromFormData(formData);
 
-    if (!file || typeof (file as any).arrayBuffer !== "function") {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
-    const f = file as File;
-
-    if (!f.type?.startsWith("image/")) {
-      return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
+    const maxBytes = 6 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json(
+        { error: "File too large. Max 6MB." },
+        { status: 413 }
+      );
     }
 
-    const bytes = await f.arrayBuffer();
-    const data = new Uint8Array(bytes); // Buffer yok -> TS daha az ağlar
+    const ext = extFromFile(file);
+    const key = `uploads/story_${crypto.randomUUID()}.${ext}`;
 
-    const ext = path.extname(f.name || "") || ".png";
-    const filename = `${crypto.randomUUID()}${ext}`;
+    const blob = await put(key, file, {
+      access: "public",
+      addRandomSuffix: false,
+    });
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-
-    await writeFile(path.join(uploadDir, filename), data);
-
-    return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+    return NextResponse.json({ url: blob.url, pathname: blob.pathname }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json(
-      { error: e?.message || "Upload failed" },
+      { error: e?.message || "Upload failed." },
       { status: 500 }
     );
   }

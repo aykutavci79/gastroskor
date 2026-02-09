@@ -2,13 +2,13 @@
   "name": "app",
   "private": true,
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint",
-  "postinstall": "prisma generate",
-  "vercel-build": "prisma generate && prisma migrate deploy && next build"
-},
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
+  },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
   },
@@ -73,6 +73,7 @@
     "@types/jsonwebtoken": "9.0.5",
     "@types/plotly.js": "2.35.5",
     "@types/react-plotly.js": "2.6.3",
+    "@vercel/blob": "^2.2.0",
     "autoprefixer": "10.4.15",
     "bcryptjs": "2.4.3",
     "better-sqlite3": "^12.6.2",
