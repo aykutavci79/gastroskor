@@ -8,9 +8,6 @@ export default async function ArOykuListPage() {
   const stories = await prisma.story.findMany({
     where: {
       language: "ar",
-      publishedAt: {
-        gt: new Date(0), // ✅ null yerine TS-safe filtre
-      },
     },
     orderBy: {
       publishedAt: "desc",
@@ -29,43 +26,55 @@ export default async function ArOykuListPage() {
   return (
     <div className="min-h-screen py-12" dir="rtl">
       <div className="container mx-auto max-w-6xl px-4">
-        <h1 className="mb-10 text-4xl font-bold text-primary">
+        <h1 className="mb-12 text-center font-playfair text-4xl font-bold text-primary">
           القصص
         </h1>
 
         {stories.length === 0 ? (
-          <p className="text-muted-foreground">
-            لا توجد قصص منشورة حالياً.
+          <p className="text-center text-muted-foreground">
+            لا توجد قصص بعد
           </p>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {stories.map((story) => (
-              <Link
-                key={story.id}
-                href={`/ar/oyku/${story.slug}`}
-                className="group block overflow-hidden rounded-xl border bg-background shadow-sm transition hover:shadow-lg"
-              >
-                <div className="relative aspect-[3/2] bg-muted">
-                  <StoryCardImage
-                    src={story.illustrationUrl}
-                    alt={story.title ?? ""}
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
+            {stories.map((story) => {
+              const author = (story.author ?? "").toLowerCase();
+              const authorName = author === "deri" ? "ديري" : "كيميك";
 
-                <div className="p-5">
-                  <h2 className="mb-2 line-clamp-2 text-xl font-semibold text-primary">
-                    {story.title}
-                  </h2>
+              return (
+                <article
+                  key={story.id}
+                  className="overflow-hidden rounded-lg border bg-background shadow-sm transition hover:shadow-md"
+                >
+                  <Link href={`/ar/${author}/${story.slug}`}>
+                    <div className="relative aspect-[3/2]">
+                      <StoryCardImage
+                        src={story.illustrationUrl}
+                        alt={story.title ?? ""}
+                        className="object-cover"
+                      />
+                    </div>
+                  </Link>
 
-                  {story.excerpt ? (
-                    <p className="line-clamp-3 text-sm text-muted-foreground">
-                      {story.excerpt}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            ))}
+                  <div className="p-6">
+                    <Link href={`/ar/${author}/${story.slug}`}>
+                      <h2 className="mb-3 font-playfair text-xl font-bold leading-snug hover:text-primary">
+                        {story.title}
+                      </h2>
+                    </Link>
+
+                    {story.excerpt ? (
+                      <p className="mb-4 text-sm text-muted-foreground line-clamp-3">
+                        {story.excerpt}
+                      </p>
+                    ) : null}
+
+                    <div className="text-sm text-muted-foreground">
+                      {authorName}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
