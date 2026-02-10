@@ -1,23 +1,18 @@
-import { redirect, notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
 
-type Props = {
-  params: { slug: string };
-};
-
-export default async function ArOykuBridgePage({ params }: Props) {
-  const slug = params.slug;
-
+export default async function ArDeriStoryPage({ params }: PageProps) {
   const story = await prisma.story.findFirst({
     where: {
-      slug,
+      slug: params.slug,
+      author: "deri",
       language: "ar",
-    },
-    select: {
-      slug: true,
-      author: true,
     },
   });
 
@@ -25,15 +20,30 @@ export default async function ArOykuBridgePage({ params }: Props) {
     notFound();
   }
 
-  // AR’da detay sayfaları author route’larında yaşıyor
-  if (story.author === "deri") {
-    redirect(`/ar/deri/${story.slug}`);
-  }
+  return (
+    <article
+      style={{
+        maxWidth: "720px",
+        margin: "0 auto",
+        padding: "2rem 1rem",
+        direction: "rtl",
+        textAlign: "right",
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>
+        {story.title}
+      </h1>
 
-  if (story.author === "kemik") {
-    redirect(`/ar/kemik/${story.slug}`);
-  }
+      {story.excerpt && (
+        <p style={{ opacity: 0.75, marginBottom: "1.5rem" }}>
+          {story.excerpt}
+        </p>
+      )}
 
-  // Beklenmeyen author değeri varsa güvenli fallback
-  notFound();
+      <div
+        style={{ lineHeight: "1.9" }}
+        dangerouslySetInnerHTML={{ __html: story.content }}
+      />
+    </article>
+  );
 }
