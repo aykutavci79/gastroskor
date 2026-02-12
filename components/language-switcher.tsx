@@ -35,23 +35,36 @@ function isContact(pathname: string, loc: Locale) {
 }
 
 /**
- * Accept both possible story segment variants while parsing:
+ * Story detail route'larını tanı:
  * - TR: /oyku/:slug
- * - EN/FR: /en/story/:slug (but also accept /en/oyku/:slug if something produced it)
- * - AR: /ar/oyku/:slug (but also accept /ar/story/:slug just in case)
+ * - TR (legacy): /deri/:slug veya /kemik/:slug (bazı yerlerde üretilmiş olabilir)
+ * - EN/FR: /en/oyku/:slug veya /en/story/:slug veya /en/deri/:slug|/en/kemik/:slug
+ * - AR: /ar/oyku/:slug veya /ar/story/:slug veya /ar/deri/:slug|/ar/kemik/:slug
+ *
+ * ÖNEMLİ: Sadece "slug varsa" detail say.
+ * /ar/deri (liste) detail değildir.
  */
 function isStoryDetail(pathname: string, loc: Locale) {
   const s = splitPath(pathname);
 
-  if (loc === "tr") return s[0] === "oyku" && !!s[1];
+  const isAuthorSeg = (seg?: string) => seg === "deri" || seg === "kemik";
 
-  if (loc === "en" || loc === "fr") {
-    return s[0] === loc && (s[1] === "story" || s[1] === "oyku") && !!s[2];
+  if (loc === "tr") {
+    // /oyku/:slug
+    if (s[0] === "oyku" && !!s[1]) return true;
+    // /deri/:slug or /kemik/:slug (legacy)
+    if (isAuthorSeg(s[0]) && !!s[1]) return true;
+    return false;
   }
 
-  if (loc === "ar") {
-    return s[0] === "ar" && (s[1] === "oyku" || s[1] === "story") && !!s[2];
-  }
+  // non-tr: prefix always exists
+  if (s[0] !== loc) return false;
+
+  // /{loc}/oyku/:slug or /{loc}/story/:slug
+  if ((s[1] === "oyku" || s[1] === "story") && !!s[2]) return true;
+
+  // /{loc}/deri/:slug or /{loc}/kemik/:slug
+  if (isAuthorSeg(s[1]) && !!s[2]) return true;
 
   return false;
 }
@@ -59,20 +72,36 @@ function isStoryDetail(pathname: string, loc: Locale) {
 function getStorySlug(pathname: string, loc: Locale) {
   const s = splitPath(pathname);
 
-  if (loc === "tr") return s[1] ?? null;
-  if (loc === "en" || loc === "fr") return s[2] ?? null;
-  if (loc === "ar") return s[2] ?? null;
+  const isAuthorSeg = (seg?: string) => seg === "deri" || seg === "kemik";
+
+  if (loc === "tr") {
+    // /oyku/:slug
+    if (s[0] === "oyku") return s[1] ?? null;
+    // /deri/:slug or /kemik/:slug
+    if (isAuthorSeg(s[0])) return s[1] ?? null;
+    return null;
+  }
+
+  // non-tr: /{loc}/...
+  if (s[0] !== loc) return null;
+
+  // /{loc}/oyku/:slug or /{loc}/story/:slug
+  if (s[1] === "oyku" || s[1] === "story") return s[2] ?? null;
+
+  // /{loc}/deri/:slug or /{loc}/kemik/:slug
+  if (isAuthorSeg(s[1])) return s[2] ?? null;
+
   return null;
 }
 
 /**
- * Build final story path per locale.
- * (These are the routes you described/used)
+ * Tek gerçek story route'u ÜRET:
+ * TR -> /oyku/:slug
+ * others -> /{lang}/oyku/:slug
  */
 function buildStoryPath(target: Locale, slug: string) {
   if (target === "tr") return `/oyku/${slug}`;
-  if (target === "ar") return `/ar/oyku/${slug}`;
-  return `/${target}/story/${slug}`; // en/fr
+  return `/${target}/oyku/${slug}`;
 }
 
 function buildStaticPath(target: Locale, kind: "home" | "about" | "contact") {
@@ -84,7 +113,6 @@ function buildStaticPath(target: Locale, kind: "home" | "about" | "contact") {
     return `/${target}/about`;
   }
 
-  // contact
   if (target === "tr") return "/iletisim";
   if (target === "ar") return "/ar/iletisim";
   return `/${target}/contact`;
@@ -120,7 +148,7 @@ export function LanguageSwitcher() {
   const go = async (target: Locale) => {
     if (target === current) return;
 
-    // Static pages
+    // static pages
     if (isHome(pathname, current)) {
       router.push(buildStaticPath(target, "home"));
       return;
@@ -134,7 +162,7 @@ export function LanguageSwitcher() {
       return;
     }
 
-    // Story detail: resolve slug via DB using originalStoryId mapping
+    // story detail (oyku + author routes)
     if (isStoryDetail(pathname, current)) {
       const slug = getStorySlug(pathname, current);
       if (!slug) {
@@ -146,13 +174,11 @@ export function LanguageSwitcher() {
       try {
         const translatedSlug = await fetchTranslatedSlug(current, target, slug);
 
-        // If translation exists -> go to correct story URL
         if (translatedSlug) {
-          router.push(buildStoryPath(target, translatedSlug));
+          router.push(buildStoryPath(target, translatedSlug)); // ✅ always /oyku
           return;
         }
 
-        // If translation does not exist -> go to home in that language (safe fallback)
         router.push(buildStaticPath(target, "home"));
         return;
       } finally {
@@ -160,7 +186,7 @@ export function LanguageSwitcher() {
       }
     }
 
-    // Unknown pages: best effort
+    // unknown pages: best effort
     router.push(fallbackSwapLocale(pathname, current, target));
   };
 
@@ -178,7 +204,9 @@ export function LanguageSwitcher() {
             disabled={busy}
             className={[
               "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-              active ? "bg-neutral-900 text-white" : "text-neutral-700 hover:bg-neutral-100",
+              active
+                ? "bg-neutral-900 text-white"
+                : "text-neutral-700 hover:bg-neutral-100",
               busy ? "opacity-70 cursor-wait" : "",
             ].join(" ")}
             aria-current={active ? "page" : undefined}

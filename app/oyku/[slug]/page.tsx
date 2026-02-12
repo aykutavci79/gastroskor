@@ -10,21 +10,20 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-const LANGUAGE = "tr" as const;
-
 interface PageProps {
   params: {
     slug: string;
   };
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const story = await prisma.story.findUnique({
+/* ---------- METADATA ---------- */
+
+export async function generateMetadata(
+  { params }: PageProps
+): Promise<Metadata> {
+  const story = await prisma.story.findFirst({
     where: {
-      language_slug: {
-        language: LANGUAGE,
-        slug: params?.slug,
-      },
+      slug: params.slug,
     },
   });
 
@@ -35,23 +34,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${story?.title ?? ""} | Deri ve Kemik`,
-    description: story?.excerpt ?? "",
+    title: `${story.title} | Deri ve Kemik`,
+    description: story.excerpt ?? "",
     openGraph: {
-      title: story?.title ?? "",
-      description: story?.excerpt ?? "",
-      images: [story?.illustrationUrl ?? ""],
+      title: story.title,
+      description: story.excerpt ?? "",
+      images: story.illustrationUrl ? [story.illustrationUrl] : [],
     },
   };
 }
 
+/* ---------- PAGE ---------- */
+
 export default async function StoryPage({ params }: PageProps) {
-  const story = await prisma.story.findUnique({
+  const story = await prisma.story.findFirst({
     where: {
-      language_slug: {
-        language: LANGUAGE,
-        slug: params?.slug,
-      },
+      slug: params.slug,
     },
   });
 
@@ -62,16 +60,18 @@ export default async function StoryPage({ params }: PageProps) {
   const authorName = story.author === "deri" ? "Deri" : "Kemik";
   const authorUrl = story.author === "deri" ? "/deri" : "/kemik";
 
-  const formattedDate = new Date(story.publishedAt ?? new Date()).toLocaleDateString("tr-TR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = new Date(story.publishedAt).toLocaleDateString(
+    "tr-TR",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }
+  );
 
-  // Get related stories (aynı dilde, aynı yazar, farklı id)
   const relatedStoriesRaw = await prisma.story.findMany({
     where: {
-      language: LANGUAGE,
+      language: story.language,
       author: story.author,
       id: { not: story.id },
     },
@@ -89,7 +89,6 @@ export default async function StoryPage({ params }: PageProps) {
     },
   });
 
-  // StoryCard tip uyumu için normalize et (publishedAt string olmalı)
   const relatedStories = relatedStoriesRaw.map((s) => ({
     ...s,
     excerpt: s.excerpt ?? null,
@@ -100,27 +99,27 @@ export default async function StoryPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen py-12">
-      {/* View Counter - invisible component that tracks page views */}
-      <ViewCounter slug={story.slug ?? ""} />
+      <ViewCounter slug={story.slug} />
 
       <article className="container mx-auto max-w-4xl px-4">
-        {/* Back Button */}
         <Link
           href={authorUrl}
-          className="inline-flex items-center gap-2 font-inter text-sm text-muted-foreground hover:text-primary transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
           {authorName}'in diğer öykülerine dön
         </Link>
 
-        {/* Story Header */}
         <header className="mb-8">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-primary mb-6 leading-tight">
-            {story.title ?? ""}
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            {story.title}
           </h1>
 
-          <div className="flex items-center gap-6 font-inter text-sm text-muted-foreground">
-            <Link href={authorUrl} className="flex items-center gap-2 hover:text-primary transition-colors">
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link
+              href={authorUrl}
+              className="flex items-center gap-2 hover:text-primary"
+            >
               <User className="h-4 w-4" />
               {authorName}
             </Link>
@@ -132,53 +131,50 @@ export default async function StoryPage({ params }: PageProps) {
           </div>
         </header>
 
-        {/* Story Illustration */}
-        <div className="relative aspect-[3/2] bg-muted rounded-lg overflow-hidden mb-12 shadow-lg">
+        <div className="relative aspect-[3/2] rounded-lg overflow-hidden mb-12">
           <StoryCardImage
             src={story.illustrationUrl ?? ""}
-            alt={story.title ?? ""}
+            alt={story.title}
             className="object-cover"
           />
         </div>
 
-        {/* Story Content */}
         <div className="story-content mb-16">
-          {story.content?.split?.("\n\n")?.map?.((paragraph, index) => (
-            <p key={index}>{paragraph}</p>
-          )) ?? null}
+          {story.content?.split("\n\n").map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
         </div>
 
-        {/* Author Info */}
-        <div className="mb-16 p-6 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 shadow-md">
+        <div className="mb-16 p-6 rounded-xl bg-muted/30">
           <div className="flex items-center gap-3 mb-3">
-            <User className="h-6 w-6 text-primary" />
-            <h3 className="font-playfair text-xl font-semibold text-primary">Yazar: {authorName}</h3>
+            <User className="h-6 w-6" />
+            <h3 className="text-xl font-semibold">
+              Yazar: {authorName}
+            </h3>
           </div>
 
           <Link
             href={authorUrl}
-            className="inline-flex items-center gap-2 font-inter text-sm text-muted-foreground hover:text-primary transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
           >
             {authorName}'in tüm öykülerini gör
             <ArrowLeft className="h-4 w-4 rotate-180" />
           </Link>
         </div>
 
-        {/* Comments */}
-        <CommentSection storyId={story.id ?? ""} />
+        <CommentSection storyId={story.id} />
       </article>
 
-      {/* Related Stories */}
       {relatedStories.length > 0 && (
         <section className="py-16 bg-muted/30 mt-16">
           <div className="container mx-auto max-w-6xl px-4">
-            <h2 className="font-playfair text-3xl font-bold text-primary text-center mb-12">
+            <h2 className="text-3xl font-bold text-center mb-12">
               {authorName}'in Diğer Öyküleri
             </h2>
 
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {relatedStories.map((relatedStory) => (
-                <StoryCard key={relatedStory.id} story={relatedStory} />
+              {relatedStories.map((s) => (
+                <StoryCard key={s.id} story={s} />
               ))}
             </div>
           </div>

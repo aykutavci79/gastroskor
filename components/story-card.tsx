@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import StoryCardImage from '@/components/StoryCardImage'
 import { Calendar, User, Eye } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+type Locale = 'tr' | 'en' | 'fr' | 'ar'
 
 type Story = {
   id: string
@@ -12,11 +15,26 @@ type Story = {
   excerpt?: string | null
   author: string
   illustrationUrl?: string | null
-  publishedAt: string // ✅ ISO string bekliyoruz
+  publishedAt: string
   viewCount?: number | null
 }
 
+function detectLocale(pathname: string): Locale {
+  if (pathname === '/en' || pathname.startsWith('/en/')) return 'en'
+  if (pathname === '/fr' || pathname.startsWith('/fr/')) return 'fr'
+  if (pathname === '/ar' || pathname.startsWith('/ar/')) return 'ar'
+  return 'tr'
+}
+
+function buildStoryHref(locale: Locale, slug: string) {
+  if (locale === 'tr') return `/oyku/${slug}`
+  return `/${locale}/oyku/${slug}`
+}
+
 export default function StoryCard({ story }: { story: Story }) {
+  const pathname = usePathname() || '/'
+  const locale = detectLocale(pathname)
+
   const authorName = story?.author === 'deri' ? 'Deri' : 'Kemik'
 
   const formattedDate = new Date(story.publishedAt).toLocaleDateString('tr-TR', {
@@ -32,7 +50,7 @@ export default function StoryCard({ story }: { story: Story }) {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
     >
-      <Link href={`/oyku/${story?.slug ?? ''}`}>
+      <Link href={buildStoryHref(locale, story.slug)}>
         <div className="group overflow-hidden rounded-lg bg-card shadow-md transition-all hover:shadow-xl">
           {/* Image */}
           <div className="relative aspect-[3/2] bg-muted overflow-hidden">
