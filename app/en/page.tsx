@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { prisma } from "@/lib/db";
 import HomePage from "@/components/home/HomePage";
 
 export const dynamic = "force-dynamic";
@@ -9,31 +10,30 @@ export const metadata: Metadata = {
     "Explore contemporary Turkish short fiction in English translation. Literary narratives by deri and kemik.",
 };
 
-export default async function HomeEn() {
-  return (
-    <HomePage
-      locale="en"
-      dict={{
-        brandTitle: "Skin and Bone",
-        brandSubtitle:
-          "A literary journey through the human condition, exploring themes of identity, memory, and transformation.",
-        btnDeri: "Read deri’s stories",
-        btnKemik: "Discover kemik",
-        btnDeriHref: "/en/deri",
-        btnKemikHref: "/en/kemik",
-        philosophyTitle: "The Skin & Bone Philosophy",
-        philosophyBody:
-          "Skin & Bone is a literary project devoted to reaching what lies beneath the surface. We explore fundamental emotions and existential questions through contemporary Turkish short fiction, carried by two distinct voices.",
-        philosophyCta: "Learn more about the authors",
-        philosophyHref: "/en/about",
-        latestTitle: "Latest Stories",
-        emptyStories: "No stories available yet. Check back soon!",
-        newsletterTitle: "Stay in the loop",
-        newsletterBody:
-          "Be the first to hear about new stories. Subscribe to our newsletter.",
-        dir: "ltr",
-      }}
-      take={6}
-    />
-  );
+export default async function EnglishHome() {
+  const storiesRaw = await prisma.story.findMany({
+    where: { language: "en" },
+    orderBy: { publishedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      author: true,
+      illustrationUrl: true,
+      publishedAt: true,
+      viewCount: true,
+    },
+  });
+
+  const stories = storiesRaw.map((s) => ({
+    ...s,
+    excerpt: s.excerpt ?? null,
+    illustrationUrl: s.illustrationUrl ?? null,
+    publishedAt: s.publishedAt.toISOString(),
+    viewCount: s.viewCount ?? 0,
+  }));
+
+  return <HomePage lang="en" stories={stories} />;
 }
