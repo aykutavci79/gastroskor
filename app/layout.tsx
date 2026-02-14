@@ -12,22 +12,53 @@ const inter = Inter({ subsets: ['latin'] })
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL ?? 'http://localhost:3000'),
-  title: 'Deri ve Kemik | Türk Edebiyatı ve Öykü',
+  // ✅ Önce site URL, yoksa fallback
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXTAUTH_URL ??
+      'http://localhost:3000'
+  ),
+
+  title: 'Deri ve Kemik | Edebi Öyküler ve Hikayeler',
   description:
-    'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı. Deri ve Kemik yazarlarının özgün öykülerini keşfedin.',
-  keywords:
-    'türk edebiyatı, kısa öykü, öykü, edebiyat, türkçe öykü, modern edebiyat, deri ve kemik',
+    'Deri ve Kemik’te kısa öyküler, edebi hikayeler ve şiirsel anlatılar. Psikolojik, atmosferik ve modern Türkçe öyküler.',
+
+  // ✅ Keywords eklendi
+  keywords: [
+    'deri ve kemik',
+    'kısa öykü',
+    'öykü',
+    'hikaye',
+    'edebiyat',
+    'türkçe öykü',
+    'modern edebiyat',
+    'edebi hikayeler',
+    'şiirsel anlatı',
+    'psikolojik öykü',
+    'atmosferik öykü',
+    'Deri',
+    'Kemik',
+  ],
+
   openGraph: {
-    title: 'Deri ve Kemik | Türk Edebiyatı ve Öykü',
+    title: 'Deri ve Kemik | Edebi Öyküler ve Hikayeler',
     description:
-      'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı.',
+      'Deri ve Kemik’te kısa öyküler, edebi hikayeler ve şiirsel anlatılar. Psikolojik, atmosferik ve modern Türkçe öyküler.',
     url: '/',
     siteName: 'Deri ve Kemik',
     images: ['/og-image.png'],
-    locale: 'tr_TR',
     type: 'website',
   },
+
+  // ✅ Twitter eklendi
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Deri ve Kemik | Edebi Öyküler ve Hikayeler',
+    description:
+      'Deri ve Kemik’te kısa öyküler, edebi hikayeler ve şiirsel anlatılar. Psikolojik, atmosferik ve modern Türkçe öyküler.',
+    images: ['/og-image.png'],
+  },
+
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -60,9 +91,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
         </Providers>
-        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ? (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
-        )}
+        ) : null}
       </body>
     </html>
   )
