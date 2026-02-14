@@ -7,6 +7,12 @@ import { Calendar, User, ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const SITE_URL = "https://derivekemik.com";
+
+function absoluteUrl(path: string) {
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 type Props = {
   params: { slug: string };
 };
@@ -18,6 +24,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       language: "ar",
     },
     select: {
+      id: true,
+      originalStoryId: true,
+      slug: true,
       title: true,
       excerpt: true,
       illustrationUrl: true,
@@ -26,13 +35,55 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!story) return { title: "القصة غير موجودة | Deri & Kemik" };
 
+  const canonicalUrl = absoluteUrl(`/ar/oyku/${story.slug}`);
+  const description = (story.excerpt ?? "").trim();
+
+  // alternates by canonical id
+  const canonicalId = story.originalStoryId ?? story.id;
+
+  const [trAlt, enAlt, frAlt] = await Promise.all([
+    prisma.story.findFirst({
+      where: { language: "tr", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "en", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "fr", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+  ]);
+
+  const ogImages = story.illustrationUrl
+    ? [{ url: story.illustrationUrl, alt: story.title ?? "" }]
+    : undefined;
+
   return {
     title: `${story.title ?? ""} | Deri & Kemik`,
-    description: story.excerpt ?? "",
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        ar: canonicalUrl,
+        ...(trAlt?.slug ? { tr: absoluteUrl(`/oyku/${trAlt.slug}`) } : {}),
+        ...(enAlt?.slug ? { en: absoluteUrl(`/en/story/${enAlt.slug}`) } : {}),
+        ...(frAlt?.slug ? { fr: absoluteUrl(`/fr/story/${frAlt.slug}`) } : {}),
+      },
+    },
     openGraph: {
+      type: "article",
+      url: canonicalUrl,
       title: story.title ?? "",
-      description: story.excerpt ?? "",
-      images: [story.illustrationUrl ?? ""],
+      description,
+      images: ogImages,
+    },
+    twitter: {
+      card: story.illustrationUrl ? "summary_large_image" : "summary",
+      title: story.title ?? "",
+      description,
+      images: story.illustrationUrl ? [story.illustrationUrl] : undefined,
     },
   };
 }
@@ -53,6 +104,9 @@ export default async function ArOykuPage({ params }: Props) {
   const authorName = author === "deri" ? "ديري" : "كيميك";
   const authorUrl = author === "deri" ? "/ar/deri" : "/ar/kemik";
 
+  const canonicalId = story.originalStoryId ?? story.id;
+  const canonicalUrl = absoluteUrl(`/ar/oyku/${story.slug}`);
+
   const formattedDate = story.publishedAt
     ? new Date(story.publishedAt).toLocaleDateString("ar", {
         year: "numeric",
@@ -61,8 +115,37 @@ export default async function ArOykuPage({ params }: Props) {
       })
     : null;
 
+  // JSON-LD (ShortStory)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ShortStory",
+    "@id": canonicalUrl,
+    url: canonicalUrl,
+    inLanguage: "ar",
+    name: story.title ?? "",
+    headline: story.title ?? "",
+    description: (story.excerpt ?? "").trim() || undefined,
+    image: story.illustrationUrl || undefined,
+    datePublished: story.publishedAt?.toISOString?.() || undefined,
+    author: {
+      "@type": "Person",
+      name: story.author ?? "",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Deri & Kemik",
+      url: SITE_URL,
+    },
+  };
+
   return (
     <div className="min-h-screen py-12" dir="rtl">
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <article className="container mx-auto max-w-4xl px-4">
         {/* Back Button */}
         <Link
@@ -80,7 +163,10 @@ export default async function ArOykuPage({ params }: Props) {
           </h1>
 
           <div className="flex items-center gap-6 font-inter text-sm text-muted-foreground">
-            <Link href={authorUrl} className="flex items-center gap-2 hover:text-primary transition-colors">
+            <Link
+              href={authorUrl}
+              className="flex items-center gap-2 hover:text-primary transition-colors"
+            >
               <User className="h-4 w-4" />
               {authorName}
             </Link>
@@ -96,7 +182,11 @@ export default async function ArOykuPage({ params }: Props) {
 
         {/* Illustration */}
         <div className="relative aspect-[3/2] bg-muted rounded-lg overflow-hidden mb-12 shadow-lg">
-          <StoryCardImage src={story.illustrationUrl} alt={story.title ?? ""} className="object-cover" />
+          <StoryCardImage
+            src={story.illustrationUrl}
+            alt={story.title ?? ""}
+            className="object-cover"
+          />
         </div>
 
         {/* Excerpt */}
