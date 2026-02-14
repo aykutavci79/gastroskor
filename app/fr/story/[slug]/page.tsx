@@ -10,6 +10,11 @@ interface PageProps {
 }
 
 const LANGUAGE = "fr" as const
+const SITE_URL = "https://derivekemik.com"
+
+function absoluteUrl(path: string) {
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const story = await prisma.story.findUnique({
@@ -19,15 +24,72 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         slug: params.slug,
       },
     },
+    select: {
+      id: true,
+      originalStoryId: true,
+      title: true,
+      excerpt: true,
+      illustrationUrl: true,
+      author: true,
+      publishedAt: true,
+      slug: true,
+    },
   })
 
   if (!story) {
     return { title: "Histoire introuvable" }
   }
 
+  const canonicalUrl = absoluteUrl(`/fr/story/${story.slug}`)
+  const description = (story.excerpt ?? "").trim()
+
+  // alternates: same story in other languages via canonical id
+  const canonicalId = story.originalStoryId ?? story.id
+
+  const [trAlt, enAlt, arAlt] = await Promise.all([
+    prisma.story.findFirst({
+      where: { language: "tr", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "en", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "ar", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+  ])
+
+  const ogImages = story.illustrationUrl
+    ? [{ url: story.illustrationUrl, alt: story.title }]
+    : undefined
+
   return {
     title: `${story.title} - Deri & Kemik`,
-    description: story.excerpt ?? "",
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        fr: canonicalUrl,
+        ...(trAlt?.slug ? { tr: absoluteUrl(`/oyku/${trAlt.slug}`) } : {}),
+        ...(enAlt?.slug ? { en: absoluteUrl(`/en/story/${enAlt.slug}`) } : {}),
+        ...(arAlt?.slug ? { ar: absoluteUrl(`/ar/oyku/${arAlt.slug}`) } : {}),
+      },
+    },
+    openGraph: {
+      type: "article",
+      url: canonicalUrl,
+      title: `${story.title} - Deri & Kemik`,
+      description,
+      images: ogImages,
+    },
+    twitter: {
+      card: story.illustrationUrl ? "summary_large_image" : "summary",
+      title: `${story.title} - Deri & Kemik`,
+      description,
+      images: story.illustrationUrl ? [story.illustrationUrl] : undefined,
+    },
   }
 }
 
@@ -51,8 +113,8 @@ export default async function FrenchStoryPage({ params }: PageProps) {
     data: { viewCount: { increment: 1 } },
   })
 
-  // Canonical id: originalStoryId varsa onu, yoksa kendi id'sini kullan
   const canonicalId = story.originalStoryId ?? story.id
+  const canonicalUrl = absoluteUrl(`/fr/story/${story.slug}`)
 
   // Lien vers la version turque (si liée)
   const turkishStory = await prisma.story.findFirst({
@@ -63,14 +125,39 @@ export default async function FrenchStoryPage({ params }: PageProps) {
     select: { slug: true },
   })
 
+  // JSON-LD (ShortStory)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ShortStory",
+    "@id": canonicalUrl,
+    url: canonicalUrl,
+    inLanguage: "fr",
+    name: story.title,
+    headline: story.title,
+    description: (story.excerpt ?? "").trim() || undefined,
+    image: story.illustrationUrl || undefined,
+    datePublished: story.publishedAt?.toISOString?.() || undefined,
+    author: {
+      "@type": "Person",
+      name: story.author,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Deri & Kemik",
+      url: SITE_URL,
+    },
+  }
+
   return (
     <article className="min-h-screen py-12 px-4">
-      {/* GA4 event: story_view */}
-      <StoryViewTracker
-        storySlug={story.slug}
-        language={story.language}
-        storyId={canonicalId}
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* GA4 event: story_view */}
+      <StoryViewTracker storySlug={story.slug} language={story.language} storyId={canonicalId} />
 
       <div className="max-w-4xl mx-auto">
         {/* Sélecteur de langue */}
@@ -107,11 +194,7 @@ export default async function FrenchStoryPage({ params }: PageProps) {
 
         {/* Image */}
         <div className="relative aspect-video mb-8 rounded-lg overflow-hidden">
-          <StoryCardImage
-            src={story.illustrationUrl}
-            alt={story.title}
-            className="object-cover"
-          />
+          <StoryCardImage src={story.illustrationUrl} alt={story.title} className="object-cover" />
         </div>
 
         {/* Contenu */}
