@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers'
 import Header from '@/components/header'
 import Footer from '@/components/footer'
 import { GoogleAnalytics } from '@next/third-parties/google'
+import { headers } from 'next/headers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,11 +14,14 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? 'http://localhost:3000'),
   title: 'Deri ve Kemik | Türk Edebiyatı ve Öykü',
-  description: 'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı. Deri ve Kemik yazarlarının özgün öykülerini keşfedin.',
-  keywords: 'türk edebiyatı, kısa öykü, öykü, edebiyat, türkçe öykü, modern edebiyat, deri ve kemik',
+  description:
+    'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı. Deri ve Kemik yazarlarının özgün öykülerini keşfedin.',
+  keywords:
+    'türk edebiyatı, kısa öykü, öykü, edebiyat, türkçe öykü, modern edebiyat, deri ve kemik',
   openGraph: {
     title: 'Deri ve Kemik | Türk Edebiyatı ve Öykü',
-    description: 'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı.',
+    description:
+      'Deri ve Kemik - Türkçe kısa öyküler, edebi yazılar ve modern Türk edebiyatı.',
     url: '/',
     siteName: 'Deri ve Kemik',
     images: ['/og-image.png'],
@@ -30,13 +34,21 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function getLocaleFromPath(pathname: string) {
+  if (pathname.startsWith('/ar')) return 'ar'
+  if (pathname.startsWith('/en')) return 'en'
+  if (pathname.startsWith('/fr')) return 'fr'
+  return 'tr'
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const h = headers()
+  const pathname = h.get('x-pathname') || '/'
+  const locale = getLocaleFromPath(pathname)
+  const dir = locale === 'ar' ? 'rtl' : 'ltr'
+
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
         <script src="https://apps.abacus.ai/chatllm/appllm-lib.js"></script>
       </head>
