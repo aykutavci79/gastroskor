@@ -16,30 +16,54 @@ interface PageProps {
   };
 }
 
+function siteUrl() {
+  // ✅ non-www canonical için
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://derivekemik.com";
+}
+
+function absoluteUrl(maybeUrl: string) {
+  if (!maybeUrl) return "";
+  if (maybeUrl.startsWith("http://") || maybeUrl.startsWith("https://")) return maybeUrl;
+  const base = siteUrl().replace(/\/+$/, "");
+  const path = maybeUrl.startsWith("/") ? maybeUrl : `/${maybeUrl}`;
+  return `${base}${path}`;
+}
+
 /* ---------- METADATA ---------- */
 
-export async function generateMetadata(
-  { params }: PageProps
-): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const story = await prisma.story.findFirst({
-    where: {
-      slug: params.slug,
-    },
+    where: { slug: params.slug },
   });
+
+  const base = siteUrl().replace(/\/+$/, "");
+  const canonical = `${base}/oyku/${params.slug}`;
 
   if (!story) {
     return {
       title: "Öykü Bulunamadı | Deri ve Kemik",
+      alternates: { canonical },
     };
   }
+
+  const ogImage = story.illustrationUrl ? absoluteUrl(story.illustrationUrl) : "";
 
   return {
     title: `${story.title} | Deri ve Kemik`,
     description: story.excerpt ?? "",
+    alternates: { canonical },
     openGraph: {
       title: story.title,
       description: story.excerpt ?? "",
-      images: story.illustrationUrl ? [story.illustrationUrl] : [],
+      url: canonical,
+      type: "article",
+      images: ogImage ? [ogImage] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: story.title,
+      description: story.excerpt ?? "",
+      images: ogImage ? [ogImage] : [],
     },
   };
 }
@@ -48,26 +72,24 @@ export async function generateMetadata(
 
 export default async function StoryPage({ params }: PageProps) {
   const story = await prisma.story.findFirst({
-    where: {
-      slug: params.slug,
-    },
+    where: { slug: params.slug },
   });
 
   if (!story) {
     notFound();
   }
 
+  const base = siteUrl().replace(/\/+$/, "");
+  const canonical = `${base}/oyku/${story.slug}`;
+
   const authorName = story.author === "deri" ? "Deri" : "Kemik";
   const authorUrl = story.author === "deri" ? "/deri" : "/kemik";
 
-  const formattedDate = new Date(story.publishedAt).toLocaleDateString(
-    "tr-TR",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }
-  );
+  const formattedDate = new Date(story.publishedAt).toLocaleDateString("tr-TR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   const relatedStoriesRaw = await prisma.story.findMany({
     where: {
@@ -97,11 +119,39 @@ export default async function StoryPage({ params }: PageProps) {
     viewCount: s.viewCount ?? 0,
   }));
 
+  // ✅ JSON-LD Structured Data (Google'a “bu bir öykü” sinyali)
+  const ldJson = {
+    "@context": "https://schema.org",
+    "@type": "ShortStory",
+    name: story.title,
+    inLanguage: "tr",
+    url: canonical,
+    description: story.excerpt ?? undefined,
+    image: story.illustrationUrl ? [absoluteUrl(story.illustrationUrl)] : undefined,
+    author: {
+      "@type": "Person",
+      name: authorName,
+      url: `${base}${authorUrl}`,
+    },
+    datePublished: story.publishedAt ? new Date(story.publishedAt).toISOString() : undefined,
+    publisher: {
+      "@type": "Organization",
+      name: "Deri ve Kemik",
+      url: base,
+    },
+  };
+
   return (
     <div className="min-h-screen py-12">
       <ViewCounter slug={story.slug} />
 
       <article className="container mx-auto max-w-4xl px-4">
+        {/* ✅ Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }}
+        />
+
         <Link
           href={authorUrl}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8"
@@ -111,15 +161,10 @@ export default async function StoryPage({ params }: PageProps) {
         </Link>
 
         <header className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            {story.title}
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">{story.title}</h1>
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link
-              href={authorUrl}
-              className="flex items-center gap-2 hover:text-primary"
-            >
+            <Link href={authorUrl} className="flex items-center gap-2 hover:text-primary">
               <User className="h-4 w-4" />
               {authorName}
             </Link>
@@ -148,9 +193,7 @@ export default async function StoryPage({ params }: PageProps) {
         <div className="mb-16 p-6 rounded-xl bg-muted/30">
           <div className="flex items-center gap-3 mb-3">
             <User className="h-6 w-6" />
-            <h3 className="text-xl font-semibold">
-              Yazar: {authorName}
-            </h3>
+            <h3 className="text-xl font-semibold">Yazar: {authorName}</h3>
           </div>
 
           <Link
