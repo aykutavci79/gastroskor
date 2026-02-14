@@ -10,6 +10,11 @@ interface PageProps {
 }
 
 const LANGUAGE = "en" as const;
+const SITE_URL = "https://derivekemik.com";
+
+function absoluteUrl(path: string) {
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const story = await prisma.story.findUnique({
@@ -19,15 +24,70 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         slug: params.slug,
       },
     },
+    select: {
+      id: true,
+      originalStoryId: true,
+      title: true,
+      excerpt: true,
+      illustrationUrl: true,
+      author: true,
+      publishedAt: true,
+      slug: true,
+    },
   });
 
-  if (!story) {
-    return { title: "Story Not Found" };
-  }
+  if (!story) return { title: "Story Not Found" };
+
+  const canonicalUrl = absoluteUrl(`/en/story/${story.slug}`);
+  const description = (story.excerpt ?? "").trim();
+
+  // (Optional) alternates: same story in other languages via canonical id
+  const canonicalId = story.originalStoryId ?? story.id;
+
+  const [trAlt, frAlt, arAlt] = await Promise.all([
+    prisma.story.findFirst({
+      where: { language: "tr", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "fr", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+    prisma.story.findFirst({
+      where: { language: "ar", OR: [{ id: canonicalId }, { originalStoryId: canonicalId }] },
+      select: { slug: true },
+    }),
+  ]);
+
+  const ogImages = story.illustrationUrl
+    ? [{ url: story.illustrationUrl, alt: story.title }]
+    : undefined;
 
   return {
     title: `${story.title} - Skin and Bone`,
-    description: story.excerpt ?? "",
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        en: canonicalUrl,
+        ...(trAlt?.slug ? { tr: absoluteUrl(`/oyku/${trAlt.slug}`) } : {}),
+        ...(frAlt?.slug ? { fr: absoluteUrl(`/fr/story/${frAlt.slug}`) } : {}),
+        ...(arAlt?.slug ? { ar: absoluteUrl(`/ar/oyku/${arAlt.slug}`) } : {}),
+      },
+    },
+    openGraph: {
+      type: "article",
+      url: canonicalUrl,
+      title: `${story.title} - Skin and Bone`,
+      description,
+      images: ogImages,
+    },
+    twitter: {
+      card: story.illustrationUrl ? "summary_large_image" : "summary",
+      title: `${story.title} - Skin and Bone`,
+      description,
+      images: story.illustrationUrl ? [story.illustrationUrl] : undefined,
+    },
   };
 }
 
@@ -41,9 +101,7 @@ export default async function EnglishStoryPage({ params }: PageProps) {
     },
   });
 
-  if (!story) {
-    notFound();
-  }
+  if (!story) notFound();
 
   // Increment view count
   await prisma.story.update({
@@ -51,10 +109,9 @@ export default async function EnglishStoryPage({ params }: PageProps) {
     data: { viewCount: { increment: 1 } },
   });
 
-  // Canonical id: originalStoryId varsa onu, yoksa kendi id'sini kullan
   const canonicalId = story.originalStoryId ?? story.id;
 
-  // Get Turkish version link by canonical id
+  // Turkish version link (for switcher)
   const turkishStory = await prisma.story.findFirst({
     where: {
       language: "tr",
@@ -63,14 +120,40 @@ export default async function EnglishStoryPage({ params }: PageProps) {
     select: { slug: true },
   });
 
+  const canonicalUrl = absoluteUrl(`/en/story/${story.slug}`);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ShortStory",
+    "@id": canonicalUrl,
+    url: canonicalUrl,
+    inLanguage: "en",
+    name: story.title,
+    headline: story.title,
+    description: (story.excerpt ?? "").trim() || undefined,
+    image: story.illustrationUrl || undefined,
+    datePublished: story.publishedAt?.toISOString?.() || undefined,
+    author: {
+      "@type": "Person",
+      name: story.author,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Deri & Kemik",
+      url: SITE_URL,
+    },
+  };
+
   return (
     <article className="min-h-screen py-12 px-4">
-      {/* GA4 event: story_view */}
-      <StoryViewTracker
-        storySlug={story.slug}
-        language={story.language}
-        storyId={canonicalId}
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* GA4 event: story_view */}
+      <StoryViewTracker storySlug={story.slug} language={story.language} storyId={canonicalId} />
 
       <div className="max-w-4xl mx-auto">
         {/* Language Switcher */}
@@ -91,6 +174,7 @@ export default async function EnglishStoryPage({ params }: PageProps) {
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary">
             {story.title}
           </h1>
+
           <div className="flex items-center gap-4 text-muted-foreground">
             <span className="font-medium">by {story.author}</span>
             <span>•</span>
@@ -108,11 +192,7 @@ export default async function EnglishStoryPage({ params }: PageProps) {
 
         {/* Featured Image */}
         <div className="relative aspect-video mb-8 rounded-lg overflow-hidden">
-          <StoryCardImage
-            src={story.illustrationUrl}
-            alt={story.title}
-            className="object-cover"
-          />
+          <StoryCardImage src={story.illustrationUrl} alt={story.title} className="object-cover" />
         </div>
 
         {/* Story Content */}
