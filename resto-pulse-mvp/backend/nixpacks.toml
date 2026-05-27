@@ -1,0 +1,6 @@
+# Railway/Nixpacks: bcrypt ve cryptography icin derleme araclari
+[phases.setup]
+nixPkgs = ["python312", "gcc", "openssl"]
+
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.12"
