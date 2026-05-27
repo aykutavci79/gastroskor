@@ -1,0 +1,19 @@
+# API build — gereksiz dosyalari disla (Railway hiz + stabilite)
+.git
+.cursor
+node_modules
+.next
+.yarn
+**/.venv
+**/__pycache__
+**/*.pyc
+aile-finans
+bahce-ustasi
+kelime-bulmaca
+prisma
+public
+app
+components
+*.md
+*.zip
+*.docx
