@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg[binary]
+pydantic
+pydantic-settings
+python-dotenv
+certifi
+httpx
+authlib
+python-jose[cryptography]
+passlib[bcrypt]
+openai
+anthropic

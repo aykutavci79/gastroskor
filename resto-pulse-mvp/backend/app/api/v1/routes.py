@@ -1,0 +1,882 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.config import settings
+from app.db.session import get_db
+from app.integrations.google_places_live import GooglePlacesLiveClient
+from app.integrations.google_places import build_google_review_link
+from app.integrations.maps_links import (
+    build_destination_label,
+    build_google_maps_directions_url,
+    build_google_maps_search_url,
+)
+from app.models import (
+    CompensationCoupon,
+    FeedbackMessage,
+    PrivateFeedback,
+    PlatformName,
+    Restaurant,
+    RestaurantPlatformProfile,
+    Review,
+    ReviewCategoryScore,
+    SentimentLabel,
+    User,
+)
+from app.schemas.geo_indication import GeoIndicationRead
+from app.schemas.feedback import (
+    CompensationCouponCreate,
+    CompensationCouponRead,
+    CompensationIssueResponse,
+    FeedbackMessageCreate,
+    FeedbackMessageRead,
+    PrivateFeedbackCreate,
+    PrivateFeedbackDetailRead,
+    PrivateFeedbackRead,
+    PrivateFeedbackStatusUpdate,
+)
+from app.schemas.live_places import (
+    LivePlaceDetails,
+    LivePlaceSearchItem,
+    LivePlaceSearchResponse,
+    ParsedSearchIntent,
+)
+from app.services.query_parser import parse_search_query
+from app.services.smart_filters import apply_smart_filters, merge_criteria
+from app.schemas.restaurant import RestaurantCreate, RestaurantListItem, RestaurantRead
+from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
+from app.schemas.user import UserProfile, UserSyncPayload
+from app.services.ai_analysis import AIAnalysisService
+from app.services.gastro_score_ranking import rank_live_places
+from app.services.private_feedback_service import (
+    create_feedback_message,
+    create_private_feedback,
+    get_private_feedback_detail,
+    list_private_feedbacks_for_panel,
+    list_private_feedbacks_for_user,
+    resolve_user_uuid,
+    update_private_feedback_status,
+)
+from app.services.compensation_service import issue_compensation_coupon
+
+router = APIRouter()
+ai_service = AIAnalysisService()
+google_places_live_client = GooglePlacesLiveClient()
+
+
+def parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
+    if not raw:
+        return []
+    items: list[GeoIndicationRead] = []
+    for row in raw:
+        if isinstance(row, dict) and row.get("product"):
+            items.append(GeoIndicationRead.model_validate(row))
+    return items
+
+
+def serialize_user(user: User, db: Session) -> UserProfile:
+    avg_rating = db.scalar(select(func.avg(Review.rating)).where(Review.author_id == user.id))
+    review_count = db.scalar(select(func.count(Review.id)).where(Review.author_id == user.id)) or 0
+    return UserProfile(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        avatar_url=user.avatar_url,
+        gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
+        review_count=int(review_count),
+    )
+
+
+def get_or_create_user(
+    db: Session,
+    email: str,
+    full_name: str | None = None,
+    avatar_url: str | None = None,
+    google_sub: str | None = None,
+) -> User:
+    user = db.scalar(select(User).where(User.email == email))
+    if not user and google_sub:
+        user = db.scalar(select(User).where(User.google_sub == google_sub))
+
+    if user:
+        updated = False
+        if full_name and user.full_name != full_name:
+            user.full_name = full_name
+            updated = True
+        if avatar_url and user.avatar_url != avatar_url:
+            user.avatar_url = avatar_url
+            updated = True
+        if google_sub and user.google_sub != google_sub:
+            user.google_sub = google_sub
+            updated = True
+        if updated:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    user = User(email=email, full_name=full_name, avatar_url=avatar_url, google_sub=google_sub)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_google_place_id(db: Session, restaurant_id: UUID) -> str | None:
+    stmt = select(RestaurantPlatformProfile.external_id).where(
+        RestaurantPlatformProfile.restaurant_id == restaurant_id,
+        RestaurantPlatformProfile.platform == PlatformName.google_maps,
+    )
+    return db.scalar(stmt)
+
+
+def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -> RestaurantRead:
+    place_id: str | None = None
+    if db is not None:
+        place_id = get_google_place_id(db, restaurant.id)
+
+    destination_query = build_destination_label(
+        name=restaurant.name,
+        address=restaurant.address,
+        city=restaurant.city,
+    )
+    maps_directions_url = build_google_maps_directions_url(
+        place_id=place_id,
+        latitude=restaurant.latitude,
+        longitude=restaurant.longitude,
+        query=destination_query or restaurant.name,
+    )
+
+    return RestaurantRead(
+        id=str(restaurant.id),
+        name=restaurant.name,
+        city=restaurant.city,
+        district=restaurant.district,
+        address=restaurant.address,
+        latitude=restaurant.latitude,
+        longitude=restaurant.longitude,
+        category=restaurant.category,
+        geo_indications=parse_geo_indications(restaurant.geo_indications),
+        has_geographical_indication=restaurant.has_geographical_indication,
+        gi_product_name=restaurant.gi_product_name,
+        google_place_id=place_id,
+        maps_directions_url=maps_directions_url,
+        maps_search_url=maps_directions_url,
+    )
+
+
+def serialize_review(review: Review) -> ReviewRead:
+    author_name = review.author.full_name if review.author else None
+    author_avatar = review.author.avatar_url if review.author else None
+    return ReviewRead(
+        id=str(review.id),
+        restaurant_id=str(review.restaurant_id),
+        author_id=str(review.author_id) if review.author_id else None,
+        author_email=review.author.email if review.author else None,
+        author_name=author_name,
+        author_avatar_url=author_avatar,
+        rating=review.rating,
+        review_text=review.review_text,
+        sentiment_label=review.sentiment_label.value if review.sentiment_label else None,
+        sentiment_score=review.sentiment_score,
+        ai_summary=review.ai_summary,
+        is_demo=review.is_demo,
+        source_platform=review.source_platform.value if review.source_platform else None,
+        categories=[
+            ReviewCategoryRead(
+                category=row.category,
+                score=row.score,
+                label=row.label.value if row.label else None,
+                reason=row.reason,
+            )
+            for row in review.category_scores
+        ],
+    )
+
+
+def serialize_private_feedback(feedback: PrivateFeedback) -> PrivateFeedbackRead:
+    return PrivateFeedbackRead(
+        id=str(feedback.id),
+        place_id=feedback.place_id,
+        restaurant_id=str(feedback.restaurant_id) if feedback.restaurant_id else None,
+        author_id=str(feedback.author_id),
+        category=feedback.category,
+        severity=feedback.severity,  # type: ignore[arg-type]
+        visit_at=feedback.visit_at,
+        message=feedback.message,
+        status=feedback.status,  # type: ignore[arg-type]
+        created_at=feedback.created_at,
+        updated_at=feedback.updated_at,
+    )
+
+
+def serialize_feedback_message(row: FeedbackMessage) -> FeedbackMessageRead:
+    return FeedbackMessageRead(
+        id=str(row.id),
+        feedback_id=str(row.feedback_id),
+        sender_type=row.sender_type,  # type: ignore[arg-type]
+        message=row.message,
+        attachments_json=row.attachments_json,
+        created_at=row.created_at,
+    )
+
+
+def serialize_compensation_coupon(row: CompensationCoupon) -> CompensationCouponRead:
+    return CompensationCouponRead(
+        id=str(row.id),
+        feedback_id=str(row.feedback_id),
+        restaurant_id=str(row.restaurant_id),
+        user_id=str(row.user_id),
+        discount_percent=row.discount_percent,
+        code=row.code,
+        expires_at=row.expires_at,
+        status=row.status,
+        created_at=row.created_at,
+    )
+
+
+@router.get("/health")
+def health():
+    return {"status": "ok", "service": settings.app_name}
+
+
+@router.post("/dev/seed-panel-demo")
+def seed_panel_demo(db: Session = Depends(get_db)):
+    """Panel UI testi icin ornek sikayet kayitlari olusturur."""
+    actor = get_or_create_user(
+        db,
+        email="restaurant-actor@example.com",
+        full_name="Panel Demo Actor",
+        avatar_url=None,
+        google_sub=None,
+    )
+
+    restaurant = db.scalar(select(Restaurant).where(Restaurant.is_active.is_(True)).order_by(Restaurant.name.asc()).limit(1))
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aktif restoran bulunamadi")
+
+    existing_open = db.scalar(
+        select(func.count(PrivateFeedback.id)).where(
+            PrivateFeedback.restaurant_id == restaurant.id,
+            PrivateFeedback.status == "open",
+        )
+    ) or 0
+
+    samples = [
+        ("seed-panel-001", "Servis", "medium", "Garson siparisi gec getirdi, masa ilgilenmedi."),
+        ("seed-panel-002", "Hijyen", "high", "Masada onceki musteriden kalan kirintilar vardi."),
+        ("seed-panel-003", "Lezzet", "medium", "Yemek soguk geldi, porsiyon kucuktu."),
+        ("seed-panel-004", "Fiyat", "low", "Menudeki fiyat ile kasadaki fiyat farkli cikti."),
+    ]
+
+    created = 0
+    if existing_open < 4:
+        for place_id, category, severity, message in samples:
+            already = db.scalar(
+                select(PrivateFeedback.id).where(
+                    PrivateFeedback.restaurant_id == restaurant.id,
+                    PrivateFeedback.place_id == place_id,
+                )
+            )
+            if already:
+                continue
+            db.add(
+                PrivateFeedback(
+                    place_id=place_id,
+                    restaurant_id=restaurant.id,
+                    author_id=actor.id,
+                    category=category,
+                    severity=severity,
+                    message=message,
+                    status="open",
+                )
+            )
+            created += 1
+        db.commit()
+
+    open_count = db.scalar(
+        select(func.count(PrivateFeedback.id)).where(
+            PrivateFeedback.restaurant_id == restaurant.id,
+            PrivateFeedback.status == "open",
+        )
+    ) or 0
+
+    return {
+        "restaurant_id": str(restaurant.id),
+        "restaurant_name": restaurant.name,
+        "actor_email": actor.email,
+        "created": created,
+        "open_count": int(open_count),
+    }
+
+
+@router.get("/live/places/search", response_model=LivePlaceSearchResponse)
+async def search_live_places(
+    q: str = Query(min_length=2, description="Canli arama (dogal dil destekli)"),
+    city: str = Query(default="Bursa", description="Il varsayilan: Bursa"),
+    limit: int = Query(default=8, ge=1, le=20),
+    origin_lat: float | None = Query(default=None, description="Kullanici enlemi (mesafe puani icin)"),
+    origin_lng: float | None = Query(default=None, description="Kullanici boylami (mesafe puani icin)"),
+    distance_band: str | None = Query(
+        default=None,
+        description="0-250 | 251-500 | 501-1000 | 1100-2000 | 2100+",
+    ),
+    rating_band: str | None = Query(
+        default=None,
+        description="3.0-3.9 | 4.0-4.4 | 4.5-5.0",
+    ),
+):
+    if not settings.google_places_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GOOGLE_PLACES_API_KEY tanimli degil.",
+        )
+
+    parsed = parse_search_query(q)
+    search_text = parsed.query if len(parsed.query) >= 2 else q
+    criteria = merge_criteria(parsed, distance_band=distance_band, rating_band=rating_band)
+
+    try:
+        google_fetch_limit = min(20, max(limit * 2, 16))
+        rows = await google_places_live_client.search_places(
+            search_text,
+            city=city,
+            limit=google_fetch_limit,
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+        )
+        ranked_rows = rank_live_places(
+            rows,
+            city=city,
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+            limit=google_fetch_limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Google Places baglantisi basarisiz: {exc}",
+        ) from exc
+
+    items = [
+        LivePlaceSearchItem(
+            place_id=ranked.place.place_id,
+            name=ranked.place.name,
+            address=ranked.place.formatted_address,
+            rating=ranked.place.rating,
+            user_ratings_total=ranked.place.user_ratings_total,
+            latitude=ranked.place.latitude,
+            longitude=ranked.place.longitude,
+            distance_meters=round(ranked.distance_meters, 1) if ranked.distance_meters is not None else None,
+            distance_origin=ranked.distance_origin,
+            distance_score=ranked.distance_score,
+            rating_score=ranked.rating_score,
+            gastro_score=ranked.gastro_score,
+            maps_directions_url=build_google_maps_directions_url(
+                place_id=ranked.place.place_id,
+                latitude=ranked.place.latitude,
+                longitude=ranked.place.longitude,
+                query=build_destination_label(
+                    name=ranked.place.name,
+                    address=ranked.place.formatted_address,
+                    city=city,
+                )
+                or ranked.place.name,
+            ),
+        )
+        for ranked in ranked_rows
+    ]
+
+    filtered_items = apply_smart_filters(items, criteria)[:limit]
+
+    return LivePlaceSearchResponse(
+        items=filtered_items,
+        parsed=ParsedSearchIntent(
+            raw_query=q,
+            query=parsed.query,
+            min_rating=parsed.min_rating,
+            max_distance_m=parsed.max_distance_m,
+            min_distance_m=parsed.min_distance_m,
+            removed_tokens=parsed.removed_tokens,
+        ),
+        filters_applied={
+            "distance_band": distance_band,
+            "rating_band": rating_band,
+            "min_rating": parsed.min_rating,
+            "max_distance_m": parsed.max_distance_m,
+            "min_distance_m": parsed.min_distance_m,
+        },
+    )
+
+
+@router.get("/live/places/details/{place_id}", response_model=LivePlaceDetails)
+async def get_live_place_details(
+    place_id: str,
+    city: str = Query(default="Bursa", description="Il varsayilan: Bursa"),
+    sort: str = Query(default="newest", description="Yorum siralama: newest, oldest, highest_rating, lowest_rating"),
+    review_filter: str = Query(
+        default="all",
+        alias="filter",
+        description="Yorum filtresi: all, negative",
+    ),
+    db: Session = Depends(get_db),
+):
+    if not settings.google_places_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GOOGLE_PLACES_API_KEY tanimli degil.",
+        )
+
+    try:
+        details = await google_places_live_client.get_place_details(place_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Google Places baglantisi basarisiz: {exc}",
+        ) from exc
+
+    all_reviews = [review for review in details.get("reviews", []) if review.get("text")]
+    
+    # Apply filter
+    if review_filter == "negative":
+        filtered_reviews = [r for r in all_reviews if r.get("rating") and r.get("rating") < 3]
+    else:
+        filtered_reviews = all_reviews
+    
+    # Apply sort (Google returns newest first by default)
+    if sort == "oldest":
+        filtered_reviews = list(reversed(filtered_reviews))
+    elif sort == "highest_rating":
+        filtered_reviews.sort(key=lambda r: r.get("rating") or 0, reverse=True)
+    elif sort == "lowest_rating":
+        filtered_reviews.sort(key=lambda r: r.get("rating") or 0)
+    # else: newest (default) - keep Google's order
+
+    profile_stmt = select(RestaurantPlatformProfile).where(
+        RestaurantPlatformProfile.external_id == place_id,
+        RestaurantPlatformProfile.platform == PlatformName.google_maps,
+    )
+    mapping = db.scalar(profile_stmt)
+    member_reviews: list[dict] = []
+    member_review_count = 0
+    member_avg_rating = None
+    restaurant_id = None
+
+    if mapping:
+        restaurant_id = str(mapping.restaurant_id)
+        review_rows = (
+            db.scalars(
+                select(Review)
+                .where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
+                .options(selectinload(Review.category_scores), selectinload(Review.author))
+                .order_by(Review.created_at.desc())
+            )
+            .all()
+        )
+        member_review_count = len(review_rows)
+        member_avg_rating = db.scalar(
+            select(func.avg(Review.rating)).where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
+        )
+        member_reviews = [
+            {
+                "id": str(review.id),
+                "author_name": review.author.full_name if review.author else "GastroSkor Üye",
+                "author_avatar_url": review.author.avatar_url if review.author else None,
+                "rating": review.rating,
+                "review_text": review.review_text,
+                "sentiment_label": review.sentiment_label.value if review.sentiment_label else None,
+                "sentiment_score": review.sentiment_score,
+            }
+            for review in review_rows
+        ]
+
+    combined_texts = [review["text"] for review in filtered_reviews if review.get("text")]
+    combined_texts.extend([review["review_text"] for review in member_reviews if review.get("review_text")])
+    analysis = await ai_service.analyze_place_reviews(combined_texts)
+
+    return LivePlaceDetails(
+        place_id=details["place_id"],
+        restaurant_id=restaurant_id,
+        name=details["name"],
+        address=details.get("address"),
+        rating=details.get("rating"),
+        user_ratings_total=details.get("user_ratings_total"),
+        phone_number=details.get("phone_number"),
+        website=details.get("website"),
+        opening_hours=details.get("opening_hours"),
+        reviews=filtered_reviews,
+        member_reviews=member_reviews,
+        member_review_count=member_review_count,
+        member_avg_rating=round(float(member_avg_rating), 1) if member_avg_rating is not None else None,
+        maps_directions_url=build_google_maps_directions_url(
+            place_id=details["place_id"],
+            latitude=None,
+            longitude=None,
+            query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
+        ),
+        maps_search_url=build_google_maps_search_url(
+            place_id=details["place_id"],
+            query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
+        ),
+        analysis=analysis,
+    )
+
+
+@router.get("/restaurants", response_model=list[RestaurantListItem])
+def list_restaurants(
+    q: str | None = Query(default=None, description="Isim/konum aramasi"),
+    city: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    stmt = select(Restaurant).where(Restaurant.is_active.is_(True))
+    if q:
+        stmt = stmt.where(Restaurant.name.ilike(f"%{q}%"))
+    if city:
+        stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
+    rows = db.scalars(stmt.order_by(Restaurant.name.asc()).limit(limit)).all()
+
+    result: list[dict] = []
+    for restaurant in rows:
+        avg_rating = db.scalar(
+            select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
+        )
+        result.append(
+            {
+                "id": str(restaurant.id),
+                "name": restaurant.name,
+                "city": restaurant.city,
+                "district": restaurant.district,
+                "category": restaurant.category,
+                "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+                "geo_indications": parse_geo_indications(restaurant.geo_indications),
+                "has_geographical_indication": restaurant.has_geographical_indication,
+                "gi_product_name": restaurant.gi_product_name,
+            }
+        )
+    return result
+
+
+@router.get("/restaurants/{restaurant_id}", response_model=RestaurantRead)
+def get_restaurant(restaurant_id: UUID, db: Session = Depends(get_db)):
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    return serialize_restaurant(restaurant, db=db)
+
+
+@router.post("/restaurants", response_model=RestaurantRead, status_code=status.HTTP_201_CREATED)
+def create_restaurant(payload: RestaurantCreate, db: Session = Depends(get_db)):
+    restaurant = Restaurant(
+        name=payload.name,
+        city=payload.city,
+        district=payload.district,
+        address=payload.address,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        category=payload.category,
+        geo_indications=[row.model_dump() for row in payload.geo_indications],
+        has_geographical_indication=payload.has_geographical_indication,
+        gi_product_name=payload.gi_product_name,
+    )
+    db.add(restaurant)
+    db.commit()
+    db.refresh(restaurant)
+    return serialize_restaurant(restaurant, db=db)
+
+
+@router.get("/restaurants/{restaurant_id}/reviews", response_model=list[ReviewRead])
+def list_restaurant_reviews(
+    restaurant_id: UUID,
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    if not db.get(Restaurant, restaurant_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+
+    stmt = (
+        select(Review)
+        .where(Review.restaurant_id == restaurant_id)
+        .options(selectinload(Review.category_scores))
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+    )
+    rows = db.scalars(stmt).all()
+    return [serialize_review(row) for row in rows]
+
+
+@router.post("/users/sync", response_model=UserProfile)
+def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
+    user = get_or_create_user(
+        db,
+        email=payload.email,
+        full_name=payload.full_name,
+        avatar_url=payload.avatar_url,
+        google_sub=payload.google_sub,
+    )
+    return serialize_user(user, db)
+
+
+@router.post("/feedback/private", response_model=PrivateFeedbackRead, status_code=status.HTTP_201_CREATED)
+def create_private_feedback_endpoint(payload: PrivateFeedbackCreate, db: Session = Depends(get_db)):
+    author_uuid = None
+    if payload.author_id:
+        try:
+            author_uuid = UUID(payload.author_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
+    elif payload.author_email:
+        author = get_or_create_user(
+            db,
+            email=payload.author_email,
+            full_name=payload.author_name,
+            avatar_url=payload.author_avatar_url,
+            google_sub=None,
+        )
+        author_uuid = author.id
+
+    if not author_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="author_id or author_email is required",
+        )
+
+    feedback = create_private_feedback(db, payload=payload, author_id=author_uuid)
+    return serialize_private_feedback(feedback)
+
+
+@router.get("/feedback/private/mine", response_model=list[PrivateFeedbackRead])
+def list_my_private_feedbacks(
+    author_id: str | None = Query(default=None),
+    email: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    user_uuid = resolve_user_uuid(db, user_id=author_id, email=email)
+    if not user_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="author_id or email is required and must exist",
+        )
+    rows = list_private_feedbacks_for_user(db, user_uuid=user_uuid)
+    return [serialize_private_feedback(row) for row in rows]
+
+
+@router.get("/feedback/private", response_model=list[PrivateFeedbackRead])
+def list_private_feedbacks_for_dashboard(
+    actor_user_id: str | None = Query(default=None),
+    actor_user_email: str | None = Query(default=None),
+    actor_restaurant_id: str | None = Query(default=None),
+    status_filter: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    rows = list_private_feedbacks_for_panel(
+        db,
+        actor_user_id=actor_user_id,
+        actor_user_email=actor_user_email,
+        actor_restaurant_id=actor_restaurant_id,
+        status_filter=status_filter,
+        limit=limit,
+    )
+    return [serialize_private_feedback(row) for row in rows]
+
+
+@router.get("/feedback/private/{feedback_id}", response_model=PrivateFeedbackDetailRead)
+def get_private_feedback_detail_endpoint(
+    feedback_id: UUID,
+    actor_user_id: str | None = Query(default=None),
+    actor_user_email: str | None = Query(default=None),
+    actor_restaurant_id: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    feedback, messages, latest_coupon = get_private_feedback_detail(
+        db,
+        feedback_id=feedback_id,
+        actor_user_id=actor_user_id,
+        actor_user_email=actor_user_email,
+        actor_restaurant_id=actor_restaurant_id,
+    )
+    return PrivateFeedbackDetailRead(
+        feedback=serialize_private_feedback(feedback),
+        messages=[serialize_feedback_message(row) for row in messages],
+        latest_coupon=serialize_compensation_coupon(latest_coupon) if latest_coupon else None,
+    )
+
+
+@router.post(
+    "/feedback/private/{feedback_id}/messages",
+    response_model=FeedbackMessageRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_feedback_message_endpoint(
+    feedback_id: UUID,
+    payload: FeedbackMessageCreate,
+    db: Session = Depends(get_db),
+):
+    row = create_feedback_message(db, feedback_id=feedback_id, payload=payload)
+    return serialize_feedback_message(row)
+
+
+@router.patch("/feedback/private/{feedback_id}/status", response_model=PrivateFeedbackRead)
+def update_private_feedback_status_endpoint(
+    feedback_id: UUID,
+    payload: PrivateFeedbackStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    row = update_private_feedback_status(
+        db,
+        feedback_id=feedback_id,
+        status_value=payload.status,
+        actor_user_id=payload.actor_user_id,
+        actor_user_email=payload.actor_user_email,
+        actor_restaurant_id=payload.actor_restaurant_id,
+    )
+    return serialize_private_feedback(row)
+
+
+@router.post(
+    "/feedback/private/{feedback_id}/compensation",
+    response_model=CompensationIssueResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def issue_compensation_coupon_endpoint(
+    feedback_id: UUID,
+    payload: CompensationCouponCreate,
+    db: Session = Depends(get_db),
+):
+    coupon, feedback, notification_payload = issue_compensation_coupon(db, feedback_id=feedback_id, payload=payload)
+    return CompensationIssueResponse(
+        coupon=serialize_compensation_coupon(coupon),
+        feedback_status=feedback.status,  # type: ignore[arg-type]
+        notification_ready=True,
+        notification_payload=notification_payload,
+    )
+
+
+@router.post("/reviews", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
+def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
+    try:
+        restaurant_id = UUID(payload.restaurant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid restaurant_id") from exc
+
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+
+    author_uuid = None
+    if payload.author_id:
+        try:
+            author_uuid = UUID(payload.author_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
+    elif payload.author_email:
+        author = get_or_create_user(
+            db,
+            email=payload.author_email,
+            full_name=payload.author_name,
+            avatar_url=payload.author_avatar_url,
+            google_sub=None,
+        )
+        author_uuid = author.id
+
+    review = Review(
+        restaurant_id=restaurant_id,
+        author_id=author_uuid,
+        rating=payload.rating,
+        review_text=payload.review_text,
+        review_lang="tr",
+        is_demo=False,
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return serialize_review(review)
+
+
+@router.post("/reviews/{review_id}/analyze", response_model=ReviewAnalyzeResponse)
+async def analyze_review(review_id: UUID, db: Session = Depends(get_db)):
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+
+    analysis = await ai_service.analyze_review(review.review_text)
+
+    review.sentiment_label = SentimentLabel(analysis["overall_sentiment"])
+    review.sentiment_score = analysis["overall_score"]
+    review.ai_summary = analysis["summary"]
+    review.ai_raw_payload = analysis
+
+    db.query(ReviewCategoryScore).filter(ReviewCategoryScore.review_id == review.id).delete()
+    for row in analysis["categories"]:
+        db.add(
+            ReviewCategoryScore(
+                review_id=review.id,
+                category=row["category"],
+                score=row["score"],
+                label=SentimentLabel(row["label"]),
+                reason=row["reason"],
+            )
+        )
+
+    db.commit()
+    return ReviewAnalyzeResponse(
+        review_id=str(review.id),
+        sentiment_label=analysis["overall_sentiment"],
+        sentiment_score=analysis["overall_score"],
+        summary=analysis["summary"],
+        categories=analysis["categories"],
+    )
+
+
+@router.get("/restaurants/{restaurant_id}/google-review-link")
+def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+
+    stmt = select(RestaurantPlatformProfile).where(
+        RestaurantPlatformProfile.restaurant_id == restaurant_id,
+        RestaurantPlatformProfile.platform == PlatformName.google_maps,
+    )
+    profile = db.scalar(stmt)
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Google Maps profile not found for restaurant",
+        )
+
+    place_id = profile.external_id
+    return {
+        "restaurant_id": str(restaurant_id),
+        "platform": "google_maps",
+        "place_id": place_id,
+        "google_review_url": build_google_review_link(place_id),
+        "maps_directions_url": (
+            directions_url := build_google_maps_directions_url(
+                place_id=place_id,
+                latitude=restaurant.latitude,
+                longitude=restaurant.longitude,
+                query=build_destination_label(
+                    name=restaurant.name,
+                    address=restaurant.address,
+                    city=restaurant.city,
+                )
+                or restaurant.name,
+            )
+        ),
+        "maps_search_url": directions_url,
+    }
+

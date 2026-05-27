@@ -1,0 +1,238 @@
+from __future__ import annotations
+
+import enum
+import uuid
+from datetime import datetime
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
+
+
+class PlatformName(str, enum.Enum):
+    google_maps = "google_maps"
+    yemeksepeti = "yemeksepeti"
+    tripadvisor = "tripadvisor"
+
+
+class SentimentLabel(str, enum.Enum):
+    positive = "positive"
+    neutral = "neutral"
+    negative = "negative"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    full_name: Mapped[str | None] = mapped_column(String(255))
+    avatar_url: Mapped[str | None] = mapped_column(String(1024))
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(30), default="end_user")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    reviews: Mapped[list["Review"]] = relationship(back_populates="author")
+    public_reviews: Mapped[list["PublicReview"]] = relationship(back_populates="author")
+    private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="author")
+    compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="user")
+
+
+class Restaurant(Base):
+    __tablename__ = "restaurants"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    city: Mapped[str | None] = mapped_column(String(120), index=True)
+    district: Mapped[str | None] = mapped_column(String(120), index=True)
+    address: Mapped[str | None] = mapped_column(String(500))
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
+    category: Mapped[str | None] = mapped_column(String(120))
+    geo_indications: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+    has_geographical_indication: Mapped[bool] = mapped_column(Boolean, default=False)
+    gi_product_name: Mapped[str | None] = mapped_column(String(255))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    platform_profiles: Mapped[list["RestaurantPlatformProfile"]] = relationship(back_populates="restaurant")
+    reviews: Mapped[list["Review"]] = relationship(back_populates="restaurant")
+    public_reviews: Mapped[list["PublicReview"]] = relationship(back_populates="restaurant")
+    private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="restaurant")
+    compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="restaurant")
+
+
+class RestaurantPlatformProfile(Base):
+    __tablename__ = "restaurant_platform_profiles"
+    __table_args__ = (
+        UniqueConstraint("platform", "external_id", name="uq_platform_external_id"),
+        UniqueConstraint("restaurant_id", "platform", name="uq_restaurant_platform"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    platform: Mapped[PlatformName] = mapped_column(Enum(PlatformName), index=True)
+    external_id: Mapped[str] = mapped_column(String(255), index=True)  # google place id vb.
+    profile_url: Mapped[str | None] = mapped_column(String(1024))
+    avg_rating: Mapped[float | None] = mapped_column(Float)
+    review_count: Mapped[int | None] = mapped_column(Integer)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="platform_profiles")
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+
+    source_platform: Mapped[PlatformName | None] = mapped_column(Enum(PlatformName), index=True)
+    source_review_id: Mapped[str | None] = mapped_column(String(255))
+
+    rating: Mapped[int] = mapped_column(Integer)  # 1-5
+    review_text: Mapped[str] = mapped_column(Text)
+    review_lang: Mapped[str | None] = mapped_column(String(10))
+
+    sentiment_label: Mapped[SentimentLabel | None] = mapped_column(Enum(SentimentLabel))
+    sentiment_score: Mapped[float | None] = mapped_column(Float)
+    ai_summary: Mapped[str | None] = mapped_column(Text)
+    ai_raw_payload: Mapped[dict | None] = mapped_column(JSON)
+
+    published_to_google: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="reviews")
+    author: Mapped["User | None"] = relationship(back_populates="reviews")
+    category_scores: Mapped[list["ReviewCategoryScore"]] = relationship(back_populates="review")
+
+
+class ReviewCategoryScore(Base):
+    __tablename__ = "review_category_scores"
+    __table_args__ = (UniqueConstraint("review_id", "category", name="uq_review_category"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    category: Mapped[str] = mapped_column(String(40), index=True)  # lezzet, servis, fiyat, hijyen
+    score: Mapped[float | None] = mapped_column(Float)
+    label: Mapped[SentimentLabel | None] = mapped_column(Enum(SentimentLabel))
+    reason: Mapped[str | None] = mapped_column(Text)
+
+    review: Mapped["Review"] = relationship(back_populates="category_scores")
+
+
+class PublicReview(Base):
+    __tablename__ = "public_reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    place_id: Mapped[str] = mapped_column(String(255), index=True)
+    restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
+    rating: Mapped[int] = mapped_column(Integer)  # 1-5
+    review_text: Mapped[str] = mapped_column(Text)
+    sentiment_label: Mapped[SentimentLabel | None] = mapped_column(Enum(SentimentLabel), index=True)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    author: Mapped["User"] = relationship(back_populates="public_reviews")
+    restaurant: Mapped["Restaurant | None"] = relationship(back_populates="public_reviews")
+
+
+class PrivateFeedback(Base):
+    __tablename__ = "private_feedbacks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    place_id: Mapped[str] = mapped_column(String(255), index=True)
+    restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    category: Mapped[str] = mapped_column(String(50), index=True)
+    severity: Mapped[str] = mapped_column(String(30), default="medium", index=True)
+    visit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="open", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    author: Mapped["User"] = relationship(back_populates="private_feedbacks")
+    restaurant: Mapped["Restaurant | None"] = relationship(back_populates="private_feedbacks")
+    messages: Mapped[list["FeedbackMessage"]] = relationship(
+        back_populates="feedback", cascade="all, delete-orphan"
+    )
+    compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(
+        back_populates="feedback", cascade="all, delete-orphan"
+    )
+
+
+class FeedbackMessage(Base):
+    __tablename__ = "feedback_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("private_feedbacks.id", ondelete="CASCADE"), index=True
+    )
+    sender_type: Mapped[str] = mapped_column(String(20), index=True)  # user | restaurant
+    message: Mapped[str] = mapped_column(Text)
+    attachments_json: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    feedback: Mapped["PrivateFeedback"] = relationship(back_populates="messages")
+
+
+class CompensationCoupon(Base):
+    __tablename__ = "compensation_coupons"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("private_feedbacks.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    discount_percent: Mapped[int] = mapped_column(Integer)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(30), default="issued", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    feedback: Mapped["PrivateFeedback"] = relationship(back_populates="compensation_coupons")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="compensation_coupons")
+    user: Mapped["User"] = relationship(back_populates="compensation_coupons")
+

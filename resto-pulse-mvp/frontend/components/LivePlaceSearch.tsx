@@ -1,0 +1,666 @@
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { signIn, signOut, useSession } from 'next-auth/react';
+
+import { createReview, getLivePlaceDetails, searchLivePlaces, syncUser } from '@/lib/api';
+import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
+import type {
+  LivePlaceDetails,
+  LivePlaceSearchItem,
+  ParsedSearchIntent,
+  ReviewSortOption,
+  ReviewFilterOption,
+  UserProfile,
+} from '@/lib/types';
+
+export function LivePlaceSearch() {
+  const [q, setQ] = useState('');
+  const [city] = useState('Bursa');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<LivePlaceSearchItem[]>([]);
+  const [details, setDetails] = useState<LivePlaceDetails | null>(null);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
+  const [reviewSort, setReviewSort] = useState<ReviewSortOption>('newest');
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilterOption>('all');
+  const [activeTab, setActiveTab] = useState<'google' | 'member' | 'gastro'>('google');
+  const [memberRating, setMemberRating] = useState(5);
+  const [memberReviewText, setMemberReviewText] = useState('');
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'ready' | 'denied'>('idle');
+  const [lastDistanceOrigin, setLastDistanceOrigin] = useState<'user' | 'city_center' | null>(null);
+  const [distanceBand, setDistanceBand] = useState<DistanceBand>('');
+  const [ratingBand, setRatingBand] = useState<RatingBand>('');
+  const [parsedIntent, setParsedIntent] = useState<ParsedSearchIntent | null>(null);
+  const [selectedItem, setSelectedItem] = useState<LivePlaceSearchItem | null>(null);
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === 'authenticated';
+
+  function requestUserCoords(): Promise<{ lat: number; lng: number } | null> {
+    if (!navigator.geolocation) {
+      setLocationStatus('denied');
+      return Promise.resolve(null);
+    }
+    setLocationStatus('loading');
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserCoords(coords);
+          setLocationStatus('ready');
+          resolve(coords);
+        },
+        () => {
+          setUserCoords(null);
+          setLocationStatus('denied');
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+      );
+    });
+  }
+
+  function formatDistance(meters: number | null): string {
+    if (meters == null) return '-';
+    if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+    return `${Math.round(meters)} m`;
+  }
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    const query = q.trim();
+    if (!query) {
+      setItems([]);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const coords = await requestUserCoords();
+      const result = await searchLivePlaces({
+        q: query,
+        city,
+        limit: 8,
+        origin_lat: coords?.lat,
+        origin_lng: coords?.lng,
+        distance_band: distanceBand || undefined,
+        rating_band: ratingBand || undefined,
+      });
+      setParsedIntent(result.parsed);
+      setLastDistanceOrigin(result.items[0]?.distance_origin ?? (coords ? 'user' : 'city_center'));
+      setItems(result.items);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Canli arama sirasinda hata olustu.';
+      setError(message);
+      setItems([]);
+      setDetails(null);
+      setActivePlaceId(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!isAuthenticated || !session?.user?.email) {
+      return;
+    }
+
+    const googleSub = (session.user as { id?: string } | undefined)?.id;
+    syncUser({
+      email: session.user.email,
+      full_name: session.user.name ?? null,
+      avatar_url: session.user.image ?? null,
+      google_sub: googleSub ?? null,
+    })
+      .then((result) => setProfile(result))
+      .catch(() => setProfile(null));
+  }, [isAuthenticated, session]);
+
+  function showDetails(place_id: string) {
+    setActivePlaceId(place_id);
+    setDetails(null);
+    setDetailsError(null);
+    setDetailsLoading(true);
+    setReviewSort('newest');
+    setReviewFilter('all');
+    setActiveTab('google');
+
+    getLivePlaceDetails(place_id, { sort: 'newest', filter: 'all' })
+      .then((result) => setDetails(result))
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : 'Detaylar getirilirken hata olustu.';
+        if (message.toLowerCase().includes('failed to fetch')) {
+          setDetailsError('Backend baglantisi kurulamadi. http://127.0.0.1:8000 calisiyor mu?');
+        } else {
+          setDetailsError(message);
+        }
+      })
+      .finally(() => setDetailsLoading(false));
+  }
+
+  function onReviewFilterChange(sort: ReviewSortOption, filter: ReviewFilterOption) {
+    setReviewSort(sort);
+    setReviewFilter(filter);
+    setDetailsLoading(true);
+
+    getLivePlaceDetails(activePlaceId!, { sort, filter })
+      .then((result) => setDetails(result))
+      .catch((err) => {
+        setDetailsError(err instanceof Error ? err.message : 'Filtre uygulanirken hata olustu.');
+      })
+      .finally(() => setDetailsLoading(false));
+  }
+
+  async function submitMemberReview(event: FormEvent) {
+    event.preventDefault();
+    if (!details?.restaurant_id) {
+      setDetailsError('Bu restoran veritabanina kayitli degil, GastroSkor yorumlari eklenemiyor.');
+      return;
+    }
+
+    if (!session?.user?.email) {
+      setDetailsError('Uye olmadan yorum ekleyemezsiniz. Lutfen Google ile giris yapin.');
+      return;
+    }
+
+    setMemberLoading(true);
+    setDetailsError(null);
+
+    try {
+      await createReview({
+        restaurant_id: details.restaurant_id,
+        rating: memberRating,
+        review_text: memberReviewText,
+        author_id: profile?.id ?? undefined,
+        author_email: session.user.email,
+        author_name: session.user.name ?? undefined,
+        author_avatar_url: session.user.image ?? undefined,
+      });
+
+      setMemberReviewText('');
+      setMemberRating(5);
+
+      const refreshed = await getLivePlaceDetails(activePlaceId!, {
+        sort: reviewSort,
+        filter: reviewFilter,
+      });
+      setDetails(refreshed);
+    } catch (err) {
+      setDetailsError(err instanceof Error ? err.message : 'Uye yorumu kaydedilirken hata olustu.');
+    } finally {
+      setMemberLoading(false);
+    }
+  }
+
+  function closeDetails() {
+    setActivePlaceId(null);
+    setSelectedItem(null);
+    setDetails(null);
+    setDetailsError(null);
+  }
+
+  return (
+    <section className="space-y-3 rounded-2xl border border-slate-700/70 bg-panel/70 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-200">GastroSkor Önerisi</h2>
+          <p className="text-xs text-slate-400">
+            Canli Google Places + akilli filtre. Ornek: &quot;Donerci 4.5 yildiz 200 mt&quot;
+            {locationStatus === 'loading' ? ' Konum aliniyor...' : null}
+            {locationStatus === 'denied'
+              ? ' Konum izni yok: mesafe Bursa merkezine gore hesaplanir (yaniltici olabilir).'
+              : null}
+            {lastDistanceOrigin === 'user' ? ' Son arama: konumunuza gore.' : null}
+            {lastDistanceOrigin === 'city_center' ? ' Son arama: Bursa merkezine gore.' : null}
+          </p>
+          <a
+            href="/api/auth/force-signout"
+            className="mt-2 inline-flex rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
+          >
+            Tam Cikis (Google oturumunu sifirla)
+          </a>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-200">
+            {city} scoped
+          </span>
+          <a
+            href="/api/auth/force-signout"
+            className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
+          >
+            Tam Çıkış
+          </a>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="rounded-xl border border-slate-600/80 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
+            >
+              Çıkış ({session.user?.name ?? 'Google'})
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await signOut({ redirect: false });
+                } catch (e) {
+                  // ignore signOut errors
+                }
+                await signIn('google', { callbackUrl: '/' }, { prompt: 'consent' });
+              }}
+              className="rounded-xl border border-slate-600/80 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+            >
+              Google ile Giriş Yap
+            </button>
+          )}
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="flex gap-2">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Ornek: Donerci 4.5 yildiz 200 mt"
+          className="w-full rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none focus:ring-2 focus:ring-accent/40"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-xl bg-emerald-500 px-4 py-2.5 font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70">
+          {loading ? 'Araniyor...' : 'Canli Ara'}
+        </button>
+      </form>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <select
+          value={distanceBand}
+          onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
+          className="rounded-xl border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40">
+          {DISTANCE_BAND_OPTIONS.map((option) => (
+            <option key={option.value || 'all'} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={ratingBand}
+          onChange={(e) => setRatingBand(e.target.value as RatingBand)}
+          className="rounded-xl border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40">
+          {RATING_BAND_OPTIONS.map((option) => (
+            <option key={option.value || 'all'} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {parsedIntent && (parsedIntent.removed_tokens.length > 0 || parsedIntent.query !== parsedIntent.raw_query) ? (
+        <p className="text-xs text-slate-400">
+          Analiz: &quot;{parsedIntent.query}&quot;
+          {parsedIntent.min_rating != null ? ` · min ${parsedIntent.min_rating} yildiz` : ''}
+          {parsedIntent.max_distance_m != null ? ` · max ${parsedIntent.max_distance_m} m` : ''}
+        </p>
+      ) : null}
+
+      {error ? <div className="rounded-xl border border-bad/40 bg-bad/10 p-3 text-sm text-red-200">{error}</div> : null}
+
+      {items.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map((item) => (
+            <article key={item.place_id} className="rounded-xl border border-slate-700/70 bg-slate-900/50 p-3">
+              <h3 className="text-sm font-semibold text-white">{item.name}</h3>
+              <p className="mt-1 text-xs text-slate-400">{item.address ?? 'Adres bilgisi yok'}</p>
+              <p className="mt-2 text-xs text-slate-300">
+                Google: {item.rating ?? '-'} · Yorum: {item.user_ratings_total ?? '-'}
+                {item.distance_meters != null ? (
+                  <>
+                    {' '}
+                    · Mesafe: {formatDistance(item.distance_meters)}
+                    <span className="text-slate-500">
+                      {' '}
+                      ({item.distance_origin === 'user' ? 'konumunuza gore' : 'Bursa merkezine gore'})
+                    </span>
+                  </>
+                ) : null}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => showDetails(item.place_id)}
+                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-emerald-950 transition hover:brightness-110">
+                  Detayları Gör
+                </button>
+                {item.maps_directions_url ? (
+                  <a
+                    href={item.maps_directions_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-sky-500/50 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/25">
+                    Yol Tarifi Al
+                  </a>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {activePlaceId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl border border-slate-700/80 bg-slate-950 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-700/70 bg-slate-900 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Restoran Detayları</h3>
+                <p className="mt-1 text-sm text-slate-400">Place ID: {activePlaceId}</p>
+              </div>
+              <button
+                onClick={closeDetails}
+                className="rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-700">
+                Kapat
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto px-6 py-5">
+              {detailsLoading ? (
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 text-center text-slate-200">Detaylar yükleniyor...</div>
+              ) : detailsError ? (
+                <div className="rounded-2xl border border-bad/40 bg-bad/10 p-6 text-sm text-red-200">{detailsError}</div>
+              ) : details ? (
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-slate-700/70 bg-slate-900/70 p-6">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h4 className="text-2xl font-semibold text-white">{details.name}</h4>
+                        <p className="mt-2 text-sm text-slate-400">{details.address ?? 'Adres bilgisi yok'}</p>
+                      </div>
+                      <div className="space-y-1 text-right text-sm text-slate-300">
+                        <p>Puan: {details.rating ?? '-'}</p>
+                        <p>Yorum: {details.user_ratings_total ?? '-'}</p>
+                        {details.phone_number ? <p>Tel: {details.phone_number}</p> : null}
+                        {details.website ? (
+                          <p>
+                            <a
+                              href={details.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent hover:underline">
+                              Web sitesi
+                            </a>
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-6 grid gap-3 md:grid-cols-2">
+                      {details.opening_hours?.weekday_text ? (
+                        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4">
+                          <h5 className="text-sm font-semibold text-slate-100">Çalışma Saatleri</h5>
+                          <p className="mt-1 text-xs text-slate-400">{details.opening_hours.open_now ? 'Açık' : 'Kapalı'}</p>
+                          <div className="mt-3 space-y-1 text-xs text-slate-300">
+                            {details.opening_hours.weekday_text?.map((line) => (
+                              <div key={line}>{line}</div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {details.analysis ? (
+                        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4">
+                          <h5 className="text-sm font-semibold text-slate-100">AI Analiz</h5>
+                          <p className="mt-1 text-xs text-slate-400">
+                            Bu analiz hem Google yorumlarini hem de GastroSkor uyelerinin yorumlarini birleştirerek hazirlandi.
+                          </p>
+                          <p className="mt-3 text-xs text-slate-400">{details.analysis.summary}</p>
+                          <div className="mt-4 grid gap-3">
+                            {details.analysis.categories.map((category) => (
+                              <div key={category.category} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-3">
+                                <div className="flex items-center justify-between gap-4 text-sm font-semibold text-slate-100">
+                                  <span>{category.category}</span>
+                                  <span>{(category.score ?? 0).toFixed(1)}</span>
+                                </div>
+                                <p className="mt-2 text-xs text-slate-400">{category.reason}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-700/70 bg-slate-900/70 p-6">
+                    <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-700/50 pb-4">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('google')}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === 'google'
+                            ? 'bg-emerald-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        Google Yorumları
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('member')}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === 'member'
+                            ? 'bg-emerald-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        GastroSkor Üye Yorumları
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('gastro')}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === 'gastro'
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        GastroSkor Puanı
+                      </button>
+                    </div>
+
+                    {activeTab === 'gastro' ? (
+                      <div className="space-y-4">
+                        <h5 className="text-sm font-semibold text-amber-200">GastroSkor Puanlama Matrisi</h5>
+                        {selectedItem ? (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                              <p className="text-xs text-slate-400">Toplam GastroSkor</p>
+                              <p className="mt-1 text-2xl font-bold text-amber-200">{selectedItem.gastro_score.toFixed(1)}</p>
+                            </div>
+                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                              <p className="text-xs text-slate-400">Mesafe puani</p>
+                              <p className="mt-1 text-xl font-semibold text-white">{selectedItem.distance_score}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {selectedItem.distance_meters != null
+                                  ? formatDistance(selectedItem.distance_meters)
+                                  : '-'}{' '}
+                                ({selectedItem.distance_origin === 'user' ? 'konumunuza gore' : 'Bursa merkezine gore'})
+                              </p>
+                            </div>
+                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                              <p className="text-xs text-slate-400">Lezzet (yildiz) puani</p>
+                              <p className="mt-1 text-xl font-semibold text-white">{selectedItem.rating_score}</p>
+                              <p className="mt-1 text-xs text-slate-500">Google: {selectedItem.rating ?? '-'}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400">Puan detayi bulunamadi.</p>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {activeTab === 'google' ? (
+                      <>
+                        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <h5 className="text-sm font-semibold text-slate-100">Google Yorumları</h5>
+                            <p className="text-xs text-slate-400">Canli Google Places yorumlari buradan getiriliyor.</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <select
+                              value={reviewSort}
+                              onChange={(e) => onReviewFilterChange(e.target.value as ReviewSortOption, reviewFilter)}
+                              disabled={detailsLoading}
+                              className="rounded-lg border border-slate-600 bg-slate-800/70 px-3 py-1.5 text-xs text-slate-100 outline-none transition disabled:opacity-60"
+                            >
+                              <option value="newest">En Yeni</option>
+                              <option value="oldest">En Eski</option>
+                              <option value="highest_rating">En Yüksek Puan</option>
+                              <option value="lowest_rating">En Düşük Puan</option>
+                            </select>
+                            <button
+                              onClick={() => onReviewFilterChange(reviewSort, reviewFilter === 'negative' ? 'all' : 'negative')}
+                              disabled={detailsLoading}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+                                reviewFilter === 'negative'
+                                  ? 'bg-red-500/30 text-red-200 border border-red-500/50'
+                                  : 'bg-slate-800/70 text-slate-200 border border-slate-600'
+                              }`}
+                            >
+                              Negatif Yorumlar
+                            </button>
+                          </div>
+                        </div>
+                        {details.reviews.length === 0 ? (
+                          <p className="mt-3 text-sm text-slate-400">Yorum bulunamadi.</p>
+                        ) : (
+                          <div className="mt-4 space-y-4">
+                            {details.reviews.map((review, index) => (
+                              <div key={index} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-white">{review.author_name ?? 'Anonim'}</p>
+                                    <p className="mt-1 text-xs text-slate-400">{review.relative_time_description ?? ''}</p>
+                                  </div>
+                                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-200">{review.rating ?? '-'}</span>
+                                </div>
+                                <p className="mt-3 text-sm leading-6 text-slate-300">{review.text ?? 'Yorum metni mevcut degil.'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : null}
+
+                    {activeTab === 'member' ? (
+                      <>
+                        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h5 className="text-sm font-semibold text-slate-100">GastroSkor Üye Yorumları</h5>
+                            <p className="text-xs text-slate-400">Üyelerimizin verdiği değerlendirmeler burada listeleniyor.</p>
+                          </div>
+                          <div className="text-right text-xs text-slate-400">
+                            {details.member_review_count} yorum · Ortalama {details.member_avg_rating ?? '-'}
+                          </div>
+                        </div>
+                        {profile ? (
+                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
+                            <p className="font-semibold text-white">Girişli Üye: {profile.full_name ?? session?.user?.email}</p>
+                            <p className="text-slate-400">GastroSkor Profil Puanı: {profile.gastro_score ?? 'Henüz puan yok'}</p>
+                          </div>
+                        ) : isAuthenticated ? (
+                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
+                            Üye bilgileri senkronize ediliyor...
+                          </div>
+                        ) : (
+                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
+                            GastroSkor üye yorumlarını eklemek için Google ile giriş yapın.
+                          </div>
+                        )}
+                        <div className="space-y-4">
+                          {details.member_reviews.length === 0 ? (
+                            <p className="text-sm text-slate-400">Üye yorumu bulunmuyor.</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {details.member_reviews.map((review) => (
+                                <div key={review.id} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                                  <div className="flex items-center gap-3">
+                                    {review.author_avatar_url ? (
+                                      <img src={review.author_avatar_url} alt="avatar" className="h-8 w-8 rounded-full" />
+                                    ) : (
+                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs text-slate-200">
+                                        U
+                                      </span>
+                                    )}
+                                    <div>
+                                      <p className="text-sm font-semibold text-white">{review.author_name ?? 'GastroSkor Üye'}</p>
+                                      <p className="text-xs text-slate-400">Puan: {review.rating}</p>
+                                    </div>
+                                  </div>
+                                  <p className="mt-3 text-sm leading-6 text-slate-300">{review.review_text}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <form onSubmit={submitMemberReview} className="mt-6 space-y-4">
+                          <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+                            <label className="text-sm font-medium text-slate-200" htmlFor="member-rating">
+                              Yıldız Puanı
+                            </label>
+                            <select
+                              id="member-rating"
+                              value={memberRating}
+                              onChange={(e) => setMemberRating(Number(e.target.value))}
+                              className="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 outline-none"
+                            >
+                              {[5, 4, 3, 2, 1].map((value) => (
+                                <option key={value} value={value}>
+                                  {value} yıldız
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <textarea
+                              value={memberReviewText}
+                              onChange={(e) => setMemberReviewText(e.target.value)}
+                              rows={4}
+                              placeholder="GastroSkor yorumunuzu buraya yazın..."
+                              className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={memberLoading || !isAuthenticated || !details.restaurant_id}
+                            className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {memberLoading ? 'Gönderiliyor...' : 'GastroSkor Yorumunu Ekle'}
+                          </button>
+                          {!isAuthenticated && (
+                            <p className="text-sm text-slate-400">Yorum eklemek için önce Google ile giriş yapın.</p>
+                          )}
+                          {details.restaurant_id === null && (
+                            <p className="text-sm text-yellow-300">Bu restoran veritabanında kayıtlı değil; GastroSkor üye yorumu eklenemiyor.</p>
+                          )}
+                        </form>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 text-sm text-slate-200">
+                  Bir restoran secin ve detaylarini goruntuleyin.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}

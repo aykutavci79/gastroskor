@@ -1,0 +1,98 @@
+'use client';
+
+import { FormEvent, useMemo, useState } from 'react';
+
+export type ConversationSender = 'user' | 'restaurant' | 'system';
+
+export type ConversationMessage = {
+  id: string;
+  senderType: ConversationSender;
+  senderName: string;
+  text: string;
+  createdAt: string;
+};
+
+type Props = {
+  messages: ConversationMessage[];
+  onSend: (payload: { text: string; senderType: 'restaurant' }) => Promise<void> | void;
+  disabled?: boolean;
+};
+
+function formatTime(value: string) {
+  const date = new Date(value);
+  return new Intl.DateTimeFormat('tr-TR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+export function FeedbackConversationPanel({ messages, onSend, disabled = false }: Props) {
+  const [text, setText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const sortedMessages = useMemo(
+    () => [...messages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    [messages],
+  );
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = text.trim();
+    if (!trimmed || isSending || disabled) return;
+
+    setIsSending(true);
+    try {
+      await onSend({ text: trimmed, senderType: 'restaurant' });
+      setText('');
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Mesajlaşma</h3>
+
+      <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
+        {sortedMessages.map((msg) => {
+          const isRestaurant = msg.senderType === 'restaurant';
+          const isSystem = msg.senderType === 'system';
+          return (
+            <div key={msg.id} className={`flex ${isRestaurant ? 'justify-end' : 'justify-start'}`}>
+              <article
+                className={`max-w-[85%] rounded-2xl border px-3 py-2 ${
+                  isSystem
+                    ? 'border-slate-600/50 bg-slate-800/70 text-slate-300'
+                    : isRestaurant
+                      ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100'
+                      : 'border-slate-700/80 bg-slate-950/80 text-slate-100'
+                }`}>
+                <p className="text-xs font-semibold">{msg.senderName}</p>
+                <p className="mt-1 text-sm leading-6">{msg.text}</p>
+                <p className="mt-1 text-[11px] text-slate-400">{formatTime(msg.createdAt)}</p>
+              </article>
+            </div>
+          );
+        })}
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-2">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={disabled || isSending}
+          rows={3}
+          placeholder="Müşteriye çözüm mesajı yazın..."
+          className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={disabled || isSending || text.trim().length === 0}
+          className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">
+          {isSending ? 'Gönderiliyor...' : 'Mesaj Gönder'}
+        </button>
+      </form>
+    </section>
+  );
+}
+
