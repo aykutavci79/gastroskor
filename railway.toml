@@ -1,0 +1,8 @@
+# gastroskor backend servisi — repo kokunden build (Root Directory bos birakilabilir)
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.gastroskor-api"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
