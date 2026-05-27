@@ -30,6 +30,14 @@ dev_*.db
 # misc
 .DS_Store
 
+# Python cache/artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# TypeScript incremental cache
+*.tsbuildinfo
+
 # Local/temporary prisma generated client (do not commit)
 prisma/generated/
 prisma/schema.sqlite.prisma
