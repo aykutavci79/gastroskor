@@ -15,12 +15,11 @@ import type {
   UserProfile,
 } from '@/lib/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr';
-const API_V1 = `${API_BASE}/api/v1`;
+import { getApiBase, getApiV1Base } from '@/lib/api-base';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const hasBody = init?.body != null;
-  const response = await fetch(`${API_V1}${path}`, {
+  const response = await fetch(`${getApiV1Base()}${path}`, {
     ...init,
     headers: {
       ...(hasBody ? { 'Content-Type': 'application/json' } : {}),

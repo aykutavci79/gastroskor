@@ -26,8 +26,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async signIn({ user, account, profile }) {
-      console.log('Giriş denemesi yapılıyor...', { user, account, profile });
+    async signIn() {
       return true;
     },
     async session({ session, token }) {
@@ -41,5 +40,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
 };

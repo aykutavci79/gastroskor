@@ -140,7 +140,9 @@ export function LivePlaceSearch() {
       .catch((err) => {
         const message = err instanceof Error ? err.message : 'Detaylar getirilirken hata olustu.';
         if (message.toLowerCase().includes('failed to fetch')) {
-          setDetailsError('Backend baglantisi kurulamadi. http://127.0.0.1:8000 calisiyor mu?');
+          setDetailsError(
+            'Backend baglantisi kurulamadi. Canli API (NEXT_PUBLIC_API_URL) ayarini ve sunucuyu kontrol edin.',
+          );
         } else {
           setDetailsError(message);
         }

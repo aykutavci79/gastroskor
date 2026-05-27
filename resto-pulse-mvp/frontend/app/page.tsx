@@ -23,7 +23,8 @@ export default async function HomePage({ searchParams }: Props) {
       error =
         'Backend calisiyor ama veritabani hazir degil. backend klasorunde: alembic upgrade head && python seed.py';
     } else {
-      error = 'Backend API baglantisi kurulamadi. http://127.0.0.1:8000 calisiyor mu?';
+      error =
+        'Backend API baglantisi kurulamadi. Vercel env: NEXT_PUBLIC_API_URL ve canli API sunucusu (api.gastroskor.com.tr) kontrol edin.';
     }
   }
 
