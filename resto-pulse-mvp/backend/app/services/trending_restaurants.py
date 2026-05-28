@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Restaurant, Review
+from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
 
@@ -52,7 +52,17 @@ def get_trending_restaurants_week(
 
     restaurant_ids = [row.restaurant_id for row in week_stats]
     if not restaurant_ids:
-        return _fallback_by_total_reviews(
+        result = _fallback_by_total_reviews(
+            db,
+            limit=limit,
+            origin_lat=origin_lat_r,
+            origin_lng=origin_lng_r,
+            distance_origin=distance_origin,
+            city=city,
+        )
+        if result:
+            return result
+        return _fallback_by_google_profile_or_nearby(
             db,
             limit=limit,
             origin_lat=origin_lat_r,
@@ -154,6 +164,84 @@ def _fallback_by_total_reviews(
             item["distance_meters"] if item["distance_meters"] is not None else float("inf"),
         )
     )
+    return _serialize_candidates(top, distance_origin=distance_origin, db=db)
+
+
+def _fallback_by_google_profile_or_nearby(
+    db: Session,
+    *,
+    limit: int,
+    origin_lat: float,
+    origin_lng: float,
+    distance_origin: str,
+    city: str,
+) -> list[dict]:
+    """Canli DB bosken: Google profil yorum sayisi veya sehirdeki aktif mekanlar."""
+    stmt = (
+        select(Restaurant, RestaurantPlatformProfile.review_count, RestaurantPlatformProfile.avg_rating)
+        .outerjoin(
+            RestaurantPlatformProfile,
+            (RestaurantPlatformProfile.restaurant_id == Restaurant.id)
+            & (RestaurantPlatformProfile.platform == PlatformName.google_maps),
+        )
+        .where(Restaurant.is_active.is_(True))
+    )
+    if city:
+        stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
+    rows = db.execute(stmt.limit(80)).all()
+
+    candidates: list[dict] = []
+    for restaurant, google_review_count, google_avg in rows:
+        score = int(google_review_count or 0)
+        distance_m = None
+        if restaurant.latitude is not None and restaurant.longitude is not None:
+            distance_m = haversine_meters(
+                origin_lat, origin_lng, restaurant.latitude, restaurant.longitude
+            )
+        candidates.append(
+            {
+                "restaurant": restaurant,
+                "week_review_count": score,
+                "week_avg_rating": round(float(google_avg), 1) if google_avg is not None else None,
+                "distance_meters": distance_m,
+                "is_fallback": True,
+            }
+        )
+
+    candidates.sort(key=lambda item: (-item["week_review_count"],))
+    top = candidates[:limit]
+    if not top:
+        stmt2 = select(Restaurant).where(Restaurant.is_active.is_(True))
+        if city:
+            stmt2 = stmt2.where(Restaurant.city.ilike(f"%{city}%"))
+        for restaurant in db.scalars(stmt2.limit(30)).all():
+            distance_m = None
+            if restaurant.latitude is not None and restaurant.longitude is not None:
+                distance_m = haversine_meters(
+                    origin_lat, origin_lng, restaurant.latitude, restaurant.longitude
+                )
+            top.append(
+                {
+                    "restaurant": restaurant,
+                    "week_review_count": 0,
+                    "week_avg_rating": None,
+                    "distance_meters": distance_m,
+                    "is_fallback": True,
+                }
+            )
+        top.sort(
+            key=lambda item: (
+                item["distance_meters"] if item["distance_meters"] is not None else float("inf"),
+            )
+        )
+        top = top[:limit]
+    else:
+        top.sort(
+            key=lambda item: (
+                item["distance_meters"] if item["distance_meters"] is not None else float("inf"),
+            )
+        )
+
     return _serialize_candidates(top, distance_origin=distance_origin, db=db)
 
 

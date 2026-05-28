@@ -110,7 +110,8 @@ export function TrendingRestaurants() {
             En cok konusulan 6 restoran
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Son 7 gunde en fazla yorum alan mekanlar · {locationLabel} yakinina gore sirali
+            GastroSkor uzerindeki yorumlar (Google degil) · son 7 gun · {locationLabel} yakinina
+            gore sirali
           </p>
         </div>
       </div>
@@ -134,7 +135,8 @@ export function TrendingRestaurants() {
 
       {!loading && !error && items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
-          Bu hafta henuz yorum yok. Ilk yorumu sen birak.
+          Henuz GastroSkor yorumu yok veya veritabani bos. Canli Ara ile Google sonuclarina
+          bakabilirsin; ilk yorumu sen birak.
         </div>
       ) : null}
 
@@ -163,7 +165,11 @@ export function TrendingRestaurants() {
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full bg-slate-800 px-2 py-1 text-amber-200">
-                      {restaurant.week_review_count} yorum / 7 gun
+                      {restaurant.is_fallback
+                        ? restaurant.week_review_count > 0
+                          ? `Google ~${restaurant.week_review_count} yorum`
+                          : 'Yakininda'
+                        : `${restaurant.week_review_count} yorum / 7 gun`}
                     </span>
                     {restaurant.week_avg_rating != null ? (
                       <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">
