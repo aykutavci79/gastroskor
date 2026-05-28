@@ -91,7 +91,7 @@ function GoogleTrendingCard({
         ) : null}
         {restaurant.week_review_count > 0 ? (
           <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-400">
-            Son gunlerde ornek {restaurant.week_review_count} yorum
+            Güncel yorumlar
           </span>
         ) : null}
       </div>
@@ -186,16 +186,13 @@ export function TrendingRestaurants() {
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wider text-accent">Bu hafta</p>
+          <p className="text-sm font-medium uppercase tracking-wider text-accent">Öne çıkanlar</p>
           <h2 className="text-xl font-semibold text-white sm:text-2xl">
-            Google&apos;da one cikan 6 restoran
+            Yakınındaki popüler 6 restoran
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">
-            Google Places verisi: puan, toplam yorum sayisi ve Google&apos;in dondurdugu en fazla 5
-            ornek yorumdaki &quot;son gunler&quot; sinyali. Tam &quot;son 7 gun siralamasi&quot; API
-            ile verilmez; kullanici sayiniz arttikca{' '}
-            <span className="text-slate-300">source=gastroskor</span> ile kendi listenize gecebilirsiniz.
-            · {locationLabel} yakinina gore sirali
+            Google Haritalar puanı ve yorum sayısına göre seçildi ·{' '}
+            {locationLabel === 'Konumun' ? 'konumuna' : locationLabel} yakın olanlar önce
           </p>
         </div>
       </div>
