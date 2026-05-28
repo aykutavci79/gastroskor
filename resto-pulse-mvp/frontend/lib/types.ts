@@ -32,6 +32,10 @@ export type RestaurantTrendingItem = RestaurantListItem & {
   distance_km: number | null;
   distance_origin: 'user' | 'city_center';
   is_fallback: boolean;
+  source?: 'google' | 'gastroskor';
+  google_place_id?: string | null;
+  google_user_ratings_total?: number | null;
+  maps_directions_url?: string | null;
 };
 
 export type Restaurant = RestaurantListItem & {

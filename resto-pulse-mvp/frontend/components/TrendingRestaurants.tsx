@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
-import { listTrendingRestaurantsWeek } from '@/lib/api';
-import type { RestaurantTrendingItem } from '@/lib/types';
+import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
+import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
 
 function formatDistance(item: RestaurantTrendingItem): string | null {
   if (item.distance_km != null) {
@@ -55,11 +55,77 @@ function TrendingMiniMap({ items }: { items: RestaurantTrendingItem[] }) {
   );
 }
 
+function GoogleTrendingCard({
+  restaurant,
+  index,
+  onOpenDetails,
+}: {
+  restaurant: RestaurantTrendingItem;
+  index: number;
+  onOpenDetails: (placeId: string) => void;
+}) {
+  const distance = formatDistance(restaurant);
+  const placeId = restaurant.google_place_id ?? restaurant.id;
+  const total = restaurant.google_user_ratings_total;
+
+  return (
+    <article className="rounded-2xl border border-slate-700/70 bg-panel/80 p-4">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <span className="rounded-lg bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
+          #{index + 1}
+        </span>
+        {distance ? <span className="text-xs text-slate-400">{distance}</span> : null}
+      </div>
+      <h3 className="font-semibold text-white">{restaurant.name}</h3>
+      <p className="text-xs text-slate-400">{restaurant.city ?? 'Bursa'}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {restaurant.week_avg_rating != null ? (
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-amber-200">
+            Google {restaurant.week_avg_rating.toFixed(1)}
+          </span>
+        ) : null}
+        {total != null ? (
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">
+            {total.toLocaleString('tr-TR')} yorum
+          </span>
+        ) : null}
+        {restaurant.week_review_count > 0 ? (
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-400">
+            Son gunlerde ornek {restaurant.week_review_count} yorum
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {restaurant.maps_directions_url ? (
+          <a
+            href={restaurant.maps_directions_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:border-accent/50">
+            Haritada ac
+          </a>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => onOpenDetails(placeId)}
+          className="rounded-lg bg-accent/20 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/30">
+          Google yorumlari
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export function TrendingRestaurants() {
   const [items, setItems] = useState<RestaurantTrendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState<string>('Bursa merkez');
+  const [details, setDetails] = useState<LivePlaceDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+
+  const isGoogleSource = items[0]?.source === 'google' || items.length === 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +134,7 @@ export function TrendingRestaurants() {
       setLoading(true);
       setError(null);
       setLocationLabel(label);
-      listTrendingRestaurantsWeek({ lat, lng, city: 'Bursa', limit: 6 })
+      listTrendingRestaurantsWeek({ lat, lng, city: 'Bursa', limit: 6, source: 'google' })
         .then((data) => {
           if (!cancelled) setItems(data);
         })
@@ -101,17 +167,35 @@ export function TrendingRestaurants() {
     };
   }, []);
 
+  async function openGoogleDetails(placeId: string) {
+    setDetailsLoading(true);
+    setDetailsError(null);
+    try {
+      const data = await getLivePlaceDetails(placeId);
+      setDetails(data);
+      document.getElementById('trending-google-details')?.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      setDetails(null);
+      setDetailsError(err instanceof Error ? err.message : 'Detay yuklenemedi');
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium uppercase tracking-wider text-accent">Bu hafta</p>
           <h2 className="text-xl font-semibold text-white sm:text-2xl">
-            En cok konusulan 6 restoran
+            Google&apos;da one cikan 6 restoran
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
-            GastroSkor uzerindeki yorumlar (Google degil) · son 7 gun · {locationLabel} yakinina
-            gore sirali
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Google Places verisi: puan, toplam yorum sayisi ve Google&apos;in dondurdugu en fazla 5
+            ornek yorumdaki &quot;son gunler&quot; sinyali. Tam &quot;son 7 gun siralamasi&quot; API
+            ile verilmez; kullanici sayiniz arttikca{' '}
+            <span className="text-slate-300">source=gastroskor</span> ile kendi listenize gecebilirsiniz.
+            · {locationLabel} yakinina gore sirali
           </p>
         </div>
       </div>
@@ -135,8 +219,8 @@ export function TrendingRestaurants() {
 
       {!loading && !error && items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
-          Henuz GastroSkor yorumu yok veya veritabani bos. Canli Ara ile Google sonuclarina
-          bakabilirsin; ilk yorumu sen birak.
+          Google listesi bos. API anahtarini ve Places API erisimini kontrol edin; asagidaki Canli
+          Ara ile de arayabilirsiniz.
         </div>
       ) : null}
 
@@ -144,9 +228,15 @@ export function TrendingRestaurants() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
           <TrendingMiniMap items={items} />
           <div className="grid gap-3 sm:grid-cols-2">
-            {items.map((restaurant, index) => {
-              const distance = formatDistance(restaurant);
-              return (
+            {items.map((restaurant, index) =>
+              isGoogleSource ? (
+                <GoogleTrendingCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  index={index}
+                  onOpenDetails={openGoogleDetails}
+                />
+              ) : (
                 <Link
                   key={restaurant.id}
                   href={`/restaurants/${restaurant.id}`}
@@ -155,8 +245,8 @@ export function TrendingRestaurants() {
                     <span className="rounded-lg bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
                       #{index + 1}
                     </span>
-                    {distance ? (
-                      <span className="text-xs text-slate-400">{distance}</span>
+                    {formatDistance(restaurant) ? (
+                      <span className="text-xs text-slate-400">{formatDistance(restaurant)}</span>
                     ) : null}
                   </div>
                   <h3 className="font-semibold text-white group-hover:text-accent">{restaurant.name}</h3>
@@ -165,20 +255,11 @@ export function TrendingRestaurants() {
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full bg-slate-800 px-2 py-1 text-amber-200">
-                      {restaurant.is_fallback
-                        ? restaurant.week_review_count > 0
-                          ? `Google ~${restaurant.week_review_count} yorum`
-                          : 'Yakininda'
-                        : `${restaurant.week_review_count} yorum / 7 gun`}
+                      {restaurant.week_review_count} yorum / 7 gun
                     </span>
                     {restaurant.week_avg_rating != null ? (
                       <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">
                         Hafta {restaurant.week_avg_rating.toFixed(1)}
-                      </span>
-                    ) : null}
-                    {restaurant.is_fallback ? (
-                      <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-500">
-                        Populer
                       </span>
                     ) : null}
                   </div>
@@ -191,9 +272,40 @@ export function TrendingRestaurants() {
                     />
                   </div>
                 </Link>
-              );
-            })}
+              ),
+            )}
           </div>
+        </div>
+      ) : null}
+
+      {detailsLoading ? (
+        <p className="text-sm text-slate-400">Google yorumlari yukleniyor…</p>
+      ) : null}
+      {detailsError ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          {detailsError}
+        </div>
+      ) : null}
+      {details ? (
+        <div
+          id="trending-google-details"
+          className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-5">
+          <h3 className="text-lg font-semibold text-white">{details.name}</h3>
+          {details.address ? <p className="text-sm text-slate-400">{details.address}</p> : null}
+          <ul className="mt-4 space-y-3">
+            {(details.reviews ?? []).slice(0, 5).map((review, idx) => (
+              <li key={idx} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-sm">
+                <div className="mb-1 flex flex-wrap gap-2 text-xs text-slate-400">
+                  <span>{review.author_name ?? 'Anonim'}</span>
+                  {review.rating != null ? <span>{review.rating} yildiz</span> : null}
+                  {review.relative_time_description ? (
+                    <span>{review.relative_time_description}</span>
+                  ) : null}
+                </div>
+                {review.text ? <p className="text-slate-200">{review.text}</p> : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </section>

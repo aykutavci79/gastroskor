@@ -212,7 +212,7 @@ export function LivePlaceSearch() {
   }
 
   return (
-    <section className="space-y-3 rounded-2xl border border-slate-700/70 bg-panel/70 p-4">
+    <section id="canli-ara" className="space-y-3 rounded-2xl border border-slate-700/70 bg-panel/70 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-200">GastroSkor Önerisi</h2>

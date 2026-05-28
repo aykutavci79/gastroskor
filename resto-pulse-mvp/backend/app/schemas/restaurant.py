@@ -46,4 +46,8 @@ class RestaurantTrendingItem(RestaurantListItem):
     distance_km: float | None = None
     distance_origin: str = "city_center"
     is_fallback: bool = False
+    source: str = "gastroskor"
+    google_place_id: str | None = None
+    google_user_ratings_total: int | None = None
+    maps_directions_url: str | None = None
 

@@ -53,6 +53,7 @@ from app.schemas.restaurant import (
     RestaurantRead,
     RestaurantTrendingItem,
 )
+from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
 from app.schemas.user import UserProfile, UserSyncPayload
@@ -541,14 +542,41 @@ async def get_live_place_details(
 
 
 @router.get("/restaurants/trending-week", response_model=list[RestaurantTrendingItem])
-def trending_restaurants_week(
+async def trending_restaurants_week(
     lat: float | None = Query(default=None, ge=-90, le=90),
     lng: float | None = Query(default=None, ge=-180, le=180),
     city: str = Query(default="Bursa"),
     limit: int = Query(default=6, ge=1, le=12),
     days: int = Query(default=7, ge=1, le=30),
+    source: str = Query(
+        default="google",
+        description="google | gastroskor — baslangicta google onerilir",
+    ),
     db: Session = Depends(get_db),
 ):
+    if source == "google":
+        if not settings.google_places_api_key:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="GOOGLE_PLACES_API_KEY tanimli degil.",
+            )
+        try:
+            return await get_trending_google_places(
+                limit=limit,
+                origin_lat=lat,
+                origin_lng=lng,
+                city=city,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Google Places baglantisi basarisiz: {exc}",
+            ) from exc
+
     return get_trending_restaurants_week(
         db,
         limit=limit,
