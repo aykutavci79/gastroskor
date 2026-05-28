@@ -47,7 +47,13 @@ from app.schemas.live_places import (
 )
 from app.services.query_parser import parse_search_query
 from app.services.smart_filters import apply_smart_filters, merge_criteria
-from app.schemas.restaurant import RestaurantCreate, RestaurantListItem, RestaurantRead
+from app.schemas.restaurant import (
+    RestaurantCreate,
+    RestaurantListItem,
+    RestaurantRead,
+    RestaurantTrendingItem,
+)
+from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
 from app.schemas.user import UserProfile, UserSyncPayload
 from app.services.ai_analysis import AIAnalysisService
@@ -531,6 +537,25 @@ async def get_live_place_details(
             query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
         ),
         analysis=analysis,
+    )
+
+
+@router.get("/restaurants/trending-week", response_model=list[RestaurantTrendingItem])
+def trending_restaurants_week(
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lng: float | None = Query(default=None, ge=-180, le=180),
+    city: str = Query(default="Bursa"),
+    limit: int = Query(default=6, ge=1, le=12),
+    days: int = Query(default=7, ge=1, le=30),
+    db: Session = Depends(get_db),
+):
+    return get_trending_restaurants_week(
+        db,
+        limit=limit,
+        days=days,
+        origin_lat=lat,
+        origin_lng=lng,
+        city=city,
     )
 
 

@@ -36,3 +36,14 @@ class RestaurantListItem(BaseModel):
     gi_product_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
+
+class RestaurantTrendingItem(RestaurantListItem):
+    latitude: float | None = None
+    longitude: float | None = None
+    week_review_count: int = 0
+    week_avg_rating: float | None = None
+    distance_meters: float | None = None
+    distance_km: float | None = None
+    distance_origin: str = "city_center"
+    is_fallback: bool = False
+

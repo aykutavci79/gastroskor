@@ -1,6 +1,7 @@
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchForm } from '@/components/SearchForm';
+import { TrendingRestaurants } from '@/components/TrendingRestaurants';
 import { listRestaurants } from '@/lib/api';
 
 type Props = {
@@ -40,6 +41,8 @@ export default async function HomePage({ searchParams }: Props) {
           Yorumunu yaz, analiz et, Google Haritalar&apos;a tek tikla aktar.
         </p>
       </section>
+
+      <TrendingRestaurants />
 
       <SearchForm initialQ={q} initialCity={city} />
       <LivePlaceSearch />

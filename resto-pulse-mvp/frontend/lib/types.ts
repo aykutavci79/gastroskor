@@ -23,6 +23,17 @@ export type RestaurantListItem = {
   gi_product_name: string | null;
 };
 
+export type RestaurantTrendingItem = RestaurantListItem & {
+  latitude: number | null;
+  longitude: number | null;
+  week_review_count: number;
+  week_avg_rating: number | null;
+  distance_meters: number | null;
+  distance_km: number | null;
+  distance_origin: 'user' | 'city_center';
+  is_fallback: boolean;
+};
+
 export type Restaurant = RestaurantListItem & {
   address: string | null;
   latitude: number | null;

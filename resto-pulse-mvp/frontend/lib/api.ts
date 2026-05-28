@@ -10,6 +10,7 @@ import type {
   ReviewFilterState,
   Restaurant,
   RestaurantListItem,
+  RestaurantTrendingItem,
   Review,
   ReviewAnalyzeResult,
   UserProfile,
@@ -49,6 +50,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export function listTrendingRestaurantsWeek(params: {
+  lat?: number;
+  lng?: number;
+  city?: string;
+  limit?: number;
+}) {
+  const search = new URLSearchParams();
+  if (params.lat != null) search.set('lat', String(params.lat));
+  if (params.lng != null) search.set('lng', String(params.lng));
+  if (params.city) search.set('city', params.city);
+  if (params.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<RestaurantTrendingItem[]>(`/restaurants/trending-week${query ? `?${query}` : ''}`);
 }
 
 export function listRestaurants(params: { q?: string; city?: string }) {
