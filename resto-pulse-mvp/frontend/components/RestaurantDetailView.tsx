@@ -139,7 +139,7 @@ export function RestaurantDetailView({
               href={restaurant.promo.menu_image_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-emerald-950 hover:bg-accent/90">
+              className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover">
               Menuyu goruntule
             </a>
           </div>

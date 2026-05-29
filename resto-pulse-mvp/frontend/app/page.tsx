@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: Props) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-700/60 bg-gradient-to-r from-slate-900 to-slate-800 p-8 shadow-glow">
+      <section className="rounded-3xl border border-line/80 bg-gradient-to-r from-panel via-[#2a1f18] to-panel p-8 shadow-glow">
         <p className="mb-2 text-sm font-medium uppercase tracking-wider text-accent">GastroSkor</p>
         <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">
           Turkiye restoranlarini tek catida puanla

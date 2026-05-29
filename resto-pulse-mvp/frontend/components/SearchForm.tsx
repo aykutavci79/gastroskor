@@ -27,7 +27,7 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
   return (
     <form
       onSubmit={onSubmit}
-      className="grid gap-3 rounded-2xl border border-slate-700/70 bg-panel/70 p-4 sm:grid-cols-[1fr_180px_auto]">
+      className="grid gap-3 rounded-2xl border border-line/80 bg-panel/80 p-4 sm:grid-cols-[1fr_180px_auto]">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -47,7 +47,7 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
       </select>
       <button
         type="submit"
-        className="rounded-xl bg-accent px-5 py-2.5 font-semibold text-ink transition hover:brightness-110">
+        className="rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-foreground transition hover:bg-accent-hover">
         Ara
       </button>
     </form>

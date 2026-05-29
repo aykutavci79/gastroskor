@@ -16,8 +16,8 @@ export function MapsDirectionsButton({ mapsDirectionsUrl, compact = false }: Pro
       rel="noopener noreferrer"
       className={
         compact
-          ? 'inline-flex items-center rounded-full border border-sky-500/50 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/25'
-          : 'inline-flex items-center rounded-xl border border-sky-500/50 bg-sky-500/15 px-4 py-2.5 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/25'
+          ? 'inline-flex items-center rounded-full border border-map/50 bg-map/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-map/25'
+          : 'inline-flex items-center rounded-xl border border-map/50 bg-map/15 px-4 py-2.5 text-sm font-semibold text-sky-100 transition hover:bg-map/25'
       }>
       Yol Tarifi Al
     </a>

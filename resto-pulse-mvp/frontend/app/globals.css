@@ -7,5 +7,10 @@
 }
 
 body {
-  @apply min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 antialiased;
+  @apply min-h-screen bg-gradient-to-br from-ink via-[#1a120e] to-[#120c08] text-stone-100 antialiased;
+}
+
+::selection {
+  background-color: rgba(249, 115, 22, 0.35);
+  color: #fff7ed;
 }

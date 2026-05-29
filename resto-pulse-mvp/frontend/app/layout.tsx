@@ -12,11 +12,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body>
         <Providers>
-          <header className="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur">
+          <header className="border-b border-line/80 bg-ink/80 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
               <a href="/" className="group flex items-center gap-3">
                 <span
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-600 text-sm font-black text-slate-950 shadow-glow"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 via-accent to-accent-hover text-sm font-black text-accent-foreground shadow-glow"
                   aria-hidden
                 >
                   GS
@@ -26,12 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </span>
               </a>
             <div className="flex items-center gap-4">
-              <p className="hidden text-sm text-slate-400 sm:block">
+              <p className="hidden text-sm text-stone-400 sm:block">
                 Yorum · AI Analiz · Google&apos;da Yayinla
               </p>
               <a
                 href="/panel"
-                className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-sm text-emerald-200 hover:bg-emerald-500/10">
+                className="rounded-lg border border-accent/40 px-3 py-1.5 text-sm text-orange-200 hover:bg-accent/10">
                 Restoran Paneli
               </a>
             </div>

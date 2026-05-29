@@ -214,7 +214,7 @@ export function LivePlaceSearch() {
   }
 
   return (
-    <section id="canli-ara" className="space-y-3 rounded-2xl border border-slate-700/70 bg-panel/70 p-4">
+    <section id="canli-ara" className="space-y-3 rounded-2xl border border-line/80 bg-panel/80 p-4 shadow-glow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-200">GastroSkor Önerisi</h2>
@@ -281,7 +281,7 @@ export function LivePlaceSearch() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-xl bg-emerald-500 px-4 py-2.5 font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70">
+          className="rounded-xl bg-accent px-4 py-2.5 font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-70">
           {loading ? 'Araniyor...' : 'Canli Ara'}
         </button>
       </form>
