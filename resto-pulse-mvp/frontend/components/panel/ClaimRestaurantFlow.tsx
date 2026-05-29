@@ -1,6 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import {
@@ -16,6 +18,8 @@ import type { LivePlaceSearchItem } from '@/lib/types';
 
 export function ClaimRestaurantFlow() {
   const { userEmail, refresh, access } = usePanel();
+  const router = useRouter();
+  const [isPanelAdmin, setIsPanelAdmin] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LivePlaceSearchItem[]>([]);
   const [selected, setSelected] = useState<LivePlaceSearchItem | null>(null);
@@ -30,6 +34,43 @@ export function ClaimRestaurantFlow() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/panel/admin/status')
+      .then((r) => r.json())
+      .then((data: { is_panel_admin?: boolean }) => setIsPanelAdmin(Boolean(data.is_panel_admin)))
+      .catch(() => setIsPanelAdmin(false));
+  }, []);
+
+  async function adminGrantPlace(place: LivePlaceSearchItem) {
+    if (!userEmail) return;
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/panel/admin/grant-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          place_id: place.place_id,
+          city: 'Bursa',
+          force_takeover: true,
+          admin_note: `Admin bypass: ${place.name}`,
+        }),
+      });
+      const data = (await res.json()) as { detail?: string };
+      if (!res.ok) {
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'Admin baglama basarisiz');
+      }
+      setMessage(`${place.name} panele baglandi (eski mekan degistirildi).`);
+      await refresh();
+      router.push('/panel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Admin baglama basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSearch(event: FormEvent) {
     event.preventDefault();
@@ -49,6 +90,10 @@ export function ClaimRestaurantFlow() {
 
   async function onSelectPlace(place: LivePlaceSearchItem) {
     if (!userEmail) return;
+    if (isPanelAdmin && access?.has_ownership) {
+      await adminGrantPlace(place);
+      return;
+    }
     setSelected(place);
     setLoading(true);
     setError(null);
@@ -62,7 +107,13 @@ export function ClaimRestaurantFlow() {
       setStep('verify');
       setMessage(`${claim.restaurant_name} secildi.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Mekan baglanamadi');
+      const msg = err instanceof Error ? err.message : 'Mekan baglanamadi';
+      setError(msg);
+      if (isPanelAdmin && msg.includes('baska bir mekan')) {
+        setError(
+          `${msg} Admin olarak /panel/admin sayfasindan "Panele bagla" kullanin veya asagidaki sonuca tekrar tiklayin.`,
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -114,7 +165,7 @@ export function ClaimRestaurantFlow() {
     }
   }
 
-  if (access?.can_access_panel && access.verification_status !== 'pending_sms') {
+  if (access?.can_access_panel && access.verification_status !== 'pending_sms' && !isPanelAdmin) {
     return (
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-emerald-100">
         <p className="font-semibold">Mekaniniz bagli.</p>
@@ -138,6 +189,19 @@ export function ClaimRestaurantFlow() {
           Ornek arama: <span className="text-slate-300">Urfali Kebap Bursa</span> veya isletme adiniz + sehir
         </p>
 
+        {isPanelAdmin ? (
+          <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+            <p className="font-medium">Admin modu</p>
+            <p className="mt-1 text-amber-50/90">
+              Hesapta kayitli mekan: <strong>{access?.restaurant_name ?? '—'}</strong>. Baska mekana gecmek icin
+              arama sonucuna tiklayin — SMS/vergi atlanir, eski kayit degistirilir.
+            </p>
+            <Link href="/panel/admin" className="mt-2 inline-block text-xs text-amber-200 underline">
+              veya /panel/admin
+            </Link>
+          </div>
+        ) : null}
+
         {step === 'search' ? (
           <form onSubmit={onSearch} className="mt-4 flex gap-2">
             <input
@@ -159,13 +223,23 @@ export function ClaimRestaurantFlow() {
           <ul className="mt-4 space-y-2">
             {results.map((place) => (
               <li key={place.place_id}>
-                <button
-                  type="button"
-                  onClick={() => void onSelectPlace(place)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-left hover:border-emerald-500/40">
-                  <p className="font-medium text-white">{place.name}</p>
-                  <p className="text-xs text-slate-400">{place.address}</p>
-                </button>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-white">{place.name}</p>
+                    <p className="text-xs text-slate-400">{place.address}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void onSelectPlace(place)}
+                    disabled={loading}
+                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+                      isPanelAdmin
+                        ? 'bg-amber-500 text-amber-950 hover:bg-amber-400'
+                        : 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+                    }`}>
+                    {isPanelAdmin ? 'Admin: Panele bagla' : 'Sec'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
