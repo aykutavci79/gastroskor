@@ -16,7 +16,12 @@ ALLOWED_CONTENT_TYPES = {
 
 def menu_images_dir() -> Path:
     root = Path(__file__).resolve().parents[2] / "data" / "menu_images"
-    root.mkdir(parents=True, exist_ok=True)
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Railway/ephemeral: fallback to /tmp if project dir is not writable
+        root = Path("/tmp/gastroskor_menu_images")
+        root.mkdir(parents=True, exist_ok=True)
     return root
 
 
