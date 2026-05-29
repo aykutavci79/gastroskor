@@ -40,13 +40,13 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
 
   if (!userEmail) {
     return (
-      <div className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-8 text-center">
-        <h1 className="text-xl font-semibold text-white">Restoran Paneli</h1>
-        <p className="mt-2 text-sm text-slate-400">Devam etmek icin Google ile giris yapin.</p>
+      <div className="rounded-2xl border border-border/70 bg-surface-input p-8 text-center">
+        <h1 className="text-xl font-semibold text-content">Restoran Paneli</h1>
+        <p className="mt-2 text-sm text-content-muted">Devam etmek icin Google ile giris yapin.</p>
         <button
           type="button"
           onClick={() => signIn('google', { callbackUrl: '/panel' })}
-          className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-slate-950">
+          className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-surface">
           Google ile Giris
         </button>
       </div>
@@ -54,26 +54,26 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-400">Panel yukleniyor...</p>;
+    return <p className="text-sm text-content-muted">Panel yukleniyor...</p>;
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wider text-emerald-300">Restoran Paneli</p>
-            <h1 className="text-2xl font-semibold text-white">
+            <p className="text-xs uppercase tracking-wider text-success">Restoran Paneli</p>
+            <h1 className="text-2xl font-semibold text-content">
               {access?.restaurant_name ?? 'GastroSkor Isletme'}
             </h1>
             {access?.trial_days_left != null ? (
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-content-muted">
                 Deneme: {access.trial_days_left} gun kaldi
                 {access.pricing_next ? ` · Sonra ${access.pricing_next} TL/ay` : ''}
               </p>
             ) : null}
             {access?.panel_tier === 'limited' ? (
-              <p className="mt-2 text-sm text-amber-200">
+              <p className="mt-2 text-sm text-brand-gold">
                 Kisitli panel: sikayetleri okuyabilirsiniz; mesaj ve kupon icin ziyaret dogrulamasi
                 bekleniyor.
               </p>
@@ -83,13 +83,13 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/panel' })}
-              className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
+              className="rounded-lg border border-border px-3 py-1.5 text-xs text-content-muted hover:bg-surface-input">
               Cikis
             </button>
             {isPanelAdmin ? (
               <Link
                 href="/panel/admin"
-                className={`rounded-lg px-3 py-1.5 text-xs ${onAdminPage ? 'bg-amber-500/20 text-amber-200' : 'border border-amber-500/40 text-amber-200 hover:bg-amber-500/10'}`}>
+                className={`rounded-lg px-3 py-1.5 text-xs ${onAdminPage ? 'bg-amber-500/20 text-brand-gold' : 'border border-amber-500/40 text-brand-gold hover:bg-amber-500/10'}`}>
                 Admin
               </Link>
             ) : null}
@@ -97,12 +97,12 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
             <nav className="flex flex-wrap gap-2 text-sm">
               <Link
                 href="/panel"
-                className={`rounded-lg px-3 py-1.5 ${pathname === '/panel' ? 'bg-emerald-500/20 text-emerald-200' : 'text-slate-300 hover:bg-slate-800'}`}>
+                className={`rounded-lg px-3 py-1.5 ${pathname === '/panel' ? 'bg-emerald-500/20 text-success' : 'text-content-muted hover:bg-surface-input'}`}>
                 Dashboard
               </Link>
               <Link
                 href={`/panel/feedback?restaurant_id=${access.restaurant_id ?? ''}`}
-                className={`rounded-lg px-3 py-1.5 ${pathname.startsWith('/panel/feedback') ? 'bg-emerald-500/20 text-emerald-200' : 'text-slate-300 hover:bg-slate-800'}`}>
+                className={`rounded-lg px-3 py-1.5 ${pathname.startsWith('/panel/feedback') ? 'bg-emerald-500/20 text-success' : 'text-content-muted hover:bg-surface-input'}`}>
                 Sikayetler
               </Link>
             </nav>

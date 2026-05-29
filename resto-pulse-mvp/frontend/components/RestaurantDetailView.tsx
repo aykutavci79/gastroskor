@@ -92,7 +92,7 @@ export function RestaurantDetailView({
   }
 
   if (loading) {
-    return <p className="text-slate-400">Restoran yukleniyor...</p>;
+    return <p className="text-content-muted">Restoran yukleniyor...</p>;
   }
 
   if (error || !restaurant) {
@@ -113,7 +113,7 @@ export function RestaurantDetailView({
           ← Restoran listesi
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-bold text-white">{restaurant.name}</h1>
+          <h1 className="text-3xl font-bold text-content">{restaurant.name}</h1>
           <RestaurantCategoryBadge
             category={restaurant.category}
             name={restaurant.name}
@@ -121,10 +121,10 @@ export function RestaurantDetailView({
             ownerEmoji={restaurant.card_emoji}
           />
         </div>
-        <p className="mt-1 text-slate-400">
+        <p className="mt-1 text-content-muted">
           {[restaurant.district, restaurant.city].filter(Boolean).join(' · ')}
         </p>
-        {restaurant.address ? <p className="mt-1 text-sm text-slate-500">{restaurant.address}</p> : null}
+        {restaurant.address ? <p className="mt-1 text-sm text-content-muted">{restaurant.address}</p> : null}
         <div className="mt-3">
           <RestaurantPromoBadges promo={restaurant.promo} />
           <RestaurantPromoLinks promo={restaurant.promo} />
@@ -132,9 +132,9 @@ export function RestaurantDetailView({
       </div>
 
       {restaurant.promo?.menu_image_url && (!restaurant.menu || restaurant.menu.length === 0) ? (
-        <section id="menu" className="scroll-mt-24 rounded-2xl border border-slate-700/70 bg-panel/60 p-4">
+        <section id="menu" className="scroll-mt-24 rounded-2xl border border-border/70 bg-surface-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Menu</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Menu</h2>
             <a
               href={restaurant.promo.menu_image_url}
               target="_blank"
@@ -147,7 +147,7 @@ export function RestaurantDetailView({
             href={restaurant.promo.menu_image_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-block w-full overflow-hidden rounded-xl border border-slate-600">
+            className="mt-4 inline-block w-full overflow-hidden rounded-xl border border-border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={restaurant.promo.menu_image_url}
@@ -155,7 +155,7 @@ export function RestaurantDetailView({
               className="max-h-96 w-full object-contain"
             />
           </a>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-content-muted">
             Isletmenin yukledigi menu fotografi. Buyutmek icin gorsele veya ustteki dugmeye tiklayin.
           </p>
         </section>
@@ -169,7 +169,7 @@ export function RestaurantDetailView({
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Konum &amp; ürünler</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Konum &amp; ürünler</h2>
           <MapsDirectionsButton
             mapsDirectionsUrl={restaurant.maps_directions_url ?? restaurant.maps_search_url}
           />
@@ -195,7 +195,7 @@ export function RestaurantDetailView({
       />
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-white">Yorumlar</h2>
+        <h2 className="mb-4 text-xl font-semibold text-content">Yorumlar</h2>
         <ReviewList reviews={reviews} />
       </section>
     </div>

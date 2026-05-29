@@ -83,8 +83,8 @@ export function TrendingRestaurants() {
     <section className="space-y-4">
       <div>
         <p className="text-sm font-medium uppercase tracking-wider text-accent">Öne çıkanlar</p>
-        <h2 className="text-xl font-semibold text-white sm:text-2xl">Yakınındaki popüler 6 restoran</h2>
-        <p className="mt-1 max-w-2xl text-sm text-slate-400">
+        <h2 className="text-xl font-semibold text-content sm:text-2xl">Yakınındaki popüler 6 restoran</h2>
+        <p className="mt-1 max-w-2xl text-sm text-content-muted">
           Google Haritalar puanı ·{' '}
           {locationLabel === 'Konumun' ? 'konumuna' : locationLabel} yakın olanlar
         </p>
@@ -93,19 +93,19 @@ export function TrendingRestaurants() {
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-44 animate-pulse rounded-2xl bg-slate-800/60 sm:h-48" />
+            <div key={i} className="h-44 animate-pulse rounded-2xl bg-surface-input sm:h-48" />
           ))}
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-brand-gold">
           {error}
         </div>
       ) : null}
 
       {!loading && !error && items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-slate-400">
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-content-muted">
           Google listesi bos. Asagidaki Canli Ara ile de arayabilirsiniz.
         </div>
       ) : null}
@@ -147,29 +147,29 @@ export function TrendingRestaurants() {
         </div>
       ) : null}
 
-      {detailsLoading ? <p className="text-sm text-slate-400">Google yorumlari yukleniyor…</p> : null}
+      {detailsLoading ? <p className="text-sm text-content-muted">Google yorumlari yukleniyor…</p> : null}
       {detailsError ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-brand-gold">
           {detailsError}
         </div>
       ) : null}
       {details ? (
         <div
           id="trending-google-details"
-          className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-5">
-          <h3 className="text-lg font-semibold text-white">{details.name}</h3>
-          {details.address ? <p className="text-sm text-slate-400">{details.address}</p> : null}
+          className="rounded-2xl border border-border/70 bg-surface-input p-5">
+          <h3 className="text-lg font-semibold text-content">{details.name}</h3>
+          {details.address ? <p className="text-sm text-content-muted">{details.address}</p> : null}
           <ul className="mt-4 space-y-3">
             {(details.reviews ?? []).slice(0, 5).map((review, idx) => (
-              <li key={idx} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-sm">
-                <div className="mb-1 flex flex-wrap gap-2 text-xs text-slate-400">
+              <li key={idx} className="rounded-xl border border-border bg-surface-card p-3 text-sm">
+                <div className="mb-1 flex flex-wrap gap-2 text-xs text-content-muted">
                   <span>{review.author_name ?? 'Anonim'}</span>
                   {review.rating != null ? <span>{review.rating} yildiz</span> : null}
                   {review.relative_time_description ? (
                     <span>{review.relative_time_description}</span>
                   ) : null}
                 </div>
-                {review.text ? <p className="text-slate-200">{review.text}</p> : null}
+                {review.text ? <p className="text-content">{review.text}</p> : null}
               </li>
             ))}
           </ul>

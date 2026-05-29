@@ -35,7 +35,7 @@ export function RestaurantCardCover({
         <RestaurantCardCoverArt visual={visual} seed={name ?? category ?? ''} compact={compact} />
       )}
       <div
-        className="absolute inset-0 bg-gradient-to-r from-panel from-30% via-panel/75 via-55% to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-surface-card from-30% via-surface-card/75 via-55% to-transparent"
         aria-hidden
       />
     </div>

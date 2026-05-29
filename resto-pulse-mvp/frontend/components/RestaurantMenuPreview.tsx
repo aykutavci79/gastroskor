@@ -15,12 +15,12 @@ export function RestaurantMenuPreview({ items, totalCount, compact = false }: Pr
     <ul className={`space-y-1 ${compact ? 'mt-2' : 'mt-3'}`}>
       {items.map((item) => (
         <li key={item.id} className="flex items-baseline justify-between gap-2 text-xs">
-          <span className="text-slate-300">{item.name}</span>
-          <span className="shrink-0 font-semibold text-amber-200">{item.price_tl.toFixed(0)} TL</span>
+          <span className="text-content-muted">{item.name}</span>
+          <span className="shrink-0 font-semibold text-brand-gold">{item.price_tl.toFixed(0)} TL</span>
         </li>
       ))}
       {more > 0 ? (
-        <li className="text-[10px] text-slate-500">+{more} urun daha (detayda)</li>
+        <li className="text-[10px] text-content-muted">+{more} urun daha (detayda)</li>
       ) : null}
     </ul>
   );

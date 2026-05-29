@@ -12,29 +12,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body>
         <Providers>
-          <header className="border-b border-line/80 bg-ink/80 backdrop-blur">
+          <header className="border-b border-border bg-surface/95 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
               <a href="/" className="group flex items-center gap-3">
                 <span
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 via-accent to-accent-hover text-sm font-black text-accent-foreground shadow-glow"
-                  aria-hidden
-                >
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-gold via-brand to-brand-hover text-sm font-black text-content shadow-card transition duration-ui ease-ui"
+                  aria-hidden>
                   GS
                 </span>
-                <span className="text-lg font-bold tracking-tight text-white">
-                  Gastro<span className="text-accent">Skor</span>
+                <span className="text-lg font-bold tracking-tight text-content">
+                  Gastro<span className="text-brand">Skor</span>
                 </span>
               </a>
-            <div className="flex items-center gap-4">
-              <p className="hidden text-sm text-stone-400 sm:block">
-                Yorum · AI Analiz · Google&apos;da Yayinla
-              </p>
-              <a
-                href="/panel"
-                className="rounded-lg border border-accent/40 px-3 py-1.5 text-sm text-orange-200 hover:bg-accent/10">
-                Restoran Paneli
-              </a>
-            </div>
+              <div className="flex items-center gap-4">
+                <p className="hidden text-sm text-content-muted sm:block">
+                  Yorum · AI Analiz · Google&apos;da Yayinla
+                </p>
+                <a href="/panel" className="btn-secondary btn-sm">
+                  Restoran Paneli
+                </a>
+              </div>
             </div>
           </header>
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>

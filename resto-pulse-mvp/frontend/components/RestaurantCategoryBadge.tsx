@@ -33,7 +33,7 @@ export function RestaurantCategoryBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border border-white/10 bg-gradient-to-r font-medium text-slate-100 ${visual.gradient} ${
+      className={`inline-flex items-center gap-1 rounded-full border border-white/10 bg-gradient-to-r font-medium text-content ${visual.gradient} ${
         compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
       }`}
       title={visual.label}>

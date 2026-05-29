@@ -72,7 +72,7 @@ export function PanelAdminTools() {
   }
 
   if (allowed === null) {
-    return <p className="text-sm text-slate-400">Admin yetkisi kontrol ediliyor...</p>;
+    return <p className="text-sm text-content-muted">Admin yetkisi kontrol ediliyor...</p>;
   }
 
   if (!allowed) {
@@ -87,33 +87,33 @@ export function PanelAdminTools() {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
-        <h2 className="text-xl font-semibold text-amber-100">Admin: Mekan bagla (bypass)</h2>
+        <h2 className="text-xl font-semibold text-brand-gold">Admin: Mekan bagla (bypass)</h2>
         <p className="mt-2 text-sm text-amber-50/90">
           SMS, vergi levhasi ve ziyaret adimlari atlanir. Tam panel + deneme acilir. Hesap: {userEmail}
         </p>
-        <label className="mt-4 flex items-center gap-2 text-sm text-slate-200">
+        <label className="mt-4 flex items-center gap-2 text-sm text-content">
           <input
             type="checkbox"
             checked={forceTakeover}
             onChange={(e) => setForceTakeover(e.target.checked)}
-            className="rounded border-slate-600"
+            className="rounded border-border"
           />
           Baska kullanicida olsa mekani devral (force)
         </label>
       </section>
 
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
         <form onSubmit={onSearch} className="flex gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Restoran ara..."
-            className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+            className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-content"
           />
           <button
             type="submit"
             disabled={loading}
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950">
+            className="btn-primary btn-sm">
             Ara
           </button>
         </form>
@@ -121,10 +121,10 @@ export function PanelAdminTools() {
           {results.map((place) => (
             <li
               key={place.place_id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/80 p-3">
               <div>
-                <p className="font-medium text-white">{place.name}</p>
-                <p className="text-xs text-slate-400">{place.address}</p>
+                <p className="font-medium text-content">{place.name}</p>
+                <p className="text-xs text-content-muted">{place.address}</p>
               </div>
               <button
                 type="button"
@@ -139,7 +139,7 @@ export function PanelAdminTools() {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{message}</div>
+        <div className="rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-success">{message}</div>
       ) : null}
       {error ? (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">

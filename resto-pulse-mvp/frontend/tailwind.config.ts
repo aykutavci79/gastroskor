@@ -5,28 +5,43 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /** Sicak koyu zemin */
-        ink: '#0c0a09',
-        panel: '#1f1a17',
-        surface: '#292018',
-        line: '#3f362e',
-        /** Ana marka — domates / mercan (yemek, CTA) */
-        accent: {
-          DEFAULT: '#f97316',
-          hover: '#ea580c',
-          soft: '#fb923c',
-          foreground: '#1c0a00',
+        surface: {
+          DEFAULT: 'var(--color-bg-primary)',
+          card: 'var(--color-bg-card)',
+          input: 'var(--color-bg-input)',
         },
-        /** Basari / onay */
-        good: '#22c55e',
-        warn: '#fbbf24',
+        content: {
+          DEFAULT: 'var(--color-text-primary)',
+          muted: 'var(--color-text-secondary)',
+        },
+        brand: {
+          DEFAULT: 'var(--color-accent-primary)',
+          hover: 'var(--color-accent-primary-hover)',
+          gold: 'var(--color-accent-secondary)',
+        },
+        border: {
+          DEFAULT: 'var(--color-border)',
+        },
+        success: 'var(--color-success)',
+        google: 'var(--color-google)',
         bad: '#ef4444',
-        /** Harita / konum (bilgi) */
-        map: '#38bdf8',
+        /** @deprecated use brand.DEFAULT */
+        accent: {
+          DEFAULT: 'var(--color-accent-primary)',
+          hover: 'var(--color-accent-primary-hover)',
+          foreground: '#ffffff',
+        },
+        /** @deprecated use surface.card */
+        panel: 'var(--color-bg-card)',
       },
       boxShadow: {
-        glow: '0 0 40px rgba(249, 115, 22, 0.18)',
-        'glow-sm': '0 0 20px rgba(249, 115, 22, 0.12)',
+        card: 'var(--shadow-card)',
+      },
+      transitionDuration: {
+        ui: '200ms',
+      },
+      transitionTimingFunction: {
+        ui: 'ease',
       },
     },
   },

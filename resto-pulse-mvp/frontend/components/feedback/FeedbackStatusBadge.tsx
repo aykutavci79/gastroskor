@@ -10,7 +10,7 @@ type Props = {
 const STATUS_STYLES: Record<FeedbackStatus, { label: string; classes: string }> = {
   open: {
     label: 'Açık',
-    classes: 'border-amber-400/40 bg-amber-400/15 text-amber-200',
+    classes: 'border-amber-400/40 bg-amber-400/15 text-brand-gold',
   },
   in_review: {
     label: 'İncelemede',
@@ -18,7 +18,7 @@ const STATUS_STYLES: Record<FeedbackStatus, { label: string; classes: string }> 
   },
   resolved: {
     label: 'Çözüldü',
-    classes: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200',
+    classes: 'border-emerald-400/40 bg-emerald-400/15 text-success',
   },
   rejected: {
     label: 'Reddedildi',

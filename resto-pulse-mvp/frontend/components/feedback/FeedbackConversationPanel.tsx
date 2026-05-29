@@ -50,8 +50,8 @@ export function FeedbackConversationPanel({ messages, onSend, disabled = false }
   }
 
   return (
-    <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Mesajlaşma</h3>
+    <section className="rounded-2xl border border-border/70 bg-surface-input p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Mesajlaşma</h3>
 
       <div className="mt-4 max-h-80 space-y-3 overflow-y-auto pr-1">
         {sortedMessages.map((msg) => {
@@ -62,14 +62,14 @@ export function FeedbackConversationPanel({ messages, onSend, disabled = false }
               <article
                 className={`max-w-[85%] rounded-2xl border px-3 py-2 ${
                   isSystem
-                    ? 'border-slate-600/50 bg-slate-800/70 text-slate-300'
+                    ? 'border-border/50 bg-surface-input/70 text-content-muted'
                     : isRestaurant
-                      ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100'
-                      : 'border-slate-700/80 bg-slate-950/80 text-slate-100'
+                      ? 'border-success/40 bg-success/15 text-success'
+                      : 'border-border/80 bg-surface/90 text-content'
                 }`}>
                 <p className="text-xs font-semibold">{msg.senderName}</p>
                 <p className="mt-1 text-sm leading-6">{msg.text}</p>
-                <p className="mt-1 text-[11px] text-slate-400">{formatTime(msg.createdAt)}</p>
+                <p className="mt-1 text-[11px] text-content-muted">{formatTime(msg.createdAt)}</p>
               </article>
             </div>
           );
@@ -83,12 +83,12 @@ export function FeedbackConversationPanel({ messages, onSend, disabled = false }
           disabled={disabled || isSending}
           rows={3}
           placeholder="Müşteriye çözüm mesajı yazın..."
-          className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-60"
+          className="w-full rounded-2xl border border-border bg-surface/90 px-3 py-2 text-sm text-content outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={disabled || isSending || text.trim().length === 0}
-          className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">
+          className="btn-primary btn-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">
           {isSending ? 'Gönderiliyor...' : 'Mesaj Gönder'}
         </button>
       </form>

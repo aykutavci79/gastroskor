@@ -54,27 +54,27 @@ export function FeedbackListPage({ initialRestaurantId = '' }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6">
-        <h1 className="text-2xl font-semibold text-white">Ozel Sikayetler</h1>
-        <p className="mt-1 text-sm text-slate-400">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
+        <h1 className="text-2xl font-semibold text-content">Ozel Sikayetler</h1>
+        <p className="mt-1 text-sm text-content-muted">
           Musteri sikayetlerini okuyun; tam panelde cevaplayip kupon verebilirsiniz.
         </p>
         <button
           type="button"
           onClick={() => void fetchList()}
           disabled={isLoading}
-          className="mt-4 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950">
+          className="mt-4 btn-primary btn-sm">
           {isLoading ? 'Yukleniyor...' : 'Listeyi yenile'}
         </button>
       </section>
 
       {error ? <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
 
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-4">
         {isLoading ? (
-          <p className="text-sm text-slate-300">Yukleniyor...</p>
+          <p className="text-sm text-content-muted">Yukleniyor...</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-slate-400">Henuz sikayet yok.</p>
+          <p className="text-sm text-content-muted">Henuz sikayet yok.</p>
         ) : (
           <div className="space-y-3">
             {items.map((item) => {
@@ -83,14 +83,14 @@ export function FeedbackListPage({ initialRestaurantId = '' }: Props) {
                 <Link
                   key={item.id}
                   href={detailHref}
-                  className="block rounded-xl border border-slate-700/70 bg-slate-950/70 p-4 transition hover:border-emerald-500/40">
+                  className="block rounded-xl border border-border/70 bg-surface/80 p-4 transition hover:border-emerald-500/40">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">{item.category}</p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-content">{item.category}</p>
+                      <p className="mt-1 text-xs text-content-muted">
                         {new Date(item.created_at).toLocaleString('tr-TR')}
                       </p>
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-300">{item.message}</p>
+                      <p className="mt-2 line-clamp-2 text-sm text-content-muted">{item.message}</p>
                     </div>
                     <FeedbackStatusBadge status={item.status} />
                   </div>

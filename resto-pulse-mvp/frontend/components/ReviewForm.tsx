@@ -111,11 +111,11 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
   }
 
   return (
-    <section className="rounded-2xl border border-slate-700/70 bg-panel/80 p-6">
-      <h2 className="mb-4 text-xl font-semibold text-white">Yorum Yaz</h2>
+    <section className="rounded-2xl border border-border/70 bg-surface-card p-6">
+      <h2 className="mb-4 text-xl font-semibold text-content">Yorum Yaz</h2>
 
       <div className="mb-4">
-        <p className="mb-2 text-sm text-slate-400">Puanin</p>
+        <p className="mb-2 text-sm text-content-muted">Puanin</p>
         <StarRating value={rating} onChange={setRating} />
       </div>
 
@@ -124,7 +124,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         onChange={(e) => setText(e.target.value)}
         rows={5}
         placeholder="Deneyimini anlat: lezzet, servis, fiyat, hijyen..."
-        className="w-full resize-y rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-3 text-slate-100 outline-none ring-accent/40 placeholder:text-slate-500 focus:ring-2"
+        className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-content outline-none ring-accent/40 placeholder:text-content-muted focus:ring-2"
       />
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -132,7 +132,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
           type="button"
           onClick={handleSubmit}
           disabled={loading !== null}
-          className="rounded-xl bg-slate-700 px-5 py-2.5 font-medium text-white transition hover:bg-slate-600 disabled:opacity-50">
+          className="rounded-xl bg-surface-input px-5 py-2.5 font-medium text-content transition hover:bg-slate-600 disabled:opacity-50">
           {loading === 'submit' ? 'Kaydediliyor...' : 'Yorumu Kaydet'}
         </button>
         <button
@@ -146,7 +146,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
           type="button"
           onClick={handleGooglePublish}
           disabled={loading !== null}
-          className="rounded-xl border border-amber-400/60 bg-amber-400/10 px-5 py-2.5 font-semibold text-amber-200 transition hover:bg-amber-400/20 disabled:opacity-50">
+          className="rounded-xl border border-amber-400/60 bg-amber-400/10 px-5 py-2.5 font-semibold text-brand-gold transition hover:bg-amber-400/20 disabled:opacity-50">
           {loading === 'google' ? 'Aciliyor...' : "Google'da Yayinla"}
         </button>
       </div>

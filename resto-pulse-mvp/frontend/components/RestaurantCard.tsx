@@ -51,10 +51,10 @@ export function RestaurantCard({
   const travelDistance = distanceMeters ?? restaurant.distance_meters;
   const travelMaps = mapsDirectionsUrl ?? restaurant.maps_directions_url;
 
-  const shellClass = `group relative block overflow-hidden rounded-2xl bg-panel/80 shadow-glow transition ${premiumBorderClass(premium)} ${
+  const shellClass = `group relative block overflow-hidden rounded-2xl bg-surface-card shadow-card transition ${premiumBorderClass(premium)} ${
     compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]'
-  } ${resolvedHref ? 'hover:-translate-y-0.5' : ''} ${
-    premium ? 'hover:ring-amber-400/90' : resolvedHref ? 'hover:border-accent/50' : ''
+  } ${resolvedHref ? 'hover:-translate-y-0.5 duration-ui ease-ui' : ''} ${
+    premium ? 'hover:ring-brand-gold/90' : resolvedHref ? 'hover:border-brand/50' : ''
   }`;
 
   const inner = (
@@ -79,14 +79,14 @@ export function RestaurantCard({
                 </span>
               ) : null}
               <h3
-                className={`font-semibold text-white ${resolvedHref ? 'group-hover:text-accent' : ''} ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
+                className={`font-semibold text-content ${resolvedHref ? 'group-hover:text-accent' : ''} ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
                 {restaurant.name}
               </h3>
             </div>
-            <p className={`text-slate-400 ${compact ? 'truncate text-[10px]' : 'text-xs'}`}>{location}</p>
+            <p className={`text-content-muted ${compact ? 'truncate text-[10px]' : 'text-xs'}`}>{location}</p>
           </div>
           {distanceLabel ? (
-            <span className={`shrink-0 text-slate-400 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+            <span className={`shrink-0 text-content-muted ${compact ? 'text-[10px]' : 'text-xs'}`}>
               {distanceLabel}
             </span>
           ) : null}

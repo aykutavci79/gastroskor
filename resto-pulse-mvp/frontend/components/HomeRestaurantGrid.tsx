@@ -45,7 +45,7 @@ export function HomeRestaurantGrid({ initialRestaurants, q, city }: Props) {
 
   if (restaurants.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
+      <div className="rounded-2xl border border-dashed border-border p-10 text-center text-content-muted">
         Sonuc bulunamadi. Farkli bir arama dene.
       </div>
     );
@@ -59,7 +59,7 @@ export function HomeRestaurantGrid({ initialRestaurants, q, city }: Props) {
         ))}
       </div>
       {hasMore ? (
-        <p className="mt-3 text-center text-sm text-slate-500">
+        <p className="mt-3 text-center text-sm text-content-muted">
           {restaurants.length - 6} sonuc daha var · aramayi daraltin veya asagidaki one cikanlara bakin
         </p>
       ) : null}

@@ -167,10 +167,10 @@ export function ClaimRestaurantFlow() {
 
   if (access?.can_access_panel && access.verification_status !== 'pending_sms' && !isPanelAdmin) {
     return (
-      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-emerald-100">
+      <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-success">
         <p className="font-semibold">Mekaniniz bagli.</p>
         <p className="mt-1 text-sm">Dashboard&apos;a gecebilirsiniz.</p>
-        <a href="/panel" className="mt-4 inline-block rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950">
+        <a href="/panel" className="mt-4 inline-block btn-primary btn-sm">
           Dashboard
         </a>
       </div>
@@ -179,24 +179,24 @@ export function ClaimRestaurantFlow() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6">
-        <h2 className="text-xl font-semibold text-white">Mekanini Bagla</h2>
-        <p className="mt-1 text-sm text-slate-400">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
+        <h2 className="text-xl font-semibold text-content">Mekanini Bagla</h2>
+        <p className="mt-1 text-sm text-content-muted">
           Giris tamam. Simdi Google Maps&apos;teki isletme adinizi yazin, listeden secin. Cep telefonu
           varsa SMS, sabit hat ise vergi levhasi notu ile devam edilir.
         </p>
-        <p className="mt-2 text-xs text-slate-500">
-          Ornek arama: <span className="text-slate-300">Urfali Kebap Bursa</span> veya isletme adiniz + sehir
+        <p className="mt-2 text-xs text-content-muted">
+          Ornek arama: <span className="text-content-muted">Urfali Kebap Bursa</span> veya isletme adiniz + sehir
         </p>
 
         {isPanelAdmin ? (
-          <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-brand-gold">
             <p className="font-medium">Admin modu</p>
             <p className="mt-1 text-amber-50/90">
               Hesapta kayitli mekan: <strong>{access?.restaurant_name ?? '—'}</strong>. Baska mekana gecmek icin
               arama sonucuna tiklayin — SMS/vergi atlanir, eski kayit degistirilir.
             </p>
-            <Link href="/panel/admin" className="mt-2 inline-block text-xs text-amber-200 underline">
+            <Link href="/panel/admin" className="mt-2 inline-block text-xs text-brand-gold underline">
               veya /panel/admin
             </Link>
           </div>
@@ -208,12 +208,12 @@ export function ClaimRestaurantFlow() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ornek: Urfali Kebap Bursa"
-              className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+              className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-content"
             />
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950">
+              className="btn-primary btn-sm">
               Ara
             </button>
           </form>
@@ -223,10 +223,10 @@ export function ClaimRestaurantFlow() {
           <ul className="mt-4 space-y-2">
             {results.map((place) => (
               <li key={place.place_id}>
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/80 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-white">{place.name}</p>
-                    <p className="text-xs text-slate-400">{place.address}</p>
+                    <p className="font-medium text-content">{place.name}</p>
+                    <p className="text-xs text-content-muted">{place.address}</p>
                   </div>
                   <button
                     type="button"
@@ -235,7 +235,7 @@ export function ClaimRestaurantFlow() {
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
                       isPanelAdmin
                         ? 'bg-amber-500 text-amber-950 hover:bg-amber-400'
-                        : 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+                        : 'bg-emerald-500 text-content hover:bg-emerald-400'
                     }`}>
                     {isPanelAdmin ? 'Admin: Panele bagla' : 'Sec'}
                   </button>
@@ -247,10 +247,10 @@ export function ClaimRestaurantFlow() {
 
         {step === 'verify' && selected ? (
           <div className="mt-4 space-y-4">
-            <p className="text-sm text-slate-300">Secilen: {selected.name}</p>
+            <p className="text-sm text-content-muted">Secilen: {selected.name}</p>
             {phoneInfo?.is_mobile ? (
-              <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-4">
-                <p className="text-sm text-slate-300">
+              <div className="rounded-xl border border-border bg-surface/70 p-4">
+                <p className="text-sm text-content-muted">
                   {phoneInfo.phone_masked} numaraya SMS kodu gonderilecek.
                 </p>
                 <button
@@ -265,19 +265,19 @@ export function ClaimRestaurantFlow() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                     placeholder="6 haneli kod"
-                    className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                    className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content"
                   />
                   <button
                     type="submit"
                     disabled={loading}
-                    className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950">
+                    className="btn-primary btn-sm">
                     Onayla
                   </button>
                 </form>
               </div>
             ) : (
               <form onSubmit={onSubmitTax} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <p className="text-sm text-amber-100">
+                <p className="text-sm text-brand-gold">
                   Google&apos;da kayitli numara cep telefonu degil. Vergi levhasi bilgisini birakin; kisitli
                   panel acilir, ziyaret sonrasi tam panel acilir.
                 </p>
@@ -286,7 +286,7 @@ export function ClaimRestaurantFlow() {
                   onChange={(e) => setTaxNote(e.target.value)}
                   rows={4}
                   placeholder="Isletme unvani, vergi no, WhatsApp ile belge gonderdim vb."
-                  className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                  className="mt-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content"
                 />
                 <button
                   type="submit"

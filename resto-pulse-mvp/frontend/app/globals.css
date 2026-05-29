@@ -4,13 +4,97 @@
 
 :root {
   color-scheme: dark;
+
+  --color-bg-primary: #141414;
+  --color-bg-card: #1e1e1e;
+  --color-bg-input: #2a2a2a;
+  --color-accent-primary: #ff6b35;
+  --color-accent-primary-hover: #e55a25;
+  --color-accent-secondary: #ffb703;
+  --color-success: #4caf79;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-border: #2e2e2e;
+  --color-google: #4285f4;
+  --color-placeholder: #666666;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --transition-ui: 0.2s ease;
 }
 
-body {
-  @apply min-h-screen bg-gradient-to-br from-ink via-[#1a120e] to-[#120c08] text-stone-100 antialiased;
+@layer base {
+  body {
+    @apply min-h-screen bg-surface text-content antialiased;
+    background-color: var(--color-bg-primary);
+  }
+
+  ::selection {
+    background-color: rgba(255, 107, 53, 0.35);
+    color: #ffffff;
+  }
 }
 
-::selection {
-  background-color: rgba(249, 115, 22, 0.35);
-  color: #fff7ed;
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2.5 font-bold text-content;
+    background-color: var(--color-accent-primary);
+    transition: background-color var(--transition-ui), opacity var(--transition-ui);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-accent-primary-hover);
+  }
+
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl bg-transparent px-5 py-2.5 font-bold;
+    border: 1.5px solid var(--color-accent-primary);
+    color: var(--color-accent-primary);
+    transition: background-color var(--transition-ui), border-color var(--transition-ui);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: rgba(255, 107, 53, 0.1);
+  }
+
+  .btn-secondary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-sm {
+    @apply min-h-[44px] px-3 py-2 text-xs sm:min-h-[44px] sm:px-4 sm:text-sm;
+  }
+
+  .card {
+    @apply rounded-2xl border border-border bg-surface-card;
+    box-shadow: var(--shadow-card);
+  }
+
+  .input-field {
+    @apply min-h-[44px] w-full rounded-xl border border-border bg-surface-input px-4 py-2.5 text-content outline-none;
+    transition: border-color var(--transition-ui), box-shadow var(--transition-ui);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-placeholder);
+  }
+
+  .input-field:focus {
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.25);
+  }
+
+  .badge-gold {
+    color: var(--color-accent-secondary);
+  }
+
+  .badge-google {
+    color: var(--color-google);
+  }
+
+  .badge-success {
+    color: var(--color-success);
+  }
 }

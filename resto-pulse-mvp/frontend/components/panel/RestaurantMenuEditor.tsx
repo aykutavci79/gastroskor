@@ -96,18 +96,18 @@ export function RestaurantMenuEditor({ userEmail, subscriptionActive }: Props) {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-400">Menu yukleniyor...</p>;
+    return <p className="text-sm text-content-muted">Menu yukleniyor...</p>;
   }
 
   return (
-    <section className="rounded-2xl border border-amber-500/25 bg-slate-900/70 p-5">
-      <h2 className="text-lg font-semibold text-white">Menu ve fiyatlar</h2>
-      <p className="mt-1 text-sm text-slate-400">
+    <section className="rounded-2xl border border-amber-500/25 bg-surface-input p-5">
+      <h2 className="text-lg font-semibold text-content">Menu ve fiyatlar</h2>
+      <p className="mt-1 text-sm text-content-muted">
         Musteri arama kartinda ilk urunler, detay sayfasinda tam menu gorunur. Abonelik bitince menu
         gizlenir.
       </p>
       {!subscriptionActive ? (
-        <p className="mt-2 text-xs text-amber-200">Aktif abonelik gerekir.</p>
+        <p className="mt-2 text-xs text-brand-gold">Aktif abonelik gerekir.</p>
       ) : null}
 
       <form onSubmit={onAdd} className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -115,25 +115,25 @@ export function RestaurantMenuEditor({ userEmail, subscriptionActive }: Props) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Urun adi (Ornek: Adana durum)"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white sm:col-span-2"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content sm:col-span-2"
         />
         <input
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           placeholder="Fiyat TL (120)"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content"
         />
         <input
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           placeholder="Kategori (Ana yemek)"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content"
         />
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Aciklama (opsiyonel)"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white sm:col-span-2"
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content sm:col-span-2"
         />
         <button
           type="submit"
@@ -145,27 +145,27 @@ export function RestaurantMenuEditor({ userEmail, subscriptionActive }: Props) {
 
       <ul className="mt-4 space-y-2">
         {items.length === 0 ? (
-          <li className="text-sm text-slate-500">Henuz menu urunu yok.</li>
+          <li className="text-sm text-content-muted">Henuz menu urunu yok.</li>
         ) : (
           items.map((item) => (
             <li
               key={item.id}
               className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
-                item.is_active ? 'border-slate-700 bg-slate-950/60' : 'border-slate-800 opacity-50'
+                item.is_active ? 'border-border bg-surface/70' : 'border-border opacity-50'
               }`}>
               <div>
-                <p className="font-medium text-white">
+                <p className="font-medium text-content">
                   {item.name}{' '}
-                  <span className="text-amber-200">{item.price_tl.toFixed(2)} TL</span>
+                  <span className="text-brand-gold">{item.price_tl.toFixed(2)} TL</span>
                 </p>
-                {item.category ? <p className="text-xs text-slate-500">{item.category}</p> : null}
+                {item.category ? <p className="text-xs text-content-muted">{item.category}</p> : null}
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => void onToggleActive(item)}
-                  className="text-xs text-slate-400 hover:text-white">
+                  className="text-xs text-content-muted hover:text-content">
                   {item.is_active ? 'Gizle' : 'Goster'}
                 </button>
                 <button
@@ -181,7 +181,7 @@ export function RestaurantMenuEditor({ userEmail, subscriptionActive }: Props) {
         )}
       </ul>
 
-      {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-success">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
     </section>
   );

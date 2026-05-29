@@ -31,12 +31,12 @@ export default async function HomePage({ searchParams }: Props) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-line/80 bg-gradient-to-r from-panel via-[#2a1f18] to-panel p-8 shadow-glow">
-        <p className="mb-2 text-sm font-medium uppercase tracking-wider text-accent">GastroSkor</p>
-        <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">
+      <section className="card rounded-3xl bg-gradient-to-r from-surface-card via-surface-input to-surface-card p-8">
+        <p className="mb-2 text-sm font-medium uppercase tracking-wider text-brand">GastroSkor</p>
+        <h1 className="mb-3 text-3xl font-bold text-content sm:text-4xl">
           Turkiye restoranlarini tek catida puanla
         </h1>
-        <p className="max-w-2xl text-slate-300">
+        <p className="max-w-2xl text-content-muted">
           Sehir ve isimle ara; lezzet, servis, fiyat ve hijyen skorlarini yapay zeka ile gor.
           Yorumunu yaz, analiz et, Google Haritalar&apos;a tek tikla aktar.
         </p>
@@ -51,10 +51,10 @@ export default async function HomePage({ searchParams }: Props) {
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="text-xl font-semibold text-content">
             Restoranlar {city ? `· ${city}` : ''}
           </h2>
-          <span className="text-sm text-slate-400">{restaurants.length} sonuc</span>
+          <span className="text-sm text-content-muted">{restaurants.length} sonuc</span>
         </div>
 
         <HomeRestaurantGrid initialRestaurants={restaurants} q={q} city={city} />

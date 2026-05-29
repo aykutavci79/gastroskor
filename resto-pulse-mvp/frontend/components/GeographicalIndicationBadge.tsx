@@ -39,9 +39,9 @@ export function GeographicalIndicationBadge({
         {products.map((product) => (
           <span
             key={product}
-            className="inline-flex max-w-full flex-col gap-0.5 rounded-full border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-xs text-amber-100"
+            className="inline-flex max-w-full flex-col gap-0.5 rounded-full border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-xs text-brand-gold"
             title={product}>
-            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-300">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-brand-gold">
               Coğrafi İşaretli Ürün
             </span>
             <span className="truncate font-medium">{product}</span>
@@ -53,22 +53,22 @@ export function GeographicalIndicationBadge({
 
   return (
     <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+      <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold">
         Coğrafi İşaretli Ürün
       </p>
       <ul className="mt-3 space-y-2">
         {products.map((product) => (
           <li
             key={product}
-            className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-slate-900/50 px-4 py-3">
+            className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-surface-card px-4 py-3">
             <p className="font-semibold text-amber-50">{product}</p>
-            <span className="shrink-0 rounded-lg bg-amber-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-950">
+            <span className="shrink-0 rounded-lg bg-amber-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-surface">
               Tescilli
             </span>
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-xs text-slate-500">
+      <p className="mt-4 text-xs text-content-muted">
         Kayıt: Türk Patent ve Marka Kurumu coğrafi işaret tescilleri (örnek veri).
       </p>
     </section>

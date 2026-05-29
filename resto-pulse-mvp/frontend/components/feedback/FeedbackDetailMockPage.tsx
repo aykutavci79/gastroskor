@@ -157,7 +157,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
   }
 
   if (isLoading) {
-    return <div className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6 text-slate-300">Yükleniyor...</div>;
+    return <div className="rounded-2xl border border-border/70 bg-surface-input p-6 text-content-muted">Yükleniyor...</div>;
   }
 
   if (error || !detail) {
@@ -170,26 +170,26 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6">
+      <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white">Feedback Detay</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="text-2xl font-semibold text-content">Feedback Detay</h1>
+            <p className="mt-1 text-sm text-content-muted">
               {detail.feedback.restaurant_id ?? 'Restaurant bağlantısı yok'} · {detail.feedback.place_id}
             </p>
-            <p className="mt-2 text-xs text-slate-500">{headerMeta.join(' · ')}</p>
+            <p className="mt-2 text-xs text-content-muted">{headerMeta.join(' · ')}</p>
           </div>
           <FeedbackStatusBadge status={detail.feedback.status} />
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-700/70 bg-slate-950/60 p-4">
-            <p className="text-xs uppercase tracking-wider text-slate-500">Müşteri</p>
-            <p className="mt-1 text-sm font-semibold text-slate-100">{detail.feedback.author_id}</p>
-            <p className="text-xs text-slate-400">{new Date(detail.feedback.created_at).toLocaleString('tr-TR')}</p>
+          <div className="rounded-xl border border-border/70 bg-surface/70 p-4">
+            <p className="text-xs uppercase tracking-wider text-content-muted">Müşteri</p>
+            <p className="mt-1 text-sm font-semibold text-content">{detail.feedback.author_id}</p>
+            <p className="text-xs text-content-muted">{new Date(detail.feedback.created_at).toLocaleString('tr-TR')}</p>
           </div>
-          <div className="rounded-xl border border-slate-700/70 bg-slate-950/60 p-4">
-            <p className="text-xs uppercase tracking-wider text-slate-500">Aksiyonlar</p>
+          <div className="rounded-xl border border-border/70 bg-surface/70 p-4">
+            <p className="text-xs uppercase tracking-wider text-content-muted">Aksiyonlar</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => void updateStatus('in_review')}
@@ -200,18 +200,18 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
               <button
                 onClick={() => void updateStatus('resolved')}
                 disabled={isMutatingStatus || !canWrite}
-                className="rounded-lg border border-emerald-400/40 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:opacity-40">
+                className="rounded-lg border border-emerald-400/40 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-success disabled:opacity-40">
                 Cozuldu
               </button>
               <button
                 onClick={() => setCouponModalOpen(true)}
                 disabled={!canWrite || !['open', 'in_review'].includes(detail.feedback.status)}
-                className="rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 disabled:opacity-40">
+                className="rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-brand-gold disabled:opacity-40">
                 Telafi Kuponu Olustur
               </button>
             </div>
             {!canWrite ? (
-              <p className="mt-2 text-xs text-amber-200">Tam panel gerekir (SMS veya ziyaret sonrasi).</p>
+              <p className="mt-2 text-xs text-brand-gold">Tam panel gerekir (SMS veya ziyaret sonrasi).</p>
             ) : null}
           </div>
         </div>
@@ -225,19 +225,19 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
         />
 
         <aside className="space-y-4">
-          <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Telafi Kuponu</h2>
+          <section className="rounded-2xl border border-border/70 bg-surface-input p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Telafi Kuponu</h2>
             {detail.latest_coupon ? (
-              <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
-                <p className="text-xs text-slate-400">Kod</p>
-                <p className="text-lg font-bold tracking-widest text-emerald-100">{detail.latest_coupon.code}</p>
-                <p className="mt-1 text-sm text-slate-200">%{detail.latest_coupon.discount_percent} indirim</p>
-                <p className="text-xs text-slate-400">
+              <div className="mt-3 rounded-xl border border-emerald-500/40 bg-success/10 p-3">
+                <p className="text-xs text-content-muted">Kod</p>
+                <p className="text-lg font-bold tracking-widest text-success">{detail.latest_coupon.code}</p>
+                <p className="mt-1 text-sm text-content">%{detail.latest_coupon.discount_percent} indirim</p>
+                <p className="text-xs text-content-muted">
                   Son tarih: {new Date(detail.latest_coupon.expires_at).toLocaleString('tr-TR')}
                 </p>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-400">Henüz kupon oluşturulmadı.</p>
+              <p className="mt-3 text-sm text-content-muted">Henüz kupon oluşturulmadı.</p>
             )}
           </section>
         </aside>

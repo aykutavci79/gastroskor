@@ -15,9 +15,9 @@ export function StarRating({ value, onChange, readonly = false }: Props) {
           type="button"
           disabled={readonly}
           onClick={() => onChange?.(star)}
-          className={`text-2xl transition ${
+          className={`text-2xl transition duration-ui ease-ui ${
             readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'
-          } ${star <= value ? 'text-amber-400' : 'text-slate-600'}`}
+          } ${star <= value ? 'text-brand-gold' : 'text-content-muted/35'}`}
           aria-label={`${star} yildiz`}>
           ★
         </button>

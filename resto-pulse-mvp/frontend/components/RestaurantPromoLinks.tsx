@@ -19,8 +19,8 @@ export function RestaurantPromoLinks({ promo, compact = false }: Props) {
   if (!instagram && !website) return null;
 
   const linkClass = compact
-    ? 'inline-flex items-center gap-1 rounded-full border border-slate-600/80 bg-slate-800/60 px-2 py-0.5 text-[10px] font-medium text-slate-200 hover:border-amber-500/50 hover:text-amber-100'
-    : 'inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-1.5 text-xs text-slate-200 hover:border-amber-500/50 hover:text-amber-100';
+    ? 'inline-flex items-center gap-1 rounded-full border border-border/80 bg-surface-input px-2 py-0.5 text-[10px] font-medium text-content hover:border-amber-500/50 hover:text-brand-gold'
+    : 'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-input px-3 py-1.5 text-xs text-content hover:border-amber-500/50 hover:text-brand-gold';
 
   return (
     <div className={`flex flex-wrap gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>

@@ -21,8 +21,8 @@ export function RestaurantCardTravelLinks({ mapsDirectionsUrl, distanceMeters, c
   if (!maps && !travel) return null;
 
   const pill = compact
-    ? 'inline-flex items-center gap-0.5 rounded-md border border-slate-600/80 bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 backdrop-blur-sm'
-    : 'inline-flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-900/90 px-2 py-1 text-xs font-medium text-slate-200 backdrop-blur-sm';
+    ? 'inline-flex items-center gap-0.5 rounded-md border border-border/80 bg-surface-input/90 px-1.5 py-0.5 text-[10px] font-medium text-content backdrop-blur-sm'
+    : 'inline-flex items-center gap-1 rounded-lg border border-border bg-surface-input/90 px-2 py-1 text-xs font-medium text-content backdrop-blur-sm';
 
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
@@ -32,18 +32,18 @@ export function RestaurantCardTravelLinks({ mapsDirectionsUrl, distanceMeters, c
           target="_blank"
           rel="noopener noreferrer"
           onClick={stopNav}
-          className={`${pill} hover:border-accent/50 hover:text-accent`}>
+          className={`${pill} border-google/40 bg-google/10 text-google hover:bg-google/20 transition duration-ui ease-ui`}>
           <span aria-hidden>🗺️</span>
           Haritada ac
         </a>
       ) : null}
       {travel ? (
         <>
-          <span className={`${pill} text-slate-300`} title="Tahmini yurume suresi">
+          <span className={`${pill} text-content-muted`} title="Tahmini yurume suresi">
             <span aria-hidden>🚶</span>
             {travel.walkMin} dk
           </span>
-          <span className={`${pill} text-slate-300`} title="Tahmini arac suresi">
+          <span className={`${pill} text-content-muted`} title="Tahmini arac suresi">
             <span aria-hidden>🚗</span>
             {travel.driveMin} dk
           </span>

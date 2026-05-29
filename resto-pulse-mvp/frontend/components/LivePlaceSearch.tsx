@@ -214,43 +214,27 @@ export function LivePlaceSearch() {
   }
 
   return (
-    <section id="canli-ara" className="space-y-3 rounded-2xl border border-line/80 bg-panel/80 p-4 shadow-glow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section id="canli-ara" className="space-y-3 rounded-2xl border border-border bg-surface-card p-4 shadow-card">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-200">GastroSkor Önerisi</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-brand">GastroSkor Onerisi</h2>
+          <p className="text-xs text-content-muted">
             Canli Google Places + akilli filtre. Ornek: &quot;Donerci 4.5 yildiz 200 mt&quot;
             {locationStatus === 'loading' ? ' Konum aliniyor...' : null}
             {locationStatus === 'denied'
-              ? ' Konum izni yok: mesafe Bursa merkezine gore hesaplanir (yaniltici olabilir).'
+              ? ' Konum izni yok: mesafe Bursa merkezine gore hesaplanir.'
               : null}
             {lastDistanceOrigin === 'user' ? ' Son arama: konumunuza gore.' : null}
             {lastDistanceOrigin === 'city_center' ? ' Son arama: Bursa merkezine gore.' : null}
           </p>
-          <a
-            href="/api/auth/force-signout"
-            className="mt-2 inline-flex rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
-          >
-            Tam Cikis (Google oturumunu sifirla)
-          </a>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-200">
-            {city} scoped
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-border px-2 py-0.5 text-xs text-content-muted">
+            {city}
           </span>
-          <a
-            href="/api/auth/force-signout"
-            className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
-          >
-            Tam Çıkış
-          </a>
           {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="rounded-xl border border-slate-600/80 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-slate-800"
-            >
-              Çıkış ({session.user?.name ?? 'Google'})
+            <button type="button" onClick={() => signOut()} className="btn-secondary btn-sm">
+              Cikis
             </button>
           ) : (
             <button
@@ -258,30 +242,26 @@ export function LivePlaceSearch() {
               onClick={async () => {
                 try {
                   await signOut({ redirect: false });
-                } catch (e) {
-                  // ignore signOut errors
+                } catch {
+                  /* ignore */
                 }
                 await signIn('google', { callbackUrl: '/' }, { prompt: 'consent' });
               }}
-              className="rounded-xl border border-slate-600/80 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
-            >
-              Google ile Giriş Yap
+              className="btn-primary btn-sm">
+              Google ile Giris
             </button>
           )}
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="flex gap-2">
+      <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ornek: Donerci 4.5 yildiz 200 mt"
-          className="w-full rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none focus:ring-2 focus:ring-accent/40"
+          className="input-field flex-1"
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-xl bg-accent px-4 py-2.5 font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-70">
+        <button type="submit" disabled={loading} className="btn-primary shrink-0">
           {loading ? 'Araniyor...' : 'Canli Ara'}
         </button>
       </form>
@@ -290,7 +270,7 @@ export function LivePlaceSearch() {
         <select
           value={distanceBand}
           onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
-          className="rounded-xl border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40">
+          className="input-field text-sm">
           {DISTANCE_BAND_OPTIONS.map((option) => (
             <option key={option.value || 'all'} value={option.value}>
               {option.label}
@@ -300,7 +280,7 @@ export function LivePlaceSearch() {
         <select
           value={ratingBand}
           onChange={(e) => setRatingBand(e.target.value as RatingBand)}
-          className="rounded-xl border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40">
+          className="input-field text-sm">
           {RATING_BAND_OPTIONS.map((option) => (
             <option key={option.value || 'all'} value={option.value}>
               {option.label}
@@ -310,7 +290,7 @@ export function LivePlaceSearch() {
       </div>
 
       {parsedIntent && (parsedIntent.removed_tokens.length > 0 || parsedIntent.query !== parsedIntent.raw_query) ? (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-content-muted">
           Analiz: &quot;{parsedIntent.query}&quot;
           {parsedIntent.min_rating != null ? ` · min ${parsedIntent.min_rating} yildiz` : ''}
           {parsedIntent.max_distance_m != null ? ` · max ${parsedIntent.max_distance_m} m` : ''}
@@ -350,33 +330,33 @@ export function LivePlaceSearch() {
       ) : null}
 
       {activePlaceId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl border border-slate-700/80 bg-slate-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-700/70 bg-slate-900 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/90 p-4 backdrop-blur-sm">
+          <div className="mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border/80 bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/70 bg-surface-input px-6 py-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Restoran Detayları</h3>
-                <p className="mt-1 text-sm text-slate-400">Place ID: {activePlaceId}</p>
+                <h3 className="text-lg font-semibold text-content">Restoran Detayları</h3>
+                <p className="mt-1 text-sm text-content-muted">Place ID: {activePlaceId}</p>
               </div>
               <button
                 onClick={closeDetails}
-                className="rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-700">
+                className="rounded-full bg-surface-input px-4 py-2 text-sm text-content transition hover:bg-surface-input">
                 Kapat
               </button>
             </div>
             <div className="max-h-[80vh] overflow-y-auto px-6 py-5">
               {detailsLoading ? (
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 text-center text-slate-200">Detaylar yükleniyor...</div>
+                <div className="rounded-2xl border border-border/70 bg-surface-input p-6 text-center text-content">Detaylar yükleniyor...</div>
               ) : detailsError ? (
                 <div className="rounded-2xl border border-bad/40 bg-bad/10 p-6 text-sm text-red-200">{detailsError}</div>
               ) : details ? (
                 <div className="space-y-6">
-                  <div className="rounded-3xl border border-slate-700/70 bg-slate-900/70 p-6">
+                  <div className="rounded-3xl border border-border/70 bg-surface-input p-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <h4 className="text-2xl font-semibold text-white">{details.name}</h4>
-                        <p className="mt-2 text-sm text-slate-400">{details.address ?? 'Adres bilgisi yok'}</p>
+                        <h4 className="text-2xl font-semibold text-content">{details.name}</h4>
+                        <p className="mt-2 text-sm text-content-muted">{details.address ?? 'Adres bilgisi yok'}</p>
                       </div>
-                      <div className="space-y-1 text-right text-sm text-slate-300">
+                      <div className="space-y-1 text-right text-sm text-content-muted">
                         <p>Puan: {details.rating ?? '-'}</p>
                         <p>Yorum: {details.user_ratings_total ?? '-'}</p>
                         {details.phone_number ? <p>Tel: {details.phone_number}</p> : null}
@@ -395,10 +375,10 @@ export function LivePlaceSearch() {
                     </div>
                     <div className="mt-6 grid gap-3 md:grid-cols-2">
                       {details.opening_hours?.weekday_text ? (
-                        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4">
-                          <h5 className="text-sm font-semibold text-slate-100">Çalışma Saatleri</h5>
-                          <p className="mt-1 text-xs text-slate-400">{details.opening_hours.open_now ? 'Açık' : 'Kapalı'}</p>
-                          <div className="mt-3 space-y-1 text-xs text-slate-300">
+                        <div className="rounded-2xl border border-border/50 bg-surface-input p-4">
+                          <h5 className="text-sm font-semibold text-content">Çalışma Saatleri</h5>
+                          <p className="mt-1 text-xs text-content-muted">{details.opening_hours.open_now ? 'Açık' : 'Kapalı'}</p>
+                          <div className="mt-3 space-y-1 text-xs text-content-muted">
                             {details.opening_hours.weekday_text?.map((line) => (
                               <div key={line}>{line}</div>
                             ))}
@@ -406,20 +386,20 @@ export function LivePlaceSearch() {
                         </div>
                       ) : null}
                       {details.analysis ? (
-                        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4">
-                          <h5 className="text-sm font-semibold text-slate-100">AI Analiz</h5>
-                          <p className="mt-1 text-xs text-slate-400">
+                        <div className="rounded-2xl border border-border/50 bg-surface-input p-4">
+                          <h5 className="text-sm font-semibold text-content">AI Analiz</h5>
+                          <p className="mt-1 text-xs text-content-muted">
                             Bu analiz hem Google yorumlarini hem de GastroSkor uyelerinin yorumlarini birleştirerek hazirlandi.
                           </p>
-                          <p className="mt-3 text-xs text-slate-400">{details.analysis.summary}</p>
+                          <p className="mt-3 text-xs text-content-muted">{details.analysis.summary}</p>
                           <div className="mt-4 grid gap-3">
                             {details.analysis.categories.map((category) => (
-                              <div key={category.category} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-3">
-                                <div className="flex items-center justify-between gap-4 text-sm font-semibold text-slate-100">
+                              <div key={category.category} className="rounded-2xl border border-border/60 bg-surface/90 p-3">
+                                <div className="flex items-center justify-between gap-4 text-sm font-semibold text-content">
                                   <span>{category.category}</span>
                                   <span>{(category.score ?? 0).toFixed(1)}</span>
                                 </div>
-                                <p className="mt-2 text-xs text-slate-400">{category.reason}</p>
+                                <p className="mt-2 text-xs text-content-muted">{category.reason}</p>
                               </div>
                             ))}
                           </div>
@@ -428,15 +408,15 @@ export function LivePlaceSearch() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-slate-700/70 bg-slate-900/70 p-6">
-                    <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-700/50 pb-4">
+                  <div className="rounded-3xl border border-border/70 bg-surface-input p-6">
+                    <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border/50 pb-4">
                       <button
                         type="button"
                         onClick={() => setActiveTab('google')}
                         className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                           activeTab === 'google'
-                            ? 'bg-emerald-500 text-slate-950'
-                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            ? 'bg-emerald-500 text-surface'
+                            : 'bg-surface-input text-content-muted hover:bg-surface-input'
                         }`}
                       >
                         Google Yorumları
@@ -446,8 +426,8 @@ export function LivePlaceSearch() {
                         onClick={() => setActiveTab('member')}
                         className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                           activeTab === 'member'
-                            ? 'bg-emerald-500 text-slate-950'
-                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            ? 'bg-emerald-500 text-surface'
+                            : 'bg-surface-input text-content-muted hover:bg-surface-input'
                         }`}
                       >
                         GastroSkor Üye Yorumları
@@ -457,8 +437,8 @@ export function LivePlaceSearch() {
                         onClick={() => setActiveTab('gastro')}
                         className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                           activeTab === 'gastro'
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            ? 'bg-amber-500 text-surface'
+                            : 'bg-surface-input text-content-muted hover:bg-surface-input'
                         }`}
                       >
                         GastroSkor Puanı
@@ -467,31 +447,31 @@ export function LivePlaceSearch() {
 
                     {activeTab === 'gastro' ? (
                       <div className="space-y-4">
-                        <h5 className="text-sm font-semibold text-amber-200">GastroSkor Puanlama Matrisi</h5>
+                        <h5 className="text-sm font-semibold text-brand-gold">GastroSkor Puanlama Matrisi</h5>
                         {selectedItem ? (
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
-                              <p className="text-xs text-slate-400">Toplam GastroSkor</p>
-                              <p className="mt-1 text-2xl font-bold text-amber-200">{selectedItem.gastro_score.toFixed(1)}</p>
+                            <div className="rounded-2xl border border-border/60 bg-surface/90 p-4">
+                              <p className="text-xs text-content-muted">Toplam GastroSkor</p>
+                              <p className="mt-1 text-2xl font-bold text-brand-gold">{selectedItem.gastro_score.toFixed(1)}</p>
                             </div>
-                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
-                              <p className="text-xs text-slate-400">Mesafe puani</p>
-                              <p className="mt-1 text-xl font-semibold text-white">{selectedItem.distance_score}</p>
-                              <p className="mt-1 text-xs text-slate-500">
+                            <div className="rounded-2xl border border-border/60 bg-surface/90 p-4">
+                              <p className="text-xs text-content-muted">Mesafe puani</p>
+                              <p className="mt-1 text-xl font-semibold text-content">{selectedItem.distance_score}</p>
+                              <p className="mt-1 text-xs text-content-muted">
                                 {selectedItem.distance_meters != null
                                   ? formatDistance(selectedItem.distance_meters)
                                   : '-'}{' '}
                                 ({selectedItem.distance_origin === 'user' ? 'konumunuza gore' : 'Bursa merkezine gore'})
                               </p>
                             </div>
-                            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
-                              <p className="text-xs text-slate-400">Lezzet (yildiz) puani</p>
-                              <p className="mt-1 text-xl font-semibold text-white">{selectedItem.rating_score}</p>
-                              <p className="mt-1 text-xs text-slate-500">Google: {selectedItem.rating ?? '-'}</p>
+                            <div className="rounded-2xl border border-border/60 bg-surface/90 p-4">
+                              <p className="text-xs text-content-muted">Lezzet (yildiz) puani</p>
+                              <p className="mt-1 text-xl font-semibold text-content">{selectedItem.rating_score}</p>
+                              <p className="mt-1 text-xs text-content-muted">Google: {selectedItem.rating ?? '-'}</p>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-400">Puan detayi bulunamadi.</p>
+                          <p className="text-sm text-content-muted">Puan detayi bulunamadi.</p>
                         )}
                       </div>
                     ) : null}
@@ -500,15 +480,15 @@ export function LivePlaceSearch() {
                       <>
                         <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                           <div>
-                            <h5 className="text-sm font-semibold text-slate-100">Google Yorumları</h5>
-                            <p className="text-xs text-slate-400">Canli Google Places yorumlari buradan getiriliyor.</p>
+                            <h5 className="text-sm font-semibold text-content">Google Yorumları</h5>
+                            <p className="text-xs text-content-muted">Canli Google Places yorumlari buradan getiriliyor.</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <select
                               value={reviewSort}
                               onChange={(e) => onReviewFilterChange(e.target.value as ReviewSortOption, reviewFilter)}
                               disabled={detailsLoading}
-                              className="rounded-lg border border-slate-600 bg-slate-800/70 px-3 py-1.5 text-xs text-slate-100 outline-none transition disabled:opacity-60"
+                              className="rounded-lg border border-border bg-surface-input/70 px-3 py-1.5 text-xs text-content outline-none transition disabled:opacity-60"
                             >
                               <option value="newest">En Yeni</option>
                               <option value="oldest">En Eski</option>
@@ -521,7 +501,7 @@ export function LivePlaceSearch() {
                               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
                                 reviewFilter === 'negative'
                                   ? 'bg-red-500/30 text-red-200 border border-red-500/50'
-                                  : 'bg-slate-800/70 text-slate-200 border border-slate-600'
+                                  : 'bg-surface-input/70 text-content border border-border'
                               }`}
                             >
                               Negatif Yorumlar
@@ -529,19 +509,19 @@ export function LivePlaceSearch() {
                           </div>
                         </div>
                         {details.reviews.length === 0 ? (
-                          <p className="mt-3 text-sm text-slate-400">Yorum bulunamadi.</p>
+                          <p className="mt-3 text-sm text-content-muted">Yorum bulunamadi.</p>
                         ) : (
                           <div className="mt-4 space-y-4">
                             {details.reviews.map((review, index) => (
-                              <div key={index} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                              <div key={index} className="rounded-2xl border border-border/60 bg-surface/90 p-4">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="text-sm font-semibold text-white">{review.author_name ?? 'Anonim'}</p>
-                                    <p className="mt-1 text-xs text-slate-400">{review.relative_time_description ?? ''}</p>
+                                    <p className="text-sm font-semibold text-content">{review.author_name ?? 'Anonim'}</p>
+                                    <p className="mt-1 text-xs text-content-muted">{review.relative_time_description ?? ''}</p>
                                   </div>
-                                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-200">{review.rating ?? '-'}</span>
+                                  <span className="rounded-full bg-surface-input px-3 py-1 text-xs text-content">{review.rating ?? '-'}</span>
                                 </div>
-                                <p className="mt-3 text-sm leading-6 text-slate-300">{review.text ?? 'Yorum metni mevcut degil.'}</p>
+                                <p className="mt-3 text-sm leading-6 text-content-muted">{review.text ?? 'Yorum metni mevcut degil.'}</p>
                               </div>
                             ))}
                           </div>
@@ -553,48 +533,48 @@ export function LivePlaceSearch() {
                       <>
                         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <h5 className="text-sm font-semibold text-slate-100">GastroSkor Üye Yorumları</h5>
-                            <p className="text-xs text-slate-400">Üyelerimizin verdiği değerlendirmeler burada listeleniyor.</p>
+                            <h5 className="text-sm font-semibold text-content">GastroSkor Üye Yorumları</h5>
+                            <p className="text-xs text-content-muted">Üyelerimizin verdiği değerlendirmeler burada listeleniyor.</p>
                           </div>
-                          <div className="text-right text-xs text-slate-400">
+                          <div className="text-right text-xs text-content-muted">
                             {details.member_review_count} yorum · Ortalama {details.member_avg_rating ?? '-'}
                           </div>
                         </div>
                         {profile ? (
-                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
-                            <p className="font-semibold text-white">Girişli Üye: {profile.full_name ?? session?.user?.email}</p>
-                            <p className="text-slate-400">GastroSkor Profil Puanı: {profile.gastro_score ?? 'Henüz puan yok'}</p>
+                          <div className="mb-4 rounded-2xl border border-border/60 bg-surface/90 p-4 text-sm text-content">
+                            <p className="font-semibold text-content">Girişli Üye: {profile.full_name ?? session?.user?.email}</p>
+                            <p className="text-content-muted">GastroSkor Profil Puanı: {profile.gastro_score ?? 'Henüz puan yok'}</p>
                           </div>
                         ) : isAuthenticated ? (
-                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
+                          <div className="mb-4 rounded-2xl border border-border/60 bg-surface/90 p-4 text-sm text-content">
                             Üye bilgileri senkronize ediliyor...
                           </div>
                         ) : (
-                          <div className="mb-4 rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4 text-sm text-slate-200">
+                          <div className="mb-4 rounded-2xl border border-border/60 bg-surface/90 p-4 text-sm text-content">
                             GastroSkor üye yorumlarını eklemek için Google ile giriş yapın.
                           </div>
                         )}
                         <div className="space-y-4">
                           {details.member_reviews.length === 0 ? (
-                            <p className="text-sm text-slate-400">Üye yorumu bulunmuyor.</p>
+                            <p className="text-sm text-content-muted">Üye yorumu bulunmuyor.</p>
                           ) : (
                             <div className="space-y-3">
                               {details.member_reviews.map((review) => (
-                                <div key={review.id} className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-4">
+                                <div key={review.id} className="rounded-2xl border border-border/60 bg-surface/90 p-4">
                                   <div className="flex items-center gap-3">
                                     {review.author_avatar_url ? (
                                       <img src={review.author_avatar_url} alt="avatar" className="h-8 w-8 rounded-full" />
                                     ) : (
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-xs text-slate-200">
+                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-input text-xs text-content">
                                         U
                                       </span>
                                     )}
                                     <div>
-                                      <p className="text-sm font-semibold text-white">{review.author_name ?? 'GastroSkor Üye'}</p>
-                                      <p className="text-xs text-slate-400">Puan: {review.rating}</p>
+                                      <p className="text-sm font-semibold text-content">{review.author_name ?? 'GastroSkor Üye'}</p>
+                                      <p className="text-xs text-content-muted">Puan: {review.rating}</p>
                                     </div>
                                   </div>
-                                  <p className="mt-3 text-sm leading-6 text-slate-300">{review.review_text}</p>
+                                  <p className="mt-3 text-sm leading-6 text-content-muted">{review.review_text}</p>
                                 </div>
                               ))}
                             </div>
@@ -602,14 +582,14 @@ export function LivePlaceSearch() {
                         </div>
                         <form onSubmit={submitMemberReview} className="mt-6 space-y-4">
                           <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
-                            <label className="text-sm font-medium text-slate-200" htmlFor="member-rating">
+                            <label className="text-sm font-medium text-content" htmlFor="member-rating">
                               Yıldız Puanı
                             </label>
                             <select
                               id="member-rating"
                               value={memberRating}
                               onChange={(e) => setMemberRating(Number(e.target.value))}
-                              className="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 outline-none"
+                              className="w-full rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-content outline-none"
                             >
                               {[5, 4, 3, 2, 1].map((value) => (
                                 <option key={value} value={value}>
@@ -624,18 +604,18 @@ export function LivePlaceSearch() {
                               onChange={(e) => setMemberReviewText(e.target.value)}
                               rows={4}
                               placeholder="GastroSkor yorumunuzu buraya yazın..."
-                              className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-accent/40"
+                              className="w-full rounded-3xl border border-border bg-surface-input px-4 py-3 text-sm text-content outline-none focus:ring-2 focus:ring-accent/40"
                             />
                           </div>
                           <button
                             type="submit"
                             disabled={memberLoading || !isAuthenticated || !details.restaurant_id}
-                            className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="btn-primary btn-sm disabled:opacity-50"
                           >
                             {memberLoading ? 'Gönderiliyor...' : 'GastroSkor Yorumunu Ekle'}
                           </button>
                           {!isAuthenticated && (
-                            <p className="text-sm text-slate-400">Yorum eklemek için önce Google ile giriş yapın.</p>
+                            <p className="text-sm text-content-muted">Yorum eklemek için önce Google ile giriş yapın.</p>
                           )}
                           {details.restaurant_id === null && (
                             <p className="text-sm text-yellow-300">Bu restoran veritabanında kayıtlı değil; GastroSkor üye yorumu eklenemiyor.</p>
@@ -646,7 +626,7 @@ export function LivePlaceSearch() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 text-sm text-slate-200">
+                <div className="rounded-2xl border border-border/70 bg-surface-input p-6 text-sm text-content">
                   Bir restoran secin ve detaylarini goruntuleyin.
                 </div>
               )}

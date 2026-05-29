@@ -17,17 +17,17 @@ export function CategoryScoresPanel({
   sentimentScore,
 }: Props) {
   return (
-    <section className="rounded-2xl border border-slate-700/70 bg-panel/80 p-6">
+    <section className="rounded-2xl border border-border/70 bg-surface-card p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-white">Yapay Zeka Skorlari</h2>
-          <p className="text-sm text-slate-400">Lezzet, servis, fiyat ve hijyen (1-10)</p>
+          <h2 className="text-xl font-semibold text-content">Yapay Zeka Skorlari</h2>
+          <p className="text-sm text-content-muted">Lezzet, servis, fiyat ve hijyen (1-10)</p>
         </div>
         {sentimentScore != null ? (
-          <div className="rounded-xl bg-slate-800 px-4 py-2 text-right">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Genel</p>
+          <div className="rounded-xl bg-surface-input px-4 py-2 text-right">
+            <p className="text-xs uppercase tracking-wide text-content-muted">Genel</p>
             <p className="text-2xl font-bold text-accent">{sentimentScore}/10</p>
-            <p className="text-xs capitalize text-slate-400">{sentimentLabel ?? 'neutral'}</p>
+            <p className="text-xs capitalize text-content-muted">{sentimentLabel ?? 'neutral'}</p>
           </div>
         ) : null}
       </div>
@@ -44,7 +44,7 @@ export function CategoryScoresPanel({
       </div>
 
       {summary ? (
-        <p className="mt-5 rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
+        <p className="mt-5 rounded-xl border border-border bg-surface-input/60 p-4 text-sm text-content-muted">
           {summary}
         </p>
       ) : null}

@@ -27,17 +27,14 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
   return (
     <form
       onSubmit={onSubmit}
-      className="grid gap-3 rounded-2xl border border-line/80 bg-panel/80 p-4 sm:grid-cols-[1fr_180px_auto]">
+      className="card grid gap-3 p-4 sm:grid-cols-[1fr_180px_auto]">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Restoran adi ara..."
-        className="rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none focus:ring-2 focus:ring-accent/40"
+        className="input-field"
       />
-      <select
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-        className="rounded-xl border border-slate-600 bg-slate-900/70 px-4 py-2.5 text-slate-100 outline-none focus:ring-2 focus:ring-accent/40">
+      <select value={city} onChange={(e) => setCity(e.target.value)} className="input-field">
         <option value="">Tum sehirler</option>
         {CITIES.map((item) => (
           <option key={item} value={item}>
@@ -45,9 +42,7 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
           </option>
         ))}
       </select>
-      <button
-        type="submit"
-        className="rounded-xl bg-accent px-5 py-2.5 font-semibold text-accent-foreground transition hover:bg-accent-hover">
+      <button type="submit" className="btn-primary">
         Ara
       </button>
     </form>
