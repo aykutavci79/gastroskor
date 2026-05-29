@@ -24,6 +24,10 @@ from app.schemas.panel import (
     PanelAccessRead,
     MenuItemCreateRequest,
     MenuItemUpdateRequest,
+    PanelNotificationPreferencesRead,
+    PanelNotificationPreferencesUpdate,
+    PanelNotificationRead,
+    PanelNotificationsResponse,
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
@@ -53,6 +57,15 @@ from app.services.restaurant_claim import (
     submit_tax_document,
     verify_claim_otp,
 )
+from app.services.panel_notification_service import (
+    get_or_create_preferences,
+    list_notifications,
+    mark_notification_clicked,
+    mark_notification_opened,
+    notification_to_dict,
+    unread_count,
+)
+from app.services.panel_notification_jobs import run_scheduled_notification_jobs
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
@@ -555,6 +568,95 @@ def track_analytics_event(payload: AnalyticsEventCreate, db: Session = Depends(g
     db.add(row)
     db.commit()
     return {"ok": True}
+
+
+@panel_router.get("/notifications", response_model=PanelNotificationsResponse)
+def panel_notifications(user_email: str = Query(...), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    rows = list_notifications(db, ownership_id=ownership.id, limit=limit)
+    return PanelNotificationsResponse(
+        items=[PanelNotificationRead(**notification_to_dict(row)) for row in rows],
+        unread_count=unread_count(db, ownership_id=ownership.id),
+    )
+
+
+@panel_router.post("/notifications/{notification_id}/open")
+def panel_notification_open(notification_id: UUID, user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    if not ownership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership not found")
+    row = mark_notification_opened(db, notification_id=notification_id, ownership_id=ownership.id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    return notification_to_dict(row)
+
+
+@panel_router.post("/notifications/{notification_id}/click")
+def panel_notification_click(notification_id: UUID, user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    if not ownership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ownership not found")
+    row = mark_notification_clicked(db, notification_id=notification_id, ownership_id=ownership.id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    return notification_to_dict(row)
+
+
+@panel_router.get("/notification-preferences", response_model=PanelNotificationPreferencesRead)
+def panel_notification_preferences_get(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    prefs = get_or_create_preferences(db, ownership.id)
+    db.commit()
+    return PanelNotificationPreferencesRead(
+        email_enabled=prefs.email_enabled,
+        in_app_enabled=prefs.in_app_enabled,
+        analysis_reminders=prefs.analysis_reminders,
+        trial_reminders=prefs.trial_reminders,
+        negative_review_alerts=prefs.negative_review_alerts,
+        competitor_alerts=prefs.competitor_alerts,
+    )
+
+
+@panel_router.patch("/notification-preferences", response_model=PanelNotificationPreferencesRead)
+def panel_notification_preferences_update(payload: PanelNotificationPreferencesUpdate, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    prefs = get_or_create_preferences(db, ownership.id)
+    for field in (
+        "email_enabled",
+        "in_app_enabled",
+        "analysis_reminders",
+        "trial_reminders",
+        "negative_review_alerts",
+        "competitor_alerts",
+    ):
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(prefs, field, value)
+    db.add(prefs)
+    db.commit()
+    db.refresh(prefs)
+    return PanelNotificationPreferencesRead(
+        email_enabled=prefs.email_enabled,
+        in_app_enabled=prefs.in_app_enabled,
+        analysis_reminders=prefs.analysis_reminders,
+        trial_reminders=prefs.trial_reminders,
+        negative_review_alerts=prefs.negative_review_alerts,
+        competitor_alerts=prefs.competitor_alerts,
+    )
 
 
 @panel_router.post("/admin/ownerships/{ownership_id}/complete-visit", response_model=PanelAccessRead)

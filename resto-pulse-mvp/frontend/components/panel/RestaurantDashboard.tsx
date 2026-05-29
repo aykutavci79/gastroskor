@@ -7,6 +7,7 @@ import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
 import { RestaurantMenuEditor } from '@/components/panel/RestaurantMenuEditor';
 import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
+import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
 import type { CompetitorAiReport, PanelDashboard } from '@/lib/types';
 
@@ -148,7 +149,7 @@ export function RestaurantDashboard() {
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
+      <section id="competitors" className="scroll-mt-24 rounded-2xl border border-border/70 bg-surface-input p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-content">Rakipler</h2>
           <p className="text-xs text-content-muted">
@@ -211,6 +212,8 @@ export function RestaurantDashboard() {
       {error ? (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div>
       ) : null}
+
+      {userEmail ? <PanelNotificationSettings userEmail={userEmail} /> : null}
 
       {aiReport ? <CompetitorAiReportView report={aiReport} onClose={() => setAiReport(null)} /> : null}
     </div>

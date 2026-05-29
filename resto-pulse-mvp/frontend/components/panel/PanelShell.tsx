@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+import { PanelNotificationCenter } from '@/components/panel/PanelNotificationCenter';
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
 
 function PanelShellInner({ children }: { children: React.ReactNode }) {
@@ -80,6 +81,9 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {access?.can_access_panel && userEmail ? (
+              <PanelNotificationCenter userEmail={userEmail} />
+            ) : null}
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/panel' })}

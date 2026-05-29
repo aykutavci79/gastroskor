@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -68,6 +69,7 @@ from app.services.city_resolver import normalize_city_key, resolve_city_from_coo
 from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
+from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
@@ -85,6 +87,8 @@ from app.services.private_feedback_service import (
 )
 from app.services.compensation_service import issue_compensation_coupon
 from app.api.v1.panel_routes import panel_router
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 ai_service = AIAnalysisService()
@@ -997,7 +1001,7 @@ def issue_compensation_coupon_endpoint(
 
 
 @router.post("/reviews", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
-def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
+async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     try:
         restaurant_id = UUID(payload.restaurant_id)
     except ValueError as exc:
@@ -1008,6 +1012,7 @@ def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
     author_uuid = None
+    author_name = payload.author_name
     if payload.author_id:
         try:
             author_uuid = UUID(payload.author_id)
@@ -1022,6 +1027,7 @@ def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             google_sub=None,
         )
         author_uuid = author.id
+        author_name = author_name or author.full_name
 
     review = Review(
         restaurant_id=restaurant_id,
@@ -1034,6 +1040,25 @@ def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    if review.rating is not None and review.rating <= 2:
+        ownership = db.scalar(
+            select(RestaurantOwnership)
+            .where(RestaurantOwnership.restaurant_id == restaurant_id)
+            .options(selectinload(RestaurantOwnership.user), selectinload(RestaurantOwnership.subscription))
+            .limit(1)
+        )
+        if ownership:
+            try:
+                await notify_negative_gastro_review(
+                    db,
+                    ownership=ownership,
+                    review=review,
+                    author_name=author_name,
+                )
+            except Exception:
+                logger.exception("Negative review notification failed review=%s", review.id)
+
     return serialize_review(review)
 
 
@@ -1113,4 +1138,16 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
 
 
 router.include_router(panel_router)
+
+
+@router.post("/internal/cron/panel-notifications")
+async def cron_panel_notifications(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    stats = await run_scheduled_notification_jobs(db)
+    return {"ok": True, "stats": stats}
 

@@ -488,6 +488,47 @@ export function addPanelCompetitor(payload: { user_email: string; place_id: stri
   );
 }
 
+export function listPanelNotifications(userEmail: string, limit = 30) {
+  return request<import('@/lib/types').PanelNotificationsResponse>(
+    `/panel/notifications?user_email=${encodeURIComponent(userEmail)}&limit=${limit}`,
+  );
+}
+
+export function markPanelNotificationOpen(userEmail: string, notificationId: string) {
+  return request<import('@/lib/types').PanelNotification>(
+    `/panel/notifications/${encodeURIComponent(notificationId)}/open?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function markPanelNotificationClick(userEmail: string, notificationId: string) {
+  return request<import('@/lib/types').PanelNotification>(
+    `/panel/notifications/${encodeURIComponent(notificationId)}/click?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function getPanelNotificationPreferences(userEmail: string) {
+  return request<import('@/lib/types').PanelNotificationPreferences>(
+    `/panel/notification-preferences?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function updatePanelNotificationPreferences(payload: {
+  user_email: string;
+  email_enabled?: boolean;
+  in_app_enabled?: boolean;
+  analysis_reminders?: boolean;
+  trial_reminders?: boolean;
+  negative_review_alerts?: boolean;
+  competitor_alerts?: boolean;
+}) {
+  return request<import('@/lib/types').PanelNotificationPreferences>('/panel/notification-preferences', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function trackAnalyticsEvent(payload: {
   event_type: string;
   place_id?: string;

@@ -51,6 +51,7 @@ class User(Base):
     private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="author")
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="user")
     restaurant_ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="user")
+    panel_notifications: Mapped[list["PanelNotification"]] = relationship(back_populates="user")
 
 
 class Restaurant(Base):
@@ -132,6 +133,63 @@ class RestaurantOwnership(Base):
     menu_items: Mapped[list["RestaurantMenuItem"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan", order_by="RestaurantMenuItem.sort_order"
     )
+    notification_preferences: Mapped["PanelNotificationPreference | None"] = relationship(
+        back_populates="ownership", uselist=False, cascade="all, delete-orphan"
+    )
+    notifications: Mapped[list["PanelNotification"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan"
+    )
+
+
+class PanelNotificationPreference(Base):
+    __tablename__ = "panel_notification_preferences"
+    __table_args__ = (UniqueConstraint("ownership_id", name="uq_panel_notification_prefs_ownership"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    in_app_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    analysis_reminders: Mapped[bool] = mapped_column(Boolean, default=True)
+    trial_reminders: Mapped[bool] = mapped_column(Boolean, default=True)
+    negative_review_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    competitor_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="notification_preferences")
+
+
+class PanelNotification(Base):
+    __tablename__ = "panel_notifications"
+    __table_args__ = (UniqueConstraint("ownership_id", "dedupe_key", name="uq_panel_notification_dedupe"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    notification_type: Mapped[str] = mapped_column(String(40), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    cta_label: Mapped[str | None] = mapped_column(String(80))
+    cta_url: Mapped[str | None] = mapped_column(String(500))
+    dedupe_key: Mapped[str] = mapped_column(String(255))
+    email_status: Mapped[str] = mapped_column(String(20), default="pending")
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    email_error: Mapped[str | None] = mapped_column(Text)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="notifications")
+    user: Mapped["User"] = relationship(back_populates="panel_notifications")
 
 
 class RestaurantMenuItem(Base):

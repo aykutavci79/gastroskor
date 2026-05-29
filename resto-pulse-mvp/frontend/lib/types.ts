@@ -312,6 +312,34 @@ export type PanelAccess = {
   pending_visit: boolean;
 };
 
+export type PanelNotification = {
+  id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  cta_label: string | null;
+  cta_url: string | null;
+  email_status: string;
+  opened_at: string | null;
+  clicked_at: string | null;
+  created_at: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type PanelNotificationsResponse = {
+  items: PanelNotification[];
+  unread_count: number;
+};
+
+export type PanelNotificationPreferences = {
+  email_enabled: boolean;
+  in_app_enabled: boolean;
+  analysis_reminders: boolean;
+  trial_reminders: boolean;
+  negative_review_alerts: boolean;
+  competitor_alerts: boolean;
+};
+
 export type AiAnalysisQuota = {
   can_run: boolean;
   scheduled_available: boolean;

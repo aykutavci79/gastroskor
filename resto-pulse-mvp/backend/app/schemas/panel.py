@@ -111,3 +111,41 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     card_cover_image_url: str | None = Field(default=None, max_length=1024)
     instagram: str | None = Field(default=None, max_length=120)
     card_emoji: str | None = Field(default=None, max_length=16)
+
+
+class PanelNotificationRead(BaseModel):
+    id: str
+    notification_type: str
+    title: str
+    message: str
+    cta_label: str | None = None
+    cta_url: str | None = None
+    email_status: str
+    opened_at: str | None = None
+    clicked_at: str | None = None
+    created_at: str | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class PanelNotificationsResponse(BaseModel):
+    items: list[PanelNotificationRead] = Field(default_factory=list)
+    unread_count: int = 0
+
+
+class PanelNotificationPreferencesRead(BaseModel):
+    email_enabled: bool = True
+    in_app_enabled: bool = True
+    analysis_reminders: bool = True
+    trial_reminders: bool = True
+    negative_review_alerts: bool = True
+    competitor_alerts: bool = True
+
+
+class PanelNotificationPreferencesUpdate(BaseModel):
+    user_email: str
+    email_enabled: bool | None = None
+    in_app_enabled: bool | None = None
+    analysis_reminders: bool | None = None
+    trial_reminders: bool | None = None
+    negative_review_alerts: bool | None = None
+    competitor_alerts: bool | None = None

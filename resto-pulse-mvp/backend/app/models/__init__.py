@@ -1,6 +1,8 @@
 from app.models.entities import (
     CompensationCoupon,
     FeedbackMessage,
+    PanelNotification,
+    PanelNotificationPreference,
     PlatformName,
     PrivateFeedback,
     PublicReview,
@@ -19,6 +21,8 @@ from app.models.entities import (
 )
 
 __all__ = [
+    "PanelNotification",
+    "PanelNotificationPreference",
     "PlatformName",
     "PublicReview",
     "PrivateFeedback",

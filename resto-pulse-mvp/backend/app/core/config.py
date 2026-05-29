@@ -54,7 +54,18 @@ class Settings(BaseSettings):
     price_addon_daily_tl: int = 499
     panel_payments_mock: bool = True
     public_api_base_url: str = "https://api.gastroskor.com.tr"
+    public_site_base_url: str = "https://www.gastroskor.com.tr"
+    public_panel_base_url: str = "https://www.gastroskor.com.tr/panel"
     menu_upload_max_bytes: int = 5_000_000
+
+    email_provider: str = "mock"
+    email_from: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    cron_secret: str | None = None
 
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
