@@ -1068,7 +1068,7 @@ async def analyze_review(review_id: UUID, db: Session = Depends(get_db)):
     if not review:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
 
-    analysis = await ai_service.analyze_review(review.review_text)
+    analysis = await ai_service.analyze_review(review.review_text, rating=review.rating)
 
     review.sentiment_label = SentimentLabel(analysis["overall_sentiment"])
     review.sentiment_score = analysis["overall_score"]
