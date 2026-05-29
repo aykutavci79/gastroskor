@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
-import { getPanelPromo, updatePanelPromo } from '@/lib/api';
+import { getPanelPromo, updatePanelPromo, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
 
 type Props = {
@@ -11,14 +11,18 @@ type Props = {
 };
 
 export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState<RestaurantPromoSettings | null>(null);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
   const [directOrderText, setDirectOrderText] = useState('');
   const [directOrderPhone, setDirectOrderPhone] = useState('');
   const [directOrderWhatsapp, setDirectOrderWhatsapp] = useState('');
   const [directOrderUrl, setDirectOrderUrl] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +36,8 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setDirectOrderPhone(data.direct_order_phone ?? '');
         setDirectOrderWhatsapp(data.direct_order_whatsapp ?? '');
         setDirectOrderUrl(data.direct_order_url ?? '');
+        setInstagram(data.instagram ?? '');
+        setMenuImageUrl(data.menu_image_url);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Ayarlar yuklenemedi'))
       .finally(() => setLoading(false));
@@ -50,13 +56,58 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         direct_order_phone: directOrderPhone.trim() || null,
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
         direct_order_url: directOrderUrl.trim() || null,
+        instagram: instagram.trim() || null,
+        menu_image_url: menuImageUrl,
       });
       setSettings(updated);
-      setMessage('Gorunurluk rozetleri kaydedildi. Abonelik aktifken listede gorunur.');
+      setMenuImageUrl(updated.menu_image_url);
+      setMessage('Gorunurluk ayarlari kaydedildi. Abonelik aktifken listede gorunur.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kayit basarisiz');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onMenuFileSelected(file: File | undefined) {
+    if (!file || !subscriptionActive) return;
+    setUploading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await uploadPanelMenuImage(userEmail, file);
+      setMenuImageUrl(result.menu_image_url);
+      setSettings(result.settings);
+      setMessage('Menu fotografi yuklendi.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Yukleme basarisiz');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function removeMenuImage() {
+    setUploading(true);
+    setError(null);
+    try {
+      const updated = await updatePanelPromo({
+        user_email: userEmail,
+        has_own_courier: hasOwnCourier,
+        menu_image_url: null,
+        instagram: instagram.trim() || null,
+        direct_order_text: directOrderText.trim() || null,
+        direct_order_phone: directOrderPhone.trim() || null,
+        direct_order_whatsapp: directOrderWhatsapp.trim() || null,
+        direct_order_url: directOrderUrl.trim() || null,
+      });
+      setSettings(updated);
+      setMenuImageUrl(null);
+      setMessage('Menu fotografi kaldirildi.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Silinemedi');
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -68,8 +119,8 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
     <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">
       <h2 className="text-lg font-semibold text-white">Musteri karti rozetleri</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Abonelik / deneme aktifken arama ve trend listesinde kartinizda gorunur. Komisyonsuz kanal:
-        musteriyi kendi telefon veya WhatsApp&apos;iniza yonlendirin.
+        Abonelik / deneme aktifken arama ve trend listesinde kartinizda gorunur. Web siteniz yoksa
+        menunun fotografini yukleyin; Instagram veya web linki kartta kucuk ikon olarak cikar.
       </p>
       {!subscriptionActive ? (
         <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
@@ -121,13 +172,61 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         </div>
 
         <div>
-          <label className="text-xs text-slate-500">Siparis linki (opsiyonel menü URL)</label>
+          <label className="text-xs text-slate-500">Web sitesi (online siparis veya tanitim)</label>
           <input
             value={directOrderUrl}
             onChange={(e) => setDirectOrderUrl(e.target.value)}
             placeholder="https://..."
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
           />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-500">Instagram (@kullanici veya tam link)</label>
+          <input
+            value={instagram}
+            onChange={(e) => setInstagram(e.target.value)}
+            placeholder="@mekanadi"
+            maxLength={120}
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-500">Menu fotografi (JPG / PNG / WEBP, max 5 MB)</label>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={!subscriptionActive || uploading}
+              onChange={(e) => void onMenuFileSelected(e.target.files?.[0])}
+              className="text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-sm file:text-white"
+            />
+            {menuImageUrl ? (
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => void removeMenuImage()}
+                className="text-xs text-rose-300 hover:underline disabled:opacity-50">
+                Fotografi kaldir
+              </button>
+            ) : null}
+          </div>
+          {menuImageUrl ? (
+            <a
+              href={menuImageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block overflow-hidden rounded-lg border border-slate-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={menuImageUrl} alt="Menu onizleme" className="max-h-40 w-auto object-contain" />
+            </a>
+          ) : (
+            <p className="mt-2 text-xs text-slate-500">
+              Dijital menu yoksa telefonunuzdan cektiginiz menu fotografini yukleyin.
+            </p>
+          )}
         </div>
 
         {settings?.public_preview ? (
@@ -140,6 +239,15 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
               {settings.public_preview.direct_order_text ? (
                 <span className="text-xs text-emerald-200">{settings.public_preview.direct_order_text}</span>
               ) : null}
+              {settings.public_preview.instagram_url ? (
+                <span className="text-xs text-pink-200">📷 Instagram</span>
+              ) : null}
+              {settings.public_preview.menu_image_url ? (
+                <span className="text-xs text-amber-200">📋 Menu fotosu</span>
+              ) : null}
+              {settings.public_preview.direct_order_url ? (
+                <span className="text-xs text-slate-300">🌐 Web</span>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -150,6 +258,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
           className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50">
           {saving ? 'Kaydediliyor...' : 'Rozetleri kaydet'}
         </button>
+        {uploading ? <p className="text-xs text-slate-400">Menu fotografi isleniyor...</p> : null}
       </form>
 
       {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}

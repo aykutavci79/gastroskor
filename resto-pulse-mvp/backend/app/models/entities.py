@@ -109,6 +109,8 @@ class RestaurantOwnership(Base):
     promo_direct_order_phone: Mapped[str | None] = mapped_column(String(32))
     promo_direct_order_whatsapp: Mapped[str | None] = mapped_column(String(32))
     promo_direct_order_url: Mapped[str | None] = mapped_column(String(500))
+    promo_menu_image_url: Mapped[str | None] = mapped_column(String(1024))
+    promo_instagram: Mapped[str | None] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow

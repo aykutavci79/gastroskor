@@ -107,3 +107,5 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     direct_order_phone: str | None = Field(default=None, max_length=32)
     direct_order_whatsapp: str | None = Field(default=None, max_length=32)
     direct_order_url: str | None = Field(default=None, max_length=500)
+    menu_image_url: str | None = Field(default=None, max_length=1024)
+    instagram: str | None = Field(default=None, max_length=120)

@@ -327,11 +327,39 @@ export function updatePanelPromo(payload: {
   direct_order_phone?: string | null;
   direct_order_whatsapp?: string | null;
   direct_order_url?: string | null;
+  menu_image_url?: string | null;
+  instagram?: string | null;
 }) {
   return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function uploadPanelMenuImage(userEmail: string, file: File) {
+  const form = new FormData();
+  form.append('user_email', userEmail);
+  form.append('file', file);
+  const response = await fetch(`${getApiV1Base()}/panel/promo/menu-image`, {
+    method: 'POST',
+    body: form,
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = text || `API error ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      // plain text
+    }
+    throw new Error(message);
+  }
+  return response.json() as Promise<{
+    menu_image_url: string;
+    settings: import('@/lib/types').RestaurantPromoSettings;
+  }>;
 }
 
 export function getPanelDashboard(userEmail: string) {

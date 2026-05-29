@@ -27,6 +27,8 @@ export type RestaurantPromoPublic = {
   direct_order_phone?: string | null;
   direct_order_whatsapp?: string | null;
   direct_order_url?: string | null;
+  menu_image_url?: string | null;
+  instagram_url?: string | null;
 };
 
 export type RestaurantListItem = {
@@ -52,6 +54,8 @@ export type RestaurantPromoSettings = {
   direct_order_phone: string | null;
   direct_order_whatsapp: string | null;
   direct_order_url: string | null;
+  menu_image_url: string | null;
+  instagram: string | null;
   public_preview: RestaurantPromoPublic | null;
 };
 

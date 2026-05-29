@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import RestaurantOwnership, RestaurantSubscription
+from app.services.promo_social import normalize_instagram
 
 
 def subscription_allows_promo(subscription: RestaurantSubscription | None) -> bool:
@@ -20,7 +21,17 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
     phone = (ownership.promo_direct_order_phone or "").strip() or None
     whatsapp = (ownership.promo_direct_order_whatsapp or "").strip() or None
     url = (ownership.promo_direct_order_url or "").strip() or None
-    if not has_courier and not promo_text and not phone and not whatsapp and not url:
+    menu_image_url = (ownership.promo_menu_image_url or "").strip() or None
+    instagram_url = normalize_instagram(ownership.promo_instagram)
+    if (
+        not has_courier
+        and not promo_text
+        and not phone
+        and not whatsapp
+        and not url
+        and not menu_image_url
+        and not instagram_url
+    ):
         return None
     return {
         "has_own_courier": has_courier,
@@ -28,6 +39,8 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         "direct_order_phone": phone,
         "direct_order_whatsapp": whatsapp,
         "direct_order_url": url,
+        "menu_image_url": menu_image_url,
+        "instagram_url": instagram_url,
     }
 
 
@@ -85,5 +98,7 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "direct_order_phone": ownership.promo_direct_order_phone,
         "direct_order_whatsapp": ownership.promo_direct_order_whatsapp,
         "direct_order_url": ownership.promo_direct_order_url,
+        "menu_image_url": ownership.promo_menu_image_url,
+        "instagram": ownership.promo_instagram,
         "public_preview": promo_from_ownership(ownership) if active else None,
     }

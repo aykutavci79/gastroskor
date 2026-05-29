@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routes import router as v1_router
 from app.core.config import settings
+from app.services.menu_image_storage import menu_images_dir
 
 app = FastAPI(title=settings.app_name)
+
+_menu_dir = menu_images_dir()
+app.mount("/media/menu", StaticFiles(directory=str(_menu_dir)), name="menu-images")
 
 app.add_middleware(
     CORSMiddleware,

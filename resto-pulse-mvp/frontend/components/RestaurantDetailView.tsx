@@ -8,6 +8,7 @@ import { GeographicalIndicationBadge } from '@/components/GeographicalIndication
 import { MapsDirectionsButton } from '@/components/MapsDirectionsButton';
 import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
+import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
@@ -118,8 +119,28 @@ export function RestaurantDetailView({
         {restaurant.address ? <p className="mt-1 text-sm text-slate-500">{restaurant.address}</p> : null}
         <div className="mt-3">
           <RestaurantPromoBadges promo={restaurant.promo} />
+          <RestaurantPromoLinks promo={restaurant.promo} />
         </div>
       </div>
+
+      {restaurant.promo?.menu_image_url && (!restaurant.menu || restaurant.menu.length === 0) ? (
+        <section className="rounded-2xl border border-slate-700/70 bg-panel/60 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Menu</h2>
+          <a
+            href={restaurant.promo.menu_image_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block overflow-hidden rounded-xl border border-slate-600">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={restaurant.promo.menu_image_url}
+              alt={`${restaurant.name} menu`}
+              className="max-h-96 w-full object-contain"
+            />
+          </a>
+          <p className="mt-2 text-xs text-slate-500">Buyutmek icin fotografa tiklayin.</p>
+        </section>
+      ) : null}
 
       {restaurant.menu && restaurant.menu.length > 0 ? (
         <RestaurantPublicMenu items={restaurant.menu} />

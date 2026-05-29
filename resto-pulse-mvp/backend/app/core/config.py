@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     price_addon_weekly_tl: int = 249
     price_addon_daily_tl: int = 499
     panel_payments_mock: bool = True
+    public_api_base_url: str = "https://api.gastroskor.com.tr"
+    menu_upload_max_bytes: int = 5_000_000
 
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 

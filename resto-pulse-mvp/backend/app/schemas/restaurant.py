@@ -30,6 +30,8 @@ class RestaurantPromoPublic(BaseModel):
     direct_order_phone: str | None = None
     direct_order_whatsapp: str | None = None
     direct_order_url: str | None = None
+    menu_image_url: str | None = None
+    instagram_url: str | None = None
 
 
 class RestaurantRead(RestaurantCreate):

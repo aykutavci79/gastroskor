@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,6 +34,8 @@ from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
+from app.services.menu_image_storage import save_menu_image
+from app.services.promo_social import normalize_instagram
 from app.services.restaurant_menu import (
     create_menu_item,
     delete_menu_item,
@@ -175,10 +177,36 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
     ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
     ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
     ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
+    if payload.menu_image_url is not None:
+        ownership.promo_menu_image_url = payload.menu_image_url.strip() or None
+    if payload.instagram is not None:
+        ownership.promo_instagram = normalize_instagram(payload.instagram)
     db.add(ownership)
     db.commit()
     db.refresh(ownership)
     return ownership_promo_as_dict(ownership)
+
+
+@panel_router.post("/promo/menu-image")
+async def upload_panel_menu_image(
+    user_email: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    if not subscription_allows_promo(ownership.subscription):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Aktif abonelik gerekli.")
+
+    url = await save_menu_image(file)
+    ownership.promo_menu_image_url = url
+    db.add(ownership)
+    db.commit()
+    db.refresh(ownership)
+    return {"menu_image_url": url, "settings": ownership_promo_as_dict(ownership)}
 
 
 @panel_router.get("/menu")
