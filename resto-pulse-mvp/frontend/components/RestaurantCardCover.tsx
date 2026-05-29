@@ -1,3 +1,4 @@
+import { RestaurantCardCoverArt } from '@/components/RestaurantCardCoverArt';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import type { RestaurantMenuItem } from '@/lib/types';
 
@@ -31,10 +32,7 @@ export function RestaurantCardCover({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
       ) : (
-        <div
-          className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${visual.gradient} bg-slate-800/80`}>
-          <span className={compact ? 'text-4xl opacity-35' : 'text-5xl opacity-40'}>{visual.emoji}</span>
-        </div>
+        <RestaurantCardCoverArt visual={visual} seed={name ?? category ?? ''} compact={compact} />
       )}
       <div
         className="absolute inset-0 bg-gradient-to-r from-panel from-30% via-panel/75 via-55% to-transparent"

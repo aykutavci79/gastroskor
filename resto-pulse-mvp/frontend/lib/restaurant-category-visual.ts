@@ -29,7 +29,21 @@ const RULES: Array<{ kind: CategoryVisualKind; keywords: string[]; emoji: string
     },
     {
       kind: 'kebab',
-      keywords: ['kofte', 'köfte', 'kebap', 'kebab', 'doner', 'döner', 'cig', 'ciğ', 'lahmacun', 'et'],
+      keywords: [
+        'kofte',
+        'köfte',
+        'kebap',
+        'kebab',
+        'doner',
+        'döner',
+        'donerci',
+        'dönerci',
+        'cig',
+        'ciğ',
+        'lahmacun',
+        'et',
+        'shawarma',
+      ],
       emoji: '🥙',
       label: 'Kebap & köfte',
       gradient: 'from-amber-600/25 to-amber-500/10',
@@ -139,7 +153,7 @@ export function resolveCategoryVisual(input: {
     }
   }
 
-  if (best && bestScore >= 2) {
+  if (best && bestScore >= 1) {
     return {
       kind: best.kind,
       emoji: best.emoji,
