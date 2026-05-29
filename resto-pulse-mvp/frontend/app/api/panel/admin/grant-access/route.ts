@@ -19,10 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ detail: 'Bu sayfa sadece panel admin hesaplari icindir.' }, { status: 403 });
   }
 
-  const secret = process.env.PANEL_ADMIN_SECRET;
-  if (!secret) {
-    return NextResponse.json({ detail: 'PANEL_ADMIN_SECRET sunucuda tanimli degil.' }, { status: 500 });
-  }
+  const secret = process.env.PANEL_ADMIN_SECRET?.trim();
 
   let body: {
     place_id?: string;
@@ -40,12 +37,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ detail: 'place_id gerekli.' }, { status: 400 });
   }
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (secret) {
+    headers['X-Panel-Admin-Secret'] = secret;
+  }
+
   const response = await fetch(`${API_BASE}/api/v1/panel/admin/grant-access`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Panel-Admin-Secret': secret,
-    },
+    headers,
     body: JSON.stringify({
       user_email: session!.user!.email,
       place_id: body.place_id.trim(),
@@ -55,6 +54,23 @@ export async function POST(request: Request) {
     }),
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data = (await response.json().catch(() => ({}))) as { detail?: string | { msg?: string }[] };
+  if (!response.ok) {
+    const detail =
+      typeof data.detail === 'string'
+        ? data.detail
+        : Array.isArray(data.detail)
+          ? data.detail.map((d) => d.msg).filter(Boolean).join(', ')
+          : 'Baglama basarisiz';
+    return NextResponse.json(
+      {
+        detail:
+          response.status === 403
+            ? `${detail} — Railway'de de PANEL_ADMIN_EMAILS (ve istege bagli PANEL_ADMIN_SECRET) ayarla.`
+            : detail,
+      },
+      { status: response.status },
+    );
+  }
   return NextResponse.json(data, { status: response.status });
 }

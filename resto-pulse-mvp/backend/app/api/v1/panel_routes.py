@@ -30,7 +30,7 @@ from app.services.competitor_ai_analysis import analyze_competitor_pair
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
-from app.services.panel_admin import admin_grant_panel_access, is_panel_admin_email
+from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
 from app.services.restaurant_claim import (
     admin_activate_subscription,
     admin_complete_visit,
@@ -105,10 +105,7 @@ async def admin_grant_access_endpoint(
     db: Session = Depends(get_db),
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
 ):
-    secret_ok = bool(settings.panel_admin_secret and x_panel_admin_secret == settings.panel_admin_secret)
-    email_ok = is_panel_admin_email(payload.user_email)
-    if not secret_ok and not email_ok:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin yetkisi yok.")
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
 
     user = resolve_user_by_email(db, payload.user_email)
     ownership = await admin_grant_panel_access(

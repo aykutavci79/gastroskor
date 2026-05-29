@@ -28,6 +28,36 @@ def is_panel_admin_email(email: str | None) -> bool:
     return email.strip().lower() in allowed
 
 
+def assert_admin_grant_allowed(*, user_email: str, secret_header: str | None) -> None:
+    """Raise HTTPException if neither secret nor admin email list authorizes the grant."""
+    from fastapi import HTTPException, status
+
+    email_ok = is_panel_admin_email(user_email)
+    secret_configured = bool((settings.panel_admin_secret or "").strip())
+    secret_ok = secret_configured and secret_header == settings.panel_admin_secret
+
+    if secret_configured:
+        if secret_ok or email_ok:
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Admin yetkisi yok. Railway'de PANEL_ADMIN_SECRET (Vercel ile ayni) veya "
+                f"PANEL_ADMIN_EMAILS icinde {user_email.strip().lower()} olmali."
+            ),
+        )
+
+    if email_ok:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=(
+            "Railway'de PANEL_ADMIN_EMAILS tanimli degil veya bu e-posta listede yok. "
+            f"Ornek: PANEL_ADMIN_EMAILS={user_email.strip().lower()}"
+        ),
+    )
+
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
