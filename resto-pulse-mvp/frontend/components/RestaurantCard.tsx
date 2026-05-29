@@ -135,7 +135,7 @@ export function RestaurantCard({
           ) : null}
         </div>
 
-        <div className="mt-auto pt-1">
+        <div className="mt-auto space-y-1 pt-1">
           <RestaurantPromoBadges
             promo={restaurant.promo}
             restaurantId={restaurant.id}

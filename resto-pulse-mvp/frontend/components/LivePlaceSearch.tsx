@@ -300,7 +300,7 @@ export function LivePlaceSearch() {
       {error ? <div className="rounded-xl border border-bad/40 bg-bad/10 p-3 text-sm text-red-200">{error}</div> : null}
 
       {items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
           {items.map((item) => (
             <RestaurantCard
               key={item.place_id}

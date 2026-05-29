@@ -41,7 +41,7 @@ export function NewMemberRestaurants() {
         <p className="mt-1 text-sm text-content-muted">Yeni üye restoranları keşfet</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
         {items.map((restaurant) => (
           <RestaurantCard
             key={restaurant.id}

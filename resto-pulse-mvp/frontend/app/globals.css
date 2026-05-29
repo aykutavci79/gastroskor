@@ -137,5 +137,51 @@
     color: #ffffff;
     background: linear-gradient(135deg, #ff6b35, #ffb703);
     pointer-events: none;
+    max-width: calc(100% - 1.5rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 767px) {
+    .featured-badge {
+      top: 8px;
+      right: 8px;
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+
+    .home-top5-scroll {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .home-top5-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .home-top5-scroll-item {
+      width: 280px;
+      flex: 0 0 280px;
+      scroll-snap-align: start;
+    }
+
+    .card-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .card-btn-group > a,
+    .card-btn-group > button,
+    .card-btn-group > span {
+      flex: 0 1 auto;
+      max-width: 100%;
+    }
   }
 }

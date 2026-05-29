@@ -23,7 +23,7 @@ export function RestaurantPromoLinks({ promo, compact = false }: Props) {
     : 'inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-input px-3 py-1.5 text-xs text-content hover:border-amber-500/50 hover:text-brand-gold';
 
   return (
-    <div className={`flex flex-wrap gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
+    <div className={`card-btn-group flex flex-wrap gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
       {instagram ? (
         <a href={instagram} target="_blank" rel="noopener noreferrer" className={linkClass}>
           <span aria-hidden>📷</span>

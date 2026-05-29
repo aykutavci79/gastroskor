@@ -53,7 +53,7 @@ export function HomeRestaurantGrid({ initialRestaurants, q, city }: Props) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
         {displayRestaurants.map((restaurant) => (
           <RestaurantCard key={restaurant.id} restaurant={restaurant} compact />
         ))}

@@ -127,7 +127,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-content outline-none ring-accent/40 placeholder:text-content-muted focus:ring-2"
       />
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <div className="mt-5 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={handleSubmit}

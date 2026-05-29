@@ -25,7 +25,7 @@ export function RestaurantCardTravelLinks({ mapsDirectionsUrl, distanceMeters, c
     : 'inline-flex items-center gap-1 rounded-lg border border-border bg-surface-input/90 px-2 py-1 text-xs font-medium text-content backdrop-blur-sm';
 
   return (
-    <div className={`flex flex-wrap items-center gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
+    <div className={`card-btn-group flex flex-wrap items-center gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
       {maps ? (
         <a
           href={maps}

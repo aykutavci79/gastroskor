@@ -13,6 +13,38 @@ function formatDistance(item: RestaurantTrendingItem): string | null {
   return null;
 }
 
+function Top5Card({
+  restaurant,
+  index,
+}: {
+  restaurant: RestaurantTrendingItem;
+  index: number;
+}) {
+  const distance = formatDistance(restaurant);
+  const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
+  const googleCount = restaurant.google_user_ratings_total ?? restaurant.google_review_count;
+  const isPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
+  const href = isPartner ? `/restaurants/${restaurant.id}` : null;
+
+  return (
+    <div className="home-top5-scroll-item md:w-auto md:flex-none">
+      <RestaurantCard
+        restaurant={restaurant}
+        compact
+        rank={index + 1}
+        distanceLabel={distance ?? undefined}
+        distanceMeters={restaurant.distance_meters}
+        mapsDirectionsUrl={restaurant.maps_directions_url}
+        googleRating={googleRating}
+        googleReviewCount={googleCount}
+        href={href}
+        featuredBorder={isPartner}
+        cornerBadge={isPartner ? 'ÖNE ÇIKAN' : null}
+      />
+    </div>
+  );
+}
+
 export function FeaturedCityTop() {
   const [items, setItems] = useState<RestaurantTrendingItem[]>([]);
   const [city, setCity] = useState('Bursa');
@@ -61,6 +93,9 @@ export function FeaturedCityTop() {
     };
   }, []);
 
+  const listClassName =
+    'home-top5-scroll md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0 lg:grid-cols-3 xl:grid-cols-5';
+
   return (
     <section className="space-y-4">
       <div>
@@ -74,9 +109,9 @@ export function FeaturedCityTop() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <div className={listClassName}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-44 animate-pulse rounded-2xl bg-surface-input sm:h-48" />
+            <div key={i} className="home-top5-scroll-item h-44 animate-pulse rounded-2xl bg-surface-input md:h-48 md:w-auto" />
           ))}
         </div>
       ) : null}
@@ -94,32 +129,10 @@ export function FeaturedCityTop() {
       ) : null}
 
       {!loading && !error && items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
-          {items.map((restaurant, index) => {
-            const distance = formatDistance(restaurant);
-            const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
-            const googleCount =
-              restaurant.google_user_ratings_total ?? restaurant.google_review_count;
-            const isPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
-            const href = isPartner ? `/restaurants/${restaurant.id}` : null;
-
-            return (
-              <RestaurantCard
-                key={restaurant.google_place_id ?? restaurant.id}
-                restaurant={restaurant}
-                compact
-                rank={index + 1}
-                distanceLabel={distance ?? undefined}
-                distanceMeters={restaurant.distance_meters}
-                mapsDirectionsUrl={restaurant.maps_directions_url}
-                googleRating={googleRating}
-                googleReviewCount={googleCount}
-                href={href}
-                featuredBorder={isPartner}
-                cornerBadge={isPartner ? 'ÖNE ÇIKAN' : null}
-              />
-            );
-          })}
+        <div className={listClassName}>
+          {items.map((restaurant, index) => (
+            <Top5Card key={restaurant.google_place_id ?? restaurant.id} restaurant={restaurant} index={index} />
+          ))}
         </div>
       ) : null}
     </section>

@@ -30,7 +30,7 @@ export function RestaurantPromoBadges({ promo, restaurantId, menuItemCount = 0, 
     'inline-flex items-center gap-1 rounded-full border border-brand-gold/40 bg-brand-gold/15 px-2 py-0.5 text-[10px] font-semibold text-brand-gold transition duration-ui ease-ui hover:bg-brand-gold/25';
 
   return (
-    <div className={`flex flex-wrap gap-1.5 ${compact ? '' : 'mt-2'}`}>
+    <div className={`card-btn-group flex flex-wrap gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
       {hasCourier ? (
         <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
           <span aria-hidden>🛵</span> Kendi kurye
