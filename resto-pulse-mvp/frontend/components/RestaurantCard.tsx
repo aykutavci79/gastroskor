@@ -6,6 +6,7 @@ import { RestaurantCardCover } from '@/components/RestaurantCardCover';
 import { RestaurantCardScores } from '@/components/RestaurantCardScores';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
+import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLinks';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
@@ -16,6 +17,8 @@ type Props = {
   compact?: boolean;
   rank?: number;
   distanceLabel?: string;
+  distanceMeters?: number | null;
+  mapsDirectionsUrl?: string | null;
   googleRating?: number | null;
   googleReviewCount?: number | null;
   /** null = kart tiklanmaz (ornegin saf Google trend) */
@@ -28,6 +31,8 @@ export function RestaurantCard({
   compact = false,
   rank,
   distanceLabel,
+  distanceMeters,
+  mapsDirectionsUrl,
   googleRating,
   googleReviewCount,
   href,
@@ -43,6 +48,8 @@ export function RestaurantCard({
     googleRating !== undefined ? googleRating : restaurant.google_rating;
   const googleCount =
     googleReviewCount !== undefined ? googleReviewCount : restaurant.google_review_count;
+  const travelDistance = distanceMeters ?? restaurant.distance_meters;
+  const travelMaps = mapsDirectionsUrl ?? restaurant.maps_directions_url;
 
   const shellClass = `group relative block overflow-hidden rounded-2xl bg-panel/80 shadow-glow transition ${premiumBorderClass(premium)} ${
     compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]'
@@ -111,7 +118,17 @@ export function RestaurantCard({
         </div>
 
         <div className="mt-auto pt-1">
-          <RestaurantPromoBadges promo={restaurant.promo} compact={compact} />
+          <RestaurantPromoBadges
+            promo={restaurant.promo}
+            restaurantId={restaurant.id}
+            menuItemCount={restaurant.menu_item_count}
+            compact={compact}
+          />
+          <RestaurantCardTravelLinks
+            mapsDirectionsUrl={travelMaps}
+            distanceMeters={travelDistance}
+            compact={compact}
+          />
           <RestaurantPromoLinks promo={restaurant.promo} compact />
           <RestaurantMenuPreview
             items={menuItems.slice(0, compact ? 2 : 3)}

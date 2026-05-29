@@ -54,6 +54,7 @@ from app.schemas.restaurant import (
     RestaurantRead,
     RestaurantTrendingItem,
 )
+from app.services.gastro_score_ranking import haversine_meters
 from app.services.restaurant_partner import (
     merge_partner_into_row,
     partner_listing_for_restaurant,
@@ -624,6 +625,8 @@ async def trending_restaurants_week(
 def list_restaurants(
     q: str | None = Query(default=None, description="Isim/konum aramasi"),
     city: str | None = Query(default=None),
+    origin_lat: float | None = Query(default=None, ge=-90, le=90),
+    origin_lng: float | None = Query(default=None, ge=-180, le=180),
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
@@ -637,6 +640,7 @@ def list_restaurants(
     partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
 
     google_profiles: dict[str, RestaurantPlatformProfile] = {}
+    google_place_ids: dict[str, str] = {}
     if restaurant_ids:
         for profile in db.scalars(
             select(RestaurantPlatformProfile).where(
@@ -644,7 +648,12 @@ def list_restaurants(
                 RestaurantPlatformProfile.platform == PlatformName.google_maps,
             )
         ).all():
-            google_profiles[str(profile.restaurant_id)] = profile
+            rid = str(profile.restaurant_id)
+            google_profiles[rid] = profile
+            if profile.external_id:
+                google_place_ids[rid] = profile.external_id
+
+    has_origin = origin_lat is not None and origin_lng is not None
 
     result: list[dict] = []
     for restaurant in rows:
@@ -653,6 +662,30 @@ def list_restaurants(
         )
         rid = str(restaurant.id)
         google_profile = google_profiles.get(rid)
+        place_id = google_place_ids.get(rid)
+        destination_query = build_destination_label(
+            name=restaurant.name,
+            address=restaurant.address,
+            city=restaurant.city,
+        )
+        maps_url = build_google_maps_directions_url(
+            place_id=place_id,
+            latitude=restaurant.latitude,
+            longitude=restaurant.longitude,
+            query=destination_query or restaurant.name,
+        )
+        distance_m: float | None = None
+        if (
+            has_origin
+            and restaurant.latitude is not None
+            and restaurant.longitude is not None
+        ):
+            distance_m = haversine_meters(
+                origin_lat,
+                origin_lng,
+                restaurant.latitude,
+                restaurant.longitude,
+            )
         row = {
             "id": rid,
             "name": restaurant.name,
@@ -664,6 +697,10 @@ def list_restaurants(
             if google_profile and google_profile.avg_rating is not None
             else None,
             "google_review_count": google_profile.review_count if google_profile else None,
+            "latitude": restaurant.latitude,
+            "longitude": restaurant.longitude,
+            "maps_directions_url": maps_url,
+            "distance_meters": round(distance_m) if distance_m is not None else None,
             "geo_indications": parse_geo_indications(restaurant.geo_indications),
             "has_geographical_indication": restaurant.has_geographical_indication,
             "gi_product_name": restaurant.gi_product_name,

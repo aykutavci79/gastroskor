@@ -119,39 +119,14 @@ export function TrendingRestaurants() {
               restaurant.google_user_ratings_total ?? restaurant.google_review_count;
             const placeId = restaurant.google_place_id ?? restaurant.id;
 
-            if (isGoogleSource) {
-              return (
-                <RestaurantCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  compact
-                  rank={index + 1}
-                  distanceLabel={distance ?? undefined}
-                  googleRating={googleRating}
-                  googleReviewCount={googleCount}
-                  href={null}
-                  footer={
-                    <>
-                      {restaurant.maps_directions_url ? (
-                        <a
-                          href={restaurant.maps_directions_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg border border-slate-600 px-2.5 py-1 text-[10px] text-slate-200 hover:border-accent/50">
-                          Haritada ac
-                        </a>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => void openGoogleDetails(placeId)}
-                        className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
-                        Yorumlar
-                      </button>
-                    </>
-                  }
-                />
-              );
-            }
+            const footer = isGoogleSource ? (
+              <button
+                type="button"
+                onClick={() => void openGoogleDetails(placeId)}
+                className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
+                Yorumlar
+              </button>
+            ) : undefined;
 
             return (
               <RestaurantCard
@@ -160,8 +135,12 @@ export function TrendingRestaurants() {
                 compact
                 rank={index + 1}
                 distanceLabel={distance ?? undefined}
+                distanceMeters={restaurant.distance_meters}
+                mapsDirectionsUrl={restaurant.maps_directions_url}
                 googleRating={googleRating}
                 googleReviewCount={googleCount}
+                href={isGoogleSource ? null : undefined}
+                footer={footer}
               />
             );
           })}

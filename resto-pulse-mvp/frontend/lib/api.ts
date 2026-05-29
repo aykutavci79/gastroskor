@@ -69,10 +69,17 @@ export function listTrendingRestaurantsWeek(params: {
   return request<RestaurantTrendingItem[]>(`/restaurants/trending-week${query ? `?${query}` : ''}`);
 }
 
-export function listRestaurants(params: { q?: string; city?: string }) {
+export function listRestaurants(params: {
+  q?: string;
+  city?: string;
+  origin_lat?: number;
+  origin_lng?: number;
+}) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.city) search.set('city', params.city);
+  if (params.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
+  if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
   const query = search.toString();
   return request<RestaurantListItem[]>(`/restaurants${query ? `?${query}` : ''}`);
 }

@@ -132,7 +132,7 @@ export function RestaurantDetailView({
       </div>
 
       {restaurant.promo?.menu_image_url && (!restaurant.menu || restaurant.menu.length === 0) ? (
-        <section className="rounded-2xl border border-slate-700/70 bg-panel/60 p-4">
+        <section id="menu" className="scroll-mt-24 rounded-2xl border border-slate-700/70 bg-panel/60 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Menu</h2>
             <a
@@ -162,7 +162,9 @@ export function RestaurantDetailView({
       ) : null}
 
       {restaurant.menu && restaurant.menu.length > 0 ? (
-        <RestaurantPublicMenu items={restaurant.menu} />
+        <div id="menu" className="scroll-mt-24">
+          <RestaurantPublicMenu items={restaurant.menu} />
+        </div>
       ) : null}
 
       <div className="space-y-3">

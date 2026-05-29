@@ -65,6 +65,10 @@ class RestaurantListItem(BaseModel):
     card_emoji: str | None = None
     google_rating: float | None = None
     google_review_count: int | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    maps_directions_url: str | None = None
+    distance_meters: float | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

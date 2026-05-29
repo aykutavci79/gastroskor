@@ -1,5 +1,5 @@
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
-import { RestaurantCard } from '@/components/RestaurantCard';
+import { HomeRestaurantGrid } from '@/components/HomeRestaurantGrid';
 import { SearchForm } from '@/components/SearchForm';
 import { TrendingRestaurants } from '@/components/TrendingRestaurants';
 import { listRestaurants } from '@/lib/api';
@@ -29,9 +29,6 @@ export default async function HomePage({ searchParams }: Props) {
     }
   }
 
-  const displayRestaurants = restaurants.slice(0, 6);
-  const hasMore = restaurants.length > 6;
-
   return (
     <div className="space-y-8">
       <section className="rounded-3xl border border-slate-700/60 bg-gradient-to-r from-slate-900 to-slate-800 p-8 shadow-glow">
@@ -60,25 +57,7 @@ export default async function HomePage({ searchParams }: Props) {
           <span className="text-sm text-slate-400">{restaurants.length} sonuc</span>
         </div>
 
-        {restaurants.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-400">
-            Sonuc bulunamadi. Farkli bir arama dene.
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {displayRestaurants.map((restaurant) => (
-                <RestaurantCard key={restaurant.id} restaurant={restaurant} compact />
-              ))}
-            </div>
-            {hasMore ? (
-              <p className="mt-3 text-center text-sm text-slate-500">
-                {restaurants.length - 6} sonuc daha var · aramayi daraltin veya asagidaki one cikanlara
-                bakin
-              </p>
-            ) : null}
-          </>
-        )}
+        <HomeRestaurantGrid initialRestaurants={restaurants} q={q} city={city} />
       </section>
 
       <TrendingRestaurants />

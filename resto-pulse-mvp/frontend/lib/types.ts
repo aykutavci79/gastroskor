@@ -49,6 +49,10 @@ export type RestaurantListItem = {
   card_emoji?: string | null;
   google_rating?: number | null;
   google_review_count?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  maps_directions_url?: string | null;
+  distance_meters?: number | null;
 };
 
 export type RestaurantPromoSettings = {
