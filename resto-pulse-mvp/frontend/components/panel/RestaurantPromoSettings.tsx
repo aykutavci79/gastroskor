@@ -124,8 +124,9 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
     <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">
       <h2 className="text-lg font-semibold text-white">Musteri karti rozetleri</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Abonelik / deneme aktifken arama ve trend listesinde kartinizda gorunur. Web siteniz yoksa
-        menunun fotografini yukleyin; Instagram veya web linki kartta kucuk ikon olarak cikar.
+        Abonelik / deneme aktifken arama ve trend listesinde kartinizda gorunur. Sag tarafta tam
+        yukseklikte urun veya menu fotografi (sola dogru kaybolur); solda isim ve Google / GS puanlari.
+        Instagram veya web linki altta kucuk ikon olarak cikar.
       </p>
       {!subscriptionActive ? (
         <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
@@ -135,9 +136,9 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
 
       <form onSubmit={onSubmit} className="mt-4 space-y-4">
         <div>
-          <label className="text-xs text-slate-500">Kart emojisi (musteri listesinde)</label>
+          <label className="text-xs text-slate-500">Kart emojisi (fotograf yokken)</label>
           <p className="mt-1 text-xs text-slate-500">
-            Istediginiz emojiyi secin. Bos birakirsaniz sistem menuden tahmin eder.
+            Menu / urun fotografi yuklemediyseniz sag tarafta bu emoji veya otomatik tahmin gorunur.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
@@ -267,7 +268,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
             </a>
           ) : (
             <p className="mt-2 text-xs text-slate-500">
-              Dijital menu yoksa telefonunuzdan cektiginiz menu fotografini yukleyin.
+              Pizza, kofte vb. urun fotografi veya menu — kartin saginda tam yukseklikte gorunur.
             </p>
           )}
         </div>

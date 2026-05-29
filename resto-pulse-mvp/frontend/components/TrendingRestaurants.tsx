@@ -1,13 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
+import { RestaurantCardCover } from '@/components/RestaurantCardCover';
+import { RestaurantCardScores } from '@/components/RestaurantCardScores';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
+import { RestaurantCard } from '@/components/RestaurantCard';
 import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
 import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
@@ -30,71 +31,70 @@ function GoogleTrendingCard({
 }) {
   const distance = formatDistance(restaurant);
   const placeId = restaurant.google_place_id ?? restaurant.id;
-  const total = restaurant.google_user_ratings_total;
   const premium = Boolean(restaurant.is_premium_partner);
 
   const menuItems = restaurant.menu_preview ?? [];
+  const coverImage = restaurant.promo?.menu_image_url ?? null;
+  const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
+  const googleCount = restaurant.google_user_ratings_total ?? restaurant.google_review_count;
 
   return (
     <article
-      className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-panel/80 p-4 ${premiumBorderClass(premium)}`}>
-      <RestaurantCategoryBadge
+      className={`relative min-h-[9.5rem] overflow-hidden rounded-2xl bg-panel/80 ${premiumBorderClass(premium)}`}>
+      <RestaurantCardCover
+        imageUrl={coverImage}
         category={restaurant.category}
         name={restaurant.name}
         menuItems={menuItems}
         ownerEmoji={restaurant.card_emoji}
-        watermark
+        compact
       />
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-          #{index + 1}
-        </span>
-        {distance ? <span className="text-[11px] text-slate-400">{distance}</span> : null}
-      </div>
-      <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white">{restaurant.name}</h3>
-      <p className="truncate text-[11px] text-slate-400">{restaurant.city ?? 'Bursa'}</p>
-      <div className="mt-2">
-        <RestaurantCategoryBadge
-          category={restaurant.category}
-          name={restaurant.name}
-          menuItems={menuItems}
-          ownerEmoji={restaurant.card_emoji}
+      <div className="relative z-10 flex min-h-[inherit] flex-col p-3 pr-[48%]">
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+            #{index + 1}
+          </span>
+          {distance ? <span className="text-[10px] text-slate-400">{distance}</span> : null}
+        </div>
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white">{restaurant.name}</h3>
+        <p className="truncate text-[10px] text-slate-400">{restaurant.city ?? 'Bursa'}</p>
+        <RestaurantCardScores
+          googleRating={googleRating}
+          googleReviewCount={googleCount}
+          gastroRating={restaurant.avg_rating}
           compact
         />
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
-        {restaurant.week_avg_rating != null ? (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-amber-200">
-            Google {restaurant.week_avg_rating.toFixed(1)}
-          </span>
-        ) : null}
-        {total != null ? (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">
-            {total.toLocaleString('tr-TR')} yorum
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-auto">
-        <RestaurantPromoBadges promo={restaurant.promo} compact />
-        <RestaurantPromoLinks promo={restaurant.promo} compact />
-        <RestaurantMenuPreview items={menuItems.slice(0, 2)} totalCount={restaurant.menu_item_count} compact />
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {restaurant.maps_directions_url ? (
-          <a
-            href={restaurant.maps_directions_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg border border-slate-600 px-2.5 py-1 text-[10px] text-slate-200 hover:border-accent/50">
-            Haritada ac
-          </a>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => onOpenDetails(placeId)}
-          className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
-          Yorumlar
-        </button>
+        <div className="mt-1">
+          <RestaurantCategoryBadge
+            category={restaurant.category}
+            name={restaurant.name}
+            menuItems={menuItems}
+            ownerEmoji={restaurant.card_emoji}
+            compact
+          />
+        </div>
+        <div className="mt-auto pt-1">
+          <RestaurantPromoBadges promo={restaurant.promo} compact />
+          <RestaurantPromoLinks promo={restaurant.promo} compact hideMenuImageLink={Boolean(coverImage)} />
+          <RestaurantMenuPreview items={menuItems.slice(0, 2)} totalCount={restaurant.menu_item_count} compact />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {restaurant.maps_directions_url ? (
+              <a
+                href={restaurant.maps_directions_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-slate-600 px-2.5 py-1 text-[10px] text-slate-200 hover:border-accent/50">
+                Haritada ac
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => onOpenDetails(placeId)}
+              className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
+              Yorumlar
+            </button>
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -208,36 +208,7 @@ export function TrendingRestaurants() {
                 onOpenDetails={openGoogleDetails}
               />
             ) : (
-              <Link
-                key={restaurant.id}
-                href={`/restaurants/${restaurant.id}`}
-                className="group flex h-full flex-col rounded-2xl border border-slate-700/70 bg-panel/80 p-4 transition hover:border-accent/50">
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-                    #{index + 1}
-                  </span>
-                  {formatDistance(restaurant) ? (
-                    <span className="text-[11px] text-slate-400">{formatDistance(restaurant)}</span>
-                  ) : null}
-                </div>
-                <h3 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-accent">
-                  {restaurant.name}
-                </h3>
-                <p className="truncate text-[11px] text-slate-400">
-                  {[restaurant.district, restaurant.city].filter(Boolean).join(', ')}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                  <span className="rounded-full bg-slate-800 px-2 py-0.5 text-amber-200">
-                    {restaurant.week_review_count} yorum / 7 gun
-                  </span>
-                </div>
-                <GeographicalIndicationBadge
-                  hasGeographicalIndication={restaurant.has_geographical_indication}
-                  giProductName={restaurant.gi_product_name}
-                  geoIndications={restaurant.geo_indications ?? []}
-                  compact
-                />
-              </Link>
+              <RestaurantCard key={restaurant.id} restaurant={restaurant} compact rank={index + 1} />
             ),
           )}
         </div>

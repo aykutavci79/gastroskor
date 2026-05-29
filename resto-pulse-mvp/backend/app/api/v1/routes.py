@@ -633,7 +633,18 @@ def list_restaurants(
     if city:
         stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
     rows = db.scalars(stmt.order_by(Restaurant.name.asc()).limit(limit)).all()
-    partner_map = partner_listings_for_restaurant_ids(db, [r.id for r in rows])
+    restaurant_ids = [r.id for r in rows]
+    partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
+
+    google_profiles: dict[str, RestaurantPlatformProfile] = {}
+    if restaurant_ids:
+        for profile in db.scalars(
+            select(RestaurantPlatformProfile).where(
+                RestaurantPlatformProfile.restaurant_id.in_(restaurant_ids),
+                RestaurantPlatformProfile.platform == PlatformName.google_maps,
+            )
+        ).all():
+            google_profiles[str(profile.restaurant_id)] = profile
 
     result: list[dict] = []
     for restaurant in rows:
@@ -641,6 +652,7 @@ def list_restaurants(
             select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
         )
         rid = str(restaurant.id)
+        google_profile = google_profiles.get(rid)
         row = {
             "id": rid,
             "name": restaurant.name,
@@ -648,6 +660,10 @@ def list_restaurants(
             "district": restaurant.district,
             "category": restaurant.category,
             "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "google_rating": round(float(google_profile.avg_rating), 1)
+            if google_profile and google_profile.avg_rating is not None
+            else None,
+            "google_review_count": google_profile.review_count if google_profile else None,
             "geo_indications": parse_geo_indications(restaurant.geo_indications),
             "has_geographical_indication": restaurant.has_geographical_indication,
             "gi_product_name": restaurant.gi_product_name,

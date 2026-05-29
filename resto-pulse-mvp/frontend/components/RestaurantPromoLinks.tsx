@@ -3,6 +3,8 @@ import type { RestaurantPromoPublic } from '@/lib/types';
 type Props = {
   promo: RestaurantPromoPublic | null | undefined;
   compact?: boolean;
+  /** Kart kapaginda menü fotosu gosteriliyorsa tekrar link gosterme */
+  hideMenuImageLink?: boolean;
 };
 
 function instagramLabel(url: string): string {
@@ -10,11 +12,11 @@ function instagramLabel(url: string): string {
   return match ? `@${match[1]}` : 'Instagram';
 }
 
-export function RestaurantPromoLinks({ promo, compact = false }: Props) {
+export function RestaurantPromoLinks({ promo, compact = false, hideMenuImageLink = false }: Props) {
   if (!promo) return null;
 
   const instagram = promo.instagram_url?.trim();
-  const menuImage = promo.menu_image_url?.trim();
+  const menuImage = hideMenuImageLink ? null : promo.menu_image_url?.trim();
   const website = promo.direct_order_url?.trim();
 
   if (!instagram && !menuImage && !website) return null;

@@ -62,6 +62,8 @@ class RestaurantListItem(BaseModel):
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
     card_emoji: str | None = None
+    google_rating: float | None = None
+    google_review_count: int | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

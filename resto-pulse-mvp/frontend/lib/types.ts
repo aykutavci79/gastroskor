@@ -46,6 +46,8 @@ export type RestaurantListItem = {
   menu_preview?: RestaurantMenuItem[];
   menu_item_count?: number;
   card_emoji?: string | null;
+  google_rating?: number | null;
+  google_review_count?: number | null;
 };
 
 export type RestaurantPromoSettings = {
