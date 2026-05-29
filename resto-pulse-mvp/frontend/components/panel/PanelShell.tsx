@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
@@ -65,6 +65,13 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
               </p>
             ) : null}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/panel' })}
+              className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
+              Cikis
+            </button>
           {access?.can_access_panel ? (
             <nav className="flex flex-wrap gap-2 text-sm">
               <Link
@@ -79,6 +86,7 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
               </Link>
             </nav>
           ) : null}
+          </div>
         </div>
         {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
       </section>

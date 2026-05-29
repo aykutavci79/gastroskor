@@ -131,8 +131,11 @@ export function ClaimRestaurantFlow() {
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-6">
         <h2 className="text-xl font-semibold text-white">Mekanini Bagla</h2>
         <p className="mt-1 text-sm text-slate-400">
-          Google&apos;daki isletmenizi secin. Cep telefonu varsa SMS ile, sabit hat ise vergi levhasi
-          ile devam edilir.
+          Giris tamam. Simdi Google Maps&apos;teki isletme adinizi yazin, listeden secin. Cep telefonu
+          varsa SMS, sabit hat ise vergi levhasi notu ile devam edilir.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Ornek arama: <span className="text-slate-300">Urfali Kebap Bursa</span> veya isletme adiniz + sehir
         </p>
 
         {step === 'search' ? (
