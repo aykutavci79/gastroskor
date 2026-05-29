@@ -7,9 +7,9 @@ import { CategoryScoresPanel } from '@/components/CategoryScoresPanel';
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
 import { MapsDirectionsButton } from '@/components/MapsDirectionsButton';
 import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
+import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
-import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getRestaurant, listRestaurantReviews } from '@/lib/api';
@@ -112,9 +112,16 @@ export function RestaurantDetailView({
         <Link href="/" className="text-sm text-accent hover:underline">
           ← Restoran listesi
         </Link>
-        <h1 className="mt-2 text-3xl font-bold text-white">{restaurant.name}</h1>
-        <p className="text-slate-400">
-          {[restaurant.category, restaurant.district, restaurant.city].filter(Boolean).join(' · ')}
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold text-white">{restaurant.name}</h1>
+          <RestaurantCategoryBadge
+            category={restaurant.category}
+            name={restaurant.name}
+            menuItems={restaurant.menu}
+          />
+        </div>
+        <p className="mt-1 text-slate-400">
+          {[restaurant.district, restaurant.city].filter(Boolean).join(' · ')}
         </p>
         {restaurant.address ? <p className="mt-1 text-sm text-slate-500">{restaurant.address}</p> : null}
         <div className="mt-3">

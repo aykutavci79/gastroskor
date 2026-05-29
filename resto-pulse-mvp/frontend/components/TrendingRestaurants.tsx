@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
+import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
@@ -32,14 +33,17 @@ function GoogleTrendingCard({
   const total = restaurant.google_user_ratings_total;
   const premium = Boolean(restaurant.is_premium_partner);
 
+  const menuItems = restaurant.menu_preview ?? [];
+
   return (
     <article
-      className={`relative flex h-full flex-col rounded-2xl bg-panel/80 p-4 pt-5 ${premiumBorderClass(premium)}`}>
-      {premium ? (
-        <span className="absolute -top-2.5 left-3 rounded-md bg-gradient-to-r from-amber-500 to-amber-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
-          Uye isletme
-        </span>
-      ) : null}
+      className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-panel/80 p-4 ${premiumBorderClass(premium)}`}>
+      <RestaurantCategoryBadge
+        category={restaurant.category}
+        name={restaurant.name}
+        menuItems={menuItems}
+        watermark
+      />
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
           #{index + 1}
@@ -48,6 +52,14 @@ function GoogleTrendingCard({
       </div>
       <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white">{restaurant.name}</h3>
       <p className="truncate text-[11px] text-slate-400">{restaurant.city ?? 'Bursa'}</p>
+      <div className="mt-2">
+        <RestaurantCategoryBadge
+          category={restaurant.category}
+          name={restaurant.name}
+          menuItems={menuItems}
+          compact
+        />
+      </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
         {restaurant.week_avg_rating != null ? (
           <span className="rounded-full bg-slate-800 px-2 py-0.5 text-amber-200">
@@ -63,11 +75,7 @@ function GoogleTrendingCard({
       <div className="mt-auto">
         <RestaurantPromoBadges promo={restaurant.promo} compact />
         <RestaurantPromoLinks promo={restaurant.promo} compact />
-        <RestaurantMenuPreview
-          items={(restaurant.menu_preview ?? []).slice(0, 2)}
-          totalCount={restaurant.menu_item_count}
-          compact
-        />
+        <RestaurantMenuPreview items={menuItems.slice(0, 2)} totalCount={restaurant.menu_item_count} compact />
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {restaurant.maps_directions_url ? (
