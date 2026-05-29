@@ -11,6 +11,16 @@ export type ReviewCategory = {
   reason: string | null;
 };
 
+export type RestaurantMenuItem = {
+  id: string;
+  name: string;
+  price_tl: number;
+  description?: string | null;
+  category?: string | null;
+  sort_order?: number;
+  is_active?: boolean;
+};
+
 export type RestaurantPromoPublic = {
   has_own_courier: boolean;
   direct_order_text?: string | null;
@@ -30,6 +40,9 @@ export type RestaurantListItem = {
   has_geographical_indication: boolean;
   gi_product_name: string | null;
   promo?: RestaurantPromoPublic | null;
+  is_premium_partner?: boolean;
+  menu_preview?: RestaurantMenuItem[];
+  menu_item_count?: number;
 };
 
 export type RestaurantPromoSettings = {
@@ -65,6 +78,7 @@ export type Restaurant = RestaurantListItem & {
   maps_directions_url: string | null;
   /** @deprecated maps_directions_url kullanin */
   maps_search_url: string | null;
+  menu?: RestaurantMenuItem[];
 };
 
 export type ParsedSearchIntent = {

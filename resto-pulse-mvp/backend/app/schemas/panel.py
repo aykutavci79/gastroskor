@@ -82,6 +82,24 @@ class AdminGrantPanelRequest(BaseModel):
     admin_note: str | None = None
 
 
+class MenuItemCreateRequest(BaseModel):
+    user_email: str
+    name: str = Field(min_length=2, max_length=120)
+    price_tl: float = Field(ge=0, le=99999)
+    description: str | None = Field(default=None, max_length=500)
+    category: str | None = Field(default=None, max_length=60)
+
+
+class MenuItemUpdateRequest(BaseModel):
+    user_email: str
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    price_tl: float | None = Field(default=None, ge=0, le=99999)
+    description: str | None = Field(default=None, max_length=500)
+    category: str | None = Field(default=None, max_length=60)
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
 class RestaurantPromoSettingsUpdate(BaseModel):
     user_email: str
     has_own_courier: bool = False

@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
+import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
+import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
 import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
 
@@ -68,9 +70,16 @@ function GoogleTrendingCard({
   const distance = formatDistance(restaurant);
   const placeId = restaurant.google_place_id ?? restaurant.id;
   const total = restaurant.google_user_ratings_total;
+  const premium = Boolean(restaurant.is_premium_partner);
 
   return (
-    <article className="rounded-2xl border border-slate-700/70 bg-panel/80 p-4">
+    <article
+      className={`relative rounded-2xl bg-panel/80 p-4 pt-5 ${premiumBorderClass(premium)}`}>
+      {premium ? (
+        <span className="absolute -top-2.5 left-3 rounded-md bg-gradient-to-r from-amber-500 to-amber-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+          Uye isletme
+        </span>
+      ) : null}
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="rounded-lg bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
           #{index + 1}
@@ -97,6 +106,11 @@ function GoogleTrendingCard({
         ) : null}
       </div>
       <RestaurantPromoBadges promo={restaurant.promo} />
+      <RestaurantMenuPreview
+        items={restaurant.menu_preview ?? []}
+        totalCount={restaurant.menu_item_count}
+        compact
+      />
       <div className="mt-4 flex flex-wrap gap-2">
         {restaurant.maps_directions_url ? (
           <a

@@ -22,6 +22,8 @@ from app.schemas.panel import (
     ClaimStartResponse,
     CompetitorAddRequest,
     PanelAccessRead,
+    MenuItemCreateRequest,
+    MenuItemUpdateRequest,
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
@@ -32,6 +34,13 @@ from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
+from app.services.restaurant_menu import (
+    create_menu_item,
+    delete_menu_item,
+    list_panel_menu,
+    menu_item_to_dict,
+    update_menu_item,
+)
 from app.services.restaurant_promo import ownership_promo_as_dict, subscription_allows_promo
 from app.services.restaurant_claim import (
     admin_activate_subscription,
@@ -170,6 +179,77 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
     db.commit()
     db.refresh(ownership)
     return ownership_promo_as_dict(ownership)
+
+
+@panel_router.get("/menu")
+def get_panel_menu(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return {
+        "subscription_active": subscription_allows_promo(ownership.subscription),
+        "items": list_panel_menu(db, ownership),
+    }
+
+
+@panel_router.post("/menu")
+def add_panel_menu_item(payload: MenuItemCreateRequest, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    row = create_menu_item(
+        db,
+        ownership,
+        name=payload.name,
+        price_tl=payload.price_tl,
+        description=payload.description,
+        category=payload.category,
+    )
+    return menu_item_to_dict(row)
+
+
+@panel_router.patch("/menu/{item_id}")
+def update_panel_menu_item(
+    item_id: UUID,
+    payload: MenuItemUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    row = update_menu_item(
+        db,
+        ownership,
+        item_id,
+        name=payload.name,
+        price_tl=payload.price_tl,
+        description=payload.description,
+        category=payload.category,
+        is_active=payload.is_active,
+        sort_order=payload.sort_order,
+    )
+    return menu_item_to_dict(row)
+
+
+@panel_router.delete("/menu/{item_id}")
+def remove_panel_menu_item(
+    item_id: UUID,
+    user_email: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    delete_menu_item(db, ownership, item_id)
+    return {"deleted": True}
 
 
 @panel_router.post("/claim/start", response_model=ClaimStartResponse)

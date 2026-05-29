@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
+import { RestaurantMenuEditor } from '@/components/panel/RestaurantMenuEditor';
 import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
@@ -105,12 +106,20 @@ export function RestaurantDashboard() {
       </section>
 
       {userEmail ? (
-        <RestaurantPromoSettings
-          userEmail={userEmail}
-          subscriptionActive={
-            access?.subscription_status === 'trial' || access?.subscription_status === 'active'
-          }
-        />
+        <>
+          <RestaurantPromoSettings
+            userEmail={userEmail}
+            subscriptionActive={
+              access?.subscription_status === 'trial' || access?.subscription_status === 'active'
+            }
+          />
+          <RestaurantMenuEditor
+            userEmail={userEmail}
+            subscriptionActive={
+              access?.subscription_status === 'trial' || access?.subscription_status === 'active'
+            }
+          />
+        </>
       ) : null}
 
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">

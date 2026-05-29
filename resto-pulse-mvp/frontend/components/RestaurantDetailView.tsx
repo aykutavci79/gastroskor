@@ -6,6 +6,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CategoryScoresPanel } from '@/components/CategoryScoresPanel';
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
 import { MapsDirectionsButton } from '@/components/MapsDirectionsButton';
+import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
+import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
+import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getRestaurant, listRestaurantReviews } from '@/lib/api';
@@ -113,7 +116,14 @@ export function RestaurantDetailView({
           {[restaurant.category, restaurant.district, restaurant.city].filter(Boolean).join(' · ')}
         </p>
         {restaurant.address ? <p className="mt-1 text-sm text-slate-500">{restaurant.address}</p> : null}
+        <div className="mt-3">
+          <RestaurantPromoBadges promo={restaurant.promo} />
+        </div>
       </div>
+
+      {restaurant.menu && restaurant.menu.length > 0 ? (
+        <RestaurantPublicMenu items={restaurant.menu} />
+      ) : null}
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

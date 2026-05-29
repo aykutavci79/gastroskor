@@ -21,6 +21,7 @@ from app.models import (
     PrivateFeedback,
     PlatformName,
     Restaurant,
+    RestaurantOwnership,
     RestaurantPlatformProfile,
     Review,
     ReviewCategoryScore,
@@ -53,7 +54,13 @@ from app.schemas.restaurant import (
     RestaurantRead,
     RestaurantTrendingItem,
 )
-from app.services.restaurant_promo import get_public_promo_for_restaurant, promos_for_restaurant_ids, promos_by_google_place_ids
+from app.services.restaurant_partner import (
+    merge_partner_into_row,
+    partner_listing_for_restaurant,
+    partner_listings_by_google_place_ids,
+    partner_listings_for_restaurant_ids,
+)
+from app.services.restaurant_menu import public_menu_for_ownership
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
@@ -160,7 +167,17 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         query=destination_query or restaurant.name,
     )
 
-    promo = get_public_promo_for_restaurant(db, restaurant.id) if db is not None else None
+    partner = partner_listing_for_restaurant(db, restaurant.id) if db is not None else {}
+    menu: list[dict] = []
+    if db is not None and partner.get("is_premium_partner"):
+        ownership_row = db.scalar(
+            select(RestaurantOwnership)
+            .where(RestaurantOwnership.restaurant_id == restaurant.id)
+            .options(selectinload(RestaurantOwnership.subscription), selectinload(RestaurantOwnership.menu_items))
+            .limit(1)
+        )
+        if ownership_row:
+            menu = public_menu_for_ownership(ownership_row, preview=False)
 
     return RestaurantRead(
         id=str(restaurant.id),
@@ -177,7 +194,11 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         google_place_id=place_id,
         maps_directions_url=maps_directions_url,
         maps_search_url=maps_directions_url,
-        promo=promo,
+        promo=partner.get("promo"),
+        is_premium_partner=bool(partner.get("is_premium_partner")),
+        menu=menu,
+        menu_preview=partner.get("menu_preview") or [],
+        menu_item_count=int(partner.get("menu_item_count") or 0),
     )
 
 
@@ -573,11 +594,11 @@ async def trending_restaurants_week(
                 city=city,
             )
             place_ids = [row.get("google_place_id") for row in items if row.get("google_place_id")]
-            promo_by_place = promos_by_google_place_ids(db, place_ids)
+            partner_by_place = partner_listings_by_google_place_ids(db, place_ids)
             for row in items:
                 pid = row.get("google_place_id")
-                if pid and pid in promo_by_place:
-                    row["promo"] = promo_by_place[pid]
+                if pid and pid in partner_by_place:
+                    merge_partner_into_row(row, partner_by_place[pid])
             return items
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
@@ -612,7 +633,7 @@ def list_restaurants(
     if city:
         stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
     rows = db.scalars(stmt.order_by(Restaurant.name.asc()).limit(limit)).all()
-    promo_map = promos_for_restaurant_ids(db, [r.id for r in rows])
+    partner_map = partner_listings_for_restaurant_ids(db, [r.id for r in rows])
 
     result: list[dict] = []
     for restaurant in rows:
@@ -620,20 +641,19 @@ def list_restaurants(
             select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
         )
         rid = str(restaurant.id)
-        result.append(
-            {
-                "id": rid,
-                "name": restaurant.name,
-                "city": restaurant.city,
-                "district": restaurant.district,
-                "category": restaurant.category,
-                "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
-                "geo_indications": parse_geo_indications(restaurant.geo_indications),
-                "has_geographical_indication": restaurant.has_geographical_indication,
-                "gi_product_name": restaurant.gi_product_name,
-                "promo": promo_map.get(rid),
-            }
-        )
+        row = {
+            "id": rid,
+            "name": restaurant.name,
+            "city": restaurant.city,
+            "district": restaurant.district,
+            "category": restaurant.category,
+            "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "geo_indications": parse_geo_indications(restaurant.geo_indications),
+            "has_geographical_indication": restaurant.has_geographical_indication,
+            "gi_product_name": restaurant.gi_product_name,
+        }
+        merge_partner_into_row(row, partner_map.get(rid))
+        result.append(row)
     return result
 
 

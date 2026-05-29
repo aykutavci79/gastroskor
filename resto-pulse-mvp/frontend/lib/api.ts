@@ -276,6 +276,50 @@ export function getPanelPromo(userEmail: string) {
   );
 }
 
+export function getPanelMenu(userEmail: string) {
+  return request<{ subscription_active: boolean; items: import('@/lib/types').RestaurantMenuItem[] }>(
+    `/panel/menu?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function addPanelMenuItem(payload: {
+  user_email: string;
+  name: string;
+  price_tl: number;
+  description?: string | null;
+  category?: string | null;
+}) {
+  return request<import('@/lib/types').RestaurantMenuItem>('/panel/menu', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updatePanelMenuItem(
+  itemId: string,
+  payload: {
+    user_email: string;
+    name?: string;
+    price_tl?: number;
+    description?: string | null;
+    category?: string | null;
+    is_active?: boolean;
+    sort_order?: number;
+  },
+) {
+  return request<import('@/lib/types').RestaurantMenuItem>(`/panel/menu/${encodeURIComponent(itemId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deletePanelMenuItem(userEmail: string, itemId: string) {
+  return request<{ deleted: boolean }>(
+    `/panel/menu/${encodeURIComponent(itemId)}?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'DELETE' },
+  );
+}
+
 export function updatePanelPromo(payload: {
   user_email: string;
   has_own_courier: boolean;

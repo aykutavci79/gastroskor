@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
-from app.services.restaurant_promo import promos_for_restaurant_ids
+from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
 
 def _parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
@@ -253,7 +253,7 @@ def _serialize_candidates(
     db: Session,
 ) -> list[dict]:
     restaurant_ids = [item["restaurant"].id for item in candidates]
-    promo_map = promos_for_restaurant_ids(db, restaurant_ids)
+    partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
     result: list[dict] = []
     for item in candidates:
         restaurant = item["restaurant"]
@@ -261,26 +261,26 @@ def _serialize_candidates(
             select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
         )
         distance_m = item.get("distance_meters")
-        result.append(
-            {
-                "id": str(restaurant.id),
-                "name": restaurant.name,
-                "city": restaurant.city,
-                "district": restaurant.district,
-                "category": restaurant.category,
-                "latitude": restaurant.latitude,
-                "longitude": restaurant.longitude,
-                "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
-                "geo_indications": _parse_geo_indications(restaurant.geo_indications),
-                "has_geographical_indication": restaurant.has_geographical_indication,
-                "gi_product_name": restaurant.gi_product_name,
-                "week_review_count": item["week_review_count"],
-                "week_avg_rating": item.get("week_avg_rating"),
-                "distance_meters": round(distance_m) if distance_m is not None else None,
-                "distance_km": _distance_km(distance_m),
-                "distance_origin": distance_origin,
-                "is_fallback": bool(item.get("is_fallback")),
-                "promo": promo_map.get(str(restaurant.id)),
-            }
-        )
+        rid = str(restaurant.id)
+        row = {
+            "id": rid,
+            "name": restaurant.name,
+            "city": restaurant.city,
+            "district": restaurant.district,
+            "category": restaurant.category,
+            "latitude": restaurant.latitude,
+            "longitude": restaurant.longitude,
+            "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "geo_indications": _parse_geo_indications(restaurant.geo_indications),
+            "has_geographical_indication": restaurant.has_geographical_indication,
+            "gi_product_name": restaurant.gi_product_name,
+            "week_review_count": item["week_review_count"],
+            "week_avg_rating": item.get("week_avg_rating"),
+            "distance_meters": round(distance_m) if distance_m is not None else None,
+            "distance_km": _distance_km(distance_m),
+            "distance_origin": distance_origin,
+            "is_fallback": bool(item.get("is_fallback")),
+        }
+        merge_partner_into_row(row, partner_map.get(rid))
+        result.append(row)
     return result

@@ -16,6 +16,14 @@ class RestaurantCreate(BaseModel):
     gi_product_name: str | None = Field(default=None, max_length=255)
 
 
+class RestaurantMenuItemPublic(BaseModel):
+    id: str
+    name: str
+    price_tl: float
+    description: str | None = None
+    category: str | None = None
+
+
 class RestaurantPromoPublic(BaseModel):
     has_own_courier: bool = False
     direct_order_text: str | None = None
@@ -30,6 +38,10 @@ class RestaurantRead(RestaurantCreate):
     maps_directions_url: str | None = None
     maps_search_url: str | None = None  # geriye uyumluluk; maps_directions_url ile ayni
     promo: RestaurantPromoPublic | None = None
+    is_premium_partner: bool = False
+    menu: list[RestaurantMenuItemPublic] = Field(default_factory=list)
+    menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
+    menu_item_count: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -44,6 +56,9 @@ class RestaurantListItem(BaseModel):
     has_geographical_indication: bool = False
     gi_product_name: str | None = None
     promo: RestaurantPromoPublic | None = None
+    is_premium_partner: bool = False
+    menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
+    menu_item_count: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 

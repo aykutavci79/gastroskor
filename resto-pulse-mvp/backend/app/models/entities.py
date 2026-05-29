@@ -12,6 +12,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -124,6 +125,27 @@ class RestaurantOwnership(Base):
     otp_challenges: Mapped[list["RestaurantOtpChallenge"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
+    menu_items: Mapped[list["RestaurantMenuItem"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan", order_by="RestaurantMenuItem.sort_order"
+    )
+
+
+class RestaurantMenuItem(Base):
+    __tablename__ = "restaurant_menu_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    price_tl: Mapped[float] = mapped_column(Numeric(10, 2))
+    description: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(60))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="menu_items")
 
 
 class RestaurantSubscription(Base):
