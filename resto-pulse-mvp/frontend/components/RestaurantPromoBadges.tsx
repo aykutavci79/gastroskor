@@ -19,7 +19,8 @@ export function RestaurantPromoBadges({ promo, restaurantId, menuItemCount = 0, 
   if (!promo && !menuItemCount) return null;
 
   const hasCourier = Boolean(promo?.has_own_courier);
-  const hasOffer = Boolean(promo?.direct_order_text?.trim());
+  const offerText = promo?.direct_order_text?.trim() ?? '';
+  const hasOffer = offerText.length > 0;
   const hasMenu =
     Boolean(promo?.menu_image_url?.trim()) || menuItemCount > 0;
 
@@ -42,7 +43,7 @@ export function RestaurantPromoBadges({ promo, restaurantId, menuItemCount = 0, 
       ) : null}
       {hasOffer ? (
         <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
-          {promo.direct_order_text}
+          {offerText}
         </span>
       ) : null}
     </div>
