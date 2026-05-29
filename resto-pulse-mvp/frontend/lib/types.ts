@@ -69,6 +69,16 @@ export type RestaurantPromoSettings = {
   public_preview: RestaurantPromoPublic | null;
 };
 
+export type CityTopResponse = {
+  city: string;
+  items: RestaurantTrendingItem[];
+  cached: boolean;
+};
+
+export type NewMemberRestaurantsResponse = {
+  items: RestaurantListItem[];
+};
+
 export type RestaurantTrendingItem = RestaurantListItem & {
   latitude: number | null;
   longitude: number | null;

@@ -1,7 +1,8 @@
+import { FeaturedCityTop } from '@/components/FeaturedCityTop';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { HomeRestaurantGrid } from '@/components/HomeRestaurantGrid';
+import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
 import { SearchForm } from '@/components/SearchForm';
-import { TrendingRestaurants } from '@/components/TrendingRestaurants';
 import { listRestaurants } from '@/lib/api';
 
 type Props = {
@@ -60,7 +61,8 @@ export default async function HomePage({ searchParams }: Props) {
         <HomeRestaurantGrid initialRestaurants={restaurants} q={q} city={city} />
       </section>
 
-      <TrendingRestaurants />
+      <NewMemberRestaurants />
+      <FeaturedCityTop />
     </div>
   );
 }

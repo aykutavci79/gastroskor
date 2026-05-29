@@ -9,7 +9,7 @@ import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLinks';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
-import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
+import { FeaturedCornerBadge } from '@/components/RestaurantPremiumFrame';
 import type { RestaurantListItem } from '@/lib/types';
 
 type Props = {
@@ -24,6 +24,10 @@ type Props = {
   /** null = kart tiklanmaz (ornegin saf Google trend) */
   href?: string | null;
   footer?: ReactNode;
+  /** Gradient cerceve (premium veya yeni uye) */
+  featuredBorder?: boolean;
+  /** Sag ust kose rozeti; premium icin varsayilan: ÖNE ÇIKAN */
+  cornerBadge?: string | null;
 };
 
 export function RestaurantCard({
@@ -37,8 +41,13 @@ export function RestaurantCard({
   googleReviewCount,
   href,
   footer,
+  featuredBorder,
+  cornerBadge,
 }: Props) {
-  const premium = Boolean(restaurant.is_premium_partner);
+  const isPaidPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
+  const showFeatured = featuredBorder ?? isPaidPartner;
+  const badgeLabel =
+    cornerBadge !== undefined ? cornerBadge : isPaidPartner ? 'ÖNE ÇIKAN' : null;
   const location = [restaurant.district, restaurant.city].filter(Boolean).join(', ') || 'Konum belirtilmedi';
   const menuItems = restaurant.menu_preview ?? [];
   const coverImage = restaurant.promo?.card_cover_image_url ?? null;
@@ -51,14 +60,23 @@ export function RestaurantCard({
   const travelDistance = distanceMeters ?? restaurant.distance_meters;
   const travelMaps = mapsDirectionsUrl ?? restaurant.maps_directions_url;
 
-  const shellClass = `group relative block overflow-hidden rounded-2xl bg-surface-card shadow-card transition ${premiumBorderClass(premium)} ${
-    compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]'
-  } ${resolvedHref ? 'hover:-translate-y-0.5 duration-ui ease-ui' : ''} ${
-    premium ? 'hover:ring-brand-gold/90' : resolvedHref ? 'hover:border-brand/50' : ''
-  }`;
+  const shellClass = [
+    'group relative block overflow-hidden rounded-2xl transition',
+    showFeatured ? 'featured-card' : 'border border-border bg-surface-card shadow-card',
+    compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]',
+    resolvedHref ? 'hover:-translate-y-0.5 duration-ui ease-ui' : '',
+    showFeatured
+      ? 'hover:shadow-[0_0_24px_rgba(255,107,53,0.35)]'
+      : resolvedHref
+        ? 'hover:border-brand/50'
+        : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const inner = (
     <>
+      {badgeLabel ? <FeaturedCornerBadge label={badgeLabel} /> : null}
       <RestaurantCardCover
         imageUrl={coverImage}
         category={restaurant.category}

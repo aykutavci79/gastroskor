@@ -49,6 +49,8 @@ from app.schemas.live_places import (
 from app.services.query_parser import parse_search_query
 from app.services.smart_filters import apply_smart_filters, merge_criteria
 from app.schemas.restaurant import (
+    CityTopResponse,
+    NewMemberRestaurantsResponse,
     RestaurantCreate,
     RestaurantListItem,
     RestaurantRead,
@@ -62,6 +64,10 @@ from app.services.restaurant_partner import (
     partner_listings_for_restaurant_ids,
 )
 from app.services.restaurant_menu import public_menu_for_ownership
+from app.services.city_resolver import normalize_city_key, resolve_city_from_coords, resolve_city_name
+from app.services.city_top_cache import read_city_top_cache
+from app.services.city_top_google import fetch_city_top_google
+from app.services.new_member_restaurants import list_new_member_restaurants
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
@@ -650,6 +656,59 @@ async def trending_restaurants_week(
         origin_lng=lng,
         city=city,
     )
+
+
+@router.get("/restaurants/city-top", response_model=CityTopResponse)
+async def city_top_restaurants(
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lng: float | None = Query(default=None, ge=-180, le=180),
+    city: str | None = Query(default=None),
+    limit: int = Query(default=5, ge=1, le=10),
+    db: Session = Depends(get_db),
+):
+    city_label = resolve_city_name(city) if city else resolve_city_from_coords(lat, lng)
+    city_key = normalize_city_key(city_label)
+    was_cached = read_city_top_cache(city_key) is not None
+
+    if not settings.google_places_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GOOGLE_PLACES_API_KEY tanimli degil.",
+        )
+    try:
+        items = await fetch_city_top_google(city_label, limit=limit)
+        place_ids = [row.get("google_place_id") for row in items if row.get("google_place_id")]
+        partner_by_place = partner_listings_by_google_place_ids(db, place_ids)
+        for row in items:
+            pid = row.get("google_place_id")
+            if pid and pid in partner_by_place:
+                merge_partner_into_row(row, partner_by_place[pid])
+            plat = row.get("latitude")
+            plng = row.get("longitude")
+            if lat is not None and lng is not None and plat is not None and plng is not None:
+                dist = haversine_meters(lat, lng, float(plat), float(plng))
+                row["distance_meters"] = dist
+                row["distance_km"] = round(dist / 1000, 1)
+                row["distance_origin"] = "user"
+        return CityTopResponse(city=city_label, items=items, cached=was_cached)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Google Places baglantisi basarisiz: {exc}",
+        ) from exc
+
+
+@router.get("/restaurants/new-members", response_model=NewMemberRestaurantsResponse)
+def new_member_restaurants(
+    limit: int = Query(default=12, ge=1, le=24),
+    db: Session = Depends(get_db),
+):
+    items = list_new_member_restaurants(db, limit=limit)
+    return NewMemberRestaurantsResponse(items=items)
 
 
 @router.get("/restaurants", response_model=list[RestaurantListItem])

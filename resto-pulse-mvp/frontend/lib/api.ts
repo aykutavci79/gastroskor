@@ -8,6 +8,8 @@ import type {
   LivePlaceSearchItem,
   LivePlaceSearchResponse,
   ReviewFilterState,
+  CityTopResponse,
+  NewMemberRestaurantsResponse,
   Restaurant,
   RestaurantListItem,
   RestaurantTrendingItem,
@@ -67,6 +69,23 @@ export function listTrendingRestaurantsWeek(params: {
   if (params.source) search.set('source', params.source);
   const query = search.toString();
   return request<RestaurantTrendingItem[]>(`/restaurants/trending-week${query ? `?${query}` : ''}`);
+}
+
+export function listCityTopRestaurants(params: { lat?: number; lng?: number; city?: string; limit?: number }) {
+  const search = new URLSearchParams();
+  if (params.lat != null) search.set('lat', String(params.lat));
+  if (params.lng != null) search.set('lng', String(params.lng));
+  if (params.city) search.set('city', params.city);
+  if (params.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<CityTopResponse>(`/restaurants/city-top${query ? `?${query}` : ''}`);
+}
+
+export function listNewMemberRestaurants(params?: { limit?: number }) {
+  const search = new URLSearchParams();
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<NewMemberRestaurantsResponse>(`/restaurants/new-members${query ? `?${query}` : ''}`);
 }
 
 export function listRestaurants(params: {

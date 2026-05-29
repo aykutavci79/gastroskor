@@ -86,3 +86,13 @@ class RestaurantTrendingItem(RestaurantListItem):
     google_user_ratings_total: int | None = None
     maps_directions_url: str | None = None
 
+
+class CityTopResponse(BaseModel):
+    city: str
+    items: list[RestaurantTrendingItem] = Field(default_factory=list)
+    cached: bool = True
+
+
+class NewMemberRestaurantsResponse(BaseModel):
+    items: list[RestaurantListItem] = Field(default_factory=list)
+

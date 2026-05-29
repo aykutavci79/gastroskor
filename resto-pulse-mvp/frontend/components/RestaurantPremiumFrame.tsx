@@ -1,7 +1,14 @@
-/** Altin cerceve — uye isletme. */
+/** Gradient cerceve — ucretli / one cikan isletme. */
 
+export function featuredCardClass(enabled: boolean): string {
+  return enabled ? 'featured-card' : 'border border-border';
+}
+
+/** @deprecated featuredCardClass kullanin */
 export function premiumBorderClass(isPremium: boolean): string {
-  return isPremium
-    ? 'ring-2 ring-brand-gold/80 border-brand-gold/55 shadow-card'
-    : 'border border-border';
+  return featuredCardClass(isPremium);
+}
+
+export function FeaturedCornerBadge({ label }: { label: string }) {
+  return <span className="featured-badge">{label}</span>;
 }
