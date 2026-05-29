@@ -179,6 +179,9 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
+    if payload.card_cover_image_url is not None:
+        ownership.promo_card_cover_image_url = payload.card_cover_image_url.strip() or None
+
     if not subscription_allows_promo(ownership.subscription):
         db.add(ownership)
         db.commit()
@@ -220,6 +223,28 @@ async def upload_panel_menu_image(
     db.commit()
     db.refresh(ownership)
     return {"menu_image_url": url, "settings": ownership_promo_as_dict(ownership)}
+
+
+@panel_router.post("/promo/card-cover-image")
+async def upload_panel_card_cover_image(
+    user_email: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    if not subscription_allows_promo(ownership.subscription):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Aktif abonelik gerekli.")
+
+    url = await save_menu_image(file)
+    ownership.promo_card_cover_image_url = url
+    db.add(ownership)
+    db.commit()
+    db.refresh(ownership)
+    return {"card_cover_image_url": url, "settings": ownership_promo_as_dict(ownership)}
 
 
 @panel_router.get("/menu")

@@ -328,6 +328,7 @@ export function updatePanelPromo(payload: {
   direct_order_whatsapp?: string | null;
   direct_order_url?: string | null;
   menu_image_url?: string | null;
+  card_cover_image_url?: string | null;
   instagram?: string | null;
   card_emoji?: string | null;
 }) {
@@ -359,6 +360,32 @@ export async function uploadPanelMenuImage(userEmail: string, file: File) {
   }
   return response.json() as Promise<{
     menu_image_url: string;
+    settings: import('@/lib/types').RestaurantPromoSettings;
+  }>;
+}
+
+export async function uploadPanelCardCoverImage(userEmail: string, file: File) {
+  const form = new FormData();
+  form.append('user_email', userEmail);
+  form.append('file', file);
+  const response = await fetch(`${getApiV1Base()}/panel/promo/card-cover-image`, {
+    method: 'POST',
+    body: form,
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = text || `API error ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      // plain text
+    }
+    throw new Error(message);
+  }
+  return response.json() as Promise<{
+    card_cover_image_url: string;
     settings: import('@/lib/types').RestaurantPromoSettings;
   }>;
 }

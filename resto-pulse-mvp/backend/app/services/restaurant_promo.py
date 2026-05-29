@@ -22,6 +22,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
     whatsapp = (ownership.promo_direct_order_whatsapp or "").strip() or None
     url = (ownership.promo_direct_order_url or "").strip() or None
     menu_image_url = (ownership.promo_menu_image_url or "").strip() or None
+    card_cover_image_url = (ownership.promo_card_cover_image_url or "").strip() or None
     instagram_url = normalize_instagram(ownership.promo_instagram)
     if (
         not has_courier
@@ -30,6 +31,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         and not whatsapp
         and not url
         and not menu_image_url
+        and not card_cover_image_url
         and not instagram_url
     ):
         return None
@@ -40,6 +42,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         "direct_order_whatsapp": whatsapp,
         "direct_order_url": url,
         "menu_image_url": menu_image_url,
+        "card_cover_image_url": card_cover_image_url,
         "instagram_url": instagram_url,
     }
 
@@ -99,6 +102,7 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "direct_order_whatsapp": ownership.promo_direct_order_whatsapp,
         "direct_order_url": ownership.promo_direct_order_url,
         "menu_image_url": ownership.promo_menu_image_url,
+        "card_cover_image_url": ownership.promo_card_cover_image_url,
         "instagram": ownership.promo_instagram,
         "card_emoji": ownership.card_emoji,
         "public_preview": promo_from_ownership(ownership) if active else None,

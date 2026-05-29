@@ -28,6 +28,7 @@ export type RestaurantPromoPublic = {
   direct_order_whatsapp?: string | null;
   direct_order_url?: string | null;
   menu_image_url?: string | null;
+  card_cover_image_url?: string | null;
   instagram_url?: string | null;
 };
 
@@ -58,6 +59,7 @@ export type RestaurantPromoSettings = {
   direct_order_whatsapp: string | null;
   direct_order_url: string | null;
   menu_image_url: string | null;
+  card_cover_image_url: string | null;
   instagram: string | null;
   card_emoji: string | null;
   public_preview: RestaurantPromoPublic | null;

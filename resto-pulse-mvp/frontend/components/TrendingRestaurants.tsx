@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { RestaurantCardCover } from '@/components/RestaurantCardCover';
-import { RestaurantCardScores } from '@/components/RestaurantCardScores';
-import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
-import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
-import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
-import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { RestaurantCard } from '@/components/RestaurantCard';
-import { premiumBorderClass } from '@/components/RestaurantPremiumFrame';
 import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
 import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
 
@@ -18,86 +11,6 @@ function formatDistance(item: RestaurantTrendingItem): string | null {
     return item.distance_km < 1 ? `${Math.round(item.distance_km * 1000)} m` : `${item.distance_km} km`;
   }
   return null;
-}
-
-function GoogleTrendingCard({
-  restaurant,
-  index,
-  onOpenDetails,
-}: {
-  restaurant: RestaurantTrendingItem;
-  index: number;
-  onOpenDetails: (placeId: string) => void;
-}) {
-  const distance = formatDistance(restaurant);
-  const placeId = restaurant.google_place_id ?? restaurant.id;
-  const premium = Boolean(restaurant.is_premium_partner);
-
-  const menuItems = restaurant.menu_preview ?? [];
-  const coverImage = restaurant.promo?.menu_image_url ?? null;
-  const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
-  const googleCount = restaurant.google_user_ratings_total ?? restaurant.google_review_count;
-
-  return (
-    <article
-      className={`relative min-h-[9.5rem] overflow-hidden rounded-2xl bg-panel/80 ${premiumBorderClass(premium)}`}>
-      <RestaurantCardCover
-        imageUrl={coverImage}
-        category={restaurant.category}
-        name={restaurant.name}
-        menuItems={menuItems}
-        ownerEmoji={restaurant.card_emoji}
-        compact
-      />
-      <div className="relative z-10 flex min-h-[inherit] flex-col p-3 pr-[48%]">
-        <div className="mb-1 flex items-start justify-between gap-2">
-          <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
-            #{index + 1}
-          </span>
-          {distance ? <span className="text-[10px] text-slate-400">{distance}</span> : null}
-        </div>
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white">{restaurant.name}</h3>
-        <p className="truncate text-[10px] text-slate-400">{restaurant.city ?? 'Bursa'}</p>
-        <RestaurantCardScores
-          googleRating={googleRating}
-          googleReviewCount={googleCount}
-          gastroRating={restaurant.avg_rating}
-          compact
-        />
-        <div className="mt-1">
-          <RestaurantCategoryBadge
-            category={restaurant.category}
-            name={restaurant.name}
-            menuItems={menuItems}
-            ownerEmoji={restaurant.card_emoji}
-            compact
-          />
-        </div>
-        <div className="mt-auto pt-1">
-          <RestaurantPromoBadges promo={restaurant.promo} compact />
-          <RestaurantPromoLinks promo={restaurant.promo} compact hideMenuImageLink={Boolean(coverImage)} />
-          <RestaurantMenuPreview items={menuItems.slice(0, 2)} totalCount={restaurant.menu_item_count} compact />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {restaurant.maps_directions_url ? (
-              <a
-                href={restaurant.maps_directions_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-slate-600 px-2.5 py-1 text-[10px] text-slate-200 hover:border-accent/50">
-                Haritada ac
-              </a>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => onOpenDetails(placeId)}
-              className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
-              Yorumlar
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
 }
 
 export function TrendingRestaurants() {
@@ -199,18 +112,59 @@ export function TrendingRestaurants() {
 
       {!loading && !error && items.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {items.map((restaurant, index) =>
-            isGoogleSource ? (
-              <GoogleTrendingCard
+          {items.map((restaurant, index) => {
+            const distance = formatDistance(restaurant);
+            const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
+            const googleCount =
+              restaurant.google_user_ratings_total ?? restaurant.google_review_count;
+            const placeId = restaurant.google_place_id ?? restaurant.id;
+
+            if (isGoogleSource) {
+              return (
+                <RestaurantCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  compact
+                  rank={index + 1}
+                  distanceLabel={distance ?? undefined}
+                  googleRating={googleRating}
+                  googleReviewCount={googleCount}
+                  href={null}
+                  footer={
+                    <>
+                      {restaurant.maps_directions_url ? (
+                        <a
+                          href={restaurant.maps_directions_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border border-slate-600 px-2.5 py-1 text-[10px] text-slate-200 hover:border-accent/50">
+                          Haritada ac
+                        </a>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => void openGoogleDetails(placeId)}
+                        className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
+                        Yorumlar
+                      </button>
+                    </>
+                  }
+                />
+              );
+            }
+
+            return (
+              <RestaurantCard
                 key={restaurant.id}
                 restaurant={restaurant}
-                index={index}
-                onOpenDetails={openGoogleDetails}
+                compact
+                rank={index + 1}
+                distanceLabel={distance ?? undefined}
+                googleRating={googleRating}
+                googleReviewCount={googleCount}
               />
-            ) : (
-              <RestaurantCard key={restaurant.id} restaurant={restaurant} compact rank={index + 1} />
-            ),
-          )}
+            );
+          })}
         </div>
       ) : null}
 

@@ -31,6 +31,7 @@ class RestaurantPromoPublic(BaseModel):
     direct_order_whatsapp: str | None = None
     direct_order_url: str | None = None
     menu_image_url: str | None = None
+    card_cover_image_url: str | None = None
     instagram_url: str | None = None
 
 

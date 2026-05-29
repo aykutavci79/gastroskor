@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
 import { RestaurantCardCover } from '@/components/RestaurantCardCover';
@@ -14,20 +15,43 @@ type Props = {
   restaurant: RestaurantListItem;
   compact?: boolean;
   rank?: number;
+  distanceLabel?: string;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  /** null = kart tiklanmaz (ornegin saf Google trend) */
+  href?: string | null;
+  footer?: ReactNode;
 };
 
-export function RestaurantCard({ restaurant, compact = false, rank }: Props) {
+export function RestaurantCard({
+  restaurant,
+  compact = false,
+  rank,
+  distanceLabel,
+  googleRating,
+  googleReviewCount,
+  href,
+  footer,
+}: Props) {
   const premium = Boolean(restaurant.is_premium_partner);
   const location = [restaurant.district, restaurant.city].filter(Boolean).join(', ') || 'Konum belirtilmedi';
   const menuItems = restaurant.menu_preview ?? [];
-  const coverImage = restaurant.promo?.menu_image_url ?? null;
+  const coverImage = restaurant.promo?.card_cover_image_url ?? null;
+  const resolvedHref = href === undefined ? `/restaurants/${restaurant.id}` : href;
 
-  return (
-    <Link
-      href={`/restaurants/${restaurant.id}`}
-      className={`group relative block overflow-hidden rounded-2xl bg-panel/80 shadow-glow transition hover:-translate-y-0.5 ${premiumBorderClass(premium)} ${
-        compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]'
-      } ${premium ? 'hover:ring-amber-400/90' : 'hover:border-accent/50'}`}>
+  const google =
+    googleRating !== undefined ? googleRating : restaurant.google_rating;
+  const googleCount =
+    googleReviewCount !== undefined ? googleReviewCount : restaurant.google_review_count;
+
+  const shellClass = `group relative block overflow-hidden rounded-2xl bg-panel/80 shadow-glow transition ${premiumBorderClass(premium)} ${
+    compact ? 'min-h-[9.5rem]' : 'min-h-[11rem]'
+  } ${resolvedHref ? 'hover:-translate-y-0.5' : ''} ${
+    premium ? 'hover:ring-amber-400/90' : resolvedHref ? 'hover:border-accent/50' : ''
+  }`;
+
+  const inner = (
+    <>
       <RestaurantCardCover
         imageUrl={coverImage}
         category={restaurant.category}
@@ -48,17 +72,22 @@ export function RestaurantCard({ restaurant, compact = false, rank }: Props) {
                 </span>
               ) : null}
               <h3
-                className={`font-semibold text-white group-hover:text-accent ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
+                className={`font-semibold text-white ${resolvedHref ? 'group-hover:text-accent' : ''} ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
                 {restaurant.name}
               </h3>
             </div>
             <p className={`text-slate-400 ${compact ? 'truncate text-[10px]' : 'text-xs'}`}>{location}</p>
           </div>
+          {distanceLabel ? (
+            <span className={`shrink-0 text-slate-400 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+              {distanceLabel}
+            </span>
+          ) : null}
         </div>
 
         <RestaurantCardScores
-          googleRating={restaurant.google_rating}
-          googleReviewCount={restaurant.google_review_count}
+          googleRating={google}
+          googleReviewCount={googleCount}
           gastroRating={restaurant.avg_rating}
           compact={compact}
         />
@@ -83,14 +112,25 @@ export function RestaurantCard({ restaurant, compact = false, rank }: Props) {
 
         <div className="mt-auto pt-1">
           <RestaurantPromoBadges promo={restaurant.promo} compact={compact} />
-          <RestaurantPromoLinks promo={restaurant.promo} compact hideMenuImageLink={Boolean(coverImage)} />
+          <RestaurantPromoLinks promo={restaurant.promo} compact />
           <RestaurantMenuPreview
             items={menuItems.slice(0, compact ? 2 : 3)}
             totalCount={restaurant.menu_item_count}
             compact
           />
+          {footer ? <div className="mt-2 flex flex-wrap gap-1.5">{footer}</div> : null}
         </div>
       </div>
-    </Link>
+    </>
   );
+
+  if (resolvedHref) {
+    return (
+      <Link href={resolvedHref} className={shellClass}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return <article className={shellClass}>{inner}</article>;
 }

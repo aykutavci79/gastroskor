@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
-import { getPanelPromo, updatePanelPromo, uploadPanelMenuImage } from '@/lib/api';
+import { getPanelPromo, updatePanelPromo, uploadPanelCardCoverImage, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
 
 type Props = {
@@ -12,7 +12,8 @@ type Props = {
 };
 
 export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuFileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState<RestaurantPromoSettings | null>(null);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
   const [directOrderText, setDirectOrderText] = useState('');
@@ -22,9 +23,11 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const [instagram, setInstagram] = useState('');
   const [cardEmoji, setCardEmoji] = useState<string | null>(null);
   const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
+  const [cardCoverImageUrl, setCardCoverImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingMenu, setUploadingMenu] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +44,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setInstagram(data.instagram ?? '');
         setCardEmoji(data.card_emoji);
         setMenuImageUrl(data.menu_image_url);
+        setCardCoverImageUrl(data.card_cover_image_url);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Ayarlar yuklenemedi'))
       .finally(() => setLoading(false));
@@ -62,9 +66,11 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         instagram: instagram.trim() || null,
         card_emoji: cardEmoji,
         menu_image_url: menuImageUrl,
+        card_cover_image_url: cardCoverImageUrl,
       });
       setSettings(updated);
       setMenuImageUrl(updated.menu_image_url);
+      setCardCoverImageUrl(updated.card_cover_image_url);
       setMessage('Gorunurluk ayarlari kaydedildi. Abonelik aktifken listede gorunur.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kayit basarisiz');
@@ -75,30 +81,49 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
 
   async function onMenuFileSelected(file: File | undefined) {
     if (!file || !subscriptionActive) return;
-    setUploading(true);
+    setUploadingMenu(true);
     setError(null);
     setMessage(null);
     try {
       const result = await uploadPanelMenuImage(userEmail, file);
       setMenuImageUrl(result.menu_image_url);
       setSettings(result.settings);
-      setMessage('Menu fotografi yuklendi.');
+      setMessage('Menu fotografi yuklendi. Musteri detay sayfasinda Menü bolumunde acilir.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Yukleme basarisiz');
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploadingMenu(false);
+      if (menuFileInputRef.current) menuFileInputRef.current.value = '';
+    }
+  }
+
+  async function onCoverFileSelected(file: File | undefined) {
+    if (!file || !subscriptionActive) return;
+    setUploadingCover(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await uploadPanelCardCoverImage(userEmail, file);
+      setCardCoverImageUrl(result.card_cover_image_url);
+      setSettings(result.settings);
+      setMessage('Kart kapak fotografi yuklendi. Liste ve trend kartinin saginda gorunur.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Yukleme basarisiz');
+    } finally {
+      setUploadingCover(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = '';
     }
   }
 
   async function removeMenuImage() {
-    setUploading(true);
+    setUploadingMenu(true);
     setError(null);
     try {
       const updated = await updatePanelPromo({
         user_email: userEmail,
         has_own_courier: hasOwnCourier,
         menu_image_url: null,
+        card_cover_image_url: cardCoverImageUrl,
         instagram: instagram.trim() || null,
         card_emoji: cardEmoji,
         direct_order_text: directOrderText.trim() || null,
@@ -112,7 +137,33 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Silinemedi');
     } finally {
-      setUploading(false);
+      setUploadingMenu(false);
+    }
+  }
+
+  async function removeCoverImage() {
+    setUploadingCover(true);
+    setError(null);
+    try {
+      const updated = await updatePanelPromo({
+        user_email: userEmail,
+        has_own_courier: hasOwnCourier,
+        card_cover_image_url: null,
+        menu_image_url: menuImageUrl,
+        instagram: instagram.trim() || null,
+        card_emoji: cardEmoji,
+        direct_order_text: directOrderText.trim() || null,
+        direct_order_phone: directOrderPhone.trim() || null,
+        direct_order_whatsapp: directOrderWhatsapp.trim() || null,
+        direct_order_url: directOrderUrl.trim() || null,
+      });
+      setSettings(updated);
+      setCardCoverImageUrl(null);
+      setMessage('Kart kapak fotografi kaldirildi.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Silinemedi');
+    } finally {
+      setUploadingCover(false);
     }
   }
 
@@ -124,9 +175,10 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
     <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">
       <h2 className="text-lg font-semibold text-white">Musteri karti rozetleri</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Abonelik / deneme aktifken arama ve trend listesinde kartinizda gorunur. Sag tarafta tam
-        yukseklikte urun veya menu fotografi (sola dogru kaybolur); solda isim ve Google / GS puanlari.
-        Instagram veya web linki altta kucuk ikon olarak cikar.
+        Abonelik / deneme aktifken arama ve trend listesinde ayni kart gorunur.{' '}
+        <strong className="text-slate-300">Kart kapak</strong> (urun fotografi) liste saginda;{' '}
+        <strong className="text-slate-300">menu fotografi</strong> musteri isletme sayfasinda Menü
+        bolumunde acilir.
       </p>
       {!subscriptionActive ? (
         <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
@@ -236,24 +288,66 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
           />
         </div>
 
-        <div>
-          <label className="text-xs text-slate-500">Menu fotografi (JPG / PNG / WEBP, max 5 MB)</label>
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+          <label className="text-sm font-medium text-amber-100">Kart kapak fotografi</label>
+          <p className="mt-1 text-xs text-slate-400">
+            Kebap, pizza vb. urun gorseli — ana sayfa ve trend listesinde kartin saginda tam yukseklikte
+            gorunur.
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <input
-              ref={fileInputRef}
+              ref={coverFileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              disabled={!subscriptionActive || uploading}
+              disabled={!subscriptionActive || uploadingCover}
+              onChange={(e) => void onCoverFileSelected(e.target.files?.[0])}
+              className="text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-sm file:text-white"
+            />
+            {cardCoverImageUrl ? (
+              <button
+                type="button"
+                disabled={uploadingCover}
+                onClick={() => void removeCoverImage()}
+                className="text-xs text-rose-300 hover:underline disabled:opacity-50">
+                Kapak fotografini kaldir
+              </button>
+            ) : null}
+          </div>
+          {cardCoverImageUrl ? (
+            <a
+              href={cardCoverImageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block overflow-hidden rounded-lg border border-slate-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cardCoverImageUrl} alt="Kart kapak onizleme" className="max-h-40 w-auto object-cover" />
+            </a>
+          ) : null}
+          {uploadingCover ? <p className="mt-2 text-xs text-slate-400">Kapak fotografi yukleniyor...</p> : null}
+        </div>
+
+        <div className="rounded-xl border border-slate-700 bg-slate-950/40 p-4">
+          <label className="text-sm font-medium text-slate-200">Menu fotografi</label>
+          <p className="mt-1 text-xs text-slate-400">
+            Fiyat listesi veya menu sayfasi — musteri isletmeye tiklayinca &quot;Menuyu goruntule&quot; ile
+            acilir. Kart kapaginda kullanilmaz.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <input
+              ref={menuFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={!subscriptionActive || uploadingMenu}
               onChange={(e) => void onMenuFileSelected(e.target.files?.[0])}
               className="text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-sm file:text-white"
             />
             {menuImageUrl ? (
               <button
                 type="button"
-                disabled={uploading}
+                disabled={uploadingMenu}
                 onClick={() => void removeMenuImage()}
                 className="text-xs text-rose-300 hover:underline disabled:opacity-50">
-                Fotografi kaldir
+                Menu fotografini kaldir
               </button>
             ) : null}
           </div>
@@ -266,11 +360,8 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={menuImageUrl} alt="Menu onizleme" className="max-h-40 w-auto object-contain" />
             </a>
-          ) : (
-            <p className="mt-2 text-xs text-slate-500">
-              Pizza, kofte vb. urun fotografi veya menu — kartin saginda tam yukseklikte gorunur.
-            </p>
-          )}
+          ) : null}
+          {uploadingMenu ? <p className="mt-2 text-xs text-slate-400">Menu fotografi yukleniyor...</p> : null}
         </div>
 
         {settings?.public_preview ? (
@@ -286,8 +377,11 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
               {settings.public_preview.instagram_url ? (
                 <span className="text-xs text-pink-200">📷 Instagram</span>
               ) : null}
+              {settings.public_preview.card_cover_image_url ? (
+                <span className="text-xs text-amber-200">🖼️ Kart kapak</span>
+              ) : null}
               {settings.public_preview.menu_image_url ? (
-                <span className="text-xs text-amber-200">📋 Menu fotosu</span>
+                <span className="text-xs text-slate-300">📋 Menu (detay)</span>
               ) : null}
               {settings.public_preview.direct_order_url ? (
                 <span className="text-xs text-slate-300">🌐 Web</span>
@@ -302,7 +396,9 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
           className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50">
           {saving ? 'Kaydediliyor...' : 'Kaydet'}
         </button>
-        {uploading ? <p className="text-xs text-slate-400">Menu fotografi isleniyor...</p> : null}
+        {uploadingMenu || uploadingCover ? (
+          <p className="text-xs text-slate-400">Fotograf yukleniyor...</p>
+        ) : null}
       </form>
 
       {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}

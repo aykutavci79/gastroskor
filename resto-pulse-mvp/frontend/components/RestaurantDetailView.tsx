@@ -133,12 +133,21 @@ export function RestaurantDetailView({
 
       {restaurant.promo?.menu_image_url && (!restaurant.menu || restaurant.menu.length === 0) ? (
         <section className="rounded-2xl border border-slate-700/70 bg-panel/60 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Menu</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Menu</h2>
+            <a
+              href={restaurant.promo.menu_image_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-emerald-950 hover:bg-accent/90">
+              Menuyu goruntule
+            </a>
+          </div>
           <a
             href={restaurant.promo.menu_image_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-block overflow-hidden rounded-xl border border-slate-600">
+            className="mt-4 inline-block w-full overflow-hidden rounded-xl border border-slate-600">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={restaurant.promo.menu_image_url}
@@ -146,7 +155,9 @@ export function RestaurantDetailView({
               className="max-h-96 w-full object-contain"
             />
           </a>
-          <p className="mt-2 text-xs text-slate-500">Buyutmek icin fotografa tiklayin.</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Isletmenin yukledigi menu fotografi. Buyutmek icin gorsele veya ustteki dugmeye tiklayin.
+          </p>
         </section>
       ) : null}
 
