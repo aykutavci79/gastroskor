@@ -38,6 +38,7 @@ def issue_compensation_coupon(
         actor_user_id=payload.actor_user_id,
         actor_user_email=payload.actor_user_email,
         actor_restaurant_id=payload.actor_restaurant_id,
+        require_write=True,
     )
 
     if feedback.status not in {"open", "in_review"}:

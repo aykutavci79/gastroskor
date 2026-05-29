@@ -263,3 +263,93 @@ export function createCompensationCoupon(
     body: JSON.stringify(payload),
   });
 }
+
+export function getPanelAccess(userEmail: string) {
+  return request<import('@/lib/types').PanelAccess>(
+    `/panel/me?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function getPanelDashboard(userEmail: string) {
+  return request<import('@/lib/types').PanelDashboard>(
+    `/panel/dashboard?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function startRestaurantClaim(payload: { user_email: string; place_id: string; city?: string }) {
+  return request<{
+    ownership_id: string;
+    restaurant_id: string;
+    restaurant_name: string;
+    verification_status: string;
+    panel_tier: string;
+    phone_info: {
+      phone_raw: string | null;
+      is_mobile: boolean;
+      phone_masked: string | null;
+      requires_tax_document: boolean;
+    };
+  }>('/panel/claim/start', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function sendRestaurantClaimOtp(userEmail: string) {
+  return request<{ sent: boolean; phone_masked: string; expires_in_minutes: number }>(
+    `/panel/claim/send-otp?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function verifyRestaurantClaimOtp(payload: { user_email: string; code: string }) {
+  return request<import('@/lib/types').PanelAccess>('/panel/claim/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function submitRestaurantTaxDocument(payload: { user_email: string; note: string }) {
+  return request<import('@/lib/types').PanelAccess>('/panel/claim/tax-document', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function purchasePanelAiAddon(userEmail: string, sku: string) {
+  return request<{
+    ok: boolean;
+    mock_payment: boolean;
+    purchase: { message: string };
+    ai_quota: import('@/lib/types').AiAnalysisQuota;
+  }>('/panel/ai-purchase', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: userEmail, sku }),
+  });
+}
+
+export function analyzePanelCompetitor(userEmail: string, competitorId: string) {
+  return request<import('@/lib/types').CompetitorAiReport>(
+    `/panel/competitors/${encodeURIComponent(competitorId)}/analyze?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function addPanelCompetitor(payload: { user_email: string; place_id: string; name: string }) {
+  return request<{ id: string; google_place_id: string; name: string; rating: number | null; review_count: number | null }>(
+    '/panel/competitors',
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+}
+
+export function trackAnalyticsEvent(payload: {
+  event_type: string;
+  place_id?: string;
+  restaurant_id?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  return request<{ ok: boolean }>('/panel/analytics/events', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

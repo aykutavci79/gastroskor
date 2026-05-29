@@ -49,6 +49,7 @@ class User(Base):
     public_reviews: Mapped[list["PublicReview"]] = relationship(back_populates="author")
     private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="author")
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="user")
+    restaurant_ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="user")
 
 
 class Restaurant(Base):
@@ -73,6 +74,128 @@ class Restaurant(Base):
     public_reviews: Mapped[list["PublicReview"]] = relationship(back_populates="restaurant")
     private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="restaurant")
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="restaurant")
+    ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="restaurant")
+    analytics_events: Mapped[list["RestaurantAnalyticsEvent"]] = relationship(back_populates="restaurant")
+
+
+class RestaurantOwnership(Base):
+    __tablename__ = "restaurant_ownerships"
+    __table_args__ = (
+        UniqueConstraint("user_id", "restaurant_id", name="uq_user_restaurant_ownership"),
+        UniqueConstraint("google_place_id", name="uq_google_place_ownership"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    google_place_id: Mapped[str] = mapped_column(String(255), index=True)
+    verification_method: Mapped[str | None] = mapped_column(String(30))
+    verification_status: Mapped[str] = mapped_column(String(30), default="pending_sms", index=True)
+    panel_tier: Mapped[str] = mapped_column(String(20), default="limited")
+    phone_e164: Mapped[str | None] = mapped_column(String(32))
+    phone_last_four: Mapped[str | None] = mapped_column(String(4))
+    tax_document_note: Mapped[str | None] = mapped_column(Text)
+    admin_notes: Mapped[str | None] = mapped_column(Text)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    visit_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_competitor_ai_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="restaurant_ownerships")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="ownerships")
+    subscription: Mapped["RestaurantSubscription | None"] = relationship(
+        back_populates="ownership", uselist=False
+    )
+    competitors: Mapped[list["RestaurantCompetitor"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan"
+    )
+    otp_challenges: Mapped[list["RestaurantOtpChallenge"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan"
+    )
+
+
+class RestaurantSubscription(Base):
+    __tablename__ = "restaurant_subscriptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    status: Mapped[str] = mapped_column(String(30), default="trial", index=True)
+    trial_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    intro_price_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    paid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ai_analysis_interval_days: Mapped[int] = mapped_column(Integer, default=33)
+    ai_analysis_plan: Mapped[str] = mapped_column(String(20), default="standart")
+    ai_extra_credits: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="subscription")
+
+
+class RestaurantOtpChallenge(Base):
+    __tablename__ = "restaurant_otp_challenges"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    phone_e164: Mapped[str] = mapped_column(String(32))
+    code_hash: Mapped[str] = mapped_column(String(128))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="otp_challenges")
+
+
+class RestaurantCompetitor(Base):
+    __tablename__ = "restaurant_competitors"
+    __table_args__ = (UniqueConstraint("ownership_id", "google_place_id", name="uq_ownership_competitor_place"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    google_place_id: Mapped[str] = mapped_column(String(255), index=True)
+    competitor_name: Mapped[str] = mapped_column(String(255))
+    competitor_restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
+    )
+    last_rating: Mapped[float | None] = mapped_column(Float)
+    last_review_count: Mapped[int | None] = mapped_column(Integer)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="competitors")
+
+
+class RestaurantAnalyticsEvent(Base):
+    __tablename__ = "restaurant_analytics_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
+    )
+    place_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    event_type: Mapped[str] = mapped_column(String(40), index=True)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    restaurant: Mapped["Restaurant | None"] = relationship(back_populates="analytics_events")
 
 
 class RestaurantPlatformProfile(Base):

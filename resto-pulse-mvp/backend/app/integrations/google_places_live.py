@@ -206,6 +206,7 @@ class GooglePlacesLiveClient:
                     "author_name": review.get("author_name"),
                     "rating": review.get("rating"),
                     "relative_time_description": review.get("relative_time_description"),
+                    "time": review.get("time"),
                     "text": review.get("text"),
                     "profile_photo_url": review.get("profile_photo_url"),
                 }

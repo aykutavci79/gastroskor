@@ -13,6 +13,7 @@ from app.services.feedback_authz import (
     assert_restaurant_or_admin_access,
     resolve_user_identity,
 )
+from app.services.panel_access import assert_verified_owner_for_restaurant
 
 
 def create_private_feedback(
@@ -124,6 +125,7 @@ def list_private_feedbacks_for_panel(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Invalid actor_restaurant_id",
             ) from exc
+        assert_verified_owner_for_restaurant(db, actor_user, restaurant_uuid, require_write=False)
         stmt = stmt.where(PrivateFeedback.restaurant_id == restaurant_uuid)
 
     rows = db.scalars(stmt.order_by(PrivateFeedback.created_at.desc()).limit(limit)).all()
@@ -156,6 +158,7 @@ def create_feedback_message(
             actor_user_id=payload.actor_user_id,
             actor_user_email=payload.actor_user_email,
             actor_restaurant_id=payload.actor_restaurant_id,
+            require_write=True,
         )
 
     row = FeedbackMessage(
@@ -194,6 +197,7 @@ def update_private_feedback_status(
         actor_user_id=actor_user_id,
         actor_user_email=actor_user_email,
         actor_restaurant_id=actor_restaurant_id,
+        require_write=True,
     )
 
     feedback.status = status_value

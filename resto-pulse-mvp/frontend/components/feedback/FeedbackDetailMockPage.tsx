@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-const PANEL_ACTOR_EMAIL = 'restaurant-actor@example.com';
-
 import {
   FeedbackConversationPanel,
   type ConversationMessage,
 } from '@/components/feedback/FeedbackConversationPanel';
 import { CompensationCouponModal } from '@/components/feedback/CompensationCouponModal';
 import { FeedbackStatusBadge, type FeedbackStatus } from '@/components/feedback/FeedbackStatusBadge';
+import { usePanel } from '@/components/panel/PanelContext';
 import {
   createCompensationCoupon,
   createFeedbackMessage,
@@ -29,7 +28,10 @@ function isValidUuid(value: string): boolean {
 }
 
 export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
-  const actorEmail = PANEL_ACTOR_EMAIL;
+  const { userEmail, access } = usePanel();
+  const actorEmail = userEmail ?? '';
+  const resolvedRestaurantId = restaurantId ?? access?.restaurant_id ?? undefined;
+  const canWrite = access?.can_write_actions ?? false;
 
   const [detail, setDetail] = useState<PrivateFeedbackDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +59,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
     try {
       const data = await getPrivateFeedbackDetail(feedbackId, {
         actor_user_email: actorEmail,
-        actor_restaurant_id: restaurantId ?? detail?.feedback.restaurant_id ?? undefined,
+        actor_restaurant_id: resolvedRestaurantId ?? detail?.feedback.restaurant_id ?? undefined,
       });
       setDetail(data);
     } catch (err) {
@@ -72,7 +74,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
   useEffect(() => {
     void fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbackId, actorEmail, refreshKey, restaurantId]);
+  }, [feedbackId, actorEmail, refreshKey, resolvedRestaurantId]);
 
   const headerMeta = useMemo(
     () =>
@@ -107,7 +109,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
       await updatePrivateFeedbackStatus(detail.feedback.id, {
         status,
         actor_user_email: actorEmail,
-        actor_restaurant_id: restaurantId ?? detail.feedback.restaurant_id,
+        actor_restaurant_id: resolvedRestaurantId ?? detail.feedback.restaurant_id,
       });
       setRefreshKey((prev) => prev + 1);
       toast.success('Durum güncellendi.');
@@ -125,7 +127,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
         sender_type: payload.senderType,
         message: payload.text,
         actor_user_email: actorEmail,
-        actor_restaurant_id: restaurantId ?? detail.feedback.restaurant_id,
+        actor_restaurant_id: resolvedRestaurantId ?? detail.feedback.restaurant_id,
       });
       setRefreshKey((prev) => prev + 1);
       toast.success('Mesaj gönderildi.');
@@ -142,7 +144,7 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
         discount_percent: payload.discountPercent,
         expires_at: new Date(payload.expiresAt).toISOString(),
         actor_user_email: actorEmail,
-        actor_restaurant_id: restaurantId ?? detail.feedback.restaurant_id,
+        actor_restaurant_id: resolvedRestaurantId ?? detail.feedback.restaurant_id,
       });
       setRefreshKey((prev) => prev + 1);
       setCouponModalOpen(false);
@@ -191,29 +193,36 @@ export function FeedbackDetailMockPage({ feedbackId, restaurantId }: Props) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => void updateStatus('in_review')}
-                disabled={isMutatingStatus}
-                className="rounded-lg border border-sky-400/40 bg-sky-400/15 px-3 py-1.5 text-xs font-semibold text-sky-100">
-                İncelemeye Al
+                disabled={isMutatingStatus || !canWrite}
+                className="rounded-lg border border-sky-400/40 bg-sky-400/15 px-3 py-1.5 text-xs font-semibold text-sky-100 disabled:opacity-40">
+                Incelemeye Al
               </button>
               <button
                 onClick={() => void updateStatus('resolved')}
-                disabled={isMutatingStatus}
-                className="rounded-lg border border-emerald-400/40 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-100">
-                Çözüldü
+                disabled={isMutatingStatus || !canWrite}
+                className="rounded-lg border border-emerald-400/40 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 disabled:opacity-40">
+                Cozuldu
               </button>
               <button
                 onClick={() => setCouponModalOpen(true)}
-                disabled={!['open', 'in_review'].includes(detail.feedback.status)}
-                className="rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100">
-                Telafi Kuponu Oluştur
+                disabled={!canWrite || !['open', 'in_review'].includes(detail.feedback.status)}
+                className="rounded-lg border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 disabled:opacity-40">
+                Telafi Kuponu Olustur
               </button>
             </div>
+            {!canWrite ? (
+              <p className="mt-2 text-xs text-amber-200">Tam panel gerekir (SMS veya ziyaret sonrasi).</p>
+            ) : null}
           </div>
         </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <FeedbackConversationPanel messages={conversationMessages} onSend={handleSendMessage} />
+        <FeedbackConversationPanel
+          messages={conversationMessages}
+          onSend={handleSendMessage}
+          disabled={!canWrite}
+        />
 
         <aside className="space-y-4">
           <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4">

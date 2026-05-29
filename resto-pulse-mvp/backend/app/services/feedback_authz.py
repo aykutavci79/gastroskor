@@ -3,13 +3,15 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import PrivateFeedback, User
+from app.services.panel_access import assert_verified_owner_for_restaurant
 
 
 def resolve_user_identity(db: Session, *, user_id: str | None, email: str | None) -> User | None:
+    from sqlalchemy import select
+
     if user_id:
         try:
             user_uuid = UUID(user_id)
@@ -38,6 +40,7 @@ def assert_restaurant_or_admin_access(
     actor_user_id: str | None,
     actor_user_email: str | None,
     actor_restaurant_id: str | None,
+    require_write: bool = False,
 ) -> None:
     actor_user = resolve_user_identity(db, user_id=actor_user_id, email=actor_user_email)
     if not actor_user:
@@ -60,6 +63,13 @@ def assert_restaurant_or_admin_access(
 
     if actor_restaurant_id != str(feedback.restaurant_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Restaurant not authorized for this feedback")
+
+    assert_verified_owner_for_restaurant(
+        db,
+        actor_user,
+        feedback.restaurant_id,
+        require_write=require_write,
+    )
 
 
 def assert_feedback_read_access(
@@ -84,7 +94,7 @@ def assert_feedback_read_access(
         return
 
     if actor_restaurant_id and feedback.restaurant_id and actor_restaurant_id == str(feedback.restaurant_id):
+        assert_verified_owner_for_restaurant(db, actor_user, feedback.restaurant_id, require_write=False)
         return
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to read this feedback")
-

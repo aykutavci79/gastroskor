@@ -230,3 +230,105 @@ export const CATEGORY_LABELS: Record<string, string> = {
   fiyat: 'Fiyat',
   hijyen: 'Hijyen',
 };
+
+export type PanelAccess = {
+  has_ownership: boolean;
+  can_access_panel: boolean;
+  panel_tier: 'limited' | 'full' | null;
+  verification_status: string | null;
+  subscription_status: string | null;
+  trial_days_left: number | null;
+  competitor_limit: number;
+  can_write_actions: boolean;
+  pricing_next: string | null;
+  ownership_id: string | null;
+  restaurant_id: string | null;
+  restaurant_name: string | null;
+  google_place_id: string | null;
+  pending_visit: boolean;
+};
+
+export type AiAnalysisQuota = {
+  can_run: boolean;
+  scheduled_available: boolean;
+  extra_credits: number;
+  will_use_extra_credit: boolean;
+  interval_days: number;
+  plan_key: string;
+  plan_label: string;
+  last_analysis_at: string | null;
+  next_analysis_at: string | null;
+  days_until_next: number | null;
+  message: string;
+};
+
+export type AiPricingOffer = {
+  sku: string;
+  title: string;
+  description: string;
+  price_tl: number;
+  billing: 'one_time' | 'monthly_addon';
+  interval_days?: number | null;
+  plan_key?: string | null;
+};
+
+export type AiPricingCatalog = {
+  base_panel: {
+    intro_month_tl: number;
+    monthly_tl: number;
+    trial_days: number;
+    standard_ai_interval_days: number;
+  };
+  offers: AiPricingOffer[];
+  payments_mock_enabled: boolean;
+};
+
+export type PanelDashboard = {
+  access: PanelAccess;
+  restaurant: { id: string; name: string | null; google_place_id: string };
+  summary: {
+    open_feedback_count: number;
+    maps_clicks_week: number;
+    profile_views_week: number;
+    search_impressions_week: number;
+    maps_clicks_day: number;
+    maps_clicks_month: number;
+  };
+  ratings: {
+    google_rating: number | null;
+    google_review_count: number | null;
+    gastro_avg_rating: number | null;
+    gastro_review_count: number;
+  };
+  competitors: Array<{
+    id: string;
+    google_place_id: string;
+    name: string;
+    rating: number | null;
+    review_count: number | null;
+  }>;
+  ai_insight: string;
+  ai_quota: AiAnalysisQuota;
+  ai_pricing: AiPricingCatalog;
+};
+
+export type CompetitorInsight = {
+  category: string;
+  summary: string;
+  evidence_quotes: string[];
+  praised_products?: string[];
+};
+
+export type CompetitorAiReport = {
+  competitor_name: string;
+  own_name: string;
+  max_review_age_days: number;
+  reviews_used: { own: number; competitor: number };
+  competitor_strengths: CompetitorInsight[];
+  your_strengths: CompetitorInsight[];
+  your_gaps: CompetitorInsight[];
+  comparison_summary: string;
+  models_used: string[];
+  warnings: string[];
+  disclaimer: string;
+};

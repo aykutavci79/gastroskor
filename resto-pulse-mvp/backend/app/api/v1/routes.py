@@ -69,6 +69,7 @@ from app.services.private_feedback_service import (
     update_private_feedback_status,
 )
 from app.services.compensation_service import issue_compensation_coupon
+from app.api.v1.panel_routes import panel_router
 
 router = APIRouter()
 ai_service = AIAnalysisService()
@@ -932,4 +933,7 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
         ),
         "maps_search_url": directions_url,
     }
+
+
+router.include_router(panel_router)
 

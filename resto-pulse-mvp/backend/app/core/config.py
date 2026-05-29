@@ -37,6 +37,22 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
 
+    sms_provider: str = "mock"
+    netgsm_user: str | None = None
+    netgsm_password: str | None = None
+    netgsm_header: str | None = None
+    otp_expiry_minutes: int = 10
+    panel_admin_secret: str | None = None
+    trial_days: int = 30
+    default_ai_analysis_interval_days: int = 33
+
+    price_panel_intro_tl: int = 399
+    price_panel_monthly_tl: int = 599
+    price_extra_ai_tl: int = 199
+    price_addon_weekly_tl: int = 249
+    price_addon_daily_tl: int = 499
+    panel_payments_mock: bool = True
+
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
 

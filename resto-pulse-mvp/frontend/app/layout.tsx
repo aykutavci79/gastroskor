@@ -25,9 +25,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   Gastro<span className="text-accent">Skor</span>
                 </span>
               </a>
+            <div className="flex items-center gap-4">
               <p className="hidden text-sm text-slate-400 sm:block">
                 Yorum · AI Analiz · Google&apos;da Yayinla
               </p>
+              <a
+                href="/panel"
+                className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-sm text-emerald-200 hover:bg-emerald-500/10">
+                Restoran Paneli
+              </a>
+            </div>
             </div>
           </header>
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
