@@ -12,8 +12,10 @@ from app.services.restaurant_promo import promo_from_ownership, subscription_all
 
 def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
     active = subscription_allows_promo(ownership.subscription)
+    base = {"card_emoji": ownership.card_emoji}
     if not active:
         return {
+            **base,
             "is_premium_partner": False,
             "promo": None,
             "menu_preview": [],
@@ -21,6 +23,7 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
         }
     menu_full = public_menu_for_ownership(ownership, preview=False)
     return {
+        **base,
         "is_premium_partner": True,
         "promo": promo_from_ownership(ownership),
         "menu_preview": menu_full[:MENU_PREVIEW_LIMIT],
@@ -40,6 +43,7 @@ def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
     )
     if not ownership:
         return {
+            "card_emoji": None,
             "is_premium_partner": False,
             "promo": None,
             "menu_preview": [],
@@ -82,9 +86,11 @@ def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
         row.setdefault("promo", None)
         row.setdefault("menu_preview", [])
         row.setdefault("menu_item_count", 0)
+        row.setdefault("card_emoji", None)
         return row
     row["is_premium_partner"] = partner["is_premium_partner"]
     row["promo"] = partner.get("promo")
     row["menu_preview"] = partner.get("menu_preview") or []
     row["menu_item_count"] = partner.get("menu_item_count") or 0
+    row["card_emoji"] = partner.get("card_emoji")
     return row

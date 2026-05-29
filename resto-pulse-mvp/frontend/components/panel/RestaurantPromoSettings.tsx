@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
+import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
 import { getPanelPromo, updatePanelPromo, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
 
@@ -19,6 +20,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const [directOrderWhatsapp, setDirectOrderWhatsapp] = useState('');
   const [directOrderUrl, setDirectOrderUrl] = useState('');
   const [instagram, setInstagram] = useState('');
+  const [cardEmoji, setCardEmoji] = useState<string | null>(null);
   const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setDirectOrderWhatsapp(data.direct_order_whatsapp ?? '');
         setDirectOrderUrl(data.direct_order_url ?? '');
         setInstagram(data.instagram ?? '');
+        setCardEmoji(data.card_emoji);
         setMenuImageUrl(data.menu_image_url);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Ayarlar yuklenemedi'))
@@ -57,6 +60,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
         direct_order_url: directOrderUrl.trim() || null,
         instagram: instagram.trim() || null,
+        card_emoji: cardEmoji,
         menu_image_url: menuImageUrl,
       });
       setSettings(updated);
@@ -96,6 +100,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         has_own_courier: hasOwnCourier,
         menu_image_url: null,
         instagram: instagram.trim() || null,
+        card_emoji: cardEmoji,
         direct_order_text: directOrderText.trim() || null,
         direct_order_phone: directOrderPhone.trim() || null,
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
@@ -129,6 +134,44 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
       ) : null}
 
       <form onSubmit={onSubmit} className="mt-4 space-y-4">
+        <div>
+          <label className="text-xs text-slate-500">Kart emojisi (musteri listesinde)</label>
+          <p className="mt-1 text-xs text-slate-500">
+            Istediginiz emojiyi secin. Bos birakirsaniz sistem menuden tahmin eder.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCardEmoji(null)}
+              className={`rounded-lg border px-3 py-2 text-xs ${
+                cardEmoji == null
+                  ? 'border-accent bg-accent/20 text-accent'
+                  : 'border-slate-600 text-slate-400 hover:border-slate-500'
+              }`}>
+              Otomatik
+            </button>
+            {CARD_EMOJI_PRESETS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => setCardEmoji(emoji)}
+                className={`rounded-lg border px-3 py-2 text-xl ${
+                  cardEmoji === emoji
+                    ? 'border-accent bg-accent/20 ring-1 ring-accent/50'
+                    : 'border-slate-600 hover:border-slate-500'
+                }`}
+                title="Bu emojiyi kullan">
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {cardEmoji ? (
+            <p className="mt-2 text-sm text-emerald-300">Secili: {cardEmoji}</p>
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">Otomatik tahmin acik</p>
+          )}
+        </div>
+
         <label className="flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
@@ -254,9 +297,9 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
 
         <button
           type="submit"
-          disabled={saving || !subscriptionActive}
+          disabled={saving}
           className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50">
-          {saving ? 'Kaydediliyor...' : 'Rozetleri kaydet'}
+          {saving ? 'Kaydediliyor...' : 'Kaydet'}
         </button>
         {uploading ? <p className="text-xs text-slate-400">Menu fotografi isleniyor...</p> : null}
       </form>

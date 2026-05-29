@@ -110,7 +110,19 @@ export function resolveCategoryVisual(input: {
   category?: string | null;
   name?: string | null;
   menuItems?: RestaurantMenuItem[];
+  ownerEmoji?: string | null;
 }): CategoryVisual {
+  const owner = (input.ownerEmoji ?? '').trim();
+  if (owner) {
+    const fallbackLabel = (input.category ?? 'Restoran').trim() || 'Restoran';
+    return {
+      kind: 'general',
+      emoji: owner,
+      label: fallbackLabel,
+      gradient: 'from-emerald-500/25 to-slate-600/15',
+    };
+  }
+
   const menuText = (input.menuItems ?? [])
     .map((m) => `${m.name} ${m.category ?? ''}`)
     .join(' ');

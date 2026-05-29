@@ -61,6 +61,7 @@ class RestaurantListItem(BaseModel):
     is_premium_partner: bool = False
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
+    card_emoji: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

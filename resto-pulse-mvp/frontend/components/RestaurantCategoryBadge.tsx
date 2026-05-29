@@ -5,6 +5,7 @@ type Props = {
   category?: string | null;
   name?: string | null;
   menuItems?: RestaurantMenuItem[];
+  ownerEmoji?: string | null;
   compact?: boolean;
   /** Dekoratif arka plan ikonu (kart köşesi) */
   watermark?: boolean;
@@ -14,10 +15,11 @@ export function RestaurantCategoryBadge({
   category,
   name,
   menuItems,
+  ownerEmoji,
   compact = false,
   watermark = false,
 }: Props) {
-  const visual = resolveCategoryVisual({ category, name, menuItems });
+  const visual = resolveCategoryVisual({ category, name, menuItems, ownerEmoji });
 
   if (watermark) {
     return (

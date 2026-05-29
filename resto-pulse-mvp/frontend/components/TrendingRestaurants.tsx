@@ -42,6 +42,7 @@ function GoogleTrendingCard({
         category={restaurant.category}
         name={restaurant.name}
         menuItems={menuItems}
+        ownerEmoji={restaurant.card_emoji}
         watermark
       />
       <div className="mb-2 flex items-start justify-between gap-2">
@@ -57,6 +58,7 @@ function GoogleTrendingCard({
           category={restaurant.category}
           name={restaurant.name}
           menuItems={menuItems}
+          ownerEmoji={restaurant.card_emoji}
           compact
         />
       </div>

@@ -329,6 +329,7 @@ export function updatePanelPromo(payload: {
   direct_order_url?: string | null;
   menu_image_url?: string | null;
   instagram?: string | null;
+  card_emoji?: string | null;
 }) {
   return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
     method: 'PATCH',

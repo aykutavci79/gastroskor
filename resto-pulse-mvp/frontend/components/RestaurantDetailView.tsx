@@ -118,6 +118,7 @@ export function RestaurantDetailView({
             category={restaurant.category}
             name={restaurant.name}
             menuItems={restaurant.menu}
+            ownerEmoji={restaurant.card_emoji}
           />
         </div>
         <p className="mt-1 text-slate-400">

@@ -29,6 +29,7 @@ export function RestaurantCard({ restaurant, compact = false, rank }: Props) {
         category={restaurant.category}
         name={restaurant.name}
         menuItems={menuItems}
+        ownerEmoji={restaurant.card_emoji}
         watermark
       />
 
@@ -60,6 +61,7 @@ export function RestaurantCard({ restaurant, compact = false, rank }: Props) {
           category={restaurant.category}
           name={restaurant.name}
           menuItems={menuItems}
+          ownerEmoji={restaurant.card_emoji}
           compact={compact}
         />
         {!compact ? (

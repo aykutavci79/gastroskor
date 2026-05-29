@@ -45,6 +45,7 @@ export type RestaurantListItem = {
   is_premium_partner?: boolean;
   menu_preview?: RestaurantMenuItem[];
   menu_item_count?: number;
+  card_emoji?: string | null;
 };
 
 export type RestaurantPromoSettings = {
@@ -56,6 +57,7 @@ export type RestaurantPromoSettings = {
   direct_order_url: string | null;
   menu_image_url: string | null;
   instagram: string | null;
+  card_emoji: string | null;
   public_preview: RestaurantPromoPublic | null;
 };
 

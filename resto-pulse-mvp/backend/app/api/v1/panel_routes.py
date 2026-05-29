@@ -35,6 +35,7 @@ from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
 from app.services.menu_image_storage import save_menu_image
+from app.services.card_emoji import CARD_EMOJI_PRESETS, normalize_card_emoji
 from app.services.promo_social import normalize_instagram
 from app.services.restaurant_menu import (
     create_menu_item,
@@ -159,6 +160,11 @@ def get_panel_promo(user_email: str = Query(...), db: Session = Depends(get_db))
     return ownership_promo_as_dict(ownership)
 
 
+@panel_router.get("/promo/emoji-presets")
+def list_card_emoji_presets():
+    return {"presets": CARD_EMOJI_PRESETS}
+
+
 @panel_router.patch("/promo")
 def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Depends(get_db)):
     user = resolve_user_by_email(db, payload.user_email)
@@ -166,11 +172,18 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
     state = build_panel_access_state(db, ownership)
     if not ownership or not state.can_access_panel:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+
+    if payload.card_emoji is not None:
+        try:
+            ownership.card_emoji = normalize_card_emoji(payload.card_emoji)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
     if not subscription_allows_promo(ownership.subscription):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Rozetler sadece aktif deneme veya abonelikte yayinlanir.",
-        )
+        db.add(ownership)
+        db.commit()
+        db.refresh(ownership)
+        return ownership_promo_as_dict(ownership)
 
     ownership.promo_has_own_courier = payload.has_own_courier
     ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None

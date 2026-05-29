@@ -100,5 +100,6 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "direct_order_url": ownership.promo_direct_order_url,
         "menu_image_url": ownership.promo_menu_image_url,
         "instagram": ownership.promo_instagram,
+        "card_emoji": ownership.card_emoji,
         "public_preview": promo_from_ownership(ownership) if active else None,
     }
