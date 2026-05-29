@@ -80,3 +80,12 @@ class AdminGrantPanelRequest(BaseModel):
     city: str = "Bursa"
     force_takeover: bool = False
     admin_note: str | None = None
+
+
+class RestaurantPromoSettingsUpdate(BaseModel):
+    user_email: str
+    has_own_courier: bool = False
+    direct_order_text: str | None = Field(default=None, max_length=120)
+    direct_order_phone: str | None = Field(default=None, max_length=32)
+    direct_order_whatsapp: str | None = Field(default=None, max_length=32)
+    direct_order_url: str | None = Field(default=None, max_length=500)

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
+import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
 import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
 
@@ -95,6 +96,7 @@ function GoogleTrendingCard({
           </span>
         ) : null}
       </div>
+      <RestaurantPromoBadges promo={restaurant.promo} />
       <div className="mt-4 flex flex-wrap gap-2">
         {restaurant.maps_directions_url ? (
           <a

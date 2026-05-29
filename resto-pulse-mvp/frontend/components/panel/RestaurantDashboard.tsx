@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
+import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
 import type { CompetitorAiReport, PanelDashboard } from '@/lib/types';
@@ -102,6 +103,15 @@ export function RestaurantDashboard() {
           </p>
         </div>
       </section>
+
+      {userEmail ? (
+        <RestaurantPromoSettings
+          userEmail={userEmail}
+          subscriptionActive={
+            access?.subscription_status === 'trial' || access?.subscription_status === 'active'
+          }
+        />
+      ) : null}
 
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-5">
         <h2 className="text-lg font-semibold text-white">AI Ozeti</h2>

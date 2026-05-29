@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
+from app.services.restaurant_promo import promos_for_restaurant_ids
 
 
 def _parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
@@ -251,6 +252,8 @@ def _serialize_candidates(
     distance_origin: str,
     db: Session,
 ) -> list[dict]:
+    restaurant_ids = [item["restaurant"].id for item in candidates]
+    promo_map = promos_for_restaurant_ids(db, restaurant_ids)
     result: list[dict] = []
     for item in candidates:
         restaurant = item["restaurant"]
@@ -277,6 +280,7 @@ def _serialize_candidates(
                 "distance_km": _distance_km(distance_m),
                 "distance_origin": distance_origin,
                 "is_fallback": bool(item.get("is_fallback")),
+                "promo": promo_map.get(str(restaurant.id)),
             }
         )
     return result

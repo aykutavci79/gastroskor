@@ -22,6 +22,7 @@ from app.schemas.panel import (
     ClaimStartResponse,
     CompetitorAddRequest,
     PanelAccessRead,
+    RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
 from app.services.panel_access import build_panel_access_state, get_user_ownership
@@ -31,6 +32,7 @@ from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
+from app.services.restaurant_promo import ownership_promo_as_dict, subscription_allows_promo
 from app.services.restaurant_claim import (
     admin_activate_subscription,
     admin_complete_visit,
@@ -134,6 +136,40 @@ def panel_dashboard(user_email: str = Query(...), db: Session = Depends(get_db))
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
     db.commit()
     return build_dashboard_payload(db, ownership, state)
+
+
+@panel_router.get("/promo")
+def get_panel_promo(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return ownership_promo_as_dict(ownership)
+
+
+@panel_router.patch("/promo")
+def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    if not subscription_allows_promo(ownership.subscription):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Rozetler sadece aktif deneme veya abonelikte yayinlanir.",
+        )
+
+    ownership.promo_has_own_courier = payload.has_own_courier
+    ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
+    ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
+    ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
+    ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
+    db.add(ownership)
+    db.commit()
+    db.refresh(ownership)
+    return ownership_promo_as_dict(ownership)
 
 
 @panel_router.post("/claim/start", response_model=ClaimStartResponse)

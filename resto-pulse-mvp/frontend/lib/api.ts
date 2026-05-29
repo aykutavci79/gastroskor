@@ -270,6 +270,26 @@ export function getPanelAccess(userEmail: string) {
   );
 }
 
+export function getPanelPromo(userEmail: string) {
+  return request<import('@/lib/types').RestaurantPromoSettings>(
+    `/panel/promo?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function updatePanelPromo(payload: {
+  user_email: string;
+  has_own_courier: boolean;
+  direct_order_text?: string | null;
+  direct_order_phone?: string | null;
+  direct_order_whatsapp?: string | null;
+  direct_order_url?: string | null;
+}) {
+  return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function getPanelDashboard(userEmail: string) {
   return request<import('@/lib/types').PanelDashboard>(
     `/panel/dashboard?user_email=${encodeURIComponent(userEmail)}`,

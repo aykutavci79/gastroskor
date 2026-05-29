@@ -103,6 +103,11 @@ class RestaurantOwnership(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     visit_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_competitor_ai_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    promo_has_own_courier: Mapped[bool] = mapped_column(Boolean, default=False)
+    promo_direct_order_text: Mapped[str | None] = mapped_column(String(120))
+    promo_direct_order_phone: Mapped[str | None] = mapped_column(String(32))
+    promo_direct_order_whatsapp: Mapped[str | None] = mapped_column(String(32))
+    promo_direct_order_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow

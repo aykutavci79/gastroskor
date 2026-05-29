@@ -53,6 +53,7 @@ from app.schemas.restaurant import (
     RestaurantRead,
     RestaurantTrendingItem,
 )
+from app.services.restaurant_promo import get_public_promo_for_restaurant, promos_for_restaurant_ids, promos_by_google_place_ids
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
@@ -159,6 +160,8 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         query=destination_query or restaurant.name,
     )
 
+    promo = get_public_promo_for_restaurant(db, restaurant.id) if db is not None else None
+
     return RestaurantRead(
         id=str(restaurant.id),
         name=restaurant.name,
@@ -174,6 +177,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         google_place_id=place_id,
         maps_directions_url=maps_directions_url,
         maps_search_url=maps_directions_url,
+        promo=promo,
     )
 
 
@@ -562,12 +566,19 @@ async def trending_restaurants_week(
                 detail="GOOGLE_PLACES_API_KEY tanimli degil.",
             )
         try:
-            return await get_trending_google_places(
+            items = await get_trending_google_places(
                 limit=limit,
                 origin_lat=lat,
                 origin_lng=lng,
                 city=city,
             )
+            place_ids = [row.get("google_place_id") for row in items if row.get("google_place_id")]
+            promo_by_place = promos_by_google_place_ids(db, place_ids)
+            for row in items:
+                pid = row.get("google_place_id")
+                if pid and pid in promo_by_place:
+                    row["promo"] = promo_by_place[pid]
+            return items
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
         except RuntimeError as exc:
@@ -601,15 +612,17 @@ def list_restaurants(
     if city:
         stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
     rows = db.scalars(stmt.order_by(Restaurant.name.asc()).limit(limit)).all()
+    promo_map = promos_for_restaurant_ids(db, [r.id for r in rows])
 
     result: list[dict] = []
     for restaurant in rows:
         avg_rating = db.scalar(
             select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
         )
+        rid = str(restaurant.id)
         result.append(
             {
-                "id": str(restaurant.id),
+                "id": rid,
                 "name": restaurant.name,
                 "city": restaurant.city,
                 "district": restaurant.district,
@@ -618,6 +631,7 @@ def list_restaurants(
                 "geo_indications": parse_geo_indications(restaurant.geo_indications),
                 "has_geographical_indication": restaurant.has_geographical_indication,
                 "gi_product_name": restaurant.gi_product_name,
+                "promo": promo_map.get(rid),
             }
         )
     return result

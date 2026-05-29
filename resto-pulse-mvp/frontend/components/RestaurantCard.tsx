@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
+import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import type { RestaurantListItem } from '@/lib/types';
 
 type Props = {
@@ -39,6 +40,7 @@ export function RestaurantCard({ restaurant }: Props) {
           compact
         />
       </div>
+      <RestaurantPromoBadges promo={restaurant.promo} />
     </Link>
   );
 }
