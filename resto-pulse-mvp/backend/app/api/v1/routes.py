@@ -363,6 +363,7 @@ async def search_live_places(
         default=None,
         description="3.0-3.9 | 4.0-4.4 | 4.5-5.0",
     ),
+    db: Session = Depends(get_db),
 ):
     if not settings.google_places_api_key:
         raise HTTPException(
@@ -431,8 +432,38 @@ async def search_live_places(
 
     filtered_items = apply_smart_filters(items, criteria)[:limit]
 
+    place_ids = [item.place_id for item in filtered_items]
+    partner_by_place = partner_listings_by_google_place_ids(db, place_ids)
+    member_ratings: dict[str, float | None] = {}
+    restaurant_ids = [
+        partner_by_place[pid]["restaurant_id"]
+        for pid in place_ids
+        if pid in partner_by_place and partner_by_place[pid].get("restaurant_id")
+    ]
+    if restaurant_ids:
+        for rid in restaurant_ids:
+            try:
+                rid_uuid = UUID(rid)
+            except ValueError:
+                continue
+            avg = db.scalar(
+                select(func.avg(Review.rating)).where(Review.restaurant_id == rid_uuid)
+            )
+            if avg is not None:
+                member_ratings[rid] = round(float(avg), 1)
+
+    enriched: list[LivePlaceSearchItem] = []
+    for item in filtered_items:
+        row = item.model_dump()
+        partner = partner_by_place.get(item.place_id)
+        merge_partner_into_row(row, partner)
+        rid = row.get("restaurant_id")
+        if rid and rid in member_ratings:
+            row["member_avg_rating"] = member_ratings[rid]
+        enriched.append(LivePlaceSearchItem(**row))
+
     return LivePlaceSearchResponse(
-        items=filtered_items,
+        items=enriched,
         parsed=ParsedSearchIntent(
             raw_query=q,
             query=parsed.query,

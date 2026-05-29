@@ -77,7 +77,13 @@ def partner_listings_by_google_place_ids(db: Session, place_ids: list[str]) -> d
             selectinload(RestaurantOwnership.menu_items),
         )
     ).all()
-    return {row.google_place_id: partner_listing_for_ownership(row) for row in rows}
+    return {
+        row.google_place_id: {
+            **partner_listing_for_ownership(row),
+            "restaurant_id": str(row.restaurant_id),
+        }
+        for row in rows
+    }
 
 
 def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
@@ -93,4 +99,6 @@ def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
     row["menu_preview"] = partner.get("menu_preview") or []
     row["menu_item_count"] = partner.get("menu_item_count") or 0
     row["card_emoji"] = partner.get("card_emoji")
+    if partner.get("restaurant_id"):
+        row["restaurant_id"] = partner["restaurant_id"]
     return row

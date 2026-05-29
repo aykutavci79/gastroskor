@@ -124,6 +124,13 @@ export type LivePlaceSearchItem = {
   rating_score: number;
   gastro_score: number;
   maps_directions_url: string | null;
+  restaurant_id?: string | null;
+  is_premium_partner?: boolean;
+  promo?: RestaurantPromoPublic | null;
+  menu_preview?: RestaurantMenuItem[];
+  menu_item_count?: number;
+  card_emoji?: string | null;
+  member_avg_rating?: number | null;
 };
 
 export type FeedbackStatus = 'open' | 'in_review' | 'resolved' | 'rejected';

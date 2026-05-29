@@ -3,7 +3,9 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
+import { RestaurantCard } from '@/components/RestaurantCard';
 import { createReview, getLivePlaceDetails, searchLivePlaces, syncUser } from '@/lib/api';
+import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
 import type {
   LivePlaceDetails,
@@ -318,42 +320,31 @@ export function LivePlaceSearch() {
       {error ? <div className="rounded-xl border border-bad/40 bg-bad/10 p-3 text-sm text-red-200">{error}</div> : null}
 
       {items.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {items.map((item) => (
-            <article key={item.place_id} className="rounded-xl border border-slate-700/70 bg-slate-900/50 p-3">
-              <h3 className="text-sm font-semibold text-white">{item.name}</h3>
-              <p className="mt-1 text-xs text-slate-400">{item.address ?? 'Adres bilgisi yok'}</p>
-              <p className="mt-2 text-xs text-slate-300">
-                Google: {item.rating ?? '-'} · Yorum: {item.user_ratings_total ?? '-'}
-                {item.distance_meters != null ? (
-                  <>
-                    {' '}
-                    · Mesafe: {formatDistance(item.distance_meters)}
-                    <span className="text-slate-500">
-                      {' '}
-                      ({item.distance_origin === 'user' ? 'konumunuza gore' : 'Bursa merkezine gore'})
-                    </span>
-                  </>
-                ) : null}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <RestaurantCard
+              key={item.place_id}
+              restaurant={livePlaceToRestaurantCard(item)}
+              compact
+              distanceLabel={livePlaceDistanceLabel(item)}
+              googleRating={item.rating}
+              googleReviewCount={item.user_ratings_total}
+              distanceMeters={item.distance_meters}
+              mapsDirectionsUrl={item.maps_directions_url}
+              href={item.restaurant_id ? `/restaurants/${item.restaurant_id}` : null}
+              footer={
                 <button
                   type="button"
-                  onClick={() => showDetails(item.place_id)}
-                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-emerald-950 transition hover:brightness-110">
-                  Detayları Gör
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showDetails(item.place_id);
+                  }}
+                  className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
+                  Detaylari gor
                 </button>
-                {item.maps_directions_url ? (
-                  <a
-                    href={item.maps_directions_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg border border-sky-500/50 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/25">
-                    Yol Tarifi Al
-                  </a>
-                ) : null}
-              </div>
-            </article>
+              }
+            />
           ))}
         </div>
       ) : null}

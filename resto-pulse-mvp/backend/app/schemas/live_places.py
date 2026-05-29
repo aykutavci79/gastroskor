@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.restaurant import RestaurantMenuItemPublic, RestaurantPromoPublic
+
 
 class LivePlaceReview(BaseModel):
     author_name: str | None = None
@@ -47,6 +49,13 @@ class LivePlaceSearchItem(BaseModel):
     rating_score: float = 0.0
     gastro_score: float = 0.0
     maps_directions_url: str | None = Field(default=None)
+    restaurant_id: str | None = None
+    is_premium_partner: bool = False
+    promo: RestaurantPromoPublic | None = None
+    menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
+    menu_item_count: int = 0
+    card_emoji: str | None = None
+    member_avg_rating: float | None = None
 
 
 class LivePlaceSearchResponse(BaseModel):
