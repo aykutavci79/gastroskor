@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut } from 'next-auth/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
 
@@ -12,9 +12,23 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const onClaimPage = pathname.startsWith('/panel/claim');
+  const onAdminPage = pathname.startsWith('/panel/admin');
+  const [isPanelAdmin, setIsPanelAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!userEmail) {
+      setIsPanelAdmin(false);
+      return;
+    }
+    fetch('/api/panel/admin/status')
+      .then((r) => r.json())
+      .then((data: { is_panel_admin?: boolean }) => setIsPanelAdmin(Boolean(data.is_panel_admin)))
+      .catch(() => setIsPanelAdmin(false));
+  }, [userEmail]);
 
   useEffect(() => {
     if (loading || !userEmail) return;
+    if (onAdminPage) return;
     if (!access?.has_ownership && !onClaimPage) {
       router.replace('/panel/claim');
       return;
@@ -22,7 +36,7 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
     if (access?.has_ownership && !access.can_access_panel && !onClaimPage) {
       router.replace('/panel/claim');
     }
-  }, [access, loading, onClaimPage, router, userEmail]);
+  }, [access, loading, onAdminPage, onClaimPage, router, userEmail]);
 
   if (!userEmail) {
     return (
@@ -72,6 +86,13 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
               className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
               Cikis
             </button>
+            {isPanelAdmin ? (
+              <Link
+                href="/panel/admin"
+                className={`rounded-lg px-3 py-1.5 text-xs ${onAdminPage ? 'bg-amber-500/20 text-amber-200' : 'border border-amber-500/40 text-amber-200 hover:bg-amber-500/10'}`}>
+                Admin
+              </Link>
+            ) : null}
           {access?.can_access_panel ? (
             <nav className="flex flex-wrap gap-2 text-sm">
               <Link

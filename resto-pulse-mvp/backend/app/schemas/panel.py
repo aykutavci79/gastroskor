@@ -72,3 +72,11 @@ class AdminActivateSubscriptionRequest(BaseModel):
 class AiPurchaseRequest(BaseModel):
     user_email: str
     sku: str = Field(description="extra_analysis | addon_weekly | addon_daily")
+
+
+class AdminGrantPanelRequest(BaseModel):
+    user_email: str
+    place_id: str
+    city: str = "Bursa"
+    force_takeover: bool = False
+    admin_note: str | None = None

@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     netgsm_header: str | None = None
     otp_expiry_minutes: int = 10
     panel_admin_secret: str | None = None
+    panel_admin_emails: str = ""
     trial_days: int = 30
     default_ai_analysis_interval_days: int = 33
 

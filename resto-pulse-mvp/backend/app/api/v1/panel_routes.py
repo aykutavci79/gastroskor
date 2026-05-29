@@ -13,6 +13,7 @@ from app.integrations.google_places_live import GooglePlacesLiveClient
 from app.models import RestaurantAnalyticsEvent, RestaurantCompetitor, RestaurantOwnership, User
 from app.schemas.panel import (
     AdminActivateSubscriptionRequest,
+    AdminGrantPanelRequest,
     AdminVisitCompleteRequest,
     AiPurchaseRequest,
     AnalyticsEventCreate,
@@ -29,6 +30,7 @@ from app.services.competitor_ai_analysis import analyze_competitor_pair
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
+from app.services.panel_admin import admin_grant_panel_access, is_panel_admin_email
 from app.services.restaurant_claim import (
     admin_activate_subscription,
     admin_complete_visit,
@@ -87,6 +89,38 @@ def panel_me(user_email: str = Query(...), db: Session = Depends(get_db)):
 @panel_router.get("/pricing")
 def panel_pricing_catalog():
     return pricing_catalog_as_dict()
+
+
+@panel_router.get("/admin/status")
+def panel_admin_status(user_email: str = Query(...)):
+    return {
+        "is_panel_admin": is_panel_admin_email(user_email),
+        "admin_emails_configured": bool((settings.panel_admin_emails or "").strip()),
+    }
+
+
+@panel_router.post("/admin/grant-access", response_model=PanelAccessRead)
+async def admin_grant_access_endpoint(
+    payload: AdminGrantPanelRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    secret_ok = bool(settings.panel_admin_secret and x_panel_admin_secret == settings.panel_admin_secret)
+    email_ok = is_panel_admin_email(payload.user_email)
+    if not secret_ok and not email_ok:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin yetkisi yok.")
+
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = await admin_grant_panel_access(
+        db,
+        user=user,
+        place_id=payload.place_id,
+        city=payload.city,
+        force_takeover=payload.force_takeover,
+        admin_note=payload.admin_note,
+    )
+    state = build_panel_access_state(db, ownership)
+    return serialize_access(state)
 
 
 @panel_router.get("/dashboard")
