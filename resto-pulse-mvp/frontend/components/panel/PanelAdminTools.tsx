@@ -142,7 +142,22 @@ export function PanelAdminTools() {
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">{message}</div>
       ) : null}
       {error ? (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+          <p>{error}</p>
+          <p className="mt-2 text-xs text-rose-200/80">
+            API kontrol:{' '}
+            <a
+              href={`https://api.gastroskor.com.tr/api/v1/panel/admin/status?user_email=${encodeURIComponent(userEmail ?? '')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline">
+              admin/status
+            </a>
+            {' '}
+            — <code className="text-rose-100">is_panel_admin: true</code> ve{' '}
+            <code className="text-rose-100">admin_emails_configured: true</code> olmali.
+          </p>
+        </div>
       ) : null}
     </div>
   );

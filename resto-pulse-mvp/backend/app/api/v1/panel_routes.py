@@ -96,6 +96,11 @@ def panel_admin_status(user_email: str = Query(...)):
     return {
         "is_panel_admin": is_panel_admin_email(user_email),
         "admin_emails_configured": bool((settings.panel_admin_emails or "").strip()),
+        "panel_admin_secret_configured": bool((settings.panel_admin_secret or "").strip()),
+        "hint": (
+            "Railway API servisinde PANEL_ADMIN_EMAILS ve PANEL_ADMIN_SECRET tanimli olmali; "
+            "degisiklikten sonra Redeploy."
+        ),
     }
 
 
