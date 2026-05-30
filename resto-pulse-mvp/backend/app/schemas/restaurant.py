@@ -69,6 +69,7 @@ class RestaurantListItem(BaseModel):
     longitude: float | None = None
     maps_directions_url: str | None = None
     distance_meters: float | None = None
+    google_photo_url: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

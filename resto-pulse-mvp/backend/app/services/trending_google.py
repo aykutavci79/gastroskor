@@ -4,7 +4,7 @@ import asyncio
 import math
 import re
 
-from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult
+from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult, build_place_photo_url
 from app.integrations.maps_links import build_google_maps_directions_url, build_destination_label
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
 
@@ -33,14 +33,20 @@ def _popularity_score(place: LivePlaceResult, recent_signal: int) -> float:
     return recent_signal * 25.0 + math.log10(ratings_total + 1) * rating
 
 
-async def _enrich_place(place: LivePlaceResult) -> tuple[LivePlaceResult, int, float]:
+async def _enrich_place(place: LivePlaceResult) -> tuple[LivePlaceResult, int, float, str | None]:
     recent_signal = 0
+    google_photo_url = (
+        build_place_photo_url(place.photo_reference) if place.photo_reference else None
+    )
     try:
         details = await google_client.get_place_details(place.place_id)
         recent_signal = _recent_review_signal(details.get("reviews", []))
+        if not google_photo_url:
+            urls = details.get("photo_urls") or []
+            google_photo_url = urls[0] if urls else None
     except Exception:
         recent_signal = 0
-    return place, recent_signal, _popularity_score(place, recent_signal)
+    return place, recent_signal, _popularity_score(place, recent_signal), google_photo_url
 
 
 async def get_trending_google_places(
@@ -66,7 +72,7 @@ async def get_trending_google_places(
     enriched = await asyncio.gather(*enrich_tasks)
 
     ranked: list[dict] = []
-    for place, recent_signal, pop_score in enriched:
+    for place, recent_signal, pop_score, google_photo_url in enriched:
         distance_m = None
         if place.latitude is not None and place.longitude is not None:
             distance_m = haversine_meters(
@@ -103,6 +109,7 @@ async def get_trending_google_places(
                     longitude=place.longitude,
                     query=label,
                 ),
+                "google_photo_url": google_photo_url,
                 "_pop_score": pop_score,
             }
         )

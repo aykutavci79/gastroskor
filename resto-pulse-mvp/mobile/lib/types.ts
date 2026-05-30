@@ -55,6 +55,7 @@ export type RestaurantListItem = {
   maps_directions_url?: string | null;
   distance_meters?: number | null;
   google_place_id?: string | null;
+  google_photo_url?: string | null;
 };
 
 export type RestaurantPromoSettings = {
@@ -131,6 +132,7 @@ export type LivePlaceSearchItem = {
   menu_preview?: RestaurantMenuItem[];
   menu_item_count?: number;
   member_avg_rating?: number | null;
+  google_photo_url?: string | null;
 };
 
 export type FeedbackStatus = 'open' | 'in_review' | 'resolved' | 'rejected';

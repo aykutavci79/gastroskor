@@ -56,6 +56,7 @@ class LivePlaceSearchItem(BaseModel):
     menu_item_count: int = 0
     card_emoji: str | None = None
     member_avg_rating: float | None = None
+    google_photo_url: str | None = None
 
 
 class LivePlaceSearchResponse(BaseModel):

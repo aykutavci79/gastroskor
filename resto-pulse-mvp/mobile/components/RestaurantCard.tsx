@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
 import { GastroColors } from '@/constants/theme';
+import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { estimateTravelMinutes, formatDistanceLabel } from '@/lib/travel-estimate';
 import { resolveRestaurantDetailId } from '@/lib/uuid';
@@ -23,11 +24,7 @@ type Props = {
 };
 
 function coverImageUrl(restaurant: RestaurantListItem): string | null {
-  return (
-    restaurant.promo?.card_cover_image_url?.trim() ||
-    restaurant.promo?.menu_image_url?.trim() ||
-    null
-  );
+  return resolveCardCoverUrl(restaurant);
 }
 
 export function RestaurantCard({

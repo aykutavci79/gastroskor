@@ -21,6 +21,14 @@ class LivePlaceResult:
     user_ratings_total: int | None
     latitude: float | None
     longitude: float | None
+    photo_reference: str | None = None
+
+
+def build_place_photo_url(photo_reference: str, *, maxwidth: int = 400) -> str:
+    return (
+        "https://maps.googleapis.com/maps/api/place/photo"
+        f"?maxwidth={maxwidth}&photo_reference={photo_reference}&key={settings.google_places_api_key}"
+    )
 
 
 # Text Search: konum yoksa Google oncelik/populerlik + sorgu metnine gore siralar.
@@ -63,6 +71,10 @@ class GooglePlacesLiveClient:
             place_id = row.get("place_id", "")
             if not place_id:
                 continue
+            photos = row.get("photos") or []
+            photo_ref = None
+            if photos and isinstance(photos[0], dict):
+                photo_ref = photos[0].get("photo_reference")
             results.append(
                 LivePlaceResult(
                     place_id=place_id,
@@ -72,6 +84,7 @@ class GooglePlacesLiveClient:
                     user_ratings_total=row.get("user_ratings_total"),
                     latitude=location.get("lat"),
                     longitude=location.get("lng"),
+                    photo_reference=photo_ref,
                 )
             )
         return results
@@ -203,10 +216,7 @@ class GooglePlacesLiveClient:
         for photo in result.get("photos", [])[:8]:
             ref = photo.get("photo_reference")
             if ref:
-                photo_urls.append(
-                    "https://maps.googleapis.com/maps/api/place/photo"
-                    f"?maxwidth=1200&photo_reference={ref}&key={settings.google_places_api_key}"
-                )
+                photo_urls.append(build_place_photo_url(ref, maxwidth=1200))
         reviews = []
         for review in result.get("reviews", [])[:10]:
             reviews.append(

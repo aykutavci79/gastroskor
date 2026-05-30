@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.integrations.google_places_live import GooglePlacesLiveClient
+from app.integrations.google_places_live import GooglePlacesLiveClient, build_place_photo_url
 from app.integrations.google_places import build_google_review_link
 from app.integrations.maps_links import (
     build_destination_label,
@@ -445,6 +445,11 @@ async def search_live_places(
                     city=city,
                 )
                 or ranked.place.name,
+            ),
+            google_photo_url=(
+                build_place_photo_url(ranked.place.photo_reference)
+                if ranked.place.photo_reference
+                else None
             ),
         )
         for ranked in ranked_rows
