@@ -6,13 +6,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CategoryScoresPanel } from '@/components/CategoryScoresPanel';
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
 import { MapsDirectionsButton } from '@/components/MapsDirectionsButton';
+import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
-import { getRestaurant, listRestaurantReviews } from '@/lib/api';
+import { getLivePlaceDetails, getRestaurant, listRestaurantReviews } from '@/lib/api';
 import { aggregateCategoryScores } from '@/lib/scores';
 import type { Restaurant, Review, ReviewAnalyzeResult } from '@/lib/types';
 
@@ -31,9 +32,30 @@ export function RestaurantDetailView({
 }: Props) {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [latestAnalysis, setLatestAnalysis] = useState<ReviewAnalyzeResult | null>(null);
   const [loading, setLoading] = useState(!initialRestaurant && !initialError);
   const [error, setError] = useState<string | null>(initialError);
+
+  const loadGallery = useCallback(async (restaurantData: Restaurant) => {
+    const gallery: string[] = [];
+    const cover =
+      restaurantData.promo?.card_cover_image_url?.trim() ||
+      restaurantData.promo?.menu_image_url?.trim();
+    if (cover) gallery.push(cover);
+
+    if (restaurantData.google_place_id) {
+      try {
+        const live = await getLivePlaceDetails(restaurantData.google_place_id);
+        for (const url of live.photo_urls ?? []) {
+          if (!gallery.includes(url)) gallery.push(url);
+        }
+      } catch {
+        // Google fotolari opsiyonel
+      }
+    }
+    setPhotoUrls(gallery);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +67,7 @@ export function RestaurantDetailView({
       ]);
       setRestaurant(restaurantData);
       setReviews(reviewData);
+      await loadGallery(restaurantData);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Veri yuklenemedi.';
       setError(
@@ -55,13 +78,17 @@ export function RestaurantDetailView({
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [restaurantId, loadGallery]);
 
   useEffect(() => {
-    if (!initialRestaurant && !initialError) {
+    if (initialRestaurant) {
+      void loadGallery(initialRestaurant);
+      return;
+    }
+    if (!initialError) {
       void load();
     }
-  }, [initialRestaurant, initialError, load]);
+  }, [initialRestaurant, initialError, load, loadGallery]);
 
   const categoryScores = useMemo(() => {
     if (latestAnalysis?.categories?.length) {
@@ -108,6 +135,10 @@ export function RestaurantDetailView({
 
   return (
     <div className="space-y-8">
+      {photoUrls.length > 0 || restaurant.google_place_id ? (
+        <RestaurantPhotoCarousel photos={photoUrls} />
+      ) : null}
+
       <div>
         <Link href="/" className="text-sm text-accent hover:underline">
           ← Restoran listesi

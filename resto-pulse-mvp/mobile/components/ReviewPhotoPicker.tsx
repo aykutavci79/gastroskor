@@ -24,7 +24,7 @@ export function ReviewPhotoPicker({ photos, onChange }: Props) {
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: Math.max(1, 4 - photos.length),
-      quality: 0.8,
+      quality: 0.72,
     });
     if (result.canceled) return;
     const next = [

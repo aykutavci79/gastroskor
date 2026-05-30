@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
+import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { createReview, getLivePlaceDetails, searchLivePlaces, syncUser } from '@/lib/api';
 import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
@@ -350,6 +351,8 @@ export function LivePlaceSearch() {
                 <div className="rounded-2xl border border-bad/40 bg-bad/10 p-6 text-sm text-red-200">{detailsError}</div>
               ) : details ? (
                 <div className="space-y-6">
+                  <RestaurantPhotoCarousel photos={details.photo_urls ?? []} className="rounded-none border-0 sm:rounded-2xl sm:border" />
+
                   <div className="rounded-3xl border border-border/70 bg-surface-input p-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>

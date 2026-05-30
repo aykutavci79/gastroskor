@@ -237,6 +237,7 @@ export type LivePlaceDetails = {
   member_avg_rating: number | null;
   maps_directions_url: string | null;
   maps_search_url: string | null;
+  photo_urls?: string[];
   analysis: PlaceAnalysis | null;
 };
 
