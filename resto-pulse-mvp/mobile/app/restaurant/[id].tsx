@@ -21,10 +21,12 @@ import {
   getRestaurant,
   listRestaurantReviews,
 } from '@/lib/api';
+import { isUuid } from '@/lib/uuid';
 import type { Restaurant, Review } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user } = useSession();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -33,22 +35,41 @@ export default function RestaurantDetailScreen() {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    if (!isUuid(id)) {
+      setError('Bu kayit Google listesinden geliyor; detay icin ana sayfadaki Haritada ac dugmesini kullanin.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setError(null);
     Promise.all([getRestaurant(id), listRestaurantReviews(id)])
       .then(([r, rev]) => {
         setRestaurant(r);
         setReviews(rev);
       })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Restoran yuklenemedi');
+        setRestaurant(null);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading || !restaurant) {
+  if (loading) {
     return (
       <Screen scroll={false}>
         <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
+
+  if (error || !restaurant) {
+    return (
+      <Screen>
+        <Text style={styles.error}>{error ?? 'Restoran bulunamadi.'}</Text>
       </Screen>
     );
   }
@@ -198,4 +219,5 @@ const styles = StyleSheet.create({
   reviewText: GastroStyles.bodyText,
   ai: { color: GastroColors.muted, fontSize: 12 },
   ok: { color: GastroColors.accent, fontSize: 12 },
+  error: GastroStyles.errorText,
 });

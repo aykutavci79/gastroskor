@@ -2,6 +2,7 @@ import type {
   CompetitorAiReport,
   GoogleReviewLink,
   LivePlaceSearchResponse,
+  LivePlaceDetails,
   PanelAccess,
   PanelDashboard,
   Restaurant,
@@ -109,6 +110,12 @@ export function searchLivePlaces(params: { q: string; city?: string; limit?: num
   if (params.city) search.set('city', params.city);
   if (params.limit != null) search.set('limit', String(params.limit));
   return request<LivePlaceSearchResponse>(`/live/places/search?${search.toString()}`);
+}
+
+export function getLivePlaceDetails(placeId: string) {
+  return request<LivePlaceDetails>(
+    `/live/places/details/${encodeURIComponent(placeId)}`,
+  );
 }
 
 export function getPanelAccess(userEmail: string) {

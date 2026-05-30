@@ -1,98 +1,279 @@
-import { Link } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { useRouter, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GastroColors, GastroStyles } from '@/constants/theme';
+import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
+import { GastroColors } from '@/constants/theme';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import type { RestaurantListItem } from '@/lib/types';
+import { estimateTravelMinutes, formatDistanceLabel } from '@/lib/travel-estimate';
+import { resolveRestaurantDetailId } from '@/lib/uuid';
+import type { RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
 
-type Props = { restaurant: RestaurantListItem };
+type Props = {
+  restaurant: RestaurantListItem & Partial<RestaurantTrendingItem>;
+  href?: string | null;
+  rank?: number;
+  distanceLabel?: string | null;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  cornerBadge?: string | null;
+  featuredBorder?: boolean;
+  onReviewsPress?: () => void;
+};
 
-export function RestaurantCard({ restaurant }: Props) {
-  const premium = Boolean(restaurant.is_premium_partner);
-  const location = [restaurant.district, restaurant.city].filter(Boolean).join(', ');
+export function RestaurantCard({
+  restaurant,
+  href,
+  rank,
+  distanceLabel,
+  googleRating,
+  googleReviewCount,
+  cornerBadge,
+  featuredBorder,
+  onReviewsPress,
+}: Props) {
+  const router = useRouter();
+  const isPaidPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
+  const showFeatured = featuredBorder ?? isPaidPartner;
+  const badgeLabel =
+    cornerBadge !== undefined ? cornerBadge : isPaidPartner ? 'ÖNE ÇIKAN' : null;
+
   const visual = resolveCategoryVisual({
     category: restaurant.category,
     name: restaurant.name,
     menuItems: restaurant.menu_preview,
   });
 
+  const detailId = resolveRestaurantDetailId(restaurant);
+  const resolvedHref =
+    href === null ? null : href ?? (detailId ? `/restaurant/${detailId}` : null);
+
+  const cityLine = restaurant.city ?? restaurant.district ?? 'Konum belirtilmedi';
+  const distance =
+    distanceLabel ??
+    formatDistanceLabel({
+      distance_km: restaurant.distance_km,
+      distance_meters: restaurant.distance_meters,
+    });
+
+  const googleScore =
+    googleRating ?? restaurant.week_avg_rating ?? restaurant.google_rating ?? null;
+  const googleCount =
+    googleReviewCount ??
+    restaurant.google_user_ratings_total ??
+    restaurant.google_review_count ??
+    null;
+  const gastroScore = restaurant.avg_rating;
+
+  const mapsUrl = restaurant.maps_directions_url?.trim() || null;
+  const travel =
+    restaurant.distance_meters != null && restaurant.distance_meters > 0
+      ? estimateTravelMinutes(restaurant.distance_meters)
+      : null;
+
+  function openDetail() {
+    if (resolvedHref) router.push(resolvedHref as Href);
+  }
+
+  function openReviews() {
+    if (onReviewsPress) {
+      onReviewsPress();
+      return;
+    }
+    openDetail();
+  }
+
   return (
-    <Link href={`/restaurant/${restaurant.id}`} asChild>
-      <Pressable
-        style={[styles.card, premium && styles.cardPremium]}
-        android_ripple={{ color: GastroColors.overlayRipple }}>
-        <Text style={styles.watermark} accessibilityElementsHidden>
-          {visual.emoji}
-        </Text>
-        <View style={styles.row}>
-          <View style={styles.flex}>
-            <Text style={styles.name}>{restaurant.name}</Text>
-            <Text style={styles.meta}>{location || 'Konum belirtilmedi'}</Text>
-          </View>
-          <View style={GastroStyles.ratingBox}>
-            <Text style={styles.ratingLabel}>Puan</Text>
-            <Text style={styles.rating}>
-              {restaurant.avg_rating != null ? restaurant.avg_rating.toFixed(1) : '—'}
-            </Text>
-          </View>
+    <Pressable
+      style={styles.cardWrap}
+      onPress={resolvedHref ? openDetail : undefined}
+      android_ripple={resolvedHref ? { color: GastroColors.overlayRipple } : undefined}>
+      <FeaturedCardFrame featured={showFeatured} badge={badgeLabel}>
+        <View style={styles.topRow}>
+          {rank != null ? <Text style={styles.rankBadge}>#{rank}</Text> : <View />}
+          {distance ? <Text style={styles.distance}>{distance}</Text> : null}
         </View>
-        <Text style={styles.category}>
-          {visual.emoji} {visual.label}
+
+        <Text style={styles.name} numberOfLines={2}>
+          {restaurant.name}
         </Text>
-        {restaurant.promo?.direct_order_text ? (
-          <Text style={styles.promo}>{restaurant.promo.direct_order_text}</Text>
-        ) : null}
-        {restaurant.menu_preview && restaurant.menu_preview.length > 0 ? (
-          <View style={styles.menuPreview}>
-            {restaurant.menu_preview.slice(0, 2).map((item) => (
-              <Text key={item.id} style={styles.menuLine} numberOfLines={1}>
-                <Text style={styles.menuItemName}>{item.name}</Text>
-                <Text style={styles.menuItemPrice}>
-                  {' '}
-                  · {item.price_tl.toLocaleString('tr-TR')} TL
-                </Text>
+        <Text style={styles.city}>{cityLine}</Text>
+
+        {(googleScore != null || gastroScore != null) && (
+          <View style={styles.scoreRow}>
+            {googleScore != null ? (
+              <Text style={styles.googleScore}>
+                <Text style={styles.star}>★ </Text>
+                Google {googleScore.toFixed(1)}
+                {googleCount != null && googleCount > 0 ? (
+                  <Text style={styles.reviewCount}>
+                    {' '}
+                    · {googleCount.toLocaleString('tr-TR')}
+                  </Text>
+                ) : null}
               </Text>
-            ))}
+            ) : null}
+            {gastroScore != null ? (
+              <Text style={styles.gsScore}>
+                <Text style={styles.star}>★ </Text>
+                GS {gastroScore.toFixed(1)}
+              </Text>
+            ) : null}
           </View>
-        ) : null}
-      </Pressable>
-    </Link>
+        )}
+
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryText}>
+            {visual.emoji} {visual.label}
+          </Text>
+        </View>
+
+        {(mapsUrl || travel) && (
+          <View style={styles.actionRow}>
+            {mapsUrl ? (
+              <Pressable
+                style={styles.ghostBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  void Linking.openURL(mapsUrl);
+                }}>
+                <Text style={styles.ghostBtnText}>🗺️ Haritada Aç</Text>
+              </Pressable>
+            ) : null}
+            {travel ? (
+              <View style={styles.travelBadges}>
+                <View style={styles.travelPill}>
+                  <Text style={styles.travelPillText}>🚶 {travel.walkMin} dk</Text>
+                </View>
+                <View style={styles.travelPill}>
+                  <Text style={styles.travelPillText}>🚗 {travel.driveMin} dk</Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {(onReviewsPress || resolvedHref) && (
+          <Pressable
+            style={styles.reviewsLinkWrap}
+            onPress={(e) => {
+              e.stopPropagation();
+              openReviews();
+            }}>
+            <Text style={styles.reviewsLink}>Yorumları Gör →</Text>
+          </Pressable>
+        )}
+      </FeaturedCardFrame>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    ...GastroStyles.card,
-    gap: 8,
+  cardWrap: {
+    marginVertical: 8,
   },
-  cardPremium: {
-    ...GastroStyles.cardFeatured,
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 20,
   },
-  watermark: {
-    position: 'absolute',
-    right: 10,
-    top: 8,
-    fontSize: 28,
-    opacity: 0.15,
+  rankBadge: {
+    color: GastroColors.accent,
+    fontSize: 12,
+    fontWeight: '800',
   },
-  row: { flexDirection: 'row', gap: 12 },
-  flex: { flex: 1 },
-  name: { color: GastroColors.text, fontSize: 17, fontWeight: '700' },
-  meta: { color: GastroColors.muted, fontSize: 13, marginTop: 2 },
-  ratingLabel: { color: GastroColors.muted, fontSize: 10 },
-  rating: { color: GastroColors.gold, fontSize: 18, fontWeight: '800' },
-  category: {
+  distance: {
+    color: GastroColors.muted,
+    fontSize: 12,
+  },
+  name: {
+    color: GastroColors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  city: {
+    color: GastroColors.muted,
+    fontSize: 13,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  star: {
+    color: GastroColors.gold,
+  },
+  googleScore: {
+    color: GastroColors.google,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  reviewCount: {
+    color: GastroColors.muted,
+    fontWeight: '500',
+  },
+  gsScore: {
+    color: GastroColors.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  categoryBadge: {
     alignSelf: 'flex-start',
     backgroundColor: GastroColors.input,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  categoryText: {
+    color: GastroColors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ghostBtn: {
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  ghostBtnText: {
+    color: GastroColors.text,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  travelBadges: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  travelPill: {
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    borderRadius: 8,
+    backgroundColor: GastroColors.input,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  travelPillText: {
     color: GastroColors.muted,
     fontSize: 11,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+    fontWeight: '600',
   },
-  promo: { color: GastroColors.accent, fontSize: 11, fontWeight: '600' },
-  menuPreview: { gap: 2 },
-  menuLine: { fontSize: 12 },
-  menuItemName: { color: GastroColors.muted },
-  menuItemPrice: { color: GastroColors.gold, fontWeight: '600' },
+  reviewsLinkWrap: {
+    alignSelf: 'flex-end',
+    marginTop: 2,
+  },
+  reviewsLink: {
+    color: GastroColors.accent,
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });
