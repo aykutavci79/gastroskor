@@ -8,7 +8,7 @@ class ReviewCreate(BaseModel):
     author_name: str | None = None
     author_avatar_url: str | None = None
     rating: int = Field(ge=1, le=5)
-    review_text: str = Field(min_length=5, max_length=5000)
+    review_text: str = Field(default="", max_length=5000)
 
 
 class ReviewCategoryRead(BaseModel):
@@ -22,6 +22,7 @@ class ReviewCategoryRead(BaseModel):
 class ReviewRead(ReviewCreate):
     id: str
     created_at: str | None = None
+    image_urls: list[str] = []
     sentiment_label: str | None = None
     sentiment_score: float | None = None
     ai_summary: str | None = None

@@ -88,11 +88,38 @@ export function listRestaurantReviews(restaurantId: string) {
 export function createReview(payload: {
   restaurant_id: string;
   rating: number;
-  review_text: string;
+  review_text?: string;
   author_email?: string | null;
   author_name?: string | null;
 }) {
-  return request<Review>('/reviews', { method: 'POST', body: JSON.stringify(payload) });
+  return request<Review>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      review_text: payload.review_text ?? '',
+    }),
+  });
+}
+
+export async function uploadReviewImage(
+  reviewId: string,
+  authorEmail: string,
+  localUri: string,
+  mimeType: string,
+  fileName: string,
+) {
+  const form = new FormData();
+  form.append('author_email', authorEmail);
+  form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
+  const response = await fetch(`${getApiV1Base()}/reviews/${encodeURIComponent(reviewId)}/images`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Upload failed ${response.status}`);
+  }
+  return response.json() as Promise<Review>;
 }
 
 export function syncUser(payload: {

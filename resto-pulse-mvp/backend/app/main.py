@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.routes import router as v1_router
 from app.core.config import settings
 from app.services.menu_image_storage import menu_images_dir
+from app.services.review_image_storage import review_images_dir
 
 logger = logging.getLogger(__name__)
 
@@ -33,4 +34,10 @@ try:
     app.mount("/media/menu", StaticFiles(directory=str(menu_dir)), name="menu-images")
 except OSError as exc:
     logger.warning("Menu image static mount skipped: %s", exc)
+
+try:
+    review_dir = review_images_dir()
+    app.mount("/media/reviews", StaticFiles(directory=str(review_dir)), name="review-images")
+except OSError as exc:
+    logger.warning("Review image static mount skipped: %s", exc)
 

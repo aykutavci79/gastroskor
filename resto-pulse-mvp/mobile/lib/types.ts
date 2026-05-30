@@ -54,6 +54,7 @@ export type RestaurantListItem = {
   longitude?: number | null;
   maps_directions_url?: string | null;
   distance_meters?: number | null;
+  google_place_id?: string | null;
 };
 
 export type RestaurantPromoSettings = {
@@ -251,11 +252,10 @@ export type Review = {
   source_platform: string | null;
   categories: ReviewCategory[];
   created_at?: string | null;
+  image_urls?: string[];
 };
 
-export type DisplayReview = Review & {
-  localPhotoUris?: string[];
-};
+export type DisplayReview = Review;
 
 export type UserProfile = {
   id: string;

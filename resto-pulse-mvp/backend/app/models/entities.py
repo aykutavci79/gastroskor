@@ -341,6 +341,25 @@ class Review(Base):
     restaurant: Mapped["Restaurant"] = relationship(back_populates="reviews")
     author: Mapped["User | None"] = relationship(back_populates="reviews")
     category_scores: Mapped[list["ReviewCategoryScore"]] = relationship(back_populates="review")
+    images: Mapped[list["ReviewImage"]] = relationship(
+        back_populates="review",
+        cascade="all, delete-orphan",
+        order_by="ReviewImage.sort_order",
+    )
+
+
+class ReviewImage(Base):
+    __tablename__ = "review_images"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    image_url: Mapped[str] = mapped_column(String(512))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    review: Mapped["Review"] = relationship(back_populates="images")
 
 
 class ReviewCategoryScore(Base):

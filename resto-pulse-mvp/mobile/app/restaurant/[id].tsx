@@ -2,9 +2,9 @@ import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import { Image } from 'expo-image';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +24,7 @@ import {
   getLivePlaceDetails,
   getRestaurant,
   listRestaurantReviews,
+  uploadReviewImage,
 } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { averageGsRating, formatReviewDate, renderStarRow } from '@/lib/review-display';
@@ -46,14 +47,14 @@ export default function RestaurantDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
   const [photos, setPhotos] = useState<ReviewPhotoAsset[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id || !isUuid(id)) {
+    if (!id) {
       setError('Geçersiz restoran bağlantısı.');
       setLoading(false);
       return;
@@ -63,11 +64,74 @@ export default function RestaurantDetailScreen() {
     setLoading(true);
     setError(null);
 
+    async function applyDistance(restaurantData: Restaurant) {
+      if (restaurantData.latitude == null || restaurantData.longitude == null) return;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({});
+        if (!cancelled) {
+          setDistanceMeters(
+            haversineMeters(
+              pos.coords.latitude,
+              pos.coords.longitude,
+              restaurantData.latitude,
+              restaurantData.longitude,
+            ),
+          );
+        }
+      } catch {
+        // mesafe opsiyonel
+      }
+    }
+
     (async () => {
       try {
+        let restaurantId = id;
+        let googlePlaceId: string | null = isUuid(id) ? null : id;
+
+        if (!isUuid(id)) {
+          const live = await getLivePlaceDetails(id);
+          if (cancelled) return;
+          if (!live.restaurant_id) {
+            setError('Restoran kaydı oluşturulamadı.');
+            setRestaurant(null);
+            return;
+          }
+          restaurantId = live.restaurant_id;
+          googlePlaceId = live.place_id ?? id;
+
+          const [restaurantData, reviewData] = await Promise.all([
+            getRestaurant(restaurantId),
+            listRestaurantReviews(restaurantId),
+          ]);
+          if (cancelled) return;
+
+          const gallery: string[] = [];
+          for (const url of live.photo_urls ?? []) {
+            if (!gallery.includes(url)) gallery.push(url);
+          }
+          const cover =
+            restaurantData.promo?.card_cover_image_url?.trim() ||
+            restaurantData.promo?.menu_image_url?.trim();
+          if (cover && !gallery.includes(cover)) gallery.unshift(cover);
+
+          setRestaurant({
+            ...restaurantData,
+            maps_directions_url:
+              restaurantData.maps_directions_url?.trim() || live.maps_directions_url || null,
+          });
+          setReviews(reviewData);
+          setPhotoUrls(gallery);
+          setGoogleRating(live.rating ?? restaurantData.google_rating ?? null);
+          setGoogleReviewCount(live.user_ratings_total ?? null);
+          await applyDistance(restaurantData);
+          return;
+        }
+
         const [restaurantData, reviewData] = await Promise.all([
-          getRestaurant(id),
-          listRestaurantReviews(id),
+          getRestaurant(restaurantId),
+          listRestaurantReviews(restaurantId),
         ]);
         if (cancelled) return;
 
@@ -82,10 +146,11 @@ export default function RestaurantDetailScreen() {
 
         let googleScore = restaurantData.google_rating ?? null;
         let googleCount: number | null = null;
+        googlePlaceId = restaurantData.google_place_id ?? googlePlaceId;
 
-        if (restaurantData.google_place_id) {
+        if (googlePlaceId) {
           try {
-            const live = await getLivePlaceDetails(restaurantData.google_place_id);
+            const live = await getLivePlaceDetails(googlePlaceId);
             if (!cancelled) {
               for (const url of live.photo_urls ?? []) {
                 if (!gallery.includes(url)) gallery.push(url);
@@ -102,25 +167,7 @@ export default function RestaurantDetailScreen() {
           setPhotoUrls(gallery);
           setGoogleRating(googleScore);
           setGoogleReviewCount(googleCount);
-
-          if (restaurantData.latitude != null && restaurantData.longitude != null) {
-            try {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status === 'granted') {
-                const pos = await Location.getCurrentPositionAsync({});
-                setDistanceMeters(
-                  haversineMeters(
-                    pos.coords.latitude,
-                    pos.coords.longitude,
-                    restaurantData.latitude,
-                    restaurantData.longitude,
-                  ),
-                );
-              }
-            } catch {
-              // mesafe opsiyonel
-            }
-          }
+          await applyDistance(restaurantData);
         }
       } catch (err) {
         if (!cancelled) {
@@ -160,30 +207,38 @@ export default function RestaurantDetailScreen() {
       setSubmitError('Yorum yapmak için giriş yap');
       return;
     }
-    if (text.trim().length < 5) {
-      setSubmitError('Yorum en az 5 karakter olmalı');
+    if (rating < 1) {
+      setSubmitError('Lütfen yıldız puanı ver');
       return;
     }
 
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const created = await createReview({
+      let saved = await createReview({
         restaurant_id: restaurant.id,
         rating,
         review_text: text.trim(),
         author_email: user.email,
         author_name: user.fullName,
       });
-      const withPhotos: DisplayReview = {
-        ...created,
-        created_at: created.created_at ?? new Date().toISOString(),
-        localPhotoUris: photos.map((p) => p.uri),
+      for (const photo of photos) {
+        saved = await uploadReviewImage(
+          saved.id,
+          user.email,
+          photo.uri,
+          photo.mimeType,
+          photo.fileName,
+        );
+      }
+      const withMeta: DisplayReview = {
+        ...saved,
+        created_at: saved.created_at ?? new Date().toISOString(),
       };
-      setReviews((prev) => [withPhotos, ...prev]);
+      setReviews((prev) => [withMeta, ...prev]);
       setText('');
       setPhotos([]);
-      setRating(5);
+      setRating(0);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Yorum gönderilemedi');
     } finally {
@@ -304,11 +359,6 @@ export default function RestaurantDetailScreen() {
                 </Text>
               </Pressable>
               {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
-              {photos.length > 0 ? (
-                <Text style={styles.photoNote}>
-                  Fotoğraflar şimdilik yalnızca cihazında görünür; sunucu yüklemesi yakında.
-                </Text>
-              ) : null}
             </>
           )}
         </View>
@@ -327,11 +377,13 @@ export default function RestaurantDetailScreen() {
                   ) : null}
                 </View>
                 <Text style={styles.reviewStars}>{renderStarRow(rev.rating)}</Text>
-                <Text style={styles.reviewText}>{rev.review_text}</Text>
-                {rev.localPhotoUris && rev.localPhotoUris.length > 0 ? (
+                {rev.review_text.trim() ? (
+                  <Text style={styles.reviewText}>{rev.review_text}</Text>
+                ) : null}
+                {(rev.image_urls?.length ?? 0) > 0 ? (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {rev.localPhotoUris.map((uri) => (
-                      <Image key={uri} source={{ uri }} style={styles.reviewPhoto} />
+                    {rev.image_urls!.map((uri) => (
+                      <Image key={uri} source={{ uri }} style={styles.reviewPhoto} contentFit="cover" />
                     ))}
                   </ScrollView>
                 ) : null}

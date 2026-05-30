@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -26,6 +26,7 @@ from app.models import (
     RestaurantPlatformProfile,
     Review,
     ReviewCategoryScore,
+    ReviewImage,
     SentimentLabel,
     User,
 )
@@ -72,6 +73,8 @@ from app.services.new_member_restaurants import list_new_member_restaurants
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
+from app.services.restaurant_claim import ensure_restaurant_for_place
+from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
 from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
 from app.schemas.user import UserProfile, UserSyncPayload
 from app.services.ai_analysis import AIAnalysisService
@@ -213,6 +216,11 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
     )
 
 
+def review_image_urls(review: Review) -> list[str]:
+    images = getattr(review, "images", None) or []
+    return [row.image_url for row in sorted(images, key=lambda item: item.sort_order)]
+
+
 def serialize_review(review: Review) -> ReviewRead:
     author_name = review.author.full_name if review.author else None
     author_avatar = review.author.avatar_url if review.author else None
@@ -225,6 +233,7 @@ def serialize_review(review: Review) -> ReviewRead:
         author_avatar_url=author_avatar,
         rating=review.rating,
         review_text=review.review_text,
+        image_urls=review_image_urls(review),
         created_at=review.created_at.isoformat() if review.created_at else None,
         sentiment_label=review.sentiment_label.value if review.sentiment_label else None,
         sentiment_score=review.sentiment_score,
@@ -545,6 +554,12 @@ async def get_live_place_details(
         RestaurantPlatformProfile.platform == PlatformName.google_maps,
     )
     mapping = db.scalar(profile_stmt)
+    if not mapping:
+        restaurant = await ensure_restaurant_for_place(db, place_id=place_id, city=city)
+        db.commit()
+        db.refresh(restaurant)
+        mapping = db.scalar(profile_stmt)
+
     member_reviews: list[dict] = []
     member_review_count = 0
     member_avg_rating = None
@@ -556,7 +571,11 @@ async def get_live_place_details(
             db.scalars(
                 select(Review)
                 .where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
-                .options(selectinload(Review.category_scores), selectinload(Review.author))
+                .options(
+                    selectinload(Review.category_scores),
+                    selectinload(Review.author),
+                    selectinload(Review.images),
+                )
                 .order_by(Review.created_at.desc())
             )
             .all()
@@ -572,6 +591,8 @@ async def get_live_place_details(
                 "author_avatar_url": review.author.avatar_url if review.author else None,
                 "rating": review.rating,
                 "review_text": review.review_text,
+                "created_at": review.created_at.isoformat() if review.created_at else None,
+                "image_urls": review_image_urls(review),
                 "sentiment_label": review.sentiment_label.value if review.sentiment_label else None,
                 "sentiment_score": review.sentiment_score,
             }
@@ -846,7 +867,7 @@ def list_restaurant_reviews(
     stmt = (
         select(Review)
         .where(Review.restaurant_id == restaurant_id)
-        .options(selectinload(Review.category_scores))
+        .options(selectinload(Review.category_scores), selectinload(Review.author), selectinload(Review.images))
         .order_by(Review.created_at.desc())
         .limit(limit)
     )
@@ -1035,13 +1056,13 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         restaurant_id=restaurant_id,
         author_id=author_uuid,
         rating=payload.rating,
-        review_text=payload.review_text,
+        review_text=(payload.review_text or "").strip(),
         review_lang="tr",
         is_demo=False,
     )
     db.add(review)
     db.commit()
-    db.refresh(review)
+    db.refresh(review, attribute_names=["author", "images", "category_scores"])
 
     if review.rating is not None and review.rating <= 2:
         ownership = db.scalar(
@@ -1061,6 +1082,44 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             except Exception:
                 logger.exception("Negative review notification failed review=%s", review.id)
 
+    return serialize_review(review)
+
+
+@router.post("/reviews/{review_id}/images", response_model=ReviewRead)
+async def upload_review_image(
+    review_id: UUID,
+    author_email: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    review = db.scalar(
+        select(Review)
+        .where(Review.id == review_id)
+        .options(selectinload(Review.images), selectinload(Review.author), selectinload(Review.category_scores))
+    )
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+
+    if not review.author or review.author.email.lower() != author_email.strip().lower():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu yoruma fotograf ekleyemezsiniz.")
+
+    existing = len(review.images or [])
+    if existing >= MAX_REVIEW_IMAGES_PER_REVIEW:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"En fazla {MAX_REVIEW_IMAGES_PER_REVIEW} fotograf eklenebilir.",
+        )
+
+    url = await save_review_image(file)
+    db.add(
+        ReviewImage(
+            review_id=review.id,
+            image_url=url,
+            sort_order=existing,
+        )
+    )
+    db.commit()
+    db.refresh(review, attribute_names=["author", "images", "category_scores"])
     return serialize_review(review)
 
 

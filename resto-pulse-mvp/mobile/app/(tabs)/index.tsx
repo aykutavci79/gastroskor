@@ -2,25 +2,18 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchBar } from '@/components/SearchBar';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
-import {
-  getLivePlaceDetails,
-  listRestaurants,
-  listTrendingRestaurantsWeek,
-  searchLivePlaces,
-} from '@/lib/api';
+import { listRestaurants, listTrendingRestaurantsWeek, searchLivePlaces } from '@/lib/api';
 import {
   livePlaceDistanceLabel,
-  livePlaceGoogleId,
   livePlaceToRestaurantCard,
 } from '@/lib/live-place-card';
+import { restaurantDetailHref } from '@/lib/uuid';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
-import { resolveRestaurantDetailId } from '@/lib/uuid';
-import type { LivePlaceReview, LivePlaceSearchItem, RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
+import type { LivePlaceSearchItem, RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
 
 type Coords = { lat: number; lng: number };
 
@@ -38,12 +31,6 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [reviewsOpen, setReviewsOpen] = useState(false);
-  const [reviewsTitle, setReviewsTitle] = useState<string | null>(null);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError, setReviewsError] = useState<string | null>(null);
-  const [reviews, setReviews] = useState<LivePlaceReview[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,22 +128,6 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }
 
-  async function openGoogleReviews(placeId: string, name: string) {
-    setReviewsOpen(true);
-    setReviewsTitle(name);
-    setReviewsLoading(true);
-    setReviewsError(null);
-    setReviews([]);
-    try {
-      const details = await getLivePlaceDetails(placeId);
-      setReviews(details.reviews ?? []);
-    } catch (err) {
-      setReviewsError(err instanceof Error ? err.message : 'Yorumlar yuklenemedi');
-    } finally {
-      setReviewsLoading(false);
-    }
-  }
-
   const sectionSub =
     searchSource === 'live' && activeQuery.length >= 2
       ? `Google canlı arama · "${activeQuery}"`
@@ -204,9 +175,11 @@ export default function ExploreScreen() {
         ) : (
           restaurants.map((r, index) => {
             const liveItem = searchSource === 'live' ? liveItems[index] : null;
-            const detailId = resolveRestaurantDetailId(r);
-            const googlePlaceId = liveItem ? livePlaceGoogleId(liveItem) : null;
-            const isLiveGoogle = searchSource === 'live' && !detailId && googlePlaceId;
+            const detailHref = restaurantDetailHref({
+              id: r.id,
+              restaurant_id: r.restaurant_id,
+              google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
+            });
 
             return (
               <RestaurantCard
@@ -217,12 +190,7 @@ export default function ExploreScreen() {
                 distanceLabel={
                   liveItem ? livePlaceDistanceLabel(liveItem) : formatDistanceLabel(r)
                 }
-                href={isLiveGoogle ? null : undefined}
-                onReviewsPress={
-                  isLiveGoogle && googlePlaceId
-                    ? () => void openGoogleReviews(googlePlaceId, r.name)
-                    : undefined
-                }
+                href={detailHref}
               />
             );
           })
@@ -236,39 +204,28 @@ export default function ExploreScreen() {
             <Text style={styles.sectionSub}>Google popülerliği · yakınındaki 6 restoran</Text>
           </View>
           {trending.map((r, index) => {
-            const isGoogleSource = r.source === 'google';
-            const detailId = resolveRestaurantDetailId(r);
-            const placeId = r.google_place_id ?? r.id;
+            const detailHref = restaurantDetailHref({
+              id: r.id,
+              restaurant_id: r.restaurant_id,
+              google_place_id: r.google_place_id,
+            });
 
             return (
               <RestaurantCard
                 key={`t-${r.id}`}
                 restaurant={r}
                 rank={index + 1}
-                href={isGoogleSource && !detailId ? null : undefined}
+                href={detailHref}
                 googleRating={r.week_avg_rating ?? r.google_rating}
                 googleReviewCount={r.google_user_ratings_total ?? r.google_review_count}
                 distanceLabel={formatDistanceLabel(r)}
                 cornerBadge={r.is_premium_partner ? 'ÖNE ÇIKAN' : undefined}
-                onReviewsPress={
-                  isGoogleSource && !detailId
-                    ? () => void openGoogleReviews(placeId, r.name)
-                    : undefined
-                }
               />
             );
           })}
         </View>
       ) : null}
 
-      <GoogleReviewsModal
-        visible={reviewsOpen}
-        title={reviewsTitle}
-        loading={reviewsLoading}
-        error={reviewsError}
-        reviews={reviews}
-        onClose={() => setReviewsOpen(false)}
-      />
     </Screen>
   );
 }

@@ -16,6 +16,7 @@ from app.models.entities import (
     RestaurantSubscription,
     Review,
     ReviewCategoryScore,
+    ReviewImage,
     SentimentLabel,
     User,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "RestaurantAnalyticsEvent",
     "Review",
     "ReviewCategoryScore",
+    "ReviewImage",
     "SentimentLabel",
     "User",
 ]
