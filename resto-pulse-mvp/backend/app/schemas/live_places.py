@@ -91,4 +91,5 @@ class LivePlaceDetails(BaseModel):
     member_avg_rating: float | None = None
     maps_directions_url: str | None = Field(default=None)
     maps_search_url: str | None = Field(default=None)
+    photo_urls: list[str] = Field(default_factory=list)
     analysis: PlaceAnalysis | None = None

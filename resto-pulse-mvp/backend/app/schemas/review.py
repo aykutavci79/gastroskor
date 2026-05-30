@@ -21,6 +21,7 @@ class ReviewCategoryRead(BaseModel):
 
 class ReviewRead(ReviewCreate):
     id: str
+    created_at: str | None = None
     sentiment_label: str | None = None
     sentiment_score: float | None = None
     ai_summary: str | None = None

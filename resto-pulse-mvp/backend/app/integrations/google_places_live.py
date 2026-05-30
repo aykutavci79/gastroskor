@@ -179,7 +179,7 @@ class GooglePlacesLiveClient:
         params = {
             "place_id": place_id,
             "language": "tr",
-            "fields": "place_id,name,formatted_address,international_phone_number,formatted_phone_number,rating,user_ratings_total,geometry,opening_hours,website,reviews,url",
+            "fields": "place_id,name,formatted_address,international_phone_number,formatted_phone_number,rating,user_ratings_total,geometry,opening_hours,website,reviews,photos,url",
             "key": settings.google_places_api_key,
         }
 
@@ -199,6 +199,14 @@ class GooglePlacesLiveClient:
             raise RuntimeError(error_message)
 
         result = payload.get("result", {})
+        photo_urls: list[str] = []
+        for photo in result.get("photos", [])[:8]:
+            ref = photo.get("photo_reference")
+            if ref:
+                photo_urls.append(
+                    "https://maps.googleapis.com/maps/api/place/photo"
+                    f"?maxwidth=1200&photo_reference={ref}&key={settings.google_places_api_key}"
+                )
         reviews = []
         for review in result.get("reviews", [])[:10]:
             reviews.append(
@@ -230,6 +238,7 @@ class GooglePlacesLiveClient:
             "website": result.get("website"),
             "opening_hours": opening_hours,
             "reviews": reviews,
+            "photo_urls": photo_urls,
             "maps_directions_url": None,
             "maps_search_url": None,
             "analysis": None,

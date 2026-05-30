@@ -28,6 +28,7 @@ export type RestaurantPromoPublic = {
   direct_order_whatsapp?: string | null;
   direct_order_url?: string | null;
   menu_image_url?: string | null;
+  card_cover_image_url?: string | null;
   instagram_url?: string | null;
 };
 
@@ -87,6 +88,7 @@ export type Restaurant = RestaurantListItem & {
   latitude: number | null;
   longitude: number | null;
   google_place_id: string | null;
+  google_rating?: number | null;
   maps_directions_url: string | null;
   /** @deprecated maps_directions_url kullanin */
   maps_search_url: string | null;
@@ -224,6 +226,7 @@ export type LivePlaceDetails = {
   member_avg_rating: number | null;
   maps_directions_url: string | null;
   maps_search_url: string | null;
+  photo_urls?: string[];
   analysis: PlaceAnalysis | null;
 };
 
@@ -247,6 +250,11 @@ export type Review = {
   is_demo: boolean;
   source_platform: string | null;
   categories: ReviewCategory[];
+  created_at?: string | null;
+};
+
+export type DisplayReview = Review & {
+  localPhotoUris?: string[];
 };
 
 export type UserProfile = {

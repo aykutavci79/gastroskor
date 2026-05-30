@@ -30,7 +30,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: GastroColors.bg },
           }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="restaurant/[id]" options={{ title: 'Restoran' }} />
+          <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
         </Stack>
         <StatusBar style="light" />

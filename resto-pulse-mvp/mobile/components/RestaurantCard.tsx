@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking';
+import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -21,6 +22,14 @@ type Props = {
   onReviewsPress?: () => void;
 };
 
+function coverImageUrl(restaurant: RestaurantListItem): string | null {
+  return (
+    restaurant.promo?.card_cover_image_url?.trim() ||
+    restaurant.promo?.menu_image_url?.trim() ||
+    null
+  );
+}
+
 export function RestaurantCard({
   restaurant,
   href,
@@ -37,6 +46,7 @@ export function RestaurantCard({
   const showFeatured = featuredBorder ?? isPaidPartner;
   const badgeLabel =
     cornerBadge !== undefined ? cornerBadge : isPaidPartner ? 'ÖNE ÇIKAN' : null;
+  const cover = coverImageUrl(restaurant);
 
   const visual = resolveCategoryVisual({
     category: restaurant.category,
@@ -89,80 +99,90 @@ export function RestaurantCard({
       onPress={resolvedHref ? openDetail : undefined}
       android_ripple={resolvedHref ? { color: GastroColors.overlayRipple } : undefined}>
       <FeaturedCardFrame featured={showFeatured} badge={badgeLabel}>
-        <View style={styles.topRow}>
-          {rank != null ? <Text style={styles.rankBadge}>#{rank}</Text> : <View />}
-          {distance ? <Text style={styles.distance}>{distance}</Text> : null}
-        </View>
+        <View style={styles.mainRow}>
+          <View style={styles.content}>
+            <View style={styles.topRow}>
+              {rank != null ? <Text style={styles.rankBadge}>#{rank}</Text> : <View />}
+              {distance ? <Text style={styles.distance}>{distance}</Text> : null}
+            </View>
 
-        <Text style={styles.name} numberOfLines={2}>
-          {restaurant.name}
-        </Text>
-        <Text style={styles.city}>{cityLine}</Text>
+            <Text style={styles.name} numberOfLines={2}>
+              {restaurant.name}
+            </Text>
+            <Text style={styles.city} numberOfLines={1}>
+              {cityLine}
+            </Text>
 
-        {(googleScore != null || gastroScore != null) && (
-          <View style={styles.scoreRow}>
-            {googleScore != null ? (
-              <Text style={styles.googleScore}>
-                <Text style={styles.star}>★ </Text>
-                Google {googleScore.toFixed(1)}
-                {googleCount != null && googleCount > 0 ? (
-                  <Text style={styles.reviewCount}>
-                    {' '}
-                    · {googleCount.toLocaleString('tr-TR')}
+            {(googleScore != null || gastroScore != null) && (
+              <View style={styles.scoreRow}>
+                {googleScore != null ? (
+                  <Text style={styles.googleScore} numberOfLines={1}>
+                    <Text style={styles.star}>★ </Text>
+                    Google {googleScore.toFixed(1)}
+                    {googleCount != null && googleCount > 0 ? (
+                      <Text style={styles.reviewCount}>
+                        {' '}
+                        · {googleCount.toLocaleString('tr-TR')}
+                      </Text>
+                    ) : null}
                   </Text>
                 ) : null}
-              </Text>
-            ) : null}
-            {gastroScore != null ? (
-              <Text style={styles.gsScore}>
-                <Text style={styles.star}>★ </Text>
-                GS {gastroScore.toFixed(1)}
-              </Text>
-            ) : null}
-          </View>
-        )}
+                {gastroScore != null ? (
+                  <Text style={styles.gsScore} numberOfLines={1}>
+                    <Text style={styles.star}>★ </Text>
+                    GS {gastroScore.toFixed(1)}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>
-            {visual.emoji} {visual.label}
-          </Text>
-        </View>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText} numberOfLines={1}>
+                {visual.emoji} {visual.label}
+              </Text>
+            </View>
 
-        {(mapsUrl || travel) && (
-          <View style={styles.actionRow}>
-            {mapsUrl ? (
+            {(mapsUrl || travel) && (
+              <View style={styles.actionRow}>
+                {mapsUrl ? (
+                  <Pressable
+                    style={styles.ghostBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      void Linking.openURL(mapsUrl);
+                    }}>
+                    <Text style={styles.ghostBtnText}>🗺️ Haritada Aç</Text>
+                  </Pressable>
+                ) : null}
+                {travel ? (
+                  <View style={styles.travelBadges}>
+                    <View style={styles.travelPill}>
+                      <Text style={styles.travelPillText}>🚶 {travel.walkMin} dk</Text>
+                    </View>
+                    <View style={styles.travelPill}>
+                      <Text style={styles.travelPillText}>🚗 {travel.driveMin} dk</Text>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            )}
+
+            {(onReviewsPress || resolvedHref) && (
               <Pressable
-                style={styles.ghostBtn}
+                style={styles.reviewsLinkWrap}
                 onPress={(e) => {
                   e.stopPropagation();
-                  void Linking.openURL(mapsUrl);
+                  openReviews();
                 }}>
-                <Text style={styles.ghostBtnText}>🗺️ Haritada Aç</Text>
+                <Text style={styles.reviewsLink}>Yorumları Gör →</Text>
               </Pressable>
-            ) : null}
-            {travel ? (
-              <View style={styles.travelBadges}>
-                <View style={styles.travelPill}>
-                  <Text style={styles.travelPillText}>🚶 {travel.walkMin} dk</Text>
-                </View>
-                <View style={styles.travelPill}>
-                  <Text style={styles.travelPillText}>🚗 {travel.driveMin} dk</Text>
-                </View>
-              </View>
-            ) : null}
+            )}
           </View>
-        )}
 
-        {(onReviewsPress || resolvedHref) && (
-          <Pressable
-            style={styles.reviewsLinkWrap}
-            onPress={(e) => {
-              e.stopPropagation();
-              openReviews();
-            }}>
-            <Text style={styles.reviewsLink}>Yorumları Gör →</Text>
-          </Pressable>
-        )}
+          {cover ? (
+            <Image source={{ uri: cover }} style={styles.cover} contentFit="cover" />
+          ) : null}
+        </View>
       </FeaturedCardFrame>
     </Pressable>
   );
@@ -170,45 +190,61 @@ export function RestaurantCard({
 
 const styles = StyleSheet.create({
   cardWrap: {
-    marginVertical: 8,
+    marginVertical: 6,
+  },
+  mainRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  content: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  cover: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    backgroundColor: GastroColors.input,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 20,
+    minHeight: 16,
   },
   rankBadge: {
     color: GastroColors.accent,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
   distance: {
     color: GastroColors.muted,
-    fontSize: 12,
+    fontSize: 11,
   },
   name: {
     color: GastroColors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    lineHeight: 24,
+    lineHeight: 20,
   },
   city: {
     color: GastroColors.muted,
-    fontSize: 13,
+    fontSize: 11,
   },
   scoreRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   star: {
     color: GastroColors.gold,
   },
   googleScore: {
     color: GastroColors.google,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   reviewCount: {
@@ -217,50 +253,50 @@ const styles = StyleSheet.create({
   },
   gsScore: {
     color: GastroColors.accent,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   categoryBadge: {
     alignSelf: 'flex-start',
     backgroundColor: GastroColors.input,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   categoryText: {
     color: GastroColors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   ghostBtn: {
     borderWidth: 1,
     borderColor: GastroColors.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   ghostBtnText: {
     color: GastroColors.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   travelBadges: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
   },
   travelPill: {
     borderWidth: 1,
     borderColor: GastroColors.border,
     borderRadius: 8,
     backgroundColor: GastroColors.input,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
   travelPillText: {
     color: GastroColors.muted,
@@ -269,11 +305,10 @@ const styles = StyleSheet.create({
   },
   reviewsLinkWrap: {
     alignSelf: 'flex-end',
-    marginTop: 2,
   },
   reviewsLink: {
     color: GastroColors.accent,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 });

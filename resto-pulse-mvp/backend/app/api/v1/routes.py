@@ -225,6 +225,7 @@ def serialize_review(review: Review) -> ReviewRead:
         author_avatar_url=author_avatar,
         rating=review.rating,
         review_text=review.review_text,
+        created_at=review.created_at.isoformat() if review.created_at else None,
         sentiment_label=review.sentiment_label.value if review.sentiment_label else None,
         sentiment_score=review.sentiment_score,
         ai_summary=review.ai_summary,
@@ -605,6 +606,7 @@ async def get_live_place_details(
             place_id=details["place_id"],
             query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
         ),
+        photo_urls=details.get("photo_urls") or [],
         analysis=analysis,
     )
 
