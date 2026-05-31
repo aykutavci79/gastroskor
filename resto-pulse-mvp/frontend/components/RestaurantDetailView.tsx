@@ -14,9 +14,9 @@ import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
-import { getLivePlaceDetails, getRestaurant, listRestaurantReviews } from '@/lib/api';
+import { getLivePlaceDetails, getRestaurant, listRestaurantReviews, syncUser } from '@/lib/api';
 import { aggregateCategoryScores } from '@/lib/scores';
-import type { Restaurant, Review, ReviewAnalyzeResult } from '@/lib/types';
+import type { Restaurant, Review, ReviewAnalyzeResult, UserProfile } from '@/lib/types';
 
 type Props = {
   restaurantId: string;
@@ -33,6 +33,7 @@ export function RestaurantDetailView({
 }: Props) {
   const { data: session } = useSession();
   const viewerEmail = session?.user?.email ?? null;
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -82,6 +83,21 @@ export function RestaurantDetailView({
       setLoading(false);
     }
   }, [restaurantId, loadGallery, viewerEmail]);
+
+  useEffect(() => {
+    if (!viewerEmail) {
+      setProfile(null);
+      return;
+    }
+    syncUser({
+      email: viewerEmail,
+      full_name: session?.user?.name ?? null,
+      avatar_url: session?.user?.image ?? null,
+      google_sub: (session?.user as { id?: string } | undefined)?.id ?? null,
+    })
+      .then(setProfile)
+      .catch(() => setProfile(null));
+  }, [viewerEmail, session?.user?.name, session?.user?.image, session?.user]);
 
   useEffect(() => {
     if (initialRestaurant) {
@@ -232,6 +248,7 @@ export function RestaurantDetailView({
         <ReviewList
           reviews={reviews}
           viewerEmail={viewerEmail}
+          viewerUserId={profile?.id ?? null}
           onReviewChange={(updated) =>
             setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
           }

@@ -32,10 +32,14 @@ type Props = {
   onDelete: (reviewId: string) => void;
 };
 
-function isOwnReview(review: DisplayReview, viewerEmail: string | null): boolean {
-  if (!viewerEmail?.trim()) return false;
-  if (review.author_email?.toLowerCase() === viewerEmail.trim().toLowerCase()) return true;
-  return false;
+function isOwnReview(
+  review: DisplayReview,
+  viewerEmail: string | null,
+  viewerUserId?: string | null,
+): boolean {
+  if (viewerUserId && review.author_id && review.author_id === viewerUserId) return true;
+  if (!viewerEmail?.trim() || !review.author_email) return false;
+  return review.author_email.toLowerCase() === viewerEmail.trim().toLowerCase();
 }
 
 function isReplyMine(reply: ReviewReply, viewerEmail: string | null): boolean {

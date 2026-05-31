@@ -7,6 +7,7 @@ import type { GoogleIdTokenClaims } from '@/lib/google-auth';
 const STORAGE_KEY = 'gastroskor.session.v1';
 
 export type SessionUser = {
+  id?: string | null;
   email: string;
   fullName: string | null;
   avatarUrl?: string | null;
@@ -49,13 +50,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (claims.email_verified === false) {
       throw new Error('Google e-postasi dogrulanmamis.');
     }
-    await syncUser({
+    const profile = await syncUser({
       email,
       full_name: claims.name ?? null,
       avatar_url: claims.picture ?? null,
       google_sub: claims.sub,
     });
     const next: SessionUser = {
+      id: profile.id,
       email,
       fullName: claims.name ?? null,
       avatarUrl: claims.picture ?? null,
@@ -70,8 +72,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!normalized.includes('@')) {
       throw new Error('Gecerli bir e-posta girin.');
     }
-    await syncUser({ email: normalized, full_name: fullName ?? null });
-    const next: SessionUser = { email: normalized, fullName: fullName ?? null };
+    const profile = await syncUser({ email: normalized, full_name: fullName ?? null });
+    const next: SessionUser = { id: profile.id, email: normalized, fullName: fullName ?? null };
     await persistUser(next);
     setUser(next);
   }, []);

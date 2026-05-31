@@ -28,7 +28,12 @@ function formatReviewDate(iso: string | null | undefined): string {
   return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function isOwnReview(review: Review, viewerEmail: string | null | undefined): boolean {
+function isOwnReview(
+  review: Review,
+  viewerEmail: string | null | undefined,
+  viewerUserId?: string | null,
+): boolean {
+  if (viewerUserId && review.author_id && review.author_id === viewerUserId) return true;
   if (!viewerEmail?.trim() || !review.author_email) return false;
   return review.author_email.toLowerCase() === viewerEmail.trim().toLowerCase();
 }
@@ -41,12 +46,13 @@ function isReplyMine(reply: ReviewReply, viewerEmail: string | null | undefined)
 type Props = {
   review: Review;
   viewerEmail?: string | null;
+  viewerUserId?: string | null;
   onChange: (review: Review) => void;
   onDelete: (reviewId: string) => void;
 };
 
-export function GsReviewCard({ review, viewerEmail = null, onChange, onDelete }: Props) {
-  const ownReview = isOwnReview(review, viewerEmail);
+export function GsReviewCard({ review, viewerEmail = null, viewerUserId = null, onChange, onDelete }: Props) {
+  const ownReview = isOwnReview(review, viewerEmail, viewerUserId);
   const canInteract = Boolean(viewerEmail?.trim());
   const editable = ownReview && !review.source_platform;
 

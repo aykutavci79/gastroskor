@@ -7,6 +7,7 @@ import { GsReviewCard } from '@/components/GsReviewCard';
 type Props = {
   reviews: Review[];
   viewerEmail?: string | null;
+  viewerUserId?: string | null;
   onReviewChange?: (review: Review) => void;
   onReviewDelete?: (reviewId: string) => void;
 };
@@ -14,6 +15,7 @@ type Props = {
 export function ReviewList({
   reviews,
   viewerEmail = null,
+  viewerUserId = null,
   onReviewChange,
   onReviewDelete,
 }: Props) {
@@ -32,6 +34,7 @@ export function ReviewList({
           key={review.id}
           review={review}
           viewerEmail={viewerEmail}
+          viewerUserId={viewerUserId}
           onChange={(updated) => onReviewChange?.(updated)}
           onDelete={(reviewId) => onReviewDelete?.(reviewId)}
         />

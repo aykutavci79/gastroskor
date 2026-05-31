@@ -595,6 +595,7 @@ export function LivePlaceSearch() {
                             <ReviewList
                               reviews={gsReviews}
                               viewerEmail={session?.user?.email ?? null}
+                              viewerUserId={profile?.id ?? null}
                               onReviewChange={(updated) =>
                                 setGsReviews((prev) =>
                                   prev.map((row) => (row.id === updated.id ? updated : row)),

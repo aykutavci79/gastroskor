@@ -141,6 +141,7 @@ def get_or_create_user(
     avatar_url: str | None = None,
     google_sub: str | None = None,
 ) -> User:
+    email = email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if not user and google_sub:
         user = db.scalar(select(User).where(User.google_sub == google_sub))

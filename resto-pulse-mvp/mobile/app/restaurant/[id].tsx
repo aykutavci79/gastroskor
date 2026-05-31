@@ -376,6 +376,7 @@ export default function RestaurantDetailScreen() {
                 key={rev.id}
                 review={rev}
                 viewerEmail={user?.email ?? null}
+                viewerUserId={user?.id ?? null}
                 viewerName={user?.fullName ?? null}
                 onChange={(updated) =>
                   setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
