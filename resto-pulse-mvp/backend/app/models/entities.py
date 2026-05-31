@@ -49,6 +49,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")
+    review_helpful_votes: Mapped[list["ReviewHelpfulVote"]] = relationship(back_populates="user")
+    review_replies: Mapped[list["ReviewReply"]] = relationship(back_populates="author")
     public_reviews: Mapped[list["PublicReview"]] = relationship(back_populates="author")
     private_feedbacks: Mapped[list["PrivateFeedback"]] = relationship(back_populates="author")
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="user")
@@ -348,6 +350,52 @@ class Review(Base):
         cascade="all, delete-orphan",
         order_by="ReviewImage.sort_order",
     )
+    helpful_votes: Mapped[list["ReviewHelpfulVote"]] = relationship(
+        back_populates="review",
+        cascade="all, delete-orphan",
+    )
+    replies: Mapped[list["ReviewReply"]] = relationship(
+        back_populates="review",
+        cascade="all, delete-orphan",
+        order_by="ReviewReply.created_at.asc()",
+    )
+
+
+class ReviewHelpfulVote(Base):
+    __tablename__ = "review_helpful_votes"
+    __table_args__ = (UniqueConstraint("review_id", "user_id", name="uq_review_helpful_vote"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    review: Mapped["Review"] = relationship(back_populates="helpful_votes")
+    user: Mapped["User"] = relationship(back_populates="review_helpful_votes")
+
+
+class ReviewReply(Base):
+    __tablename__ = "review_replies"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    reply_text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    review: Mapped["Review"] = relationship(back_populates="replies")
+    author: Mapped["User | None"] = relationship(back_populates="review_replies")
 
 
 class ReviewImage(Base):

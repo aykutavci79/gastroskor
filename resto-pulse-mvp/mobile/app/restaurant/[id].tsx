@@ -2,7 +2,6 @@ import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GsReviewCard } from '@/components/GsReviewCard';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
 import { StarRatingPicker } from '@/components/StarRatingPicker';
@@ -27,7 +27,7 @@ import {
   uploadReviewImage,
 } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import { averageGsRating, formatReviewDate, renderStarRow } from '@/lib/review-display';
+import { averageGsRating, renderStarRow } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import { isUuid } from '@/lib/uuid';
 import type { DisplayReview, Restaurant } from '@/lib/types';
@@ -103,7 +103,7 @@ export default function RestaurantDetailScreen() {
 
           const [restaurantData, reviewData] = await Promise.all([
             getRestaurant(restaurantId),
-            listRestaurantReviews(restaurantId),
+            listRestaurantReviews(restaurantId, user?.email),
           ]);
           if (cancelled) return;
 
@@ -131,7 +131,7 @@ export default function RestaurantDetailScreen() {
 
         const [restaurantData, reviewData] = await Promise.all([
           getRestaurant(restaurantId),
-          listRestaurantReviews(restaurantId),
+          listRestaurantReviews(restaurantId, user?.email),
         ]);
         if (cancelled) return;
 
@@ -182,7 +182,7 @@ export default function RestaurantDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, user?.email]);
 
   const gsRating = useMemo(() => averageGsRating(reviews), [reviews]);
   const visual = restaurant
@@ -372,25 +372,16 @@ export default function RestaurantDetailScreen() {
             <Text style={styles.emptyReviews}>Henüz yorum yok, ilk yorumu sen yaz! 🍽️</Text>
           ) : (
             reviews.map((rev) => (
-              <View key={rev.id} style={styles.reviewCard}>
-                <View style={styles.reviewHead}>
-                  <Text style={styles.reviewAuthor}>{rev.author_name ?? 'GastroSkor Üyesi'}</Text>
-                  {rev.created_at ? (
-                    <Text style={styles.reviewDate}>{formatReviewDate(rev.created_at)}</Text>
-                  ) : null}
-                </View>
-                <Text style={styles.reviewStars}>{renderStarRow(rev.rating)}</Text>
-                {rev.review_text.trim() ? (
-                  <Text style={styles.reviewText}>{rev.review_text}</Text>
-                ) : null}
-                {(rev.image_urls?.length ?? 0) > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {rev.image_urls!.map((uri) => (
-                      <Image key={uri} source={{ uri }} style={styles.reviewPhoto} contentFit="cover" />
-                    ))}
-                  </ScrollView>
-                ) : null}
-              </View>
+              <GsReviewCard
+                key={rev.id}
+                review={rev}
+                viewerEmail={user?.email ?? null}
+                viewerName={user?.fullName ?? null}
+                onChange={(updated) =>
+                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+                }
+                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
+              />
             ))
           )}
         </View>

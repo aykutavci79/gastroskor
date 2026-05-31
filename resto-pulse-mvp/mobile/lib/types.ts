@@ -238,6 +238,18 @@ export type ReviewFilterState = {
   filter: ReviewFilterOption;
 };
 
+export type ReviewReply = {
+  id: string;
+  review_id: string;
+  author_id: string | null;
+  author_email: string | null;
+  author_name: string | null;
+  author_avatar_url: string | null;
+  reply_text: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type Review = {
   id: string;
   restaurant_id: string;
@@ -254,7 +266,11 @@ export type Review = {
   source_platform: string | null;
   categories: ReviewCategory[];
   created_at?: string | null;
+  updated_at?: string | null;
   image_urls?: string[];
+  helpful_count?: number;
+  viewer_marked_helpful?: boolean;
+  replies?: ReviewReply[];
 };
 
 export type DisplayReview = Review;

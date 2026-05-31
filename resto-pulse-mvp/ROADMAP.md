@@ -18,15 +18,18 @@ Son guncelleme: 31 Mayis 2026
 | Alan | Ne yapildi |
 |------|------------|
 | Yorum moderasyonu | Kufur/argo filtresi, 1. uyari / 2. 7 gun ban / 3. 3 ay ban |
+| Yararli + cevap | Tek tik yararli, yorum alti kullanici cevabi, duzenle/sil |
 
-Railway: `alembic upgrade head` calistir.
+Railway: `alembic upgrade head` calistir (0016 + 0017).
 
 ## Siradaki fazlar (plan — henuz yok)
 
-### Faz A — Topluluk (onerilen sira)
-1. **Yararli bul** (tek tik begeni)
-2. **Tek seviye yanit** (yorum altina kisa cevap)
-3. Bildirim: "Yorumun begenildi" / "Yorumuna cevap geldi"
+### Faz A — Topluluk (devam)
+1. ~~**Yararli bul** (tek tik begeni)~~
+2. ~~**Tek seviye yanit** (yorum altina kisa cevap)~~
+3. ~~Kullanici kendi yorumunu duzenle/sil~~
+4. Bildirim: "Yorumun begenildi" / "Yorumuna cevap geldi"
+5. **Isletme yaniti** (restoran resmi cevap)
 
 ### Faz B — Magaza
 1. EAS preview build (Android APK / iOS TestFlight)

@@ -11,6 +11,26 @@ class ReviewCreate(BaseModel):
     review_text: str = Field(default="", max_length=5000)
 
 
+class ReviewUpdate(BaseModel):
+    author_id: str | None = None
+    author_email: str | None = None
+    rating: int | None = Field(default=None, ge=1, le=5)
+    review_text: str | None = Field(default=None, max_length=5000)
+
+
+class ReviewAuthorAction(BaseModel):
+    author_id: str | None = None
+    author_email: str | None = None
+
+
+class ReviewReplyCreate(ReviewAuthorAction):
+    reply_text: str = Field(min_length=1, max_length=2000)
+
+
+class ReviewReplyUpdate(ReviewAuthorAction):
+    reply_text: str = Field(min_length=1, max_length=2000)
+
+
 class ReviewCategoryRead(BaseModel):
     category: str
     score: float | None = None
@@ -19,9 +39,23 @@ class ReviewCategoryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReviewReplyRead(BaseModel):
+    id: str
+    review_id: str
+    author_id: str | None = None
+    author_email: str | None = None
+    author_name: str | None = None
+    author_avatar_url: str | None = None
+    reply_text: str
+    created_at: str | None = None
+    updated_at: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ReviewRead(ReviewCreate):
     id: str
     created_at: str | None = None
+    updated_at: str | None = None
     image_urls: list[str] = []
     sentiment_label: str | None = None
     sentiment_score: float | None = None
@@ -31,6 +65,9 @@ class ReviewRead(ReviewCreate):
     categories: list[ReviewCategoryRead] = []
     author_name: str | None = None
     author_avatar_url: str | None = None
+    helpful_count: int = 0
+    viewer_marked_helpful: bool = False
+    replies: list[ReviewReplyRead] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -40,4 +77,3 @@ class ReviewAnalyzeResponse(BaseModel):
     sentiment_score: float
     summary: str
     categories: list[dict]
-

@@ -27,7 +27,9 @@ from app.models import (
     RestaurantPlatformProfile,
     Review,
     ReviewCategoryScore,
+    ReviewHelpfulVote,
     ReviewImage,
+    ReviewReply,
     SentimentLabel,
     User,
 )
@@ -76,7 +78,17 @@ from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.services.restaurant_claim import ensure_restaurant_for_place
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
-from app.schemas.review import ReviewAnalyzeResponse, ReviewCategoryRead, ReviewCreate, ReviewRead
+from app.schemas.review import (
+    ReviewAnalyzeResponse,
+    ReviewAuthorAction,
+    ReviewCategoryRead,
+    ReviewCreate,
+    ReviewRead,
+    ReviewReplyCreate,
+    ReviewReplyRead,
+    ReviewReplyUpdate,
+    ReviewUpdate,
+)
 from app.schemas.user import UserProfile, UserSyncPayload
 from app.services.ai_analysis import AIAnalysisService
 from app.services.gastro_score_ranking import rank_live_places
@@ -222,9 +234,80 @@ def review_image_urls(review: Review) -> list[str]:
     return [row.image_url for row in sorted(images, key=lambda item: item.sort_order)]
 
 
-def serialize_review(review: Review) -> ReviewRead:
+def resolve_actor_user(
+    db: Session,
+    *,
+    author_id: str | None,
+    author_email: str | None,
+) -> User:
+    user_uuid = resolve_user_uuid(db, user_id=author_id, email=author_email)
+    if not user_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="author_id veya author_email gerekli ve kayitli olmali.",
+        )
+    user = db.get(User, user_uuid)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+    return user
+
+
+def assert_review_owner(user: User, review: Review) -> None:
+    if not review.author_id or review.author_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu islem icin yorum sahibi olmalisiniz.",
+        )
+
+
+def assert_gs_review_editable(review: Review) -> None:
+    if review.source_platform is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Harici kaynak yorumlari duzenlenemez.",
+        )
+
+
+def load_review_or_404(db: Session, review_id: UUID) -> Review:
+    review = db.scalar(
+        select(Review)
+        .where(Review.id == review_id)
+        .options(
+            selectinload(Review.category_scores),
+            selectinload(Review.author),
+            selectinload(Review.images),
+            selectinload(Review.helpful_votes),
+            selectinload(Review.replies).selectinload(ReviewReply.author),
+        )
+    )
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    return review
+
+
+def serialize_review_reply(reply: ReviewReply) -> ReviewReplyRead:
+    return ReviewReplyRead(
+        id=str(reply.id),
+        review_id=str(reply.review_id),
+        author_id=str(reply.author_id) if reply.author_id else None,
+        author_email=reply.author.email if reply.author else None,
+        author_name=reply.author.full_name if reply.author else None,
+        author_avatar_url=reply.author.avatar_url if reply.author else None,
+        reply_text=reply.reply_text,
+        created_at=reply.created_at.isoformat() if reply.created_at else None,
+        updated_at=reply.updated_at.isoformat() if reply.updated_at else None,
+    )
+
+
+def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> ReviewRead:
     author_name = review.author.full_name if review.author else None
     author_avatar = review.author.avatar_url if review.author else None
+    helpful_votes = getattr(review, "helpful_votes", None) or []
+    helpful_count = len(helpful_votes)
+    viewer_marked_helpful = False
+    if viewer_user_id:
+        viewer_marked_helpful = any(vote.user_id == viewer_user_id for vote in helpful_votes)
+    replies = getattr(review, "replies", None) or []
     return ReviewRead(
         id=str(review.id),
         restaurant_id=str(review.restaurant_id),
@@ -236,6 +319,7 @@ def serialize_review(review: Review) -> ReviewRead:
         review_text=review.review_text,
         image_urls=review_image_urls(review),
         created_at=review.created_at.isoformat() if review.created_at else None,
+        updated_at=review.updated_at.isoformat() if review.updated_at else None,
         sentiment_label=review.sentiment_label.value if review.sentiment_label else None,
         sentiment_score=review.sentiment_score,
         ai_summary=review.ai_summary,
@@ -250,6 +334,9 @@ def serialize_review(review: Review) -> ReviewRead:
             )
             for row in review.category_scores
         ],
+        helpful_count=helpful_count,
+        viewer_marked_helpful=viewer_marked_helpful,
+        replies=[serialize_review_reply(row) for row in replies],
     )
 
 
@@ -865,20 +952,30 @@ def create_restaurant(payload: RestaurantCreate, db: Session = Depends(get_db)):
 def list_restaurant_reviews(
     restaurant_id: UUID,
     limit: int = Query(default=50, ge=1, le=200),
+    viewer_id: str | None = Query(default=None),
+    viewer_email: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     if not db.get(Restaurant, restaurant_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
+    viewer_user_id = resolve_user_uuid(db, user_id=viewer_id, email=viewer_email)
+
     stmt = (
         select(Review)
         .where(Review.restaurant_id == restaurant_id)
-        .options(selectinload(Review.category_scores), selectinload(Review.author), selectinload(Review.images))
+        .options(
+            selectinload(Review.category_scores),
+            selectinload(Review.author),
+            selectinload(Review.images),
+            selectinload(Review.helpful_votes),
+            selectinload(Review.replies).selectinload(ReviewReply.author),
+        )
         .order_by(Review.created_at.desc())
         .limit(limit)
     )
     rows = db.scalars(stmt).all()
-    return [serialize_review(row) for row in rows]
+    return [serialize_review(row, viewer_user_id=viewer_user_id) for row in rows]
 
 
 @router.post("/users/sync", response_model=UserProfile)
@@ -1142,6 +1239,161 @@ async def upload_review_image(
     db.commit()
     db.refresh(review, attribute_names=["author", "images", "category_scores"])
     return serialize_review(review)
+
+
+@router.patch("/reviews/{review_id}", response_model=ReviewRead)
+def update_review(review_id: UUID, payload: ReviewUpdate, db: Session = Depends(get_db)):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+    assert_review_owner(user, review)
+    assert_gs_review_editable(review)
+
+    ban_message = review_ban_message(user)
+    if ban_message:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ban_message)
+
+    next_rating = payload.rating if payload.rating is not None else review.rating
+    next_text = review.review_text if payload.review_text is None else payload.review_text.strip()
+
+    if payload.rating is None and payload.review_text is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Guncellenecek en az bir alan gerekli.",
+        )
+
+    try:
+        enforce_review_author_policy(user, next_text)
+    except ValueError as exc:
+        db.add(user)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    review.rating = next_rating
+    review.review_text = next_text
+    db.add(review)
+    db.commit()
+    review = load_review_or_404(db, review_id)
+    return serialize_review(review, viewer_user_id=user.id)
+
+
+@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_review(review_id: UUID, payload: ReviewAuthorAction, db: Session = Depends(get_db)):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+    assert_review_owner(user, review)
+    assert_gs_review_editable(review)
+    db.delete(review)
+    db.commit()
+    return None
+
+
+@router.post("/reviews/{review_id}/helpful", response_model=ReviewRead)
+def toggle_review_helpful(review_id: UUID, payload: ReviewAuthorAction, db: Session = Depends(get_db)):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+
+    if review.author_id == user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kendi yorumunuza yararli diyemezsiniz.",
+        )
+
+    existing = db.scalar(
+        select(ReviewHelpfulVote).where(
+            ReviewHelpfulVote.review_id == review.id,
+            ReviewHelpfulVote.user_id == user.id,
+        )
+    )
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(ReviewHelpfulVote(review_id=review.id, user_id=user.id))
+
+    db.commit()
+    review = load_review_or_404(db, review_id)
+    return serialize_review(review, viewer_user_id=user.id)
+
+
+@router.post("/reviews/{review_id}/replies", response_model=ReviewReplyRead, status_code=status.HTTP_201_CREATED)
+def create_review_reply(review_id: UUID, payload: ReviewReplyCreate, db: Session = Depends(get_db)):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+
+    try:
+        enforce_review_author_policy(user, payload.reply_text)
+    except ValueError as exc:
+        db.add(user)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    reply = ReviewReply(
+        review_id=review.id,
+        author_id=user.id,
+        reply_text=payload.reply_text.strip(),
+    )
+    db.add(reply)
+    db.commit()
+    db.refresh(reply, attribute_names=["author"])
+    return serialize_review_reply(reply)
+
+
+@router.patch("/reviews/{review_id}/replies/{reply_id}", response_model=ReviewReplyRead)
+def update_review_reply(
+    review_id: UUID,
+    reply_id: UUID,
+    payload: ReviewReplyUpdate,
+    db: Session = Depends(get_db),
+):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+
+    reply = db.scalar(
+        select(ReviewReply)
+        .where(ReviewReply.id == reply_id, ReviewReply.review_id == review.id)
+        .options(selectinload(ReviewReply.author))
+    )
+    if not reply:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cevap bulunamadi.")
+
+    if not reply.author_id or reply.author_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu cevabi duzenleyemezsiniz.")
+
+    try:
+        enforce_review_author_policy(user, payload.reply_text)
+    except ValueError as exc:
+        db.add(user)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    reply.reply_text = payload.reply_text.strip()
+    db.add(reply)
+    db.commit()
+    db.refresh(reply, attribute_names=["author"])
+    return serialize_review_reply(reply)
+
+
+@router.delete("/reviews/{review_id}/replies/{reply_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_review_reply(
+    review_id: UUID,
+    reply_id: UUID,
+    payload: ReviewAuthorAction,
+    db: Session = Depends(get_db),
+):
+    review = load_review_or_404(db, review_id)
+    user = resolve_actor_user(db, author_id=payload.author_id, author_email=payload.author_email)
+
+    reply = db.scalar(
+        select(ReviewReply).where(ReviewReply.id == reply_id, ReviewReply.review_id == review.id)
+    )
+    if not reply:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cevap bulunamadi.")
+
+    if not reply.author_id or reply.author_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu cevabi silemezsiniz.")
+
+    db.delete(reply)
+    db.commit()
+    return None
 
 
 @router.post("/reviews/{review_id}/analyze", response_model=ReviewAnalyzeResponse)
