@@ -233,6 +233,7 @@ export default function RestaurantDetailScreen() {
       }
       const withMeta: DisplayReview = {
         ...saved,
+        viewer_can_edit: saved.viewer_can_edit ?? true,
         created_at: saved.created_at ?? new Date().toISOString(),
       };
       setReviews((prev) => [withMeta, ...prev]);

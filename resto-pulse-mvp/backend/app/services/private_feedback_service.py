@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import CompensationCoupon, FeedbackMessage, PrivateFeedback, Restaurant, User
@@ -67,7 +67,10 @@ def resolve_user_uuid(
                 detail="Invalid user_id",
             ) from exc
     if email:
-        user = db.scalar(select(User).where(User.email == email))
+        normalized = email.strip().lower()
+        user = db.scalar(select(User).where(User.email == normalized))
+        if not user:
+            user = db.scalar(select(User).where(func.lower(User.email) == normalized))
         return user.id if user else None
     return None
 

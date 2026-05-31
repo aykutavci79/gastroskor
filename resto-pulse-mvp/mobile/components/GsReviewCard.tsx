@@ -58,7 +58,7 @@ export function GsReviewCard({
 }: Props) {
   const ownReview = isOwnReview(review, viewerEmail, viewerUserId);
   const canInteract = Boolean(viewerEmail?.trim());
-  const editable = ownReview && !review.source_platform;
+  const editable = review.viewer_can_edit === true || (ownReview && !review.source_platform);
 
   const [helpfulBusy, setHelpfulBusy] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);

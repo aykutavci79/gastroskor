@@ -308,6 +308,12 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
     viewer_marked_helpful = False
     if viewer_user_id:
         viewer_marked_helpful = any(vote.user_id == viewer_user_id for vote in helpful_votes)
+    viewer_can_edit = bool(
+        viewer_user_id
+        and review.author_id
+        and review.author_id == viewer_user_id
+        and review.source_platform is None
+    )
     replies = getattr(review, "replies", None) or []
     return ReviewRead(
         id=str(review.id),
@@ -337,6 +343,7 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
         ],
         helpful_count=helpful_count,
         viewer_marked_helpful=viewer_marked_helpful,
+        viewer_can_edit=viewer_can_edit,
         replies=[serialize_review_reply(row) for row in replies],
     )
 
@@ -1166,6 +1173,12 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             db.add(author_user)
             db.commit()
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    if not author_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Yorum yazmak icin giris yapin (author_email gerekli).",
+        )
 
     review = Review(
         restaurant_id=restaurant_id,

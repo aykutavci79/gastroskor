@@ -34,10 +34,27 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
+      .then(async (raw) => {
         if (!raw) return;
         const parsed = JSON.parse(raw) as SessionUser;
-        if (parsed?.email) setUser(parsed);
+        if (!parsed?.email) return;
+        try {
+          const profile = await syncUser({
+            email: parsed.email,
+            full_name: parsed.fullName ?? null,
+            avatar_url: parsed.avatarUrl ?? null,
+            google_sub: parsed.googleSub ?? null,
+          });
+          const next: SessionUser = {
+            ...parsed,
+            id: profile.id,
+            email: parsed.email.trim().toLowerCase(),
+          };
+          await persistUser(next);
+          setUser(next);
+        } catch {
+          setUser(parsed);
+        }
       })
       .finally(() => setLoading(false));
   }, []);

@@ -266,6 +266,7 @@ export type Review = {
   image_urls?: string[];
   helpful_count?: number;
   viewer_marked_helpful?: boolean;
+  viewer_can_edit?: boolean;
   replies?: ReviewReply[];
 };
 

@@ -67,6 +67,7 @@ class ReviewRead(ReviewCreate):
     author_avatar_url: str | None = None
     helpful_count: int = 0
     viewer_marked_helpful: bool = False
+    viewer_can_edit: bool = False
     replies: list[ReviewReplyRead] = []
     model_config = ConfigDict(from_attributes=True)
 
