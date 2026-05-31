@@ -1210,7 +1210,7 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             except Exception:
                 logger.exception("Negative review notification failed review=%s", review.id)
 
-    return serialize_review(review)
+    return serialize_review(review, viewer_user_id=author_uuid)
 
 
 @router.post("/reviews/{review_id}/images", response_model=ReviewRead)
