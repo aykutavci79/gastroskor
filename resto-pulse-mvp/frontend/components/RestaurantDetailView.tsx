@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CategoryScoresPanel } from '@/components/CategoryScoresPanel';
@@ -30,6 +31,8 @@ export function RestaurantDetailView({
   initialReviews = [],
   initialError = null,
 }: Props) {
+  const { data: session } = useSession();
+  const viewerEmail = session?.user?.email ?? null;
   const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -63,7 +66,7 @@ export function RestaurantDetailView({
     try {
       const [restaurantData, reviewData] = await Promise.all([
         getRestaurant(restaurantId),
-        listRestaurantReviews(restaurantId),
+        listRestaurantReviews(restaurantId, viewerEmail),
       ]);
       setRestaurant(restaurantData);
       setReviews(reviewData);
@@ -78,17 +81,16 @@ export function RestaurantDetailView({
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, loadGallery]);
+  }, [restaurantId, loadGallery, viewerEmail]);
 
   useEffect(() => {
     if (initialRestaurant) {
       void loadGallery(initialRestaurant);
-      return;
     }
     if (!initialError) {
       void load();
     }
-  }, [initialRestaurant, initialError, load, loadGallery]);
+  }, [initialRestaurant, initialError, load, loadGallery, viewerEmail]);
 
   const categoryScores = useMemo(() => {
     if (latestAnalysis?.categories?.length) {
@@ -227,7 +229,14 @@ export function RestaurantDetailView({
 
       <section>
         <h2 className="mb-4 text-xl font-semibold text-content">Yorumlar</h2>
-        <ReviewList reviews={reviews} />
+        <ReviewList
+          reviews={reviews}
+          viewerEmail={viewerEmail}
+          onReviewChange={(updated) =>
+            setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+          }
+          onReviewDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
+        />
       </section>
     </div>
   );

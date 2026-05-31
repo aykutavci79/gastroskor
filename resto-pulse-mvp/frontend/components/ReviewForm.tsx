@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
 import { analyzeReview, createReview, getGoogleReviewLink } from '@/lib/api';
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props) {
+  const { data: session } = useSession();
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
   const [lastReviewId, setLastReviewId] = useState<string | null>(null);
@@ -35,6 +37,9 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         restaurant_id: restaurantId,
         rating,
         review_text: text.trim(),
+        author_email: session?.user?.email ?? undefined,
+        author_name: session?.user?.name ?? undefined,
+        author_avatar_url: session?.user?.image ?? undefined,
       });
       setLastReviewId(review.id);
       onReviewCreated(review);
@@ -62,6 +67,9 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
           restaurant_id: restaurantId,
           rating,
           review_text: text.trim(),
+          author_email: session?.user?.email ?? undefined,
+          author_name: session?.user?.name ?? undefined,
+          author_avatar_url: session?.user?.image ?? undefined,
         });
         reviewId = review.id;
         setLastReviewId(review.id);
@@ -126,6 +134,10 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         placeholder="Deneyimini anlat: lezzet, servis, fiyat, hijyen..."
         className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-content outline-none ring-accent/40 placeholder:text-content-muted focus:ring-2"
       />
+
+      <p className="mt-2 text-xs text-content-muted">
+        Argo/küfür içeren yorumlar yayınlanamamaktadır.
+      </p>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button

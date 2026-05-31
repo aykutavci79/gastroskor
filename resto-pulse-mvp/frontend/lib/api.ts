@@ -15,6 +15,7 @@ import type {
   RestaurantTrendingItem,
   Review,
   ReviewAnalyzeResult,
+  ReviewReply,
   UserProfile,
 } from '@/lib/types';
 
@@ -107,8 +108,11 @@ export function getRestaurant(id: string) {
   return request<Restaurant>(`/restaurants/${id}`);
 }
 
-export function listRestaurantReviews(restaurantId: string) {
-  return request<Review[]>(`/restaurants/${restaurantId}/reviews`);
+export function listRestaurantReviews(restaurantId: string, viewerEmail?: string | null) {
+  const query = viewerEmail?.trim()
+    ? `?viewer_email=${encodeURIComponent(viewerEmail.trim())}`
+    : '';
+  return request<Review[]>(`/restaurants/${restaurantId}/reviews${query}`);
 }
 
 export function createReview(payload: {
@@ -124,6 +128,65 @@ export function createReview(payload: {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function updateReview(
+  reviewId: string,
+  payload: {
+    author_email: string;
+    rating?: number;
+    review_text?: string;
+  },
+) {
+  return request<Review>(`/reviews/${encodeURIComponent(reviewId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteReview(reviewId: string, authorEmail: string) {
+  return request<void>(`/reviews/${encodeURIComponent(reviewId)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ author_email: authorEmail }),
+  });
+}
+
+export function toggleReviewHelpful(reviewId: string, authorEmail: string) {
+  return request<Review>(`/reviews/${encodeURIComponent(reviewId)}/helpful`, {
+    method: 'POST',
+    body: JSON.stringify({ author_email: authorEmail }),
+  });
+}
+
+export function createReviewReply(reviewId: string, payload: { author_email: string; reply_text: string }) {
+  return request<ReviewReply>(`/reviews/${encodeURIComponent(reviewId)}/replies`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateReviewReply(
+  reviewId: string,
+  replyId: string,
+  payload: { author_email: string; reply_text: string },
+) {
+  return request<ReviewReply>(
+    `/reviews/${encodeURIComponent(reviewId)}/replies/${encodeURIComponent(replyId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteReviewReply(reviewId: string, replyId: string, authorEmail: string) {
+  return request<void>(
+    `/reviews/${encodeURIComponent(reviewId)}/replies/${encodeURIComponent(replyId)}`,
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ author_email: authorEmail }),
+    },
+  );
 }
 
 export function syncUser(payload: {

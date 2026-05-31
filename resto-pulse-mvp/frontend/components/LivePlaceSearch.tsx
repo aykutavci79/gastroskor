@@ -3,9 +3,10 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
+import { ReviewList } from '@/components/ReviewList';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { RestaurantCard } from '@/components/RestaurantCard';
-import { createReview, getLivePlaceDetails, searchLivePlaces, syncUser } from '@/lib/api';
+import { createReview, getLivePlaceDetails, listRestaurantReviews, searchLivePlaces, syncUser } from '@/lib/api';
 import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
 import type {
@@ -14,6 +15,7 @@ import type {
   ParsedSearchIntent,
   ReviewSortOption,
   ReviewFilterOption,
+  Review,
   UserProfile,
 } from '@/lib/types';
 
@@ -33,6 +35,8 @@ export function LivePlaceSearch() {
   const [memberRating, setMemberRating] = useState(5);
   const [memberReviewText, setMemberReviewText] = useState('');
   const [memberLoading, setMemberLoading] = useState(false);
+  const [gsReviews, setGsReviews] = useState<Review[]>([]);
+  const [gsReviewsLoading, setGsReviewsLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'ready' | 'denied'>('idle');
@@ -129,6 +133,27 @@ export function LivePlaceSearch() {
       .catch(() => setProfile(null));
   }, [isAuthenticated, session]);
 
+  useEffect(() => {
+    if (activeTab !== 'member' || !details?.restaurant_id) {
+      return;
+    }
+    let cancelled = false;
+    setGsReviewsLoading(true);
+    listRestaurantReviews(details.restaurant_id, session?.user?.email ?? null)
+      .then((rows) => {
+        if (!cancelled) setGsReviews(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setGsReviews([]);
+      })
+      .finally(() => {
+        if (!cancelled) setGsReviewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, details?.restaurant_id, session?.user?.email]);
+
   function showDetails(place_id: string) {
     setActivePlaceId(place_id);
     setDetails(null);
@@ -195,11 +220,15 @@ export function LivePlaceSearch() {
       setMemberReviewText('');
       setMemberRating(5);
 
-      const refreshed = await getLivePlaceDetails(activePlaceId!, {
-        sort: reviewSort,
-        filter: reviewFilter,
-      });
+      const [refreshed, reviewRows] = await Promise.all([
+        getLivePlaceDetails(activePlaceId!, {
+          sort: reviewSort,
+          filter: reviewFilter,
+        }),
+        listRestaurantReviews(details.restaurant_id, session.user.email),
+      ]);
       setDetails(refreshed);
+      setGsReviews(reviewRows);
     } catch (err) {
       setDetailsError(err instanceof Error ? err.message : 'Uye yorumu kaydedilirken hata olustu.');
     } finally {
@@ -558,29 +587,23 @@ export function LivePlaceSearch() {
                           </div>
                         )}
                         <div className="space-y-4">
-                          {details.member_reviews.length === 0 ? (
+                          {gsReviewsLoading ? (
+                            <p className="text-sm text-content-muted">Uye yorumlari yukleniyor...</p>
+                          ) : gsReviews.length === 0 ? (
                             <p className="text-sm text-content-muted">Üye yorumu bulunmuyor.</p>
                           ) : (
-                            <div className="space-y-3">
-                              {details.member_reviews.map((review) => (
-                                <div key={review.id} className="rounded-2xl border border-border/60 bg-surface/90 p-4">
-                                  <div className="flex items-center gap-3">
-                                    {review.author_avatar_url ? (
-                                      <img src={review.author_avatar_url} alt="avatar" className="h-8 w-8 rounded-full" />
-                                    ) : (
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-input text-xs text-content">
-                                        U
-                                      </span>
-                                    )}
-                                    <div>
-                                      <p className="text-sm font-semibold text-content">{review.author_name ?? 'GastroSkor Üye'}</p>
-                                      <p className="text-xs text-content-muted">Puan: {review.rating}</p>
-                                    </div>
-                                  </div>
-                                  <p className="mt-3 text-sm leading-6 text-content-muted">{review.review_text}</p>
-                                </div>
-                              ))}
-                            </div>
+                            <ReviewList
+                              reviews={gsReviews}
+                              viewerEmail={session?.user?.email ?? null}
+                              onReviewChange={(updated) =>
+                                setGsReviews((prev) =>
+                                  prev.map((row) => (row.id === updated.id ? updated : row)),
+                                )
+                              }
+                              onReviewDelete={(reviewId) =>
+                                setGsReviews((prev) => prev.filter((row) => row.id !== reviewId))
+                              }
+                            />
                           )}
                         </div>
                         <form onSubmit={submitMemberReview} className="mt-6 space-y-4">
