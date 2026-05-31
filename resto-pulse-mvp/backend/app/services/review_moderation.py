@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.models.entities import User
 
-# Küfür, hakaret, argo ve yaygın kısaltmalar.
+# Yaygin kufur/argo parcalari (leet + bitisik yazim).
 _BLOCKED_FRAGMENTS = frozenset(
     {
         "amk",
@@ -16,26 +16,45 @@ _BLOCKED_FRAGMENTS = frozenset(
         "aminakoy",
         "aminakoyim",
         "aminakoyayim",
+        "anani",
+        "ananin",
+        "ananı",
+        "sikgibi",
         "siktir",
+        "siktirgit",
         "sikerim",
         "sikeyim",
+        "sikti",
+        "siktiriboktan",
+        "sikik",
+        "sikmis",
+        "sikiyor",
+        "sicti",
+        "sictir",
         "sktr",
         "skerim",
         "orospu",
         "orosp",
         "orsp",
+        "orosbu",
+        "orosbucocugu",
         "pic",
         "piç",
+        "pici",
         "got",
         "göt",
+        "gotten",
+        "gott",
         "gtdelig",
         "götveren",
+        "gotveren",
         "kahpe",
         "kaltak",
         "pezevenk",
         "yavşak",
         "yavsak",
         "ibne",
+        "ibnesi",
         "oç",
         "oc",
         "sg",
@@ -48,13 +67,50 @@ _BLOCKED_FRAGMENTS = frozenset(
         "yarak",
         "taşak",
         "tasak",
+        "tasaklar",
         "bok",
+        "boktan",
+        "bokgibi",
         "serefsiz",
         "şerefsiz",
+        "gavat",
+        "geber",
+        "oldur",
+        "öl",
+        "sokuk",
+        "soktugum",
+        "sokum",
+        "anneni",
+        "annene",
+        "sulaleni",
+        "koduğum",
+        "kodugum",
+        "puşt",
+        "pust",
+        "dalyarak",
+        "dallama",
+        "embesil",
+        "haysiyetsiz",
+        "şerefsiz",
+        "it",
+        "itoğlu",
+        "itoglu",
+        "kancik",
+        "kancık",
+        "fahise",
+        "fahişe",
+        "kevaşe",
+        "kevase",
+        "dangalak",
+        "hıyar",
+        "hiyar",
+        "malafat",
+        "meme",
+        "memeler",
     }
 )
 
-# Tam kelime veya kısa türev (salak -> salakça) olarak yakalanır.
+# Tek basina veya kisa turev (salak -> salakca).
 _INSULT_STEMS = (
     "salak",
     "aptal",
@@ -71,9 +127,11 @@ _INSULT_STEMS = (
     "rezil",
     "igrenc",
     "iğrenc",
+    "embesil",
+    "dallama",
 )
 
-# Yalnizca tam kelime eslesmesi (yanlis pozitif onlemek icin).
+# Tam kelime eslesmesi (yanlis pozitif onleme).
 _WHOLE_WORD_INSULTS = frozenset(
     {
         "mal",
@@ -84,7 +142,79 @@ _WHOLE_WORD_INSULTS = frozenset(
         "enayi",
         "ahmak",
         "budala",
+        "it",
     }
+)
+
+# Acik kufur tokenlari (tam kelime).
+_WHOLE_WORD_PROFANITY = frozenset(
+    {
+        "sik",
+        "sikti",
+        "siker",
+        "sikik",
+        "sikmis",
+        "siktir",
+        "sicti",
+        "sictir",
+        "amk",
+        "amq",
+        "aq",
+        "mk",
+        "mq",
+        "oc",
+        "sg",
+        "orospu",
+        "orosp",
+        "pic",
+        "got",
+        "göt",
+        "bok",
+        "yarak",
+        "yarrak",
+        "tasak",
+        "amcik",
+        "amcık",
+        "ibne",
+        "gavat",
+        "kahpe",
+        "kaltak",
+        "pezevenk",
+        "yavsak",
+        "yavşak",
+        "pust",
+        "puşt",
+        "kancik",
+        "kancık",
+        "sokuk",
+        "anneni",
+    }
+)
+
+# sik* ile baslayan masum kelimeler.
+_SIK_SAFE_TOKENS = frozenset(
+    {
+        "sikinti",
+        "sikintili",
+        "sikintisiz",
+        "sikke",
+        "siklik",
+    }
+)
+
+# Bosluklu ifadeler (normalize edilmis metinde aranir).
+_PROFANITY_PHRASES = (
+    "sik gibi",
+    "bok gibi",
+    "amk gibi",
+    "aq gibi",
+    "siktir git",
+    "siktir ol",
+    "siktir olup",
+    "anani si",
+    "ananı si",
+    "gotunu",
+    "götünü",
 )
 
 _LEET = str.maketrans(
@@ -127,6 +257,14 @@ def _token_is_insult(token: str) -> bool:
     return False
 
 
+def _token_is_profanity(token: str) -> bool:
+    if token in _WHOLE_WORD_PROFANITY:
+        return True
+    if token.startswith("sik") and token not in _SIK_SAFE_TOKENS and len(token) <= 6:
+        return True
+    return False
+
+
 def contains_prohibited_language(text: str) -> bool:
     cleaned = normalize_review_text(text)
     if not cleaned.strip():
@@ -134,22 +272,42 @@ def contains_prohibited_language(text: str) -> bool:
 
     compact = cleaned.replace(" ", "")
     tokens = cleaned.split()
+    spaced = f" {cleaned} "
+
+    for phrase in _PROFANITY_PHRASES:
+        if phrase in spaced or phrase.replace(" ", "") in compact:
+            return True
 
     for token in tokens:
         if _token_is_insult(token):
             return True
+        if _token_is_profanity(token):
+            return True
 
     for fragment in _BLOCKED_FRAGMENTS:
         folded_fragment = _fold_turkish(fragment)
-        if folded_fragment in compact:
-            return True
+        if len(folded_fragment) >= 4 or folded_fragment in {
+            "amk",
+            "amq",
+            "aq",
+            "mk",
+            "mq",
+            "sg",
+            "oc",
+            "bok",
+            "pic",
+            "got",
+            "ibne",
+        }:
+            if folded_fragment in compact:
+                return True
         if any(token == folded_fragment for token in tokens):
             return True
         if any(token.startswith(folded_fragment) and len(token) <= len(folded_fragment) + 2 for token in tokens):
             return True
 
-    # Harf aralıklı kaçınma: "a m k"
-    if len(tokens) >= 3:
+    # Harf aralikli kacinma: "a m k", "s i k"
+    if len(tokens) >= 2:
         joined = "".join(token for token in tokens if len(token) == 1)
         for fragment in _BLOCKED_FRAGMENTS:
             if _fold_turkish(fragment) in joined:
