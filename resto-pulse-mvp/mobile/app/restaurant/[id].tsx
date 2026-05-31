@@ -338,6 +338,9 @@ export default function RestaurantDetailScreen() {
             </Pressable>
           ) : (
             <>
+              <Text style={styles.communityHint}>
+                Saygin ve yapici dil kullanin. Kufur/argo yorumunuz yayinlanmaz.
+              </Text>
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput
                 value={text}
@@ -451,6 +454,7 @@ const styles = StyleSheet.create({
   travelPillText: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
   sectionTitle: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
   loginHint: { color: GastroColors.accent, fontSize: 14, fontWeight: '700' },
+  communityHint: { color: GastroColors.muted, fontSize: 11, lineHeight: 16, marginBottom: 4 },
   textArea: {
     minHeight: 88,
     borderWidth: 1,

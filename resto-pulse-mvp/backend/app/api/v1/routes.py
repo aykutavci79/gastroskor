@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
+from app.services.review_moderation import enforce_review_author_policy, review_ban_message
 from app.db.session import get_db
 from app.integrations.google_places_live import GooglePlacesLiveClient, build_place_photo_url
 from app.integrations.google_places import build_google_review_link
@@ -1041,11 +1042,13 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
 
     author_uuid = None
     author_name = payload.author_name
+    author_user: User | None = None
     if payload.author_id:
         try:
             author_uuid = UUID(payload.author_id)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
+        author_user = db.get(User, author_uuid)
     elif payload.author_email:
         author = get_or_create_user(
             db,
@@ -1055,7 +1058,16 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             google_sub=None,
         )
         author_uuid = author.id
+        author_user = author
         author_name = author_name or author.full_name
+
+    if author_user:
+        try:
+            enforce_review_author_policy(author_user, payload.review_text or "")
+        except ValueError as exc:
+            db.add(author_user)
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
     review = Review(
         restaurant_id=restaurant_id,
@@ -1107,6 +1119,10 @@ async def upload_review_image(
 
     if not review.author or review.author.email.lower() != author_email.strip().lower():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu yoruma fotograf ekleyemezsiniz.")
+
+    ban_message = review_ban_message(review.author)
+    if ban_message:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ban_message)
 
     existing = len(review.images or [])
     if existing >= MAX_REVIEW_IMAGES_PER_REVIEW:
