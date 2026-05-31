@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.models.entities import User
 
-# Küfür, argo ve yaygın kısaltmalar (küçük harf, aksan normalize).
+# Küfür, hakaret, argo ve yaygın kısaltmalar.
 _BLOCKED_FRAGMENTS = frozenset(
     {
         "amk",
@@ -54,6 +54,39 @@ _BLOCKED_FRAGMENTS = frozenset(
     }
 )
 
+# Tam kelime veya kısa türev (salak -> salakça) olarak yakalanır.
+_INSULT_STEMS = (
+    "salak",
+    "aptal",
+    "gerizekali",
+    "gerizekal",
+    "budala",
+    "enayi",
+    "ahmak",
+    "dangalak",
+    "beyinsiz",
+    "kafasiz",
+    "haysiyetsiz",
+    "adi",
+    "rezil",
+    "igrenc",
+    "iğrenc",
+)
+
+# Yalnizca tam kelime eslesmesi (yanlis pozitif onlemek icin).
+_WHOLE_WORD_INSULTS = frozenset(
+    {
+        "mal",
+        "moron",
+        "idiot",
+        "salak",
+        "aptal",
+        "enayi",
+        "ahmak",
+        "budala",
+    }
+)
+
 _LEET = str.maketrans(
     {
         "@": "a",
@@ -83,6 +116,17 @@ def normalize_review_text(value: str) -> str:
     return re.sub(r"[^a-z0-9\s]", " ", folded)
 
 
+def _token_is_insult(token: str) -> bool:
+    if token in _WHOLE_WORD_INSULTS:
+        return True
+    for stem in _INSULT_STEMS:
+        if token == stem:
+            return True
+        if token.startswith(stem) and len(token) <= len(stem) + 4:
+            return True
+    return False
+
+
 def contains_prohibited_language(text: str) -> bool:
     cleaned = normalize_review_text(text)
     if not cleaned.strip():
@@ -90,6 +134,10 @@ def contains_prohibited_language(text: str) -> bool:
 
     compact = cleaned.replace(" ", "")
     tokens = cleaned.split()
+
+    for token in tokens:
+        if _token_is_insult(token):
+            return True
 
     for fragment in _BLOCKED_FRAGMENTS:
         folded_fragment = _fold_turkish(fragment)
@@ -143,7 +191,7 @@ def register_profanity_strike(user: User, *, now: datetime | None = None) -> str
     if strikes == 1:
         return (
             "Yorumunuz yayinlanmadi. GastroSkor saygin bir topluluktur; "
-            "kufur, argo ve kisirlayici ifadeler kabul edilmez. Bu birinci uyaridir."
+            "kufur, hakaret, argo ve kisirlayici ifadeler kabul edilmez. Bu birinci uyaridir."
         )
     if strikes == 2:
         user.review_banned_until = now + timedelta(days=7)

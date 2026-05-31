@@ -12,5 +12,10 @@ def test_blocks_profanity() -> None:
     assert contains_prohibited_language("Harika bir deneyim, servis hizliydi.") is False
 
 
+def test_blocks_insult_salakca() -> None:
+    assert contains_prohibited_language("Salakça olmuş") is True
+    assert contains_prohibited_language("Servis biraz yavaştı ama yemek iyiydi.") is False
+
+
 def test_blocks_spaced_evasion() -> None:
     assert contains_prohibited_language("a m k") is True
