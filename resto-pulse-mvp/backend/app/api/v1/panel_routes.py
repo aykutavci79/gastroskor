@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.google_places_live import GooglePlacesLiveClient
-from app.models import RestaurantAnalyticsEvent, RestaurantCompetitor, RestaurantOwnership, User
+from app.models import Restaurant, RestaurantAnalyticsEvent, RestaurantCompetitor, RestaurantOwnership, Review, User
 from app.schemas.panel import (
     AdminActivateSubscriptionRequest,
     AdminGrantPanelRequest,
@@ -717,3 +717,51 @@ def admin_pending_visits(
         }
         for row in rows
     ]
+
+
+@panel_router.get("/admin/reviews/search")
+def admin_search_reviews(
+    q: str = Query(..., min_length=2, max_length=120),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    require_admin(x_panel_admin_secret)
+    needle = q.strip()
+    rows = db.scalars(
+        select(Review)
+        .where(Review.review_text.ilike(f"%{needle}%"))
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+    ).all()
+    results = []
+    for row in rows:
+        restaurant = db.get(Restaurant, row.restaurant_id)
+        author = db.get(User, row.author_id) if row.author_id else None
+        results.append(
+            {
+                "id": str(row.id),
+                "restaurant_id": str(row.restaurant_id),
+                "restaurant_name": restaurant.name if restaurant else None,
+                "review_text": row.review_text,
+                "rating": row.rating,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "author_email": author.email if author else None,
+            }
+        )
+    return results
+
+
+@panel_router.delete("/admin/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_review(
+    review_id: UUID,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    require_admin(x_panel_admin_secret)
+    review = db.get(Review, review_id)
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    db.delete(review)
+    db.commit()
+    return None
