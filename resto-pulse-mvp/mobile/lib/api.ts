@@ -126,6 +126,7 @@ export function syncUser(payload: {
   email: string;
   full_name?: string | null;
   avatar_url?: string | null;
+  google_sub?: string | null;
 }) {
   return request<UserProfile>('/users/sync', { method: 'POST', body: JSON.stringify(payload) });
 }

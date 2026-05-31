@@ -1,29 +1,37 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
+import type { GoogleIdTokenClaims } from '@/lib/google-auth';
 
 const STORAGE_KEY = 'gastroskor.session.v1';
 
 export type SessionUser = {
   email: string;
   fullName: string | null;
+  avatarUrl?: string | null;
+  googleSub?: string | null;
 };
 
 type SessionContextValue = {
   user: SessionUser | null;
   loading: boolean;
+  signInWithGoogle: (claims: GoogleIdTokenClaims) => Promise<void>;
   signInWithEmail: (email: string, fullName?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+async function persistUser(user: SessionUser) {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
         if (!raw) return;
@@ -33,14 +41,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  const signInWithGoogle = useCallback(async (claims: GoogleIdTokenClaims) => {
+    const email = claims.email?.trim().toLowerCase();
+    if (!email) {
+      throw new Error('Google hesabiniz e-posta paylasmadi. Baska bir hesap deneyin.');
+    }
+    if (claims.email_verified === false) {
+      throw new Error('Google e-postasi dogrulanmamis.');
+    }
+    await syncUser({
+      email,
+      full_name: claims.name ?? null,
+      avatar_url: claims.picture ?? null,
+      google_sub: claims.sub,
+    });
+    const next: SessionUser = {
+      email,
+      fullName: claims.name ?? null,
+      avatarUrl: claims.picture ?? null,
+      googleSub: claims.sub,
+    };
+    await persistUser(next);
+    setUser(next);
+  }, []);
+
   const signInWithEmail = useCallback(async (email: string, fullName?: string | null) => {
     const normalized = email.trim().toLowerCase();
     if (!normalized.includes('@')) {
-      throw new Error('Gecerli bir e-posta girin (web panelindeki Google hesabi).');
+      throw new Error('Gecerli bir e-posta girin.');
     }
     await syncUser({ email: normalized, full_name: fullName ?? null });
     const next: SessionUser = { email: normalized, fullName: fullName ?? null };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    await persistUser(next);
     setUser(next);
   }, []);
 
@@ -50,8 +82,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, signInWithEmail, signOut }),
-    [user, loading, signInWithEmail, signOut],
+    () => ({ user, loading, signInWithGoogle, signInWithEmail, signOut }),
+    [user, loading, signInWithGoogle, signInWithEmail, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

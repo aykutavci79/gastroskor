@@ -1,11 +1,14 @@
 import 'react-native-gesture-handler';
 
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import * as WebBrowser from 'expo-web-browser';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const theme = {
   ...DarkTheme,

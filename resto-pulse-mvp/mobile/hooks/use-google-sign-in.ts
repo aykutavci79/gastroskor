@@ -1,0 +1,126 @@
+import { useAuthRequest, ResponseType } from 'expo-auth-session';
+import { discovery } from 'expo-auth-session/providers/google';
+import * as Google from 'expo-auth-session/providers/google';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+
+import { parseGoogleIdToken } from '@/lib/google-auth';
+import { useSession } from '@/context/session-context';
+
+function readClientId(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+const webClientId = readClientId(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+const iosClientId = readClientId(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) ?? webClientId;
+const androidClientId = readClientId(process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID);
+
+/** Expo Go: exp:// redirect Google tarafindan reddedilir; auth.expo.io proxy kullanilir. */
+export const expoGoRedirectUri =
+  readClientId(process.env.EXPO_PUBLIC_EXPO_AUTH_REDIRECT) ??
+  'https://auth.expo.io/@delimanyah/gastroskor';
+
+export const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+export function isGoogleSignInConfigured(): boolean {
+  if (process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE !== '1') return true;
+  if (!webClientId) return false;
+  if (Platform.OS === 'android') return Boolean(androidClientId);
+  if (Platform.OS === 'ios') return Boolean(iosClientId);
+  return true;
+}
+
+export function getGoogleSignInSetupHint(): string | null {
+  if (process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE !== '1') {
+    return null;
+  }
+  if (Platform.OS === 'android' && !androidClientId) {
+    return 'Android build icin EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID gerekli.';
+  }
+  if (Platform.OS === 'ios' && !iosClientId) {
+    return 'iOS build icin EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID gerekli.';
+  }
+  return null;
+}
+
+export function useGoogleSignInExpoGo(onError: (message: string) => void) {
+  const { signInWithGoogle } = useSession();
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId: webClientId!,
+      redirectUri: expoGoRedirectUri,
+      scopes: ['openid', 'profile', 'email'],
+      responseType: ResponseType.IdToken,
+      usePKCE: false,
+    },
+    discovery,
+  );
+
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('[GoogleAuth] mode=expo-go redirectUri=', expoGoRedirectUri);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (response?.type !== 'success') return;
+    const idToken = response.params.id_token ?? response.authentication?.idToken ?? null;
+    if (!idToken) {
+      onError('Google oturum jetonu alinamadi. Web client redirect URI kontrol edin.');
+      return;
+    }
+    void (async () => {
+      try {
+        const claims = parseGoogleIdToken(idToken);
+        await signInWithGoogle(claims);
+      } catch (err) {
+        onError(err instanceof Error ? err.message : 'Google girisi basarisiz.');
+      }
+    })();
+  }, [response, signInWithGoogle, onError]);
+
+  return {
+    ready: Boolean(request),
+    promptAsync,
+  };
+}
+
+export function useGoogleSignInNative(onError: (message: string) => void) {
+  const { signInWithGoogle } = useSession();
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId,
+    iosClientId,
+    androidClientId,
+  });
+
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('[GoogleAuth] mode=native platform=', Platform.OS);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (response?.type !== 'success') return;
+    const idToken = response.authentication?.idToken;
+    if (!idToken) {
+      onError('Google oturum jetonu alinamadi.');
+      return;
+    }
+    void (async () => {
+      try {
+        const claims = parseGoogleIdToken(idToken);
+        await signInWithGoogle(claims);
+      } catch (err) {
+        onError(err instanceof Error ? err.message : 'Google girisi basarisiz.');
+      }
+    })();
+  }, [response, signInWithGoogle, onError]);
+
+  return {
+    ready: Boolean(request),
+    promptAsync,
+  };
+}
