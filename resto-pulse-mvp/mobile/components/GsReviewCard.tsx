@@ -27,6 +27,7 @@ import type { DisplayReview, ReviewReply } from '@/lib/types';
 type Props = {
   review: DisplayReview;
   viewerEmail: string | null;
+  viewerUserId?: string | null;
   viewerName: string | null;
   onChange: (review: DisplayReview) => void;
   onDelete: (reviewId: string) => void;
@@ -47,8 +48,15 @@ function isReplyMine(reply: ReviewReply, viewerEmail: string | null): boolean {
   return reply.author_email.toLowerCase() === viewerEmail.trim().toLowerCase();
 }
 
-export function GsReviewCard({ review, viewerEmail, viewerName, onChange, onDelete }: Props) {
-  const ownReview = isOwnReview(review, viewerEmail);
+export function GsReviewCard({
+  review,
+  viewerEmail,
+  viewerUserId = null,
+  viewerName,
+  onChange,
+  onDelete,
+}: Props) {
+  const ownReview = isOwnReview(review, viewerEmail, viewerUserId);
   const canInteract = Boolean(viewerEmail?.trim());
   const editable = ownReview && !review.source_platform;
 
