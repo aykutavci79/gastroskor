@@ -339,7 +339,7 @@ export default function RestaurantDetailScreen() {
           ) : (
             <>
               <Text style={styles.communityHint}>
-                Saygin ve yapici dil kullanin. Kufur/argo yorumunuz yayinlanmaz.
+                Argo/küfür içeren yorumlar yayınlanamamaktadır.
               </Text>
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput

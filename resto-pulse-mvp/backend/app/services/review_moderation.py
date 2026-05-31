@@ -189,10 +189,7 @@ def register_profanity_strike(user: User, *, now: datetime | None = None) -> str
     strikes = user.review_moderation_strikes
 
     if strikes == 1:
-        return (
-            "Yorumunuz yayinlanmadi. GastroSkor saygin bir topluluktur; "
-            "kufur, hakaret, argo ve kisirlayici ifadeler kabul edilmez. Bu birinci uyaridir."
-        )
+        return "Argo/küfür içeren yorumlar yayınlanamamaktadır."
     if strikes == 2:
         user.review_banned_until = now + timedelta(days=7)
         return (
