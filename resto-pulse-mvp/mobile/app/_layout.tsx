@@ -33,6 +33,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: GastroColors.bg },
           }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/google" options={{ headerShown: false }} />
           <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
         </Stack>
