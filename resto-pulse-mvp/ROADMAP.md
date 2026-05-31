@@ -19,6 +19,7 @@ Son guncelleme: 31 Mayis 2026
 |------|------------|
 | Yorum moderasyonu | Kufur/argo filtresi, 1. uyari / 2. 7 gun ban / 3. 3 ay ban |
 | Yararli + cevap | Tek tik yararli, yorum alti kullanici cevabi, duzenle/sil |
+| Kufur sozlugu | `backend/app/services/profanity_tr.py` (genisletilebilir liste) |
 
 Railway: `alembic upgrade head` calistir (0016 + 0017).
 
@@ -38,7 +39,9 @@ Railway: `alembic upgrade head` calistir (0016 + 0017).
 
 ### Faz C — Panel / isletme
 1. Mevcut panel iyilestirmeleri
-2. Yorum moderasyonu panelden gorunurluk (ileride)
+2. Yorum moderasyonu panelden gorunurluk (sikayet listesi, ihlal gecmisi)
+3. **Kufur/argo sozlugu panelden guncelleme** (`profanity_tr.py` yerine DB veya admin arayuzu)
+4. **Isletme yaniti** panel ekrani (Faz A #5 ile birlikte)
 
 ## Topluluk kurallari (moderasyon)
 
