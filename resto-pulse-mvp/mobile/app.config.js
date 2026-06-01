@@ -39,7 +39,6 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     'expo-router',
-    'expo-linear-gradient',
     [
       'expo-image-picker',
       {
