@@ -11,8 +11,6 @@ export function HomePageContent() {
   return (
     <div className="space-y-8">
       <section className="card rounded-3xl bg-gradient-to-r from-surface-card via-surface-input to-surface-card p-6 sm:p-8">
-        <p className="mb-2 text-sm font-medium uppercase tracking-wider text-brand">GastroSkor</p>
-        <p className="mb-1 text-sm font-semibold text-brand-gold">Tek Tıkla Gastro</p>
         <h1 className="mb-3 text-2xl font-bold text-content sm:text-4xl">
           Türkiye restoranlarını tek çatıda puanla
         </h1>
