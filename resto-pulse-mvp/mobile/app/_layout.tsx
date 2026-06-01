@@ -1,15 +1,21 @@
 import 'react-native-gesture-handler';
 
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
 
 WebBrowser.maybeCompleteAuthSession();
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const theme = {
   ...DarkTheme,
@@ -24,6 +30,20 @@ const theme = {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <AppErrorBoundary>
       <SessionProvider>

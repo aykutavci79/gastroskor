@@ -5,10 +5,10 @@ module.exports = function (api) {
       [
         'babel-preset-expo',
         {
-          // Hermes needs private fields/methods lowered to supported syntax.
           unstable_transformProfile: 'hermes-stable',
         },
       ],
     ],
+    plugins: ['react-native-reanimated/plugin'],
   };
 };
