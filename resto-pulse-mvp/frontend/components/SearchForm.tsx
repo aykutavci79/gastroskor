@@ -31,7 +31,7 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Restoran adi ara..."
+        placeholder="Restoran adi ara (en az 2 harf → Google)..."
         className="input-field"
       />
       <select value={city} onChange={(e) => setCity(e.target.value)} className="input-field">

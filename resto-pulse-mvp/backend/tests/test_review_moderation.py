@@ -1,6 +1,6 @@
 """Review text moderation tests."""
 
-from app.services.review_moderation import contains_prohibited_language, normalize_review_text
+from app.services.profanity_tr import contains_prohibited_language, find_prohibited_highlights, normalize_review_text
 
 
 def test_normalize_strips_leet_speak() -> None:
@@ -28,6 +28,20 @@ def test_blocks_sik_gibi() -> None:
 
 def test_allows_sikinti() -> None:
     assert contains_prohibited_language("Serviste sıkıntı vardı ama yemek iyiydi.") is False
+
+
+def test_allows_etmemek_not_meme_substring() -> None:
+    """'etmemek' icinde 'meme' parcasi kufur sayilmamali."""
+    text = "Standart kafelerin kahvesi işte çokta şe etmemek lazım"
+    assert contains_prohibited_language(text) is False
+    assert find_prohibited_highlights(text) == []
+
+
+def test_highlights_salakca() -> None:
+    text = "Salakça olmuş"
+    assert contains_prohibited_language(text) is True
+    highlights = find_prohibited_highlights(text)
+    assert any("salak" in h.lower() for h in highlights)
 
 
 def test_blocks_spaced_evasion() -> None:

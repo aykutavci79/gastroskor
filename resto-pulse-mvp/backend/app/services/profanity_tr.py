@@ -106,8 +106,6 @@ BLOCKED_FRAGMENTS = frozenset(
         "hıyar",
         "hiyar",
         "malafat",
-        "meme",
-        "memeler",
     }
 )
 
@@ -281,6 +279,59 @@ def token_is_profanity(token: str) -> bool:
     if token.startswith("sik") and token not in SIK_SAFE_TOKENS and len(token) <= 6:
         return True
     return False
+
+
+def _token_matches_blocked_fragment(token: str) -> bool:
+    for fragment in BLOCKED_FRAGMENTS:
+        folded_fragment = fold_turkish(fragment)
+        if token == folded_fragment:
+            return True
+        if token.startswith(folded_fragment) and len(token) <= len(folded_fragment) + 2:
+            return True
+    return False
+
+
+def _token_is_flagged(token: str) -> bool:
+    if token_is_insult(token) or token_is_profanity(token):
+        return True
+    return _token_matches_blocked_fragment(token)
+
+
+def find_prohibited_highlights(text: str) -> list[str]:
+    """Orijinal metinde vurgulanacak parcalar (ban yok, kullaniciya gosterim)."""
+    if not text.strip():
+        return []
+
+    highlights: list[str] = []
+    seen: set[str] = set()
+
+    def add(snippet: str) -> None:
+        snippet = snippet.strip()
+        if not snippet:
+            return
+        key = fold_turkish(snippet)
+        if key in seen:
+            return
+        seen.add(key)
+        highlights.append(snippet)
+
+    for match in re.finditer(r"\S+", text):
+        word = match.group()
+        norm = normalize_review_text(word)
+        for token in norm.split():
+            if _token_is_flagged(token):
+                add(word)
+                break
+
+    for phrase in PROFANITY_PHRASES:
+        parts = phrase.split()
+        if len(parts) < 2:
+            continue
+        pattern = r"(?i)" + r"\s+".join(re.escape(part) for part in parts)
+        for m in re.finditer(pattern, text):
+            add(m.group())
+
+    return highlights
 
 
 def contains_prohibited_language(text: str) -> bool:

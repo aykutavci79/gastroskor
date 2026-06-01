@@ -20,6 +20,9 @@ import type {
 } from '@/lib/types';
 
 import { getApiBase, getApiV1Base } from '@/lib/api-base';
+import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
+
+export { ReviewModerationApiError };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const hasBody = init?.body != null;
@@ -36,14 +39,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const text = await response.text();
     let message = text || `API error ${response.status}`;
     try {
-      const parsed = JSON.parse(text) as { detail?: string | Array<{ msg?: string }> };
+      const parsed = JSON.parse(text) as {
+        detail?: string | Array<{ msg?: string }> | Record<string, unknown>;
+      };
       if (typeof parsed.detail === 'string') {
         message = parsed.detail;
       } else if (Array.isArray(parsed.detail) && parsed.detail.length > 0) {
         message = parsed.detail.map((row) => row.msg).filter(Boolean).join(' · ') || message;
+      } else if (parsed.detail && typeof parsed.detail === 'object' && !Array.isArray(parsed.detail)) {
+        const modErr = parseModerationDetail(parsed.detail);
+        if (modErr) throw modErr;
       }
-    } catch {
-      // plain text / HTML error body
+    } catch (err) {
+      if (err instanceof ReviewModerationApiError) throw err;
     }
     throw new Error(message);
   }
@@ -128,6 +136,16 @@ export function createReview(payload: {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function moderateReviewText(review_text: string) {
+  return request<{ allowed: boolean; message?: string | null; highlights: string[] }>(
+    '/reviews/moderate-text',
+    {
+      method: 'POST',
+      body: JSON.stringify({ review_text }),
+    },
+  );
 }
 
 export function updateReview(

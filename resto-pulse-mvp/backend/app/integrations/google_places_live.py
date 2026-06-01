@@ -150,40 +150,15 @@ class GooglePlacesLiveClient:
         if not settings.google_places_api_key:
             raise ValueError("GOOGLE_PLACES_API_KEY is not configured.")
 
-        fetch_limit = min(20, max(limit, 15))
-        merged: list[LivePlaceResult] = []
-        seen_ids: set[str] = set()
+        fetch_limit = min(20, max(limit, 8))
 
-        def add_rows(rows: list[LivePlaceResult]) -> None:
-            for row in rows:
-                if row.place_id in seen_ids:
-                    continue
-                seen_ids.add(row.place_id)
-                merged.append(row)
-
+        # Maliyet: tek Google istegi. Konum varsa Nearby; yoksa Text Search.
         if origin_lat is not None and origin_lng is not None:
-            nearby_rows = await self._nearby_search(
-                query,
-                lat=origin_lat,
-                lng=origin_lng,
-                limit=fetch_limit,
-            )
-            add_rows(nearby_rows)
+            return (await self._nearby_search(query, lat=origin_lat, lng=origin_lng, limit=fetch_limit))[
+                :fetch_limit
+            ]
 
-            if len(merged) < fetch_limit:
-                text_rows = await self._text_search(
-                    query,
-                    city=city,
-                    limit=fetch_limit,
-                    bias_lat=origin_lat,
-                    bias_lng=origin_lng,
-                    bias_radius_m=5_000,
-                )
-                add_rows(text_rows)
-        else:
-            add_rows(await self._text_search(query, city=city, limit=fetch_limit))
-
-        return merged[:fetch_limit]
+        return (await self._text_search(query, city=city, limit=fetch_limit))[:fetch_limit]
 
     async def get_place_details(self, place_id: str) -> dict:
         if not settings.google_places_api_key:

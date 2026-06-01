@@ -1,11 +1,13 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { analyzeReview, createReview, getGoogleReviewLink } from '@/lib/api';
+import { analyzeReview, createReview, getGoogleReviewLink, moderateReviewText } from '@/lib/api';
+import { ReviewModerationApiError } from '@/lib/api';
 import type { Review, ReviewAnalyzeResult } from '@/lib/types';
 
+import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
 import { StarRating } from '@/components/StarRating';
 
 type Props = {
@@ -22,10 +24,46 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
   const [loading, setLoading] = useState<'submit' | 'analyze' | 'google' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [highlights, setHighlights] = useState<string[]>([]);
+
+  useEffect(() => {
+    const trimmed = text.trim();
+    if (trimmed.length < 5) {
+      setHighlights([]);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void moderateReviewText(trimmed)
+        .then((result) => {
+          if (!result.allowed) {
+            setHighlights(result.highlights ?? []);
+          } else {
+            setHighlights([]);
+          }
+        })
+        .catch(() => {
+          /* sunucu kapaliysa sessiz gec */
+        });
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [text]);
+
+  function applyModerationError(err: unknown) {
+    if (err instanceof ReviewModerationApiError) {
+      setError(err.message);
+      setHighlights(err.highlights);
+      return;
+    }
+    setError(err instanceof Error ? err.message : 'Yorum kaydedilemedi.');
+    setHighlights([]);
+  }
 
   async function handleSubmit() {
     setError(null);
     setMessage(null);
+    setHighlights([]);
     if (text.trim().length < 5) {
       setError('Yorum en az 5 karakter olmali.');
       return;
@@ -44,8 +82,9 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
       setLastReviewId(review.id);
       onReviewCreated(review);
       setMessage('Yorum kaydedildi. Simdi AI analizi yapabilirsin.');
+      setHighlights([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Yorum kaydedilemedi.');
+      applyModerationError(err);
     } finally {
       setLoading(null);
     }
@@ -74,8 +113,9 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         reviewId = review.id;
         setLastReviewId(review.id);
         onReviewCreated(review);
+        setHighlights([]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Yorum kaydedilemedi.');
+        applyModerationError(err);
         setLoading(null);
         return;
       }
@@ -129,14 +169,29 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
 
       <textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (highlights.length) setHighlights([]);
+          if (error) setError(null);
+        }}
         rows={5}
         placeholder="Deneyimini anlat: lezzet, servis, fiyat, hijyen..."
-        className="w-full resize-y rounded-xl border border-border bg-surface-input px-4 py-3 text-content outline-none ring-accent/40 placeholder:text-content-muted focus:ring-2"
+        className={`w-full resize-y rounded-xl border bg-surface-input px-4 py-3 text-content outline-none ring-accent/40 placeholder:text-content-muted focus:ring-2 ${
+          highlights.length ? 'border-bad/60' : 'border-border'
+        }`}
       />
 
+      {highlights.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-bad/40 bg-bad/10 px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-bad">
+            Isaretli ifadeler yayinlanamaz — duzeltip tekrar deneyin.
+          </p>
+          <ReviewTextHighlight text={text} highlights={highlights} />
+        </div>
+      ) : null}
+
       <p className="mt-2 text-xs text-content-muted">
-        Argo/küfür içeren yorumlar yayınlanamamaktadır.
+        Argo/küfür içeren yorumlar yayınlanmaz; ban uygulanmaz, metin düzeltilir.
       </p>
 
       <div className="mt-5 flex flex-wrap gap-3">

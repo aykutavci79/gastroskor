@@ -8,7 +8,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-from app.services.review_moderation import enforce_review_author_policy, review_ban_message
+from app.services.review_moderation import (
+    ReviewModerationError,
+    check_review_text,
+    enforce_review_author_policy,
+)
 from app.db.session import get_db
 from app.integrations.google_places_live import GooglePlacesLiveClient, build_place_photo_url
 from app.integrations.google_places import build_google_review_link
@@ -87,11 +91,14 @@ from app.schemas.review import (
     ReviewReplyCreate,
     ReviewReplyRead,
     ReviewReplyUpdate,
+    ReviewTextModerateRequest,
+    ReviewTextModerateResponse,
     ReviewUpdate,
 )
 from app.schemas.user import UserProfile, UserSyncPayload
 from app.services.ai_analysis import AIAnalysisService
-from app.services.gastro_score_ranking import rank_live_places
+from app.services.gastro_score_ranking import haversine_meters
+from app.services.live_place_search_service import search_live_places_optimized
 from app.services.private_feedback_service import (
     create_feedback_message,
     create_private_feedback,
@@ -109,6 +116,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 ai_service = AIAnalysisService()
 google_places_live_client = GooglePlacesLiveClient()
+
+
+def _raise_review_moderation_error(exc: ReviewModerationError) -> None:
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail={
+            "code": "profanity",
+            "message": exc.message,
+            "highlights": exc.highlights,
+        },
+    ) from exc
 
 
 def parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
@@ -488,24 +506,20 @@ async def search_live_places(
         )
 
     parsed = parse_search_query(q)
-    search_text = parsed.query if len(parsed.query) >= 2 else q
     criteria = merge_criteria(parsed, distance_band=distance_band, rating_band=rating_band)
 
     try:
-        google_fetch_limit = min(20, max(limit * 2, 16))
-        rows = await google_places_live_client.search_places(
-            search_text,
+        return await search_live_places_optimized(
+            db,
+            q=q,
             city=city,
-            limit=google_fetch_limit,
+            limit=limit,
             origin_lat=origin_lat,
             origin_lng=origin_lng,
-        )
-        ranked_rows = rank_live_places(
-            rows,
-            city=city,
-            origin_lat=origin_lat,
-            origin_lng=origin_lng,
-            limit=google_fetch_limit,
+            criteria=criteria,
+            parsed=parsed,
+            distance_band=distance_band,
+            rating_band=rating_band,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
@@ -516,91 +530,6 @@ async def search_live_places(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Google Places baglantisi basarisiz: {exc}",
         ) from exc
-
-    items = [
-        LivePlaceSearchItem(
-            place_id=ranked.place.place_id,
-            name=ranked.place.name,
-            address=ranked.place.formatted_address,
-            rating=ranked.place.rating,
-            user_ratings_total=ranked.place.user_ratings_total,
-            latitude=ranked.place.latitude,
-            longitude=ranked.place.longitude,
-            distance_meters=round(ranked.distance_meters, 1) if ranked.distance_meters is not None else None,
-            distance_origin=ranked.distance_origin,
-            distance_score=ranked.distance_score,
-            rating_score=ranked.rating_score,
-            gastro_score=ranked.gastro_score,
-            maps_directions_url=build_google_maps_directions_url(
-                place_id=ranked.place.place_id,
-                latitude=ranked.place.latitude,
-                longitude=ranked.place.longitude,
-                query=build_destination_label(
-                    name=ranked.place.name,
-                    address=ranked.place.formatted_address,
-                    city=city,
-                )
-                or ranked.place.name,
-            ),
-            google_photo_url=(
-                build_place_photo_url(ranked.place.photo_reference)
-                if ranked.place.photo_reference
-                else None
-            ),
-        )
-        for ranked in ranked_rows
-    ]
-
-    filtered_items = apply_smart_filters(items, criteria)[:limit]
-
-    place_ids = [item.place_id for item in filtered_items]
-    partner_by_place = partner_listings_by_google_place_ids(db, place_ids)
-    member_ratings: dict[str, float | None] = {}
-    restaurant_ids = [
-        partner_by_place[pid]["restaurant_id"]
-        for pid in place_ids
-        if pid in partner_by_place and partner_by_place[pid].get("restaurant_id")
-    ]
-    if restaurant_ids:
-        for rid in restaurant_ids:
-            try:
-                rid_uuid = UUID(rid)
-            except ValueError:
-                continue
-            avg = db.scalar(
-                select(func.avg(Review.rating)).where(Review.restaurant_id == rid_uuid)
-            )
-            if avg is not None:
-                member_ratings[rid] = round(float(avg), 1)
-
-    enriched: list[LivePlaceSearchItem] = []
-    for item in filtered_items:
-        row = item.model_dump()
-        partner = partner_by_place.get(item.place_id)
-        merge_partner_into_row(row, partner)
-        rid = row.get("restaurant_id")
-        if rid and rid in member_ratings:
-            row["member_avg_rating"] = member_ratings[rid]
-        enriched.append(LivePlaceSearchItem(**row))
-
-    return LivePlaceSearchResponse(
-        items=enriched,
-        parsed=ParsedSearchIntent(
-            raw_query=q,
-            query=parsed.query,
-            min_rating=parsed.min_rating,
-            max_distance_m=parsed.max_distance_m,
-            min_distance_m=parsed.min_distance_m,
-            removed_tokens=parsed.removed_tokens,
-        ),
-        filters_applied={
-            "distance_band": distance_band,
-            "rating_band": rating_band,
-            "min_rating": parsed.min_rating,
-            "max_distance_m": parsed.max_distance_m,
-            "min_distance_m": parsed.min_distance_m,
-        },
-    )
 
 
 @router.get("/live/places/details/{place_id}", response_model=LivePlaceDetails)
@@ -853,6 +782,20 @@ def list_restaurants(
         stmt = stmt.where(Restaurant.name.ilike(f"%{q}%"))
     if city:
         stmt = stmt.where(Restaurant.city.ilike(f"%{city}%"))
+    # Arama yokken: canli aramayla otomatik eklenen "hayalet" kayitlari listeleme.
+    # Sadece uye isletme veya en az bir GS yorumu olan mekanlar (seed dahil).
+    if not q:
+        has_ownership = (
+            select(RestaurantOwnership.id)
+            .where(RestaurantOwnership.restaurant_id == Restaurant.id)
+            .exists()
+        )
+        has_gs_review = (
+            select(Review.id)
+            .where(Review.restaurant_id == Restaurant.id, Review.source_platform.is_(None))
+            .exists()
+        )
+        stmt = stmt.where(has_ownership | has_gs_review)
     rows = db.scalars(stmt.order_by(Restaurant.name.asc()).limit(limit)).all()
     restaurant_ids = [r.id for r in rows]
     partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
@@ -1134,6 +1077,18 @@ def issue_compensation_coupon_endpoint(
     )
 
 
+@router.post("/reviews/moderate-text", response_model=ReviewTextModerateResponse)
+def moderate_review_text(payload: ReviewTextModerateRequest) -> ReviewTextModerateResponse:
+    violation = check_review_text(payload.review_text or "")
+    if violation:
+        return ReviewTextModerateResponse(
+            allowed=False,
+            message=violation.message,
+            highlights=violation.highlights,
+        )
+    return ReviewTextModerateResponse(allowed=True)
+
+
 @router.post("/reviews", response_model=ReviewRead, status_code=status.HTTP_201_CREATED)
 async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     try:
@@ -1169,10 +1124,8 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     if author_user:
         try:
             enforce_review_author_policy(author_user, payload.review_text or "")
-        except ValueError as exc:
-            db.add(author_user)
-            db.commit()
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        except ReviewModerationError as exc:
+            _raise_review_moderation_error(exc)
 
     if not author_uuid:
         raise HTTPException(
@@ -1231,10 +1184,6 @@ async def upload_review_image(
     if not review.author or review.author.email.lower() != author_email.strip().lower():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu yoruma fotograf ekleyemezsiniz.")
 
-    ban_message = review_ban_message(review.author)
-    if ban_message:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ban_message)
-
     existing = len(review.images or [])
     if existing >= MAX_REVIEW_IMAGES_PER_REVIEW:
         raise HTTPException(
@@ -1262,10 +1211,6 @@ def update_review(review_id: UUID, payload: ReviewUpdate, db: Session = Depends(
     assert_review_owner(user, review)
     assert_gs_review_editable(review)
 
-    ban_message = review_ban_message(user)
-    if ban_message:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ban_message)
-
     next_rating = payload.rating if payload.rating is not None else review.rating
     next_text = review.review_text if payload.review_text is None else payload.review_text.strip()
 
@@ -1277,10 +1222,8 @@ def update_review(review_id: UUID, payload: ReviewUpdate, db: Session = Depends(
 
     try:
         enforce_review_author_policy(user, next_text)
-    except ValueError as exc:
-        db.add(user)
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ReviewModerationError as exc:
+        _raise_review_moderation_error(exc)
 
     review.rating = next_rating
     review.review_text = next_text
@@ -1335,10 +1278,8 @@ def create_review_reply(review_id: UUID, payload: ReviewReplyCreate, db: Session
 
     try:
         enforce_review_author_policy(user, payload.reply_text)
-    except ValueError as exc:
-        db.add(user)
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ReviewModerationError as exc:
+        _raise_review_moderation_error(exc)
 
     reply = ReviewReply(
         review_id=review.id,
@@ -1374,10 +1315,8 @@ def update_review_reply(
 
     try:
         enforce_review_author_policy(user, payload.reply_text)
-    except ValueError as exc:
-        db.add(user)
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ReviewModerationError as exc:
+        _raise_review_moderation_error(exc)
 
     reply.reply_text = payload.reply_text.strip()
     db.add(reply)

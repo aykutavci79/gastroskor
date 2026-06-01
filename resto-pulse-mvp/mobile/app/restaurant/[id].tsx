@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
+import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
 import { StarRatingPicker } from '@/components/StarRatingPicker';
 import { GastroColors } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
@@ -24,8 +25,10 @@ import {
   getLivePlaceDetails,
   getRestaurant,
   listRestaurantReviews,
+  moderateReviewText,
   uploadReviewImage,
 } from '@/lib/api';
+import { ReviewModerationApiError } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { averageGsRating, renderStarRow } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
@@ -52,6 +55,23 @@ export default function RestaurantDetailScreen() {
   const [photos, setPhotos] = useState<ReviewPhotoAsset[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [moderationHighlights, setModerationHighlights] = useState<string[]>([]);
+
+  useEffect(() => {
+    const trimmed = text.trim();
+    if (trimmed.length < 5) {
+      setModerationHighlights([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void moderateReviewText(trimmed)
+        .then((result) => {
+          setModerationHighlights(result.allowed ? [] : result.highlights ?? []);
+        })
+        .catch(() => undefined);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [text]);
 
   useEffect(() => {
     if (!id) {
@@ -214,6 +234,7 @@ export default function RestaurantDetailScreen() {
 
     setSubmitting(true);
     setSubmitError(null);
+    setModerationHighlights([]);
     try {
       let saved = await createReview({
         restaurant_id: restaurant.id,
@@ -240,8 +261,15 @@ export default function RestaurantDetailScreen() {
       setText('');
       setPhotos([]);
       setRating(0);
+      setModerationHighlights([]);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Yorum gönderilemedi');
+      if (err instanceof ReviewModerationApiError) {
+        setSubmitError(err.message);
+        setModerationHighlights(err.highlights);
+      } else {
+        setSubmitError(err instanceof Error ? err.message : 'Yorum gönderilemedi');
+        setModerationHighlights([]);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -340,19 +368,34 @@ export default function RestaurantDetailScreen() {
           ) : (
             <>
               <Text style={styles.communityHint}>
-                Argo/küfür içeren yorumlar yayınlanamamaktadır.
+                Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
               </Text>
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput
                 value={text}
-                onChangeText={setText}
+                onChangeText={(value) => {
+                  setText(value);
+                  if (moderationHighlights.length) setModerationHighlights([]);
+                  if (submitError) setSubmitError(null);
+                }}
                 placeholder="Bu restoran hakkında ne düşünüyorsun?"
                 placeholderTextColor={GastroColors.placeholder}
-                style={styles.textArea}
+                style={[
+                  styles.textArea,
+                  moderationHighlights.length > 0 && styles.textAreaFlagged,
+                ]}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
               />
+              {moderationHighlights.length > 0 ? (
+                <View style={styles.moderationBox}>
+                  <Text style={styles.moderationTitle}>
+                    İşaretli ifadeler yayınlanamaz — düzeltip tekrar dene.
+                  </Text>
+                  <ReviewTextHighlight text={text} highlights={moderationHighlights} />
+                </View>
+              ) : null}
               <ReviewPhotoPicker photos={photos} onChange={setPhotos} />
               <Pressable
                 style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -458,6 +501,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
+  },
+  textAreaFlagged: {
+    borderColor: 'rgba(248, 113, 113, 0.65)',
+  },
+  moderationBox: {
+    marginTop: 8,
+    gap: 6,
+  },
+  moderationTitle: {
+    color: '#f87171',
+    fontSize: 12,
+    fontWeight: '600',
   },
   submitBtn: {
     backgroundColor: GastroColors.accent,

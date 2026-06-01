@@ -1,11 +1,12 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
 import { ReviewList } from '@/components/ReviewList';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { RestaurantCard } from '@/components/RestaurantCard';
+import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { createReview, getLivePlaceDetails, listRestaurantReviews, searchLivePlaces, syncUser } from '@/lib/api';
 import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
@@ -19,9 +20,21 @@ import type {
   UserProfile,
 } from '@/lib/types';
 
-export function LivePlaceSearch() {
+type Props = {
+  city?: string;
+  cityStatus?: CityDetectStatus;
+  userCoords?: { lat: number; lng: number } | null;
+  /** Ana sayfada hero altinda — giris butonlari ust barda */
+  embedded?: boolean;
+};
+
+export function LivePlaceSearch({
+  city = 'Bursa',
+  cityStatus = 'denied',
+  userCoords: sharedCoords = null,
+  embedded = false,
+}: Props) {
   const [q, setQ] = useState('');
-  const [city] = useState('Bursa');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<LivePlaceSearchItem[]>([]);
@@ -38,8 +51,10 @@ export function LivePlaceSearch() {
   const [gsReviews, setGsReviews] = useState<Review[]>([]);
   const [gsReviewsLoading, setGsReviewsLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'ready' | 'denied'>('idle');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(sharedCoords);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'ready' | 'denied'>(
+    cityStatus === 'loading' ? 'loading' : sharedCoords ? 'ready' : cityStatus === 'denied' ? 'denied' : 'idle',
+  );
   const [lastDistanceOrigin, setLastDistanceOrigin] = useState<'user' | 'city_center' | null>(null);
   const [distanceBand, setDistanceBand] = useState<DistanceBand>('');
   const [ratingBand, setRatingBand] = useState<RatingBand>('');
@@ -48,7 +63,19 @@ export function LivePlaceSearch() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
 
+  useEffect(() => {
+    setUserCoords(sharedCoords);
+    if (cityStatus === 'loading') setLocationStatus('loading');
+    else if (sharedCoords) setLocationStatus('ready');
+    else if (cityStatus === 'denied') setLocationStatus('denied');
+  }, [sharedCoords, cityStatus]);
+
   function requestUserCoords(): Promise<{ lat: number; lng: number } | null> {
+    if (sharedCoords) {
+      setUserCoords(sharedCoords);
+      setLocationStatus('ready');
+      return Promise.resolve(sharedCoords);
+    }
     if (!navigator.geolocation) {
       setLocationStatus('denied');
       return Promise.resolve(null);
@@ -199,7 +226,7 @@ export function LivePlaceSearch() {
     }
 
     if (!session?.user?.email) {
-      setDetailsError('Uye olmadan yorum ekleyemezsiniz. Lutfen Google ile giris yapin.');
+      setDetailsError('Yorum için sağ üstten Kullanıcı girişi (Google) yapın.');
       return;
     }
 
@@ -244,55 +271,42 @@ export function LivePlaceSearch() {
   }
 
   return (
-    <section id="canli-ara" className="space-y-3 rounded-2xl border border-border bg-surface-card p-4 shadow-card">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section
+      id="canli-ara"
+      className={`space-y-3 rounded-2xl border border-border bg-surface-card p-4 shadow-card ${embedded ? '' : ''}`}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-brand">GastroSkor Onerisi</h2>
+          <h2 className="text-lg font-semibold text-content">
+            {embedded ? 'Mekan ara' : 'Canlı arama'}
+          </h2>
           <p className="text-xs text-content-muted">
-            Canli Google Places + akilli filtre. Ornek: &quot;Donerci 4.5 yildiz 200 mt&quot;
-            {locationStatus === 'loading' ? ' Konum aliniyor...' : null}
-            {locationStatus === 'denied'
-              ? ' Konum izni yok: mesafe Bursa merkezine gore hesaplanir.'
+            {embedded
+              ? `Google Haritalar · ${city} bolgesi`
+              : 'Canli Google Places + akilli filtre'}
+            {locationStatus === 'loading' ? ' · Konum aliniyor…' : null}
+            {locationStatus === 'denied' && !embedded
+              ? ' Konum izni yok: mesafe sehir merkezine gore.'
               : null}
-            {lastDistanceOrigin === 'user' ? ' Son arama: konumunuza gore.' : null}
-            {lastDistanceOrigin === 'city_center' ? ' Son arama: Bursa merkezine gore.' : null}
+            {lastDistanceOrigin === 'user' ? ' · Konumunuza gore mesafe.' : null}
+            {lastDistanceOrigin === 'city_center' ? ` · ${city} merkezine gore.` : null}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        {!embedded ? (
           <span className="rounded-full border border-border px-2 py-0.5 text-xs text-content-muted">
             {city}
           </span>
-          {isAuthenticated ? (
-            <button type="button" onClick={() => signOut()} className="btn-secondary btn-sm">
-              Cikis
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await signOut({ redirect: false });
-                } catch {
-                  /* ignore */
-                }
-                await signIn('google', { callbackUrl: '/' }, { prompt: 'consent' });
-              }}
-              className="btn-primary btn-sm">
-              Google ile Giris
-            </button>
-          )}
-        </div>
+        ) : null}
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Ornek: Donerci 4.5 yildiz 200 mt"
+          placeholder="Ornek: Durak muhallebicisi, donerci 4.5 yildiz..."
           className="input-field flex-1"
         />
         <button type="submit" disabled={loading} className="btn-primary shrink-0">
-          {loading ? 'Araniyor...' : 'Canli Ara'}
+          {loading ? 'Araniyor...' : 'Ara'}
         </button>
       </form>
 

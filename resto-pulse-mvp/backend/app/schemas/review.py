@@ -78,3 +78,13 @@ class ReviewAnalyzeResponse(BaseModel):
     sentiment_score: float
     summary: str
     categories: list[dict]
+
+
+class ReviewTextModerateRequest(BaseModel):
+    review_text: str = Field(default="", max_length=5000)
+
+
+class ReviewTextModerateResponse(BaseModel):
+    allowed: bool
+    message: str | None = None
+    highlights: list[str] = Field(default_factory=list)
