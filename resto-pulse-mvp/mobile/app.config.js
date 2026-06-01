@@ -8,7 +8,7 @@ module.exports = ({ config }) => ({
   icon: './assets/icon.png',
   scheme: 'gastroskor',
   userInterfaceStyle: 'dark',
-  newArchEnabled: true,
+  newArchEnabled: false,
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
@@ -39,6 +39,7 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     'expo-router',
+    'expo-linear-gradient',
     [
       'expo-image-picker',
       {
