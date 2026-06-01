@@ -10,6 +10,8 @@ module.exports = ({ config }) => ({
   userInterfaceStyle: 'dark',
   newArchEnabled: false,
   splash: {
+    image: './assets/icon.png',
+    resizeMode: 'contain',
     backgroundColor: '#141414',
   },
   ios: {
@@ -36,6 +38,14 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: '#141414',
+        image: './assets/icon.png',
+        imageWidth: 160,
+      },
+    ],
     [
       'expo-image-picker',
       {
