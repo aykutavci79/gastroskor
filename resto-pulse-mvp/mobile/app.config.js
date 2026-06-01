@@ -10,8 +10,6 @@ module.exports = ({ config }) => ({
   userInterfaceStyle: 'dark',
   newArchEnabled: false,
   splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
     backgroundColor: '#141414',
   },
   ios: {
@@ -28,7 +26,6 @@ module.exports = ({ config }) => ({
     adaptiveIcon: {
       backgroundColor: '#141414',
       foregroundImage: './assets/android-icon-foreground.png',
-      backgroundImage: './assets/android-icon-background.png',
     },
     package: 'com.gastroskor.app',
   },

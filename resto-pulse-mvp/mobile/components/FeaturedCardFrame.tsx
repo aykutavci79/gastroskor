@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
@@ -11,6 +10,7 @@ type Props = {
   style?: ViewStyle;
 };
 
+/** Gradient yerine duz border — release build native cokme riskini azaltir */
 export function FeaturedCardFrame({ children, featured = false, badge, style }: Props) {
   if (!featured) {
     return (
@@ -22,24 +22,16 @@ export function FeaturedCardFrame({ children, featured = false, badge, style }: 
 
   return (
     <View style={[styles.cardOuter, GastroShadow.featured, style]}>
-      <LinearGradient
-        colors={[GastroColors.accent, GastroColors.gold]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBorder}>
+      <View style={styles.gradientBorder}>
         <View style={styles.cardShell}>{children}</View>
-      </LinearGradient>
+      </View>
       {badge ? (
         <View style={styles.badgeWrap} pointerEvents="none">
-          <LinearGradient
-            colors={[GastroColors.accent, GastroColors.gold]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.badge}>
+          <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
               {badge}
             </Text>
-          </LinearGradient>
+          </View>
         </View>
       ) : null}
     </View>
@@ -54,6 +46,9 @@ const styles = StyleSheet.create({
   gradientBorder: {
     borderRadius: 16,
     padding: 2,
+    borderWidth: 2,
+    borderColor: GastroColors.accent,
+    backgroundColor: GastroColors.gold,
   },
   cardShell: {
     backgroundColor: GastroColors.panel,
@@ -85,6 +80,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    backgroundColor: GastroColors.accent,
+    borderWidth: 1,
+    borderColor: GastroColors.gold,
   },
   badgeText: {
     color: GastroColors.text,

@@ -36,7 +36,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.getItem(STORAGE_KEY)
       .then(async (raw) => {
         if (!raw) return;
-        const parsed = JSON.parse(raw) as SessionUser;
+        let parsed: SessionUser;
+        try {
+          parsed = JSON.parse(raw) as SessionUser;
+        } catch {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          return;
+        }
         if (!parsed?.email) return;
         try {
           const profile = await syncUser({
@@ -55,6 +61,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } catch {
           setUser(parsed);
         }
+      })
+      .catch(() => {
+        /* AsyncStorage veya ag hatasi — uygulama acilsin */
       })
       .finally(() => setLoading(false));
   }, []);
