@@ -61,7 +61,8 @@ module.exports = ({ config }) => ({
     termsUrl: 'https://www.gastroskor.com.tr/kullanim-kosullari',
     kvkkUrl: 'https://www.gastroskor.com.tr/kvkk',
     eas: {
-      projectId: process.env.EAS_PROJECT_ID ?? undefined,
+      projectId:
+        process.env.EAS_PROJECT_ID ?? '3009c65b-6419-4567-a859-363698cf6880',
     },
   },
 });
