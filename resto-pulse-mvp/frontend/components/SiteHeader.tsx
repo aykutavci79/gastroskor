@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
@@ -14,14 +15,20 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="group flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-gold via-brand to-brand-hover text-sm font-black text-content shadow-card"
-            aria-hidden>
-            GS
-          </span>
-          <span className="text-lg font-bold tracking-tight text-content">
-            Gastro<span className="text-brand">Skor</span>
-          </span>
+          <Image
+            src="/logo.png"
+            alt="GastroSkor"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-xl object-contain"
+            priority
+          />
+          <div className="leading-tight">
+            <span className="block text-lg font-bold tracking-tight text-content">
+              Gastro<span className="text-brand">Skor</span>
+            </span>
+            <span className="hidden text-[11px] font-medium text-brand sm:block">Tek Tıkla Gastro</span>
+          </div>
         </Link>
 
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">

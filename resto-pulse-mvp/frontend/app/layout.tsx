@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 export const metadata: Metadata = {
   title: 'GastroSkor',
   description: 'Restoran yorumlari, AI analiz ve Google yorum koprusu',
+  icons: { icon: '/logo.png', apple: '/logo.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
