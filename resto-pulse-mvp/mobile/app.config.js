@@ -8,7 +8,7 @@ module.exports = ({ config }) => ({
   icon: './assets/icon.png',
   scheme: 'gastroskor',
   userInterfaceStyle: 'dark',
-  newArchEnabled: false,
+  newArchEnabled: true,
   splash: {
     image: './assets/icon.png',
     resizeMode: 'contain',
