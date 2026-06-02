@@ -14,7 +14,11 @@ class ParsedSearchQuery:
 
 
 _RATING_RE = re.compile(
-    r"(?P<value>\d(?:[.,]\d)?)\s*(?:yildiz|yıldız|star|puan)",
+    r"(?P<value>[0-5](?:[.,]\d)?)\s*(?:\+|yildiz|yıldız|star|puan|ve\s+uzeri|ve\s+üzeri|ustu|üstü)\b",
+    re.IGNORECASE,
+)
+_RATING_SYMBOL_RE = re.compile(
+    r"(?P<value>[0-5](?:[.,]\d)?)\s*(?:★|⭐)",
     re.IGNORECASE,
 )
 _MAX_DISTANCE_RE = re.compile(
@@ -34,9 +38,12 @@ def parse_search_query(raw: str) -> ParsedSearchQuery:
     max_distance_m: float | None = None
     min_distance_m: float | None = None
 
-    for match in _RATING_RE.finditer(text):
-        min_rating = float(match.group("value").replace(",", "."))
-        removed.append(match.group(0))
+    for pattern in (_RATING_RE, _RATING_SYMBOL_RE):
+        for match in pattern.finditer(text):
+            value = float(match.group("value").replace(",", "."))
+            if 0 <= value <= 5:
+                min_rating = value
+                removed.append(match.group(0))
 
     for match in _MAX_DISTANCE_RE.finditer(text):
         if _MIN_DISTANCE_RE.search(match.group(0)):

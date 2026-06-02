@@ -101,11 +101,11 @@ def rank_live_places(
         )
 
     if distance_origin == "user":
-        # Kullanici konumu varken once yakinlik, sonra GastroSkor puani.
+        # Kullanici konumu varken de once puan kalitesi, esitlikte yakinlik.
         ranked.sort(
             key=lambda row: (
-                row.distance_meters if row.distance_meters is not None else float("inf"),
                 -row.gastro_score,
+                row.distance_meters if row.distance_meters is not None else float("inf"),
                 -(row.place.rating or 0),
             )
         )
