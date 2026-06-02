@@ -44,7 +44,8 @@ def rating_score_for_stars(rating: float | None) -> float:
     if rating >= 4.5:
         return 3.0
     if rating >= 4.0:
-        return 2.5
+        # 4.0–4.5 arasi kademeli: 4.1 ile 4.4 ayni kutuya dusmesin.
+        return 2.0 + min(0.5, rating - 4.0)
     if rating >= 3.0:
         return 2.0
     return 1.0
@@ -100,21 +101,11 @@ def rank_live_places(
             )
         )
 
-    if distance_origin == "user":
-        # Kullanici konumu varken de once puan kalitesi, esitlikte yakinlik.
-        ranked.sort(
-            key=lambda row: (
-                -row.gastro_score,
-                row.distance_meters if row.distance_meters is not None else float("inf"),
-                -(row.place.rating or 0),
-            )
-        )
-    else:
-        ranked.sort(
-            key=lambda row: (
-                -row.gastro_score,
-                row.distance_meters if row.distance_meters is not None else float("inf"),
-                -(row.place.rating or 0),
-            )
-        )
+    # Once gastro skor; esitlikte yildiz, sonra ham mesafe (100 m fark 8 dk yuruyuste gorunmez).
+    sort_key = lambda row: (
+        -row.gastro_score,
+        -(row.place.rating or 0),
+        row.distance_meters if row.distance_meters is not None else float("inf"),
+    )
+    ranked.sort(key=sort_key)
     return ranked[:limit]
