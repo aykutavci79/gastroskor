@@ -29,6 +29,15 @@ def _normalize_query_key(text: str) -> str:
     return normalize_review_text(text).strip()
 
 
+def _origin_bucket_key(origin_lat: float | None, origin_lng: float | None) -> str:
+    """Konuma duyarli cache: yaklasik 2km kutu hassasiyeti."""
+    if origin_lat is None or origin_lng is None:
+        return "anywhere"
+    bucket_lat = round(origin_lat, 2)
+    bucket_lng = round(origin_lng, 2)
+    return f"{bucket_lat:.2f},{bucket_lng:.2f}"
+
+
 def search_restaurants_in_db(
     db: Session,
     *,
@@ -190,7 +199,8 @@ async def search_live_places_optimized(
     city_key = normalize_city_key(city_label)
     search_text = parsed.query if len(parsed.query) >= 2 else q
     query_key = _normalize_query_key(search_text)
-    cache_key = build_cache_key(city_key=city_key, query_key=query_key)
+    origin_key = _origin_bucket_key(origin_lat, origin_lng)
+    cache_key = build_cache_key(city_key=city_key, query_key=query_key, origin_key=origin_key)
 
     cached = read_place_search_cache(cache_key)
     if cached and cached.get("items") is not None:

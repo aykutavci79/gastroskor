@@ -16,8 +16,8 @@ def cache_dir() -> Path:
     return root
 
 
-def build_cache_key(*, city_key: str, query_key: str) -> str:
-    raw = f"{city_key}|{query_key}"
+def build_cache_key(*, city_key: str, query_key: str, origin_key: str = "anywhere") -> str:
+    raw = f"{city_key}|{query_key}|{origin_key}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 

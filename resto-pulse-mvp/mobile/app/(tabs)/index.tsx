@@ -19,6 +19,7 @@ type Coords = { lat: number; lng: number };
 
 export default function ExploreScreen() {
   const coordsRef = useRef<Coords | null>(null);
+  const coordsUpdatedAtRef = useRef<number>(0);
   const [inputQuery, setInputQuery] = useState('');
   const [inputCity, setInputCity] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
@@ -41,6 +42,7 @@ export default function ExploreScreen() {
         const pos = await Location.getCurrentPositionAsync({});
         if (!cancelled) {
           coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          coordsUpdatedAtRef.current = Date.now();
         }
       } catch {
         // Konum opsiyonel
@@ -49,6 +51,20 @@ export default function ExploreScreen() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const refreshCoordsIfStale = useCallback(async () => {
+    const staleMs = 2 * 60 * 1000;
+    if (Date.now() - coordsUpdatedAtRef.current < staleMs) return;
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({});
+      coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      coordsUpdatedAtRef.current = Date.now();
+    } catch {
+      // Konum yenileme başarısız olsa da arama devam eder.
+    }
   }, []);
 
   const loadTrending = useCallback(async (city: string) => {
@@ -62,6 +78,7 @@ export default function ExploreScreen() {
   }, []);
 
   const loadRestaurants = useCallback(async (query: string, city: string) => {
+    await refreshCoordsIfStale();
     const coords = coordsRef.current;
     const q = query.trim();
     const c = city.trim();
@@ -89,11 +106,12 @@ export default function ExploreScreen() {
     setLiveItems([]);
     setRestaurants(list);
     setSearchSource('db');
-  }, []);
+  }, [refreshCoordsIfStale]);
 
   const loadAll = useCallback(async () => {
     setError(null);
     try {
+      await refreshCoordsIfStale();
       const [_, trend] = await Promise.all([
         loadRestaurants(activeQuery, activeCity),
         loadTrending(activeCity),
@@ -102,7 +120,7 @@ export default function ExploreScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Veri yuklenemedi');
     }
-  }, [activeQuery, activeCity, loadRestaurants, loadTrending]);
+  }, [activeQuery, activeCity, loadRestaurants, loadTrending, refreshCoordsIfStale]);
 
   useEffect(() => {
     setLoading(true);
