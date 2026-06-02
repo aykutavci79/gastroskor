@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GsReviewCard } from '@/components/GsReviewCard';
+import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
 import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
@@ -33,7 +34,7 @@ import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { averageGsRating, renderStarRow } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import { isUuid } from '@/lib/uuid';
-import type { DisplayReview, Restaurant } from '@/lib/types';
+import type { DisplayReview, LivePlaceReview, Restaurant } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
@@ -46,6 +47,8 @@ export default function RestaurantDetailScreen() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [googleRating, setGoogleRating] = useState<number | null>(null);
   const [googleReviewCount, setGoogleReviewCount] = useState<number | null>(null);
+  const [googleReviews, setGoogleReviews] = useState<LivePlaceReview[]>([]);
+  const [googleReviewsVisible, setGoogleReviewsVisible] = useState(false);
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +148,7 @@ export default function RestaurantDetailScreen() {
           setPhotoUrls(gallery);
           setGoogleRating(live.rating ?? restaurantData.google_rating ?? null);
           setGoogleReviewCount(live.user_ratings_total ?? null);
+          setGoogleReviews(live.reviews ?? []);
           await applyDistance(restaurantData);
           return;
         }
@@ -177,10 +181,14 @@ export default function RestaurantDetailScreen() {
               }
               googleScore = live.rating ?? googleScore;
               googleCount = live.user_ratings_total ?? null;
+              setGoogleReviews(live.reviews ?? []);
             }
           } catch {
             // Google detay opsiyonel
+            if (!cancelled) setGoogleReviews([]);
           }
+        } else {
+          setGoogleReviews([]);
         }
 
         if (!cancelled) {
@@ -357,6 +365,11 @@ export default function RestaurantDetailScreen() {
               ) : null}
             </View>
           )}
+          {googleReviews.length > 0 ? (
+            <Pressable style={styles.ghostBtn} onPress={() => setGoogleReviewsVisible(true)}>
+              <Text style={styles.ghostBtnText}>💬 Google yorumlarını gör ({googleReviews.length})</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -431,6 +444,14 @@ export default function RestaurantDetailScreen() {
           )}
         </View>
       </ScrollView>
+      <GoogleReviewsModal
+        visible={googleReviewsVisible}
+        title={restaurant.name}
+        loading={false}
+        error={null}
+        reviews={googleReviews}
+        onClose={() => setGoogleReviewsVisible(false)}
+      />
     </View>
   );
 }
