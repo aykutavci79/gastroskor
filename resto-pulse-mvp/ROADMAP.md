@@ -4,7 +4,7 @@
 > madde varsa (Apple Pending, deploy, Faz D, magaza) kisa ve nazik hatirlat. Fazlara
 > bolme onayli; kullaniciyi fazlarla bunaltma, sadece siradaki 1-2 adimi soyle.
 
-Son guncelleme: 1 Haziran 2026
+Son guncelleme: 2 Haziran 2026
 
 ## Tamamlanan
 
@@ -87,6 +87,24 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 - Soru: sehir secimi — **Istanbul + Bursa** (acilis); UI cok sehirli, ileride genisleme
 - Soru: etiket (doner, sutlac, kahvalti...)
 - Cevap: metin + **restoran karti embed** (foto, ad, GS puani) — tikla → restoran detay
+
+**E2.1 — Oda yapisi (fazli acilis)**
+- Baslangic: sistem odalari sabit (kullanicilar direkt oda acamaz)
+- 6 cekirdek oda adi:
+  - `kes-donerciler`
+  - `ocakbasi-muhabbeti`
+  - `anne-eli-ev-yemegi`
+  - `gece-acikanlar`
+  - `fiyat-performans-avcilari`
+  - `gizli-kalmis-mekanlar`
+- Kural: once az ama aktif oda; kullanim oturunca "oda oner" ile yeni oda acilisi
+- Ozel/kapali odalar: v1.0'da yok, moderasyon olgunlasinca degerlendir
+
+**E2.2 — Restoran karti paylasim kurali**
+- Uygulama ici restoran karti paylasimi: sadece kullanici olusturulan odalarda acik
+- Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
+- WhatsApp paylasimi: restoran kartinda "WhatsApp'ta paylas" aksiyonu olacak
+- Growth notu: paylasilan kart linki uygulamaya/deep-link'e yonlenir; uygulama kurulumu tesvik edilir
 
 **E3 — Bildirim + moderasyon**
 - Soruna cevap gelince push; kartli cevaplarda zengin onizleme
