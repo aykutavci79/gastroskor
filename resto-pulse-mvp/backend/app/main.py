@@ -11,7 +11,13 @@ from app.services.review_image_storage import review_images_dir
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name)
+is_production = settings.environment.lower() == "production"
+app = FastAPI(
+    title=settings.app_name,
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
