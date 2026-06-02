@@ -17,6 +17,10 @@ _RATING_RE = re.compile(
     r"(?P<value>[0-5](?:[.,]\d)?)\s*(?:\+|yildiz|yıldız|star|puan|ve\s+uzeri|ve\s+üzeri|ustu|üstü)\b",
     re.IGNORECASE,
 )
+_RATING_PLUS_RE = re.compile(
+    r"(?P<value>[0-5](?:[.,]\d)?)\s*\+",
+    re.IGNORECASE,
+)
 _RATING_SYMBOL_RE = re.compile(
     r"(?P<value>[0-5](?:[.,]\d)?)\s*(?:★|⭐)",
     re.IGNORECASE,
@@ -38,7 +42,7 @@ def parse_search_query(raw: str) -> ParsedSearchQuery:
     max_distance_m: float | None = None
     min_distance_m: float | None = None
 
-    for pattern in (_RATING_RE, _RATING_SYMBOL_RE):
+    for pattern in (_RATING_RE, _RATING_SYMBOL_RE, _RATING_PLUS_RE):
         for match in pattern.finditer(text):
             value = float(match.group("value").replace(",", "."))
             if 0 <= value <= 5:

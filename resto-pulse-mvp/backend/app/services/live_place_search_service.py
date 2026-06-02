@@ -89,6 +89,32 @@ def search_restaurants_in_db(
     return results
 
 
+def _prefilter_place_rows(
+    rows: list[LivePlaceResult],
+    criteria: SmartFilterCriteria,
+) -> list[LivePlaceResult]:
+    """Siralama oncesi: dusuk puanli adaylari ele (ozellikle min_rating)."""
+    if criteria.min_rating is None:
+        return rows
+    return [row for row in rows if row.rating is not None and row.rating >= criteria.min_rating]
+
+
+def _finalize_search_response(
+    items: list[LivePlaceSearchItem],
+    *,
+    criteria: SmartFilterCriteria,
+    limit: int,
+    parsed_model: ParsedSearchIntent,
+    filters_applied: dict,
+) -> LivePlaceSearchResponse:
+    filtered = apply_smart_filters(items, criteria)[:limit]
+    return LivePlaceSearchResponse(
+        items=filtered,
+        parsed=parsed_model,
+        filters_applied=filters_applied,
+    )
+
+
 def _merge_place_rows(db_rows: list[LivePlaceResult], google_rows: list[LivePlaceResult]) -> list[LivePlaceResult]:
     merged: list[LivePlaceResult] = []
     seen: set[str] = set()
@@ -202,12 +228,31 @@ async def search_live_places_optimized(
     origin_key = _origin_bucket_key(origin_lat, origin_lng)
     cache_key = build_cache_key(city_key=city_key, query_key=query_key, origin_key=origin_key)
 
+    parsed_model = ParsedSearchIntent(
+        raw_query=q,
+        query=parsed.query,
+        min_rating=parsed.min_rating,
+        max_distance_m=parsed.max_distance_m,
+        min_distance_m=parsed.min_distance_m,
+        removed_tokens=parsed.removed_tokens,
+    )
+    filters_applied = {
+        "distance_band": distance_band,
+        "rating_band": rating_band,
+        "min_rating": parsed.min_rating,
+        "max_distance_m": parsed.max_distance_m,
+        "min_distance_m": parsed.min_distance_m,
+    }
+
     cached = read_place_search_cache(cache_key)
     if cached and cached.get("items") is not None:
-        return LivePlaceSearchResponse(
-            items=[LivePlaceSearchItem(**row) for row in cached["items"]],
-            parsed=ParsedSearchIntent(**cached["parsed"]),
-            filters_applied=cached.get("filters_applied") or {},
+        cached_items = [LivePlaceSearchItem(**row) for row in cached["items"]]
+        return _finalize_search_response(
+            cached_items,
+            criteria=criteria,
+            limit=limit,
+            parsed_model=parsed_model,
+            filters_applied={**filters_applied, "source": cached.get("filters_applied", {}).get("source", "cache")},
         )
 
     db_rows = search_restaurants_in_db(db, query=search_text, city=city_label, limit=max(limit, 15))
@@ -228,33 +273,19 @@ async def search_live_places_optimized(
         )
         place_rows = _merge_place_rows(db_rows, google_rows)
 
+    place_rows = _prefilter_place_rows(place_rows, criteria)
+    rank_pool = min(20, max(limit, 15))
     ranked_rows = rank_live_places(
         place_rows,
         city=city_label,
         origin_lat=origin_lat,
         origin_lng=origin_lng,
-        limit=min(20, max(limit, 15)),
+        limit=rank_pool,
     )
     items = _ranked_to_items(ranked_rows, city=city_label)
-    filtered_items = apply_smart_filters(items, criteria)[:limit]
-    enriched = _enrich_with_partners(db, filtered_items)
+    enriched = _enrich_with_partners(db, items)
 
-    parsed_model = ParsedSearchIntent(
-        raw_query=q,
-        query=parsed.query,
-        min_rating=parsed.min_rating,
-        max_distance_m=parsed.max_distance_m,
-        min_distance_m=parsed.min_distance_m,
-        removed_tokens=parsed.removed_tokens,
-    )
-    filters_applied = {
-        "distance_band": distance_band,
-        "rating_band": rating_band,
-        "min_rating": parsed.min_rating,
-        "max_distance_m": parsed.max_distance_m,
-        "min_distance_m": parsed.min_distance_m,
-        "source": "db_only" if not google_called else "db_and_google",
-    }
+    filters_applied["source"] = "db_only" if not google_called else "db_and_google"
 
     if google_called or len(db_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE:
         write_place_search_cache(
@@ -262,12 +293,14 @@ async def search_live_places_optimized(
             {
                 "items": [row.model_dump() for row in enriched],
                 "parsed": parsed_model.model_dump(),
-                "filters_applied": filters_applied,
+                "filters_applied": {"source": filters_applied["source"]},
             },
         )
 
-    return LivePlaceSearchResponse(
-        items=enriched,
-        parsed=parsed_model,
+    return _finalize_search_response(
+        enriched,
+        criteria=criteria,
+        limit=limit,
+        parsed_model=parsed_model,
         filters_applied=filters_applied,
     )
