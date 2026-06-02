@@ -35,10 +35,14 @@ export default function PrivacyPage() {
       <p>
         Verileriniz şifreli bağlantı (HTTPS) ile iletilir. Yorum fotoğrafları sunucuda saklanır. Hesabınızı
         silmek veya verilerinize erişmek için{' '}
+        <a href="/hesap-sil" className="text-accent hover:underline">
+          Hesap ve veri silme
+        </a>{' '}
+        sayfasındaki adımları izleyin veya{' '}
         <a href="mailto:destek@gastroskor.com.tr" className="text-accent hover:underline">
           destek@gastroskor.com.tr
         </a>{' '}
-        adresine yazabilirsiniz.
+        adresine yazın.
       </p>
       <h2 className="text-lg font-semibold text-content">Çocuklar</h2>
       <p>Hizmetimiz 13 yaş altına yönelik değildir.</p>

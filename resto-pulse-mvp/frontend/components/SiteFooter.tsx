@@ -9,6 +9,9 @@ export function SiteFooter() {
           <Link href="/gizlilik" className="text-content-muted hover:text-accent">
             Gizlilik
           </Link>
+          <Link href="/hesap-sil" className="text-content-muted hover:text-accent">
+            Hesap silme
+          </Link>
           <Link href="/kvkk" className="text-content-muted hover:text-accent">
             KVKK
           </Link>
