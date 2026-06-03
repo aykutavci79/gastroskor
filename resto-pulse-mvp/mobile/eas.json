@@ -23,8 +23,7 @@
     "production": {
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
-        "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
-        "EXPO_PUBLIC_USE_NATIVE_GOOGLE": "1"
+        "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr"
       },
       "android": {
         "buildType": "app-bundle"
