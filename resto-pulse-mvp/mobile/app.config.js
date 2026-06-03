@@ -3,7 +3,7 @@ module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
   slug: 'gastroskor',
-  version: '1.0.0',
+  version: '1.0.1',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'gastroskor',
@@ -16,6 +16,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
+    buildNumber: '2',
     bundleIdentifier: 'com.gastroskor.app',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
@@ -30,6 +31,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
+    versionCode: 2,
   },
   web: {
     bundler: 'metro',
