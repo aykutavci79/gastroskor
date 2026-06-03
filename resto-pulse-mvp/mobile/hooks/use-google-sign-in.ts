@@ -1,3 +1,4 @@
+import * as AuthSession from 'expo-auth-session';
 import { useAuthRequest, ResponseType } from 'expo-auth-session';
 import { discovery } from 'expo-auth-session/providers/google';
 import * as Google from 'expo-auth-session/providers/google';
@@ -24,6 +25,15 @@ export const expoGoRedirectUri =
 
 export const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/** Play/EAS build: Google Web client'ta bu URI'ler Authorized redirect URIs listesinde olmali. */
+export function getGoogleNativeRedirectUri(): string {
+  if (Platform.OS === 'android' && androidClientId) {
+    const prefix = androidClientId.replace('.apps.googleusercontent.com', '');
+    return `com.googleusercontent.apps.${prefix}:/oauth2redirect`;
+  }
+  return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
+}
 
 export function isGoogleSignInConfigured(): boolean {
   if (process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE !== '1') return true;
@@ -90,17 +100,19 @@ export function useGoogleSignInExpoGo(onError: (message: string) => void) {
 
 export function useGoogleSignInNative(onError: (message: string) => void) {
   const { signInWithGoogle } = useSession();
+  const redirectUri = getGoogleNativeRedirectUri();
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId,
     iosClientId,
     androidClientId,
+    redirectUri,
   });
 
   useEffect(() => {
     if (__DEV__) {
-      console.log('[GoogleAuth] mode=native platform=', Platform.OS);
+      console.log('[GoogleAuth] mode=native platform=', Platform.OS, 'redirectUri=', redirectUri);
     }
-  }, []);
+  }, [redirectUri]);
 
   useEffect(() => {
     if (response?.type !== 'success') return;

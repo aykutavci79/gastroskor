@@ -65,22 +65,34 @@ Mevcut **GastroSkor Web** client kalir:
 
 ---
 
-## 4. Play Store / App Store build (sonra)
+## 4. Play Store / App Store build
 
-Ayri Android client:
+### Android OAuth client
 
 | Alan | Deger |
 |------|--------|
 | Package name | `com.gastroskor.app` |
-| SHA-1 | `eas credentials -p android` ciktisi |
+| SHA-1 | Play **Uygulama imzalama** SHA-1 + `eas credentials -p android` (ikisi de) |
 
-Ayri iOS client:
+### Web client — Authorized redirect URIs (400 invalid_request icin zorunlu)
 
-| Alan | Deger |
-|------|--------|
-| Bundle ID | `com.gastroskor.app` |
+**GastroSkor Web** → Credentials → Redirect URIs listesine ekle:
 
-Bunlari store build oncesi `.env` / EAS secrets icine koy.
+```
+gastroskor://redirect
+```
+
+Android Play client ID'n `3397389116-XXXX.apps.googleusercontent.com` ise ayrica:
+
+```
+com.googleusercontent.apps.3397389116-XXXX:/oauth2redirect
+```
+
+(`XXXX` = Android client ID'deki orta kisim; `apps.googleusercontent.com` olmadan.)
+
+EAS secrets: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Web client, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` = Play Android client (Expo Go degil).
+
+Ayri iOS client: Bundle ID `com.gastroskor.app`
 
 ---
 
