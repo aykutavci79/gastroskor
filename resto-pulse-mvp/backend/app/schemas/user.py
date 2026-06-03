@@ -6,6 +6,7 @@ class UserSyncPayload(BaseModel):
     full_name: str | None = None
     avatar_url: str | None = None
     google_sub: str | None = None
+    record_login: bool = False
 
 
 class UserProfile(BaseModel):

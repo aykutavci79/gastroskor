@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
 
@@ -47,6 +48,7 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
+        <AppMetricsTracker />
         <ThemeProvider value={theme}>
           <Stack
             screenOptions={{

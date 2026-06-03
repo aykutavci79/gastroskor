@@ -1,4 +1,5 @@
 from app.models.entities import (
+    AppUsageEvent,
     CompensationCoupon,
     FeedbackMessage,
     PanelNotification,
@@ -24,6 +25,7 @@ from app.models.entities import (
 )
 
 __all__ = [
+    "AppUsageEvent",
     "PanelNotification",
     "PanelNotificationPreference",
     "PlatformName",

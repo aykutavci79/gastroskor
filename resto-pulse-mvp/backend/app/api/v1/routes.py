@@ -109,7 +109,9 @@ from app.services.private_feedback_service import (
     update_private_feedback_status,
 )
 from app.services.compensation_service import issue_compensation_coupon
+from app.api.v1.metrics_routes import metrics_router
 from app.api.v1.panel_routes import panel_router
+from app.services.app_metrics import record_app_usage_event
 
 logger = logging.getLogger(__name__)
 
@@ -509,7 +511,7 @@ async def search_live_places(
     criteria = merge_criteria(parsed, distance_band=distance_band, rating_band=rating_band)
 
     try:
-        return await search_live_places_optimized(
+        result = await search_live_places_optimized(
             db,
             q=q,
             city=city,
@@ -521,6 +523,8 @@ async def search_live_places(
             distance_band=distance_band,
             rating_band=rating_band,
         )
+        record_app_usage_event(db, event_type="live_search", platform="api")
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -938,6 +942,8 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
         avatar_url=payload.avatar_url,
         google_sub=payload.google_sub,
     )
+    if payload.record_login:
+        record_app_usage_event(db, event_type="user_login", user_id=user.id, platform="api")
     return serialize_user(user, db)
 
 
@@ -1144,6 +1150,7 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     db.add(review)
     db.commit()
     db.refresh(review, attribute_names=["author", "images", "category_scores"])
+    record_app_usage_event(db, event_type="review_created", user_id=author_uuid, platform="api")
 
     if review.rating is not None and review.rating <= 2:
         ownership = db.scalar(
@@ -1425,6 +1432,7 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
 
 
 router.include_router(panel_router)
+router.include_router(metrics_router)
 
 
 @router.post("/internal/cron/panel-notifications")

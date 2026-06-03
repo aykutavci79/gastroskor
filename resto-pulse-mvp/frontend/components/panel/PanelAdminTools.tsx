@@ -86,6 +86,12 @@ export function PanelAdminTools() {
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-content-muted">
+        Pazarlama metrikleri:{' '}
+        <a href="/panel/admin/kpi" className="text-brand-gold underline">
+          /panel/admin/kpi
+        </a>
+      </p>
       <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
         <h2 className="text-xl font-semibold text-brand-gold">Admin: Mekan bagla (bypass)</h2>
         <p className="mt-2 text-sm text-amber-50/90">

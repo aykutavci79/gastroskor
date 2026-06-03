@@ -91,11 +91,18 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
               Cikis
             </button>
             {isPanelAdmin ? (
-              <Link
-                href="/panel/admin"
-                className={`rounded-lg px-3 py-1.5 text-xs ${onAdminPage ? 'bg-amber-500/20 text-brand-gold' : 'border border-amber-500/40 text-brand-gold hover:bg-amber-500/10'}`}>
-                Admin
-              </Link>
+              <>
+                <Link
+                  href="/panel/admin/kpi"
+                  className={`rounded-lg px-3 py-1.5 text-xs ${pathname.startsWith('/panel/admin/kpi') ? 'bg-emerald-500/20 text-success' : 'border border-emerald-500/40 text-success hover:bg-emerald-500/10'}`}>
+                  KPI
+                </Link>
+                <Link
+                  href="/panel/admin"
+                  className={`rounded-lg px-3 py-1.5 text-xs ${onAdminPage && !pathname.startsWith('/panel/admin/kpi') ? 'bg-amber-500/20 text-brand-gold' : 'border border-amber-500/40 text-brand-gold hover:bg-amber-500/10'}`}>
+                  Admin
+                </Link>
+              </>
             ) : null}
           {access?.can_access_panel ? (
             <nav className="flex flex-wrap gap-2 text-sm">

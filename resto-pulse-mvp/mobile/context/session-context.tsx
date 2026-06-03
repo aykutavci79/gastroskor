@@ -81,6 +81,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       full_name: claims.name ?? null,
       avatar_url: claims.picture ?? null,
       google_sub: claims.sub,
+      record_login: true,
     });
     const next: SessionUser = {
       id: profile.id,
@@ -98,7 +99,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!normalized.includes('@')) {
       throw new Error('Gecerli bir e-posta girin.');
     }
-    const profile = await syncUser({ email: normalized, full_name: fullName ?? null });
+    const profile = await syncUser({ email: normalized, full_name: fullName ?? null, record_login: true });
     const next: SessionUser = { id: profile.id, email: normalized, fullName: fullName ?? null };
     await persistUser(next);
     setUser(next);

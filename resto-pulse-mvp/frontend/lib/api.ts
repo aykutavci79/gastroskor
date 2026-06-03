@@ -212,6 +212,7 @@ export function syncUser(payload: {
   full_name?: string | null;
   avatar_url?: string | null;
   google_sub?: string | null;
+  record_login?: boolean;
 }) {
   return request<UserProfile>('/users/sync', {
     method: 'POST',
