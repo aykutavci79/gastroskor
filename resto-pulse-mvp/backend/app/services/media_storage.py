@@ -55,12 +55,19 @@ def s3_configured() -> bool:
     )
 
 
+FOLDER_PUBLIC_PATH = {
+    "menu_images": "menu",
+    "review_images": "reviews",
+}
+
+
 def upload_bytes(*, folder: str, filename: str, data: bytes, content_type: str) -> str:
     if s3_configured():
         return _upload_s3(folder=folder, filename=filename, data=data, content_type=content_type)
     path = local_subdir(folder) / filename
     path.write_bytes(data)
-    return local_public_url(folder, filename)
+    public_path = FOLDER_PUBLIC_PATH.get(folder, folder)
+    return local_public_url(public_path, filename)
 
 
 def _upload_s3(*, folder: str, filename: str, data: bytes, content_type: str) -> str:
