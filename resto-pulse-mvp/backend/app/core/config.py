@@ -57,6 +57,17 @@ class Settings(BaseSettings):
     public_site_base_url: str = "https://www.gastroskor.com.tr"
     public_panel_base_url: str = "https://www.gastroskor.com.tr/panel"
     menu_upload_max_bytes: int = 5_000_000
+    review_image_upload_max_bytes: int = 8_000_000
+
+    # Gorsel depolama: local (MEDIA_DATA_DIR + Railway Volume) veya s3 (Cloudflare R2 / AWS)
+    media_storage: str = "local"
+    media_data_dir: str | None = None
+    s3_bucket: str | None = None
+    s3_region: str = "auto"
+    s3_endpoint_url: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_public_base_url: str | None = None
 
     email_provider: str = "mock"
     email_from: str | None = None

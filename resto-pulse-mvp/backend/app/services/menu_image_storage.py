@@ -1,33 +1,20 @@
 from __future__ import annotations
 
-import uuid
-from pathlib import Path
-
 from fastapi import HTTPException, UploadFile, status
 
 from app.core.config import settings
-
-ALLOWED_CONTENT_TYPES = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-}
-
-
-def menu_images_dir() -> Path:
-    root = Path(__file__).resolve().parents[2] / "data" / "menu_images"
-    try:
-        root.mkdir(parents=True, exist_ok=True)
-    except OSError:
-        # Railway/ephemeral: fallback to /tmp if project dir is not writable
-        root = Path("/tmp/gastroskor_menu_images")
-        root.mkdir(parents=True, exist_ok=True)
-    return root
+from app.services.media_storage import (
+    ALLOWED_CONTENT_TYPES,
+    local_subdir,
+    media_root,
+    new_filename,
+    upload_bytes,
+)
 
 
-def public_menu_image_url(filename: str) -> str:
-    base = (settings.public_api_base_url or "").rstrip("/")
-    return f"{base}/media/menu/{filename}"
+def menu_images_dir():
+    """FastAPI StaticFiles mount icin yerel menu klasoru."""
+    return local_subdir("menu_images")
 
 
 async def save_menu_image(file: UploadFile) -> str:
@@ -48,7 +35,8 @@ async def save_menu_image(file: UploadFile) -> str:
     if len(data) < 100:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Gecersiz dosya.")
 
-    filename = f"{uuid.uuid4().hex}{ext}"
-    path = menu_images_dir() / filename
-    path.write_bytes(data)
-    return public_menu_image_url(filename)
+    filename = new_filename(ext)
+    return upload_bytes(folder="menu_images", filename=filename, data=data, content_type=content_type)
+
+
+__all__ = ["ALLOWED_CONTENT_TYPES", "menu_images_dir", "media_root", "save_menu_image"]

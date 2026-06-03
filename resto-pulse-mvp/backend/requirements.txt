@@ -15,3 +15,4 @@ passlib[bcrypt]
 openai
 anthropic
 Pillow>=10.0.0
+boto3>=1.35.0

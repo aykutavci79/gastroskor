@@ -10,7 +10,8 @@
     "android": "node ./scripts/expo-start-skip-doctor.js --android",
     "ios": "node ./scripts/expo-start-skip-doctor.js --ios",
     "web": "node ./scripts/expo-start-skip-doctor.js --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:android:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

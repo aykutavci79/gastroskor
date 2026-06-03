@@ -20,7 +20,7 @@ export function SiteHeader() {
             alt="GastroSkor"
             width={56}
             height={56}
-            className="h-12 w-12 shrink-0 rounded-xl object-contain sm:h-14 sm:w-14"
+            className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
             priority
           />
           <div className="leading-tight">

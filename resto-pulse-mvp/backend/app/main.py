@@ -37,13 +37,10 @@ app.include_router(v1_router, prefix=settings.api_v1_prefix)
 
 try:
     menu_dir = menu_images_dir()
-    app.mount("/media/menu", StaticFiles(directory=str(menu_dir)), name="menu-images")
-except OSError as exc:
-    logger.warning("Menu image static mount skipped: %s", exc)
-
-try:
     review_dir = review_images_dir()
+    app.mount("/media/menu", StaticFiles(directory=str(menu_dir)), name="menu-images")
     app.mount("/media/reviews", StaticFiles(directory=str(review_dir)), name="review-images")
+    logger.info("Media static: menu=%s reviews=%s", menu_dir, review_dir)
 except OSError as exc:
-    logger.warning("Review image static mount skipped: %s", exc)
+    logger.warning("Media static mount skipped: %s", exc)
 
