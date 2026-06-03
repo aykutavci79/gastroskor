@@ -59,19 +59,26 @@ export default function ExploreScreen() {
     };
   }, []);
 
+  const ensureCoords = useCallback(async (): Promise<Coords | null> => {
+    if (coordsRef.current) return coordsRef.current;
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') return null;
+      const pos = await Location.getCurrentPositionAsync({});
+      const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      coordsRef.current = next;
+      coordsUpdatedAtRef.current = Date.now();
+      return next;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const refreshCoordsIfStale = useCallback(async () => {
     const staleMs = 2 * 60 * 1000;
     if (Date.now() - coordsUpdatedAtRef.current < staleMs) return;
-    try {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({});
-      coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      coordsUpdatedAtRef.current = Date.now();
-    } catch {
-      // Konum yenileme başarısız olsa da arama devam eder.
-    }
-  }, []);
+    await ensureCoords();
+  }, [ensureCoords]);
 
   const loadTrending = useCallback(async (city: string) => {
     const coords = coordsRef.current;
@@ -85,7 +92,7 @@ export default function ExploreScreen() {
 
   const loadRestaurants = useCallback(async (query: string, city: string) => {
     await refreshCoordsIfStale();
-    const coords = coordsRef.current;
+    const coords = (await ensureCoords()) ?? coordsRef.current;
     const q = query.trim();
     const c = city.trim();
 
@@ -114,7 +121,7 @@ export default function ExploreScreen() {
     setLiveItems([]);
     setRestaurants(list);
     setSearchSource('db');
-  }, [refreshCoordsIfStale]);
+  }, [refreshCoordsIfStale, ensureCoords]);
 
   const loadAll = useCallback(async () => {
     setError(null);

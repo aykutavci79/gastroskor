@@ -245,8 +245,9 @@ async def search_live_places_optimized(
     }
 
     cached = read_place_search_cache(cache_key)
-    if cached and cached.get("items") is not None:
-        cached_items = [LivePlaceSearchItem(**row) for row in cached["items"]]
+    cached_rows = cached.get("items") if cached else None
+    if cached_rows:
+        cached_items = [LivePlaceSearchItem(**row) for row in cached_rows]
         return _finalize_search_response(
             cached_items,
             criteria=criteria,
@@ -287,7 +288,7 @@ async def search_live_places_optimized(
 
     filters_applied["source"] = "db_only" if not google_called else "db_and_google"
 
-    if google_called or len(db_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE:
+    if enriched and (google_called or len(db_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE):
         write_place_search_cache(
             cache_key,
             {

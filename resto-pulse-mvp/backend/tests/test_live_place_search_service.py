@@ -81,3 +81,21 @@ def test_cached_results_reapply_min_rating_filter() -> None:
     )
     assert len(response.items) == 1
     assert response.items[0].rating == 4.8
+
+
+def test_empty_cache_items_not_used(tmp_path, monkeypatch) -> None:
+    from app.services import place_search_cache as mod
+
+    monkeypatch.setattr(mod, "cache_dir", lambda: tmp_path)
+    key = build_cache_key(city_key="bursa", query_key="doner", origin_key="40.19,29.06")
+    write_place_search_cache(
+        key,
+        {
+            "items": [],
+            "parsed": {"raw_query": "doner", "query": "doner", "min_rating": None},
+            "filters_applied": {"source": "db_only"},
+        },
+    )
+    loaded = read_place_search_cache(key)
+    assert loaded is not None
+    assert loaded.get("items") == []
