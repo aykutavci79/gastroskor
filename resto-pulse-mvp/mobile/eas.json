@@ -21,7 +21,6 @@
       }
     },
     "production": {
-      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
         "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
