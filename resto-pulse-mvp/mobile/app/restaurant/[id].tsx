@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
+import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
 import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
@@ -33,16 +34,18 @@ import { ReviewModerationApiError } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { averageGsRating, renderStarRow } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
-import { isUuid } from '@/lib/uuid';
-import type { DisplayReview, LivePlaceReview, Restaurant } from '@/lib/types';
+import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
+import type { DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user } = useSession();
+  const gastroScores = useMemo(() => parseLiveScoreParams(params), [params]);
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [liveDetails, setLiveDetails] = useState<LivePlaceDetails | null>(null);
   const [reviews, setReviews] = useState<DisplayReview[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [googleRating, setGoogleRating] = useState<number | null>(null);
@@ -86,6 +89,14 @@ export default function RestaurantDetailScreen() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setLiveDetails(null);
+
+    function applyLiveSnapshot(live: LivePlaceDetails) {
+      setLiveDetails(live);
+      setGoogleRating(live.rating ?? null);
+      setGoogleReviewCount(live.user_ratings_total ?? null);
+      setGoogleReviews(live.reviews ?? []);
+    }
 
     async function applyDistance(restaurantData: Restaurant) {
       if (restaurantData.latitude == null || restaurantData.longitude == null) return;
@@ -116,6 +127,7 @@ export default function RestaurantDetailScreen() {
         if (!isUuid(id)) {
           const live = await getLivePlaceDetails(id);
           if (cancelled) return;
+          applyLiveSnapshot(live);
           if (!live.restaurant_id) {
             setError('Restoran kaydı oluşturulamadı.');
             setRestaurant(null);
@@ -148,7 +160,6 @@ export default function RestaurantDetailScreen() {
           setPhotoUrls(gallery);
           setGoogleRating(live.rating ?? restaurantData.google_rating ?? null);
           setGoogleReviewCount(live.user_ratings_total ?? null);
-          setGoogleReviews(live.reviews ?? []);
           await applyDistance(restaurantData);
           return;
         }
@@ -176,12 +187,12 @@ export default function RestaurantDetailScreen() {
           try {
             const live = await getLivePlaceDetails(googlePlaceId);
             if (!cancelled) {
+              applyLiveSnapshot(live);
               for (const url of live.photo_urls ?? []) {
                 if (!gallery.includes(url)) gallery.push(url);
               }
               googleScore = live.rating ?? googleScore;
               googleCount = live.user_ratings_total ?? null;
-              setGoogleReviews(live.reviews ?? []);
             }
           } catch {
             // Google detay opsiyonel
@@ -367,13 +378,38 @@ export default function RestaurantDetailScreen() {
           )}
           {googleReviews.length > 0 ? (
             <Pressable style={styles.ghostBtn} onPress={() => setGoogleReviewsVisible(true)}>
-              <Text style={styles.ghostBtnText}>💬 Google yorumlarını gör ({googleReviews.length})</Text>
+              <Text style={styles.ghostBtnText}>💬 Google yorumları ({googleReviews.length})</Text>
             </Pressable>
           ) : null}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Deneyimini Paylaş</Text>
+          <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
+          {reviews.length === 0 ? (
+            <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
+          ) : (
+            reviews.map((rev) => (
+              <GsReviewCard
+                key={rev.id}
+                review={rev}
+                viewerEmail={user?.email ?? null}
+                viewerUserId={user?.id ?? null}
+                viewerName={user?.fullName ?? null}
+                onChange={(updated) =>
+                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+                }
+                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
+              />
+            ))
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Yorum yap</Text>
           {!user ? (
             <Pressable onPress={() => router.push('/(tabs)/profil')}>
               <Text style={styles.loginHint}>Yorum yapmak için giriş yap →</Text>
@@ -420,27 +456,6 @@ export default function RestaurantDetailScreen() {
               </Pressable>
               {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
             </>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Yorumlar</Text>
-          {reviews.length === 0 ? (
-            <Text style={styles.emptyReviews}>Henüz yorum yok, ilk yorumu sen yaz! 🍽️</Text>
-          ) : (
-            reviews.map((rev) => (
-              <GsReviewCard
-                key={rev.id}
-                review={rev}
-                viewerEmail={user?.email ?? null}
-                viewerUserId={user?.id ?? null}
-                viewerName={user?.fullName ?? null}
-                onChange={(updated) =>
-                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
-                }
-                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
-              />
-            ))
           )}
         </View>
       </ScrollView>

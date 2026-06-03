@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { ReviewList } from '@/components/ReviewList';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { RestaurantCard } from '@/components/RestaurantCard';
+import { StarRating } from '@/components/StarRating';
 import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { createReview, getLivePlaceDetails, listRestaurantReviews, searchLivePlaces, syncUser } from '@/lib/api';
 import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
@@ -183,12 +184,15 @@ export function LivePlaceSearch({
 
   function showDetails(place_id: string) {
     setActivePlaceId(place_id);
+    setSelectedItem(items.find((row) => row.place_id === place_id) ?? null);
     setDetails(null);
     setDetailsError(null);
     setDetailsLoading(true);
     setReviewSort('newest');
     setReviewFilter('all');
-    setActiveTab('google');
+    setActiveTab(isAuthenticated ? 'member' : 'google');
+    setMemberReviewText('');
+    setMemberRating(5);
 
     getLivePlaceDetails(place_id, { sort: 'newest', filter: 'all' })
       .then((result) => setDetails(result))
@@ -405,7 +409,14 @@ export function LivePlaceSearch({
                       <div className="space-y-1 text-right text-sm text-content-muted">
                         <p>Puan: {details.rating ?? '-'}</p>
                         <p>Yorum: {details.user_ratings_total ?? '-'}</p>
-                        {details.phone_number ? <p>Tel: {details.phone_number}</p> : null}
+                        {details.phone_number ? (
+                          <p>
+                            Tel:{' '}
+                            <a href={`tel:${details.phone_number}`} className="text-accent hover:underline">
+                              {details.phone_number}
+                            </a>
+                          </p>
+                        ) : null}
                         {details.website ? (
                           <p>
                             <a
@@ -455,6 +466,20 @@ export function LivePlaceSearch({
                   </div>
 
                   <div className="rounded-3xl border border-border/70 bg-surface-input p-6">
+                    <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-content">GastroSkor&apos;da yorum yap</p>
+                        <p className="mt-1 text-xs text-content-muted">
+                          Yildiz ver, deneyimini yaz — uye yorumlari sekmesinde.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('member')}
+                        className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-surface transition hover:opacity-90">
+                        Yorum yap
+                      </button>
+                    </div>
                     <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border/50 pb-4">
                       <button
                         type="button"
@@ -586,6 +611,39 @@ export function LivePlaceSearch({
                             {details.member_review_count} yorum · Ortalama {details.member_avg_rating ?? '-'}
                           </div>
                         </div>
+                        <form onSubmit={submitMemberReview} className="mb-6 space-y-4 rounded-2xl border border-accent/30 bg-surface/90 p-4">
+                          <h6 className="text-sm font-semibold text-content">Yorum yap</h6>
+                          {!isAuthenticated ? (
+                            <p className="text-sm text-content-muted">
+                              Yorum eklemek icin sag ustten Google ile giris yapin.
+                            </p>
+                          ) : (
+                            <>
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-content">Yildiz puani</p>
+                                <StarRating value={memberRating} onChange={setMemberRating} />
+                              </div>
+                              <textarea
+                                value={memberReviewText}
+                                onChange={(e) => setMemberReviewText(e.target.value)}
+                                rows={4}
+                                placeholder="GastroSkor yorumunuzu buraya yazin..."
+                                className="w-full rounded-3xl border border-border bg-surface-input px-4 py-3 text-sm text-content outline-none focus:ring-2 focus:ring-accent/40"
+                              />
+                              <button
+                                type="submit"
+                                disabled={memberLoading || !details.restaurant_id}
+                                className="btn-primary btn-sm disabled:opacity-50">
+                                {memberLoading ? 'Gonderiliyor...' : 'GastroSkor Yorumunu Ekle'}
+                              </button>
+                              {!details.restaurant_id && (
+                                <p className="text-sm text-yellow-300">
+                                  Bu restoran veritabaninda kayitli degil; yorum eklenemiyor.
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </form>
                         {profile ? (
                           <div className="mb-4 rounded-2xl border border-border/60 bg-surface/90 p-4 text-sm text-content">
                             <p className="font-semibold text-content">Girişli Üye: {profile.full_name ?? session?.user?.email}</p>
@@ -621,47 +679,6 @@ export function LivePlaceSearch({
                             />
                           )}
                         </div>
-                        <form onSubmit={submitMemberReview} className="mt-6 space-y-4">
-                          <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
-                            <label className="text-sm font-medium text-content" htmlFor="member-rating">
-                              Yıldız Puanı
-                            </label>
-                            <select
-                              id="member-rating"
-                              value={memberRating}
-                              onChange={(e) => setMemberRating(Number(e.target.value))}
-                              className="w-full rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-content outline-none"
-                            >
-                              {[5, 4, 3, 2, 1].map((value) => (
-                                <option key={value} value={value}>
-                                  {value} yıldız
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <textarea
-                              value={memberReviewText}
-                              onChange={(e) => setMemberReviewText(e.target.value)}
-                              rows={4}
-                              placeholder="GastroSkor yorumunuzu buraya yazın..."
-                              className="w-full rounded-3xl border border-border bg-surface-input px-4 py-3 text-sm text-content outline-none focus:ring-2 focus:ring-accent/40"
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            disabled={memberLoading || !isAuthenticated || !details.restaurant_id}
-                            className="btn-primary btn-sm disabled:opacity-50"
-                          >
-                            {memberLoading ? 'Gönderiliyor...' : 'GastroSkor Yorumunu Ekle'}
-                          </button>
-                          {!isAuthenticated && (
-                            <p className="text-sm text-content-muted">Yorum eklemek için önce Google ile giriş yapın.</p>
-                          )}
-                          {details.restaurant_id === null && (
-                            <p className="text-sm text-yellow-300">Bu restoran veritabanında kayıtlı değil; GastroSkor üye yorumu eklenemiyor.</p>
-                          )}
-                        </form>
                       </>
                     ) : null}
                   </div>

@@ -214,6 +214,16 @@ export default function ExploreScreen() {
               id: r.id,
               restaurant_id: r.restaurant_id,
               google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
+              liveScores: liveItem
+                ? {
+                    gastro_score: liveItem.gastro_score,
+                    distance_score: liveItem.distance_score,
+                    rating_score: liveItem.rating_score,
+                    distance_meters: liveItem.distance_meters,
+                    distance_origin: liveItem.distance_origin,
+                    rating: liveItem.rating,
+                  }
+                : null,
             });
 
             return (
