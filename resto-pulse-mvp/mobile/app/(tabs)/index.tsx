@@ -13,7 +13,12 @@ import {
 } from '@/lib/live-place-card';
 import { restaurantDetailHref } from '@/lib/uuid';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
-import type { LivePlaceSearchItem, RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
+import type {
+  LivePlaceSearchItem,
+  ParsedSearchIntent,
+  RestaurantListItem,
+  RestaurantTrendingItem,
+} from '@/lib/types';
 
 type Coords = { lat: number; lng: number };
 
@@ -27,6 +32,7 @@ export default function ExploreScreen() {
 
   const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([]);
   const [liveItems, setLiveItems] = useState<LivePlaceSearchItem[]>([]);
+  const [liveParsed, setLiveParsed] = useState<ParsedSearchIntent | null>(null);
   const [searchSource, setSearchSource] = useState<'db' | 'live'>('db');
   const [trending, setTrending] = useState<RestaurantTrendingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,11 +98,13 @@ export default function ExploreScreen() {
         origin_lng: coords?.lng,
       });
       setLiveItems(result.items);
+      setLiveParsed(result.parsed);
       setRestaurants(result.items.map(livePlaceToRestaurantCard));
       setSearchSource('live');
       return;
     }
 
+    setLiveParsed(null);
     const list = await listRestaurants({
       q: q || undefined,
       city: c || undefined,
@@ -187,7 +195,9 @@ export default function ExploreScreen() {
         ) : restaurants.length === 0 ? (
           <Text style={styles.empty}>
             {activeQuery.length >= 2
-              ? 'Canlı aramada sonuç bulunamadı. Farklı bir isim veya şehir deneyin.'
+              ? liveParsed?.min_rating != null
+                ? `${liveParsed.min_rating}+ yıldız filtresine uyan sonuç yok. Farklı kelime veya şehir deneyin; konum açıksa daha iyi sonuç verir.`
+                : 'Canlı aramada sonuç bulunamadı. Farklı bir isim veya şehir deneyin.'
               : 'Sonuç bulunamadı. En az 2 harf yazarak Google araması yapabilirsiniz.'}
           </Text>
         ) : (

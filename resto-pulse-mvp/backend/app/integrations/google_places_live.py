@@ -152,11 +152,19 @@ class GooglePlacesLiveClient:
 
         fetch_limit = min(20, max(limit, 8))
 
-        # Maliyet: tek Google istegi. Konum varsa Nearby; yoksa Text Search.
+        # Maliyet: tek Google istegi. Oncelik: kullanici konumu → sehir merkezi (Nearby) → Text Search.
+        # Text Search az sonuc dondurur; "doner 4.5 yildiz" gibi puan filtreleri bos kalabiliyordu.
         if origin_lat is not None and origin_lng is not None:
             return (await self._nearby_search(query, lat=origin_lat, lng=origin_lng, limit=fetch_limit))[
                 :fetch_limit
             ]
+
+        city_bias = CITY_SEARCH_BIAS.get(city.strip().lower())
+        if city_bias:
+            lat, lng, _radius_m = city_bias
+            nearby_rows = await self._nearby_search(query, lat=lat, lng=lng, limit=fetch_limit)
+            if nearby_rows:
+                return nearby_rows[:fetch_limit]
 
         return (await self._text_search(query, city=city, limit=fetch_limit))[:fetch_limit]
 
