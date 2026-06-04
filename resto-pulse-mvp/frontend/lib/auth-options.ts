@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
 export const authOptions: NextAuthOptions = {
+  trustHost: true,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
@@ -13,7 +14,8 @@ export const authOptions: NextAuthOptions = {
           response_type: 'code',
         },
       },
-      allowDangerousEmailAccountLinking: false,
+      // Ayni e-posta ile mobilde "E-posta ile devam" + Google birlestirilebilir.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
@@ -38,6 +40,10 @@ export const authOptions: NextAuthOptions = {
         },
       };
     },
+  },
+  pages: {
+    signIn: '/auth/giris',
+    error: '/auth/giris',
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',

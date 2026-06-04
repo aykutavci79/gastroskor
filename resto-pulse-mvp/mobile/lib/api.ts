@@ -19,6 +19,8 @@ import type {
 } from '@/lib/types';
 
 import { getApiV1Base } from '@/lib/api-base';
+import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
+import { formatApiError } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 
 export { ReviewModerationApiError };
@@ -26,13 +28,19 @@ export { ReviewModerationApiError };
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const hasBody = init?.body != null;
   const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
-  const response = await fetch(`${getApiV1Base()}${path}`, {
-    ...init,
-    headers: {
-      ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiV1Base()}${path}`, {
+      ...init,
+      headers: {
+        ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...(init?.headers ?? {}),
+      },
+      signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
+    });
+  } catch (err) {
+    throw new Error(formatApiError(err));
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -51,7 +59,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch (err) {
       if (err instanceof ReviewModerationApiError) throw err;
     }
-    throw new Error(message);
+    throw new Error(formatApiError(new Error(message)));
   }
 
   if (response.status === 204) return undefined as T;
@@ -246,6 +254,43 @@ export function unfollowRestaurant(restaurantId: string, userEmail: string) {
     `/restaurants/${encodeURIComponent(restaurantId)}/follow?${query.toString()}`,
     { method: 'DELETE' },
   );
+}
+
+export function registerPushToken(payload: {
+  user_email: string;
+  expo_push_token: string;
+  platform?: string | null;
+}) {
+  return request<{ ok: boolean }>('/me/push-token', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listUserNotifications(userEmail: string, limit = 40) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<import('@/lib/types').UserNotificationListResponse>(
+    `/me/notifications?${query.toString()}`,
+  );
+}
+
+export function markUserNotificationRead(userEmail: string, notificationId: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<{ ok: boolean }>(
+    `/me/notifications/${encodeURIComponent(notificationId)}/read?${query.toString()}`,
+    { method: 'POST' },
+  );
+}
+
+export function listMyFollowerCoupons(userEmail: string, limit = 50) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<import('@/lib/types').FollowerCoupon[]>(`/me/follower-coupons?${query.toString()}`);
 }
 
 export function getRestaurantFollowerCoupon(restaurantId: string, userEmail: string) {

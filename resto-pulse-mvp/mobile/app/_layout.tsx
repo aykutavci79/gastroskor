@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
+import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
 
@@ -49,6 +50,7 @@ export default function RootLayout() {
     <AppErrorBoundary>
       <SessionProvider>
         <AppMetricsTracker />
+        <NotificationBootstrap />
         <ThemeProvider value={theme}>
           <Stack
             screenOptions={{

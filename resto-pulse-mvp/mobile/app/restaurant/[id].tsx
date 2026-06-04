@@ -2,9 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -70,6 +73,28 @@ export default function RestaurantDetailScreen() {
   const [moderationHighlights, setModerationHighlights] = useState<string[]>([]);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
   const [following, setFollowing] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const reviewFormOffsetY = useRef(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates.height);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, reviewFormOffsetY.current - 16),
+          animated: true,
+        });
+      });
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
@@ -344,7 +369,17 @@ export default function RestaurantDetailScreen() {
         </SafeAreaView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scroll, keyboardInset > 0 && { paddingBottom: keyboardInset + 48 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <View style={styles.section}>
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
@@ -416,7 +451,11 @@ export default function RestaurantDetailScreen() {
           <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />
         </View>
 
-        <View style={[styles.section, styles.reviewFormSection]}>
+        <View
+          style={styles.section}
+          onLayout={(event) => {
+            reviewFormOffsetY.current = event.nativeEvent.layout.y;
+          }}>
           <Text style={styles.sectionTitle}>Yorum yap</Text>
           {!user ? (
             <Pressable onPress={() => router.push('/(tabs)/profil')}>
@@ -435,6 +474,14 @@ export default function RestaurantDetailScreen() {
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput
                 value={text}
+                onFocus={() => {
+                  requestAnimationFrame(() => {
+                    scrollRef.current?.scrollTo({
+                      y: Math.max(0, reviewFormOffsetY.current - 16),
+                      animated: true,
+                    });
+                  });
+                }}
                 onChangeText={(value) => {
                   setText(value);
                   if (moderationHighlights.length) setModerationHighlights([]);
@@ -492,7 +539,8 @@ export default function RestaurantDetailScreen() {
             ))
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <GoogleReviewsModal
         visible={googleReviewsVisible}
         title={restaurant.name}
@@ -507,6 +555,8 @@ export default function RestaurantDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: GastroColors.bg },
+  keyboardAvoid: { flex: 1 },
+  scrollView: { flex: 1 },
   safe: { flex: 1, backgroundColor: GastroColors.bg },
   heroWrap: { position: 'relative' },
   backOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },

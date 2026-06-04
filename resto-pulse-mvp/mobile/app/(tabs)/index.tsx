@@ -12,6 +12,7 @@ import {
   livePlaceToRestaurantCard,
 } from '@/lib/live-place-card';
 import { restaurantDetailHref } from '@/lib/uuid';
+import { formatApiError } from '@/lib/format-api-error';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import type {
   LivePlaceSearchItem,
@@ -133,7 +134,10 @@ export default function ExploreScreen() {
       ]);
       setTrending(trend);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Veri yuklenemedi');
+      setError(formatApiError(err, 'Arama'));
+      setRestaurants([]);
+      setLiveItems([]);
+      setSearchSource('db');
     }
   }, [activeQuery, activeCity, loadRestaurants, loadTrending, refreshCoordsIfStale]);
 
@@ -187,7 +191,15 @@ export default function ExploreScreen() {
         searching={loading}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.error}>{error}</Text>
+          <Text style={styles.errorHint}>
+            Canli arama: en az 2 harf + Ara. Hata devam ederse Expo Go’da uygulamayi yenile (r) ve Profil
+            ekranindaki API adresini kontrol et.
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <View style={styles.sectionHead}>
@@ -305,6 +317,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   count: { color: GastroColors.muted, fontSize: 13 },
+  errorBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 12,
+    gap: 6,
+  },
   error: GastroStyles.errorText,
+  errorHint: { color: GastroColors.muted, fontSize: 11, lineHeight: 16 },
   empty: { color: GastroColors.muted, textAlign: 'center', padding: 24, lineHeight: 20 },
 });

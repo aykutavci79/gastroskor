@@ -81,6 +81,26 @@ export type FollowerPromotion = {
   created_at: string;
 };
 
+export type UserNotification = {
+  id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  read_at: string | null;
+  created_at: string;
+  metadata: {
+    restaurant_id?: string;
+    coupon_code?: string;
+    open_path?: string;
+    discount_percent?: number;
+  };
+};
+
+export type UserNotificationListResponse = {
+  items: UserNotification[];
+  unread_count: number;
+};
+
 export type FollowerCoupon = {
   id: string;
   promotion_id: string;

@@ -11,7 +11,9 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr"
+        "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
+        "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
+        "EXPO_PUBLIC_USE_NATIVE_GOOGLE": "1"
       },
       "android": {
         "buildType": "apk"
@@ -23,7 +25,8 @@
     "production": {
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
-        "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr"
+        "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
+        "EXPO_PUBLIC_USE_NATIVE_GOOGLE": "1"
       },
       "android": {
         "buildType": "app-bundle"
@@ -37,9 +40,9 @@
         "track": "internal"
       },
       "ios": {
-        "appleId": "APPLE_ID_BURAYA",
-        "ascAppId": "APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "APPLE_TEAM_ID"
+        "appleId": "coolisback@gmail.com",
+        "ascAppId": "6776410673",
+        "appleTeamId": "5XTXAT7BXZ"
       }
     }
   }

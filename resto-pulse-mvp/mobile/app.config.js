@@ -2,8 +2,9 @@
 module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
+  owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.6',
+  version: '1.0.8',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'gastroskor',
@@ -16,10 +17,11 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '7',
+    buildNumber: '8',
     bundleIdentifier: 'com.gastroskor.app',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      UIBackgroundModes: ['remote-notification'],
     },
     config: {
       usesNonExemptEncryption: false,
@@ -31,7 +33,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 7,
+    versionCode: 10,
   },
   web: {
     bundler: 'metro',
@@ -60,6 +62,13 @@ module.exports = ({ config }) => ({
       'expo-location',
       {
         locationWhenInUsePermission: 'Yakin restoranlari gostermek icin konum kullanilir.',
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/icon.png',
+        color: '#FF6B00',
       },
     ],
   ],

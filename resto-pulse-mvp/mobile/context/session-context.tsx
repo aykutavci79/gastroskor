@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
+import { registerUserPushToken } from '@/lib/push-notifications';
 import type { GoogleIdTokenClaims } from '@/lib/google-auth';
 
 const STORAGE_KEY = 'gastroskor.session.v1';
@@ -58,8 +59,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           };
           await persistUser(next);
           setUser(next);
+          void registerUserPushToken(next.email);
         } catch {
           setUser(parsed);
+          void registerUserPushToken(parsed.email);
         }
       })
       .catch(() => {
@@ -92,6 +95,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
     await persistUser(next);
     setUser(next);
+    void registerUserPushToken(email);
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, fullName?: string | null) => {
@@ -103,6 +107,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const next: SessionUser = { id: profile.id, email: normalized, fullName: fullName ?? null };
     await persistUser(next);
     setUser(next);
+    void registerUserPushToken(normalized);
   }, []);
 
   const signOut = useCallback(async () => {

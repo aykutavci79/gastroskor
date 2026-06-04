@@ -3,11 +3,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
-import { signInWithGoogleViaWeb } from '@/lib/google-sign-in-via-web';
-import { getGoogleSignInSetupHint, isGoogleSignInConfigured, useGoogleSignInNative } from '@/hooks/use-google-sign-in';
-
-/** Store/EAS build disinda her zaman web koprusu (Expo Go dahil). */
-const useNativeGoogleSignIn = process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE === '1';
+import { getMobileGoogleReturnUri, getMobileGoogleSiteUrl, signInWithGoogleViaWeb } from '@/lib/google-sign-in-via-web';
+import {
+  getGoogleSignInSetupHint,
+  isGoogleSignInConfigured,
+  shouldUseNativeGoogleSignIn,
+  useGoogleSignInNative,
+} from '@/hooks/use-google-sign-in';
 
 type Props = {
   busy?: boolean;
@@ -21,11 +23,12 @@ export function GoogleSignInButton({ busy, onError }: Props) {
     return <Text style={styles.warn}>{setupHint ?? 'Google girisi yapilandirilmamis.'}</Text>;
   }
 
-  if (!useNativeGoogleSignIn) {
-    return <GoogleSignInWebBridgeButton busy={busy} onError={onError} />;
+  if (shouldUseNativeGoogleSignIn()) {
+    return <GoogleSignInNativeButton busy={busy} onError={onError} />;
   }
 
-  return <GoogleSignInNativeButton busy={busy} onError={onError} />;
+  // Yalnizca Expo Go: site uzerinden NextAuth (mobil-giris).
+  return <GoogleSignInWebBridgeButton busy={busy} onError={onError} />;
 }
 
 function GoogleSignInWebBridgeButton({ busy, onError }: Props) {
@@ -35,7 +38,7 @@ function GoogleSignInWebBridgeButton({ busy, onError }: Props) {
   async function onPress() {
     setPending(true);
     if (__DEV__) {
-      console.log('[GoogleAuth] web-bridge baslatiliyor (gastroskor.com.tr/mobil-giris)');
+      console.log('[GoogleAuth] web-bridge', getMobileGoogleSiteUrl(), 'return=', getMobileGoogleReturnUri());
     }
     try {
       const claims = await signInWithGoogleViaWeb();

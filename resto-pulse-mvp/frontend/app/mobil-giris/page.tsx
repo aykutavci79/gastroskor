@@ -22,8 +22,5 @@ export default async function MobilGirisPage({ searchParams }: Props) {
     );
   }
 
-  const callbackUrl = `/mobil-giris/tamam?return=${encodeURIComponent(returnUrl)}`;
-  redirect(
-    `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}&prompt=select_account`,
-  );
+  redirect(`/auth/giris?mode=mobil&return=${encodeURIComponent(returnUrl)}`);
 }

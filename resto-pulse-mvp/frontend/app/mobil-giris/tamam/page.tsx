@@ -37,7 +37,7 @@ export default async function MobilGirisTamamPage({ searchParams }: Props) {
       email={session.user.email}
       name={session.user.name ?? ''}
       picture={session.user.image ?? ''}
-      sub={session.user.email}
+      sub={(session.user as { id?: string }).id ?? session.user.email}
     />
   );
 }

@@ -1,16 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { FollowingRestaurantsSection } from '@/components/FollowingRestaurantsSection';
+import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { syncUser } from '@/lib/api';
+import { getApiBase } from '@/lib/api-base';
+import { getGoogleSignInSetupHint, isExpoGo } from '@/hooks/use-google-sign-in';
+import { getMobileGoogleReturnUri, getMobileGoogleSiteUrl } from '@/lib/google-sign-in-via-web';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
@@ -76,6 +80,30 @@ export default function ProfilScreen() {
         </Text>
       </View>
 
+      {isExpoGo ? (
+        <View style={styles.debugCard}>
+          <Text style={styles.debugTitle}>Expo Go — API adresi</Text>
+          <Text style={styles.apiUrl}>{getApiBase()}</Text>
+          <Text style={styles.muted}>
+            Canli arama ve giris bu adrese gider. Degistirmek icin mobile/.env → EXPO_PUBLIC_API_URL,
+            sonra expo start --clear.
+          </Text>
+          <Text style={styles.muted} selectable>
+            Site: {getMobileGoogleSiteUrl()}
+          </Text>
+          <Text style={styles.muted} selectable>
+            Donus: {getMobileGoogleReturnUri()}
+          </Text>
+          <Text style={styles.muted}>
+            Expo Go Google: auth.expo.io degil, yukaridaki site uzerinden giris (mobil-giris). Telefon
+            ve PC ayni Wi‑Fi’de olmali.
+          </Text>
+          {getGoogleSignInSetupHint() ? (
+            <Text style={styles.debugWarn}>{getGoogleSignInSetupHint()}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
       {loading ? (
         <Text style={styles.muted}>Yukleniyor...</Text>
       ) : user ? (
@@ -121,6 +149,7 @@ export default function ProfilScreen() {
         </View>
       )}
 
+      {user ? <UserNotificationsSection userEmail={user.email} /> : null}
       {user ? <FollowingRestaurantsSection userEmail={user.email} /> : null}
 
       {user ? (
@@ -243,4 +272,21 @@ const styles = StyleSheet.create({
   aboutCredit: { color: GastroColors.muted, fontSize: 12, marginTop: 4 },
   aboutCreditLink: { color: GastroColors.muted, fontWeight: '600', textDecorationLine: 'underline' },
   error: GastroStyles.errorText,
+  debugCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    backgroundColor: GastroColors.input,
+    padding: 12,
+    gap: 6,
+  },
+  debugTitle: { color: GastroColors.gold, fontSize: 12, fontWeight: '800' },
+  apiUrl: {
+    color: GastroColors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  debugWarn: { color: GastroColors.gold, fontSize: 11, lineHeight: 16 },
 });
