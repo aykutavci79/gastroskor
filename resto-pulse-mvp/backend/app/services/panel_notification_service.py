@@ -20,6 +20,7 @@ NOTIFICATION_TYPES = {
     "trial_ending",
     "negative_review",
     "competitor_update",
+    "new_follower",
 }
 
 TYPE_PREF_MAP = {

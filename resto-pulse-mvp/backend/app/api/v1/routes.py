@@ -99,6 +99,7 @@ from app.schemas.review import (
 )
 from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
 from app.schemas.user import UserProfile, UserSyncPayload
+from app.services.follow_notifications import notify_restaurant_new_follower
 from app.services.restaurant_follow import (
     follow_restaurant,
     follower_count,
@@ -946,13 +947,15 @@ def restaurant_follow_status(
 
 
 @router.post("/restaurants/{restaurant_id}/follow", response_model=RestaurantFollowStatus)
-def follow_restaurant_endpoint(
+async def follow_restaurant_endpoint(
     restaurant_id: UUID,
     user_email: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
 ):
     user = get_or_create_user(db, email=user_email)
-    follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
+    created = follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
+    if created:
+        await notify_restaurant_new_follower(db, restaurant_id=restaurant_id, follower=user)
     return RestaurantFollowStatus(
         following=True,
         follower_count=follower_count(db, restaurant_id=restaurant_id),

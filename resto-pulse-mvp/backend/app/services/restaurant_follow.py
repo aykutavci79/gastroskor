@@ -154,4 +154,22 @@ def list_followed_restaurants(db: Session, *, user_id: UUID, limit: int = 50) ->
     ).all()
     by_id = {r.id: r for r in restaurants}
     ordered = [by_id[rid] for rid in restaurant_ids if rid in by_id]
-    return build_restaurant_list_rows(db, ordered)
+    rows = build_restaurant_list_rows(db, ordered)
+    return _sort_rows_by_rating_desc(rows)
+
+
+def _rating_sort_score(row: dict) -> float:
+    google = row.get("google_rating")
+    if google is not None:
+        return float(google)
+    avg = row.get("avg_rating")
+    if avg is not None:
+        return float(avg)
+    return -1.0
+
+
+def _sort_rows_by_rating_desc(rows: list[dict]) -> list[dict]:
+    return sorted(
+        rows,
+        key=lambda row: (-_rating_sort_score(row), (row.get("name") or "").lower()),
+    )
