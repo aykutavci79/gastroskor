@@ -58,6 +58,10 @@ class User(Base):
     restaurant_ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="user")
     panel_notifications: Mapped[list["PanelNotification"]] = relationship(back_populates="user")
     restaurant_follows: Mapped[list["UserRestaurantFollow"]] = relationship(back_populates="user")
+    follower_coupons: Mapped[list["FollowerCoupon"]] = relationship(
+        back_populates="user",
+        foreign_keys="FollowerCoupon.user_id",
+    )
 
 
 class UserRestaurantFollow(Base):
@@ -102,6 +106,62 @@ class Restaurant(Base):
     ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="restaurant")
     analytics_events: Mapped[list["RestaurantAnalyticsEvent"]] = relationship(back_populates="restaurant")
     followers: Mapped[list["UserRestaurantFollow"]] = relationship(back_populates="restaurant")
+    follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(back_populates="restaurant")
+    follower_coupons: Mapped[list["FollowerCoupon"]] = relationship(back_populates="restaurant")
+
+
+class FollowerPromotion(Base):
+    __tablename__ = "follower_promotions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(120))
+    discount_percent: Mapped[int] = mapped_column(Integer)
+    valid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    max_coupons: Mapped[int] = mapped_column(Integer, default=100)
+    status: Mapped[str] = mapped_column(String(20), default="active", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="follower_promotions")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="follower_promotions")
+    coupons: Mapped[list["FollowerCoupon"]] = relationship(back_populates="promotion", cascade="all, delete-orphan")
+
+
+class FollowerCoupon(Base):
+    __tablename__ = "follower_coupons"
+    __table_args__ = (
+        UniqueConstraint("promotion_id", "user_id", name="uq_follower_coupon_promo_user"),
+        UniqueConstraint("code", name="uq_follower_coupon_code"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    promotion_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("follower_promotions.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    code: Mapped[str] = mapped_column(String(32), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="issued", index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    redeemed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    promotion: Mapped["FollowerPromotion"] = relationship(back_populates="coupons")
+    user: Mapped["User"] = relationship(back_populates="follower_coupons", foreign_keys=[user_id])
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="follower_coupons")
+    redeemed_by: Mapped["User | None"] = relationship(foreign_keys=[redeemed_by_user_id])
 
 
 class RestaurantOwnership(Base):
@@ -161,6 +221,9 @@ class RestaurantOwnership(Base):
         back_populates="ownership", uselist=False, cascade="all, delete-orphan"
     )
     notifications: Mapped[list["PanelNotification"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan"
+    )
+    follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
 

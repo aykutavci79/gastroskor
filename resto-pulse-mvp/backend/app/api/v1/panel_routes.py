@@ -66,6 +66,20 @@ from app.services.panel_notification_service import (
     unread_count,
 )
 from app.services.panel_notification_jobs import run_scheduled_notification_jobs
+from app.schemas.follower_promotion import (
+    FollowerCouponRedeemRequest,
+    FollowerCouponRedeemResponse,
+    FollowerPromotionCreate,
+    FollowerPromotionRead,
+    FollowerCouponRead,
+)
+from app.services.follower_promotion_service import (
+    coupon_to_dict,
+    create_follower_promotion,
+    list_promotions_for_ownership,
+    promotion_to_dict,
+    redeem_follower_coupon,
+)
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
@@ -750,6 +764,57 @@ def admin_search_reviews(
             }
         )
     return results
+
+
+@panel_router.get("/follower-promotions", response_model=list[FollowerPromotionRead])
+def list_panel_follower_promotions(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return list_promotions_for_ownership(db, ownership.id)
+
+
+@panel_router.post("/follower-promotions", response_model=FollowerPromotionRead, status_code=status.HTTP_201_CREATED)
+def create_panel_follower_promotion(payload: FollowerPromotionCreate, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel or not state.can_write_actions:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Kampanya icin tam panel yetkisi gerekir.")
+    promo = create_follower_promotion(
+        db,
+        ownership=ownership,
+        title=payload.title,
+        discount_percent=payload.discount_percent,
+        valid_days=payload.valid_days,
+        max_coupons=payload.max_coupons,
+    )
+    return promotion_to_dict(db, promo)
+
+
+@panel_router.post("/follower-coupons/redeem", response_model=FollowerCouponRedeemResponse)
+def redeem_panel_follower_coupon(payload: FollowerCouponRedeemRequest, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel or not state.can_write_actions:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Kupon onayi icin tam panel yetkisi gerekir.")
+    coupon, message = redeem_follower_coupon(
+        db,
+        ownership=ownership,
+        actor_user_id=user.id,
+        code=payload.code,
+    )
+    restaurant = db.get(Restaurant, coupon.restaurant_id)
+    return FollowerCouponRedeemResponse(
+        ok=True,
+        message=message,
+        coupon=FollowerCouponRead(
+            **coupon_to_dict(coupon, restaurant_name=restaurant.name if restaurant else None)
+        ),
+    )
 
 
 @panel_router.delete("/admin/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -100,6 +100,8 @@ from app.schemas.review import (
 from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
 from app.schemas.user import UserProfile, UserSyncPayload
 from app.services.follow_notifications import notify_restaurant_new_follower
+from app.services.follower_promotion_service import get_user_coupon_at_restaurant, issue_coupon_for_follower
+from app.schemas.follower_promotion import FollowerCouponRead
 from app.services.restaurant_follow import (
     follow_restaurant,
     follower_count,
@@ -928,6 +930,19 @@ def list_my_restaurant_follows(
     return RestaurantFollowListResponse(items=items, total=len(items))
 
 
+@router.get("/restaurants/{restaurant_id}/follower-coupon", response_model=FollowerCouponRead | None)
+def restaurant_follower_coupon(
+    restaurant_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
+    if not user:
+        return None
+    row = get_user_coupon_at_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
+    return row
+
+
 @router.get("/restaurants/{restaurant_id}/follow-status", response_model=RestaurantFollowStatus)
 def restaurant_follow_status(
     restaurant_id: UUID,
@@ -955,6 +970,8 @@ async def follow_restaurant_endpoint(
     user = get_or_create_user(db, email=user_email)
     created = follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
     if created:
+        issue_coupon_for_follower(db, restaurant_id=restaurant_id, user_id=user.id)
+        db.commit()
         await notify_restaurant_new_follower(db, restaurant_id=restaurant_id, follower=user)
     return RestaurantFollowStatus(
         following=True,

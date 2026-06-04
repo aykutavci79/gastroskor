@@ -613,6 +613,39 @@ export function updatePanelNotificationPreferences(payload: {
   });
 }
 
+export function listPanelFollowerPromotions(userEmail: string) {
+  return request<import('@/lib/types').FollowerPromotion[]>(
+    `/panel/follower-promotions?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function createPanelFollowerPromotion(payload: {
+  user_email: string;
+  title?: string;
+  discount_percent: number;
+  valid_days?: number;
+  max_coupons?: number;
+}) {
+  return request<import('@/lib/types').FollowerPromotion>('/panel/follower-promotions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function redeemPanelFollowerCoupon(payload: { user_email: string; code: string }) {
+  return request<import('@/lib/types').FollowerCouponRedeemResponse>('/panel/follower-coupons/redeem', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getRestaurantFollowerCoupon(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<import('@/lib/types').FollowerCoupon | null>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follower-coupon?${query.toString()}`,
+  );
+}
+
 export function trackAnalyticsEvent(payload: {
   event_type: string;
   place_id?: string;

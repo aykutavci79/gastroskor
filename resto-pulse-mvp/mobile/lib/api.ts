@@ -248,6 +248,13 @@ export function unfollowRestaurant(restaurantId: string, userEmail: string) {
   );
 }
 
+export function getRestaurantFollowerCoupon(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<import('@/lib/types').FollowerCoupon | null>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follower-coupon?${query.toString()}`,
+  );
+}
+
 export function analyzeReview(reviewId: string) {
   return request<ReviewAnalyzeResult>(`/reviews/${reviewId}/analyze`, { method: 'POST' });
 }

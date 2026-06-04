@@ -63,10 +63,11 @@ Railway: `alembic upgrade head` calistir (0016 + 0017).
 - Kullanici ayari: acik/kapali; spam icin limit / toplu ozet dusunulebilir
 - Web: istege bagli e-posta
 
-**D3 — Takipciye ozel promosyon**
-- Panel: "Takipcilere duyur" (metin, indirim kodu, gecerlilik)
-- Uygulama: takipci rozet / ozel kupon kutusu
-- Sadece dogrulanmis isletme + `subscription_allows_promo` (mevcut promo altyapisi)
+**D3 — Takipciye ozel promosyon** — v1 kodlandi
+- [x] Panel: kampanya (% , gun, max kupon) + kupon dogrula (kullanildi)
+- [x] Kisisel GS- kodu; takip aninda / kampanya acilisinda uretim
+- [x] Mobil: takipci kupon kutusu (restoran detay)
+- Sadece `subscription_allows_promo` (aktif/trial uyelik)
 
 **Notlar:** KVKK gizlilik maddesi; bildirim yorgunluguna dikkat. Magaza v1.0 sonrasi v1.1
 icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.

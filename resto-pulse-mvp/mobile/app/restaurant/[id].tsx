@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FollowerCouponBox } from '@/components/FollowerCouponBox';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
@@ -68,6 +69,7 @@ export default function RestaurantDetailScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [moderationHighlights, setModerationHighlights] = useState<string[]>([]);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
+  const [following, setFollowing] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
@@ -347,7 +349,16 @@ export default function RestaurantDetailScreen() {
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
 
-          <RestaurantFollowButton restaurantId={restaurant.id} userEmail={user?.email} />
+          <RestaurantFollowButton
+            restaurantId={restaurant.id}
+            userEmail={user?.email}
+            onFollowingChange={setFollowing}
+          />
+          <FollowerCouponBox
+            key={`${restaurant.id}-${following ? '1' : '0'}`}
+            restaurantId={restaurant.id}
+            userEmail={user?.email}
+          />
 
           <View style={styles.scoreRow}>
             {googleRating != null ? (

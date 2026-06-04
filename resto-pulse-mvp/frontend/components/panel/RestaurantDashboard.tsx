@@ -7,6 +7,7 @@ import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
 import { RestaurantMenuEditor } from '@/components/panel/RestaurantMenuEditor';
 import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
+import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
 import type { CompetitorAiReport, PanelDashboard } from '@/lib/types';
@@ -120,6 +121,7 @@ export function RestaurantDashboard() {
               access?.subscription_status === 'trial' || access?.subscription_status === 'active'
             }
           />
+          <PanelFollowerCoupons userEmail={userEmail} canWrite={Boolean(access?.can_write_actions)} />
         </>
       ) : null}
 

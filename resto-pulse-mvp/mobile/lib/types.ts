@@ -68,6 +68,32 @@ export type RestaurantFollowListResponse = {
   total: number;
 };
 
+export type FollowerPromotion = {
+  id: string;
+  restaurant_id: string;
+  title: string;
+  discount_percent: number;
+  valid_until: string;
+  max_coupons: number;
+  issued_count: number;
+  redeemed_count: number;
+  status: string;
+  created_at: string;
+};
+
+export type FollowerCoupon = {
+  id: string;
+  promotion_id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  code: string;
+  discount_percent: number;
+  status: string;
+  expires_at: string;
+  redeemed_at?: string | null;
+  title?: string | null;
+};
+
 export type RestaurantPromoSettings = {
   subscription_active: boolean;
   has_own_courier: boolean;

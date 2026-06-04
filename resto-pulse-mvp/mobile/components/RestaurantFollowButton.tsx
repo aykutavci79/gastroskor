@@ -13,9 +13,10 @@ import { followApiErrorMessage } from '@/lib/follow-api-errors';
 type Props = {
   restaurantId: string;
   userEmail: string | null | undefined;
+  onFollowingChange?: (following: boolean) => void;
 };
 
-export function RestaurantFollowButton({ restaurantId, userEmail }: Props) {
+export function RestaurantFollowButton({ restaurantId, userEmail, onFollowingChange }: Props) {
   const router = useRouter();
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,6 +39,7 @@ export function RestaurantFollowButton({ restaurantId, userEmail }: Props) {
       .then((status) => {
         if (!cancelled) {
           setFollowing(status.following);
+          onFollowingChange?.(status.following);
           setLoaded(true);
           setError(null);
         }
@@ -66,6 +68,7 @@ export function RestaurantFollowButton({ restaurantId, userEmail }: Props) {
         ? await unfollowRestaurant(restaurantId, email)
         : await followRestaurant(restaurantId, email);
       setFollowing(status.following);
+      onFollowingChange?.(status.following);
     } catch (err) {
       setError(followApiErrorMessage(err));
     } finally {
