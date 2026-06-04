@@ -10,6 +10,10 @@ import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLink
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { FeaturedCornerBadge } from '@/components/RestaurantPremiumFrame';
+import {
+  resolveCardRatingScore,
+  resolveRatingBandVisual,
+} from '@/lib/rating-band-visual';
 import type { RestaurantListItem } from '@/lib/types';
 
 type Props = {
@@ -60,6 +64,12 @@ export function RestaurantCard({
   const travelDistance = distanceMeters ?? restaurant.distance_meters;
   const travelMaps = mapsDirectionsUrl ?? restaurant.maps_directions_url;
 
+  const ratingForBand = resolveCardRatingScore({
+    gastroRating: restaurant.avg_rating,
+    googleRating: google,
+  });
+  const ratingVisual = resolveRatingBandVisual(ratingForBand);
+
   const shellClass = [
     'group relative block overflow-hidden rounded-2xl transition',
     showFeatured ? 'featured-card' : 'border border-border bg-surface-card shadow-card',
@@ -76,6 +86,13 @@ export function RestaurantCard({
 
   const inner = (
     <>
+      {ratingVisual ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[5px] rounded-l-2xl"
+          style={{ backgroundColor: ratingVisual.stripe }}
+        />
+      ) : null}
       {badgeLabel ? <FeaturedCornerBadge label={badgeLabel} /> : null}
       <RestaurantCardCover
         imageUrl={coverImage}

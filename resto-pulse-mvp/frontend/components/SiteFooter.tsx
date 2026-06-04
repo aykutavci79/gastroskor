@@ -21,6 +21,13 @@ export function SiteFooter() {
           <a href="mailto:destek@gastroskor.com.tr" className="text-content-muted hover:text-accent">
             destek@gastroskor.com.tr
           </a>
+          <a
+            href="https://cursor.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-content-muted hover:text-accent">
+            Built with Cursor
+          </a>
         </nav>
       </div>
     </footer>

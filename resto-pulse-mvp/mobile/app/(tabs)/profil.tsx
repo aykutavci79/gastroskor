@@ -103,6 +103,16 @@ export default function ProfilScreen() {
         <Text style={styles.linkTitle}>Web paneli ac</Text>
         <Text style={styles.muted}>Tarayicida tam panel (admin, detayli ayarlar)</Text>
       </Pressable>
+
+      <View style={styles.about}>
+        <Text style={styles.aboutTitle}>Hakkinda</Text>
+        <Text style={styles.muted}>GastroSkor — yakinindaki en iyi lezzetleri kesfet.</Text>
+        <Pressable onPress={() => void WebBrowser.openBrowserAsync('https://cursor.com')}>
+          <Text style={styles.aboutCredit}>
+            Gelistirme aracı: <Text style={styles.aboutCreditLink}>Cursor</Text>
+          </Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
@@ -158,5 +168,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   linkTitle: { color: GastroColors.accent, fontWeight: '700', fontSize: 15 },
+  about: {
+    marginTop: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    backgroundColor: GastroColors.panel,
+    padding: 16,
+    gap: 6,
+  },
+  aboutTitle: { color: GastroColors.text, fontSize: 14, fontWeight: '800' },
+  aboutCredit: { color: GastroColors.muted, fontSize: 12, marginTop: 4 },
+  aboutCreditLink: { color: GastroColors.muted, fontWeight: '600', textDecorationLine: 'underline' },
   error: GastroStyles.errorText,
 });
