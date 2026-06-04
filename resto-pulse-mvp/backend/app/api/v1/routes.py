@@ -635,7 +635,15 @@ async def get_live_place_details(
 
     combined_texts = [review["text"] for review in filtered_reviews if review.get("text")]
     combined_texts.extend([review["review_text"] for review in member_reviews if review.get("review_text")])
-    analysis = await ai_service.analyze_place_reviews(combined_texts)
+    review_ratings = [review["rating"] for review in filtered_reviews if review.get("rating") is not None]
+    review_ratings.extend(
+        review["rating"] for review in member_reviews if review.get("rating") is not None
+    )
+    analysis = await ai_service.analyze_place_reviews(
+        combined_texts,
+        google_rating=details.get("rating"),
+        review_ratings=review_ratings,
+    )
 
     return LivePlaceDetails(
         place_id=details["place_id"],

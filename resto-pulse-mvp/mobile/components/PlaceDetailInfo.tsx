@@ -33,9 +33,12 @@ function AiAnalysisBlock({ analysis }: { analysis: PlaceAnalysis }) {
     <View style={styles.block}>
       <Text style={styles.blockTitle}>AI Analiz</Text>
       <Text style={styles.blockHint}>
-        Google ve GastroSkor yorumları birleştirilerek hazırlandı.
+        Kategori skorlari GastroSkor 10 uzerinden (Google yildizi 5 uzerindendir).
       </Text>
       <Text style={styles.summary}>{analysis.summary}</Text>
+      {analysis.overall_score != null ? (
+        <Text style={styles.overallScore}>Genel: {analysis.overall_score.toFixed(1)}/10</Text>
+      ) : null}
       {analysis.categories.map((row) => (
         <View key={row.category} style={styles.aiRow}>
           <View style={styles.aiHead}>
@@ -142,6 +145,7 @@ const styles = StyleSheet.create({
   link: { color: GastroColors.accent, fontSize: 14, fontWeight: '600' },
   hourLine: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
   summary: { color: GastroColors.text, fontSize: 13, lineHeight: 20 },
+  overallScore: { color: GastroColors.accent, fontSize: 14, fontWeight: '800' },
   aiRow: {
     borderTopWidth: 1,
     borderTopColor: GastroColors.border,

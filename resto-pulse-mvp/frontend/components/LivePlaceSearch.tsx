@@ -446,15 +446,23 @@ export function LivePlaceSearch({
                         <div className="rounded-2xl border border-border/50 bg-surface-input p-4">
                           <h5 className="text-sm font-semibold text-content">AI Analiz</h5>
                           <p className="mt-1 text-xs text-content-muted">
-                            Bu analiz hem Google yorumlarini hem de GastroSkor uyelerinin yorumlarini birleştirerek hazirlandi.
+                            GastroSkor kategori skorlari 10 uzerindendir (Google yildizi 5 uzerindendir).
+                            {details.rating != null ? (
+                              <> Google ort.: {details.rating.toFixed(1)}/5.</>
+                            ) : null}
                           </p>
                           <p className="mt-3 text-xs text-content-muted">{details.analysis.summary}</p>
+                          {details.analysis.overall_score != null ? (
+                            <p className="mt-2 text-sm font-semibold text-accent">
+                              Genel: {details.analysis.overall_score.toFixed(1)}/10
+                            </p>
+                          ) : null}
                           <div className="mt-4 grid gap-3">
                             {details.analysis.categories.map((category) => (
                               <div key={category.category} className="rounded-2xl border border-border/60 bg-surface/90 p-3">
                                 <div className="flex items-center justify-between gap-4 text-sm font-semibold text-content">
                                   <span>{category.category}</span>
-                                  <span>{(category.score ?? 0).toFixed(1)}</span>
+                                  <span>{(category.score ?? 0).toFixed(1)}/10</span>
                                 </div>
                                 <p className="mt-2 text-xs text-content-muted">{category.reason}</p>
                               </div>
