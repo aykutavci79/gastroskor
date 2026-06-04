@@ -22,11 +22,10 @@ export function RestaurantCardScores({
   const hasGastro = gastroRating != null;
   if (!hasGoogle && !hasGastro) return null;
 
-  const ratingForBand = resolveCardRatingScore({
-    gastroRating,
-    googleRating,
-  });
-  const ratingVisual = hasGoogle ? resolveRatingBandVisual(ratingForBand) : null;
+  const stripeRating = hasGoogle
+    ? googleRating
+    : resolveCardRatingScore({ gastroRating, googleRating });
+  const ratingVisual = stripeRating != null ? resolveRatingBandVisual(stripeRating) : null;
 
   const pillBase = compact
     ? 'rounded-md px-1.5 py-0.5 text-[10px] font-semibold backdrop-blur-sm border'

@@ -59,15 +59,16 @@ export function resolveRatingBandVisual(rating: number | null | undefined): Rati
   };
 }
 
+/** Sol serit: once Google, yoksa GS (kartta ayri gosterilir). */
 export function resolveCardRatingScore(input: {
   gastroRating?: number | null;
   googleRating?: number | null;
 }): number | null {
-  if (input.gastroRating != null && !Number.isNaN(input.gastroRating)) {
-    return input.gastroRating;
-  }
   if (input.googleRating != null && !Number.isNaN(input.googleRating)) {
     return input.googleRating;
+  }
+  if (input.gastroRating != null && !Number.isNaN(input.gastroRating)) {
+    return input.gastroRating;
   }
   return null;
 }

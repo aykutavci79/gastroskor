@@ -59,16 +59,19 @@ export function resolveRatingBandVisual(rating: number | null | undefined): Rati
   };
 }
 
-/** GS ortalamasi varsa onu, yoksa Google puanini kullan. */
+/**
+ * Sol serit + Google rozeti rengi.
+ * Kartta Google puani yaziyorsa once onu kullan (GS ayri satirda).
+ */
 export function resolveCardRatingScore(input: {
   gastroRating?: number | null;
   googleRating?: number | null;
 }): number | null {
-  if (input.gastroRating != null && !Number.isNaN(input.gastroRating)) {
-    return input.gastroRating;
-  }
   if (input.googleRating != null && !Number.isNaN(input.googleRating)) {
     return input.googleRating;
+  }
+  if (input.gastroRating != null && !Number.isNaN(input.gastroRating)) {
+    return input.gastroRating;
   }
   return null;
 }
