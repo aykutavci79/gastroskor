@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 
 import { analyzeReview, createReview, getGoogleReviewLink, moderateReviewText } from '@/lib/api';
 import { ReviewModerationApiError } from '@/lib/api';
+import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { REVIEW_NAME_DISPLAY_STORAGE_KEY, previewAuthorName } from '@/lib/display-name';
 import type { Review, ReviewAnalyzeResult } from '@/lib/types';
 
 import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
@@ -25,6 +27,16 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<string[]>([]);
+  const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY);
+      if (stored === 'masked' || stored === 'full') setNameDisplay(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     const trimmed = text.trim();
@@ -71,6 +83,11 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
 
     setLoading('submit');
     try {
+      try {
+        localStorage.setItem(REVIEW_NAME_DISPLAY_STORAGE_KEY, nameDisplay);
+      } catch {
+        /* ignore */
+      }
       const review = await createReview({
         restaurant_id: restaurantId,
         rating,
@@ -78,6 +95,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
         author_email: session?.user?.email ?? undefined,
         author_name: session?.user?.name ?? undefined,
         author_avatar_url: session?.user?.image ?? undefined,
+        author_name_display: nameDisplay,
       });
       setLastReviewId(review.id);
       onReviewCreated(review);
@@ -109,6 +127,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
           author_email: session?.user?.email ?? undefined,
           author_name: session?.user?.name ?? undefined,
           author_avatar_url: session?.user?.image ?? undefined,
+          author_name_display: nameDisplay,
         });
         reviewId = review.id;
         setLastReviewId(review.id);
@@ -161,6 +180,38 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
   return (
     <section className="rounded-2xl border border-border/70 bg-surface-card p-6">
       <h2 className="mb-4 text-xl font-semibold text-content">Yorum Yaz</h2>
+
+      <div className="mb-4">
+        <p className="mb-2 text-sm font-medium text-content-muted">Yorumda adin nasil gorunsun?</p>
+        <div className="mb-2 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setNameDisplay('full')}
+            className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+              nameDisplay === 'full'
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-border bg-surface-input text-content-muted'
+            }`}>
+            Tam ad
+          </button>
+          <button
+            type="button"
+            onClick={() => setNameDisplay('masked')}
+            className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+              nameDisplay === 'masked'
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-border bg-surface-input text-content-muted'
+            }`}>
+            Gizli
+          </button>
+        </div>
+        <p className="text-xs text-content-muted">
+          Onizleme:{' '}
+          <span className="font-semibold text-content">
+            {previewAuthorName(session?.user?.name ?? null, nameDisplay)}
+          </span>
+        </p>
+      </div>
 
       <div className="mb-4">
         <p className="mb-2 text-sm text-content-muted">Puanin</p>

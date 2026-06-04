@@ -80,6 +80,7 @@ from app.services.new_member_restaurants import list_new_member_restaurants
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
+from app.services.display_name import normalize_author_name_display, public_author_name
 from app.services.restaurant_claim import ensure_restaurant_for_place
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
 from app.schemas.review import (
@@ -149,6 +150,7 @@ def serialize_user(user: User, db: Session) -> UserProfile:
         email=user.email,
         full_name=user.full_name,
         avatar_url=user.avatar_url,
+        default_review_name_display=normalize_author_name_display(user.default_review_name_display),
         gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
         review_count=int(review_count),
     )
@@ -160,6 +162,7 @@ def get_or_create_user(
     full_name: str | None = None,
     avatar_url: str | None = None,
     google_sub: str | None = None,
+    default_review_name_display: str | None = None,
 ) -> User:
     email = email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
@@ -177,13 +180,24 @@ def get_or_create_user(
         if google_sub and user.google_sub != google_sub:
             user.google_sub = google_sub
             updated = True
+        if default_review_name_display is not None:
+            normalized = normalize_author_name_display(default_review_name_display)
+            if user.default_review_name_display != normalized:
+                user.default_review_name_display = normalized
+                updated = True
         if updated:
             db.add(user)
             db.commit()
             db.refresh(user)
         return user
 
-    user = User(email=email, full_name=full_name, avatar_url=avatar_url, google_sub=google_sub)
+    user = User(
+        email=email,
+        full_name=full_name,
+        avatar_url=avatar_url,
+        google_sub=google_sub,
+        default_review_name_display=normalize_author_name_display(default_review_name_display),
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -321,7 +335,9 @@ def serialize_review_reply(reply: ReviewReply) -> ReviewReplyRead:
 
 
 def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> ReviewRead:
-    author_name = review.author.full_name if review.author else None
+    raw_name = review.author.full_name if review.author else None
+    display_mode = normalize_author_name_display(getattr(review, "author_name_display", None))
+    author_name = public_author_name(raw_name, display_mode)
     author_avatar = review.author.avatar_url if review.author else None
     helpful_votes = getattr(review, "helpful_votes", None) or []
     helpful_count = len(helpful_votes)
@@ -342,6 +358,7 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
         author_email=review.author.email if review.author else None,
         author_name=author_name,
         author_avatar_url=author_avatar,
+        author_name_display=display_mode,
         rating=review.rating,
         review_text=review.review_text,
         image_urls=review_image_urls(review),
@@ -621,7 +638,10 @@ async def get_live_place_details(
         member_reviews = [
             {
                 "id": str(review.id),
-                "author_name": review.author.full_name if review.author else "GastroSkor Üye",
+                "author_name": public_author_name(
+                    review.author.full_name if review.author else None,
+                    getattr(review, "author_name_display", None),
+                ),
                 "author_avatar_url": review.author.avatar_url if review.author else None,
                 "rating": review.rating,
                 "review_text": review.review_text,
@@ -949,6 +969,7 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
         full_name=payload.full_name,
         avatar_url=payload.avatar_url,
         google_sub=payload.google_sub,
+        default_review_name_display=payload.default_review_name_display,
     )
     if payload.record_login:
         record_app_usage_event(db, event_type="user_login", user_id=user.id, platform="api")
@@ -1147,6 +1168,11 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             detail="Yorum yazmak icin giris yapin (author_email gerekli).",
         )
 
+    name_display = normalize_author_name_display(payload.author_name_display)
+    if author_user:
+        author_user.default_review_name_display = name_display
+        db.add(author_user)
+
     review = Review(
         restaurant_id=restaurant_id,
         author_id=author_uuid,
@@ -1154,6 +1180,7 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         review_text=(payload.review_text or "").strip(),
         review_lang="tr",
         is_demo=False,
+        author_name_display=name_display,
     )
     db.add(review)
     db.commit()
@@ -1173,7 +1200,7 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
                     db,
                     ownership=ownership,
                     review=review,
-                    author_name=author_name,
+                    author_name=author_user.full_name if author_user else author_name,
                 )
             except Exception:
                 logger.exception("Negative review notification failed review=%s", review.id)

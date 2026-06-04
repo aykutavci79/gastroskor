@@ -9,6 +9,8 @@ import { RestaurantCard } from '@/components/RestaurantCard';
 import { StarRating } from '@/components/StarRating';
 import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { createReview, getLivePlaceDetails, listRestaurantReviews, searchLivePlaces, syncUser } from '@/lib/api';
+import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { REVIEW_NAME_DISPLAY_STORAGE_KEY, previewAuthorName } from '@/lib/display-name';
 import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
 import type {
@@ -48,6 +50,7 @@ export function LivePlaceSearch({
   const [activeTab, setActiveTab] = useState<'google' | 'member' | 'gastro'>('google');
   const [memberRating, setMemberRating] = useState(5);
   const [memberReviewText, setMemberReviewText] = useState('');
+  const [memberNameDisplay, setMemberNameDisplay] = useState<AuthorNameDisplayMode>('full');
   const [memberLoading, setMemberLoading] = useState(false);
   const [gsReviews, setGsReviews] = useState<Review[]>([]);
   const [gsReviewsLoading, setGsReviewsLoading] = useState(false);
@@ -70,6 +73,21 @@ export function LivePlaceSearch({
     else if (sharedCoords) setLocationStatus('ready');
     else if (cityStatus === 'denied') setLocationStatus('denied');
   }, [sharedCoords, cityStatus]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY);
+      if (stored === 'masked' || stored === 'full') setMemberNameDisplay(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (profile?.default_review_name_display) {
+      setMemberNameDisplay(profile.default_review_name_display);
+    }
+  }, [profile?.default_review_name_display]);
 
   function requestUserCoords(): Promise<{ lat: number; lng: number } | null> {
     if (sharedCoords) {
@@ -238,6 +256,11 @@ export function LivePlaceSearch({
     setDetailsError(null);
 
     try {
+      try {
+        localStorage.setItem(REVIEW_NAME_DISPLAY_STORAGE_KEY, memberNameDisplay);
+      } catch {
+        /* ignore */
+      }
       await createReview({
         restaurant_id: details.restaurant_id,
         rating: memberRating,
@@ -246,6 +269,7 @@ export function LivePlaceSearch({
         author_email: session.user.email,
         author_name: session.user.name ?? undefined,
         author_avatar_url: session.user.image ?? undefined,
+        author_name_display: memberNameDisplay,
       });
 
       setMemberReviewText('');
@@ -627,6 +651,39 @@ export function LivePlaceSearch({
                             </p>
                           ) : (
                             <>
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-content-muted">
+                                  Yorumda adin nasil gorunsun?
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setMemberNameDisplay('full')}
+                                    className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                                      memberNameDisplay === 'full'
+                                        ? 'border-accent bg-accent/15 text-accent'
+                                        : 'border-border bg-surface-input text-content-muted'
+                                    }`}>
+                                    Tam ad
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setMemberNameDisplay('masked')}
+                                    className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                                      memberNameDisplay === 'masked'
+                                        ? 'border-accent bg-accent/15 text-accent'
+                                        : 'border-border bg-surface-input text-content-muted'
+                                    }`}>
+                                    Gizli
+                                  </button>
+                                </div>
+                                <p className="text-xs text-content-muted">
+                                  Onizleme:{' '}
+                                  <span className="font-semibold text-content">
+                                    {previewAuthorName(session.user.name ?? null, memberNameDisplay)}
+                                  </span>
+                                </p>
+                              </div>
                               <div className="space-y-2">
                                 <p className="text-sm font-medium text-content">Yildiz puani</p>
                                 <StarRating value={memberRating} onChange={setMemberRating} />

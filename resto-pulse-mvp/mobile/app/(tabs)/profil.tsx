@@ -1,10 +1,15 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
+import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
+import { syncUser } from '@/lib/api';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
@@ -14,6 +19,36 @@ export default function ProfilScreen() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
+
+  useEffect(() => {
+    AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
+      .then((raw) => {
+        if (raw === 'masked' || raw === 'full') setNameDisplay(raw);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const persistNameDisplay = useCallback(
+    async (mode: AuthorNameDisplayMode) => {
+      setNameDisplay(mode);
+      await AsyncStorage.setItem(REVIEW_NAME_DISPLAY_STORAGE_KEY, mode);
+      if (user?.email) {
+        try {
+          await syncUser({
+            email: user.email,
+            full_name: user.fullName,
+            avatar_url: user.avatarUrl ?? null,
+            google_sub: user.googleSub ?? null,
+            default_review_name_display: mode,
+          });
+        } catch {
+          /* offline */
+        }
+      }
+    },
+    [user],
+  );
 
   const handleGoogleError = useCallback((message: string) => {
     setError(message);
@@ -47,6 +82,11 @@ export default function ProfilScreen() {
           <Text style={styles.label}>Giris yapildi</Text>
           <Text style={styles.email}>{user.email}</Text>
           {user.fullName ? <Text style={styles.muted}>{user.fullName}</Text> : null}
+          <ReviewNameDisplayPicker
+            fullName={user.fullName}
+            value={nameDisplay}
+            onChange={(mode) => void persistNameDisplay(mode)}
+          />
           <Pressable style={styles.btnOutline} onPress={() => void signOut()}>
             <Text style={styles.btnOutlineText}>Cikis</Text>
           </Pressable>

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
+import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
 import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
 import { StarRatingPicker } from '@/components/StarRatingPicker';
@@ -34,6 +36,8 @@ import { ReviewModerationApiError } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { averageGsRating, renderStarRow } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
+import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
 import type { DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
 
@@ -62,6 +66,15 @@ export default function RestaurantDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [moderationHighlights, setModerationHighlights] = useState<string[]>([]);
+  const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
+
+  useEffect(() => {
+    AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
+      .then((raw) => {
+        if (raw === 'masked' || raw === 'full') setNameDisplay(raw);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const trimmed = text.trim();
@@ -255,12 +268,14 @@ export default function RestaurantDetailScreen() {
     setSubmitError(null);
     setModerationHighlights([]);
     try {
+      await AsyncStorage.setItem(REVIEW_NAME_DISPLAY_STORAGE_KEY, nameDisplay);
       let saved = await createReview({
         restaurant_id: restaurant.id,
         rating,
         review_text: text.trim(),
         author_email: user.email,
         author_name: user.fullName,
+        author_name_display: nameDisplay,
       });
       for (const photo of photos) {
         saved = await uploadReviewImage(
@@ -419,6 +434,11 @@ export default function RestaurantDetailScreen() {
               <Text style={styles.communityHint}>
                 Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
               </Text>
+              <ReviewNameDisplayPicker
+                fullName={user.fullName}
+                value={nameDisplay}
+                onChange={setNameDisplay}
+              />
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput
                 value={text}

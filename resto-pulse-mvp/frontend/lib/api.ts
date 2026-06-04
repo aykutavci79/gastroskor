@@ -131,6 +131,7 @@ export function createReview(payload: {
   author_email?: string | null;
   author_name?: string | null;
   author_avatar_url?: string | null;
+  author_name_display?: 'full' | 'masked';
 }) {
   return request<Review>('/reviews', {
     method: 'POST',
@@ -213,6 +214,7 @@ export function syncUser(payload: {
   avatar_url?: string | null;
   google_sub?: string | null;
   record_login?: boolean;
+  default_review_name_display?: 'full' | 'masked';
 }) {
   return request<UserProfile>('/users/sync', {
     method: 'POST',

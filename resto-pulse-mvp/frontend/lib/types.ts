@@ -253,6 +253,7 @@ export type Review = {
   author_email: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
+  author_name_display?: 'full' | 'masked';
   rating: number;
   review_text: string;
   sentiment_label: string | null;
@@ -287,6 +288,7 @@ export type UserProfile = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  default_review_name_display?: 'full' | 'masked';
   gastro_score: number | null;
   review_count: number;
 };
