@@ -680,7 +680,7 @@ export function LivePlaceSearch({
                                 <p className="text-xs text-content-muted">
                                   Onizleme:{' '}
                                   <span className="font-semibold text-content">
-                                    {previewAuthorName(session.user.name ?? null, memberNameDisplay)}
+                                    {previewAuthorName(session?.user?.name ?? null, memberNameDisplay)}
                                   </span>
                                 </p>
                               </div>
