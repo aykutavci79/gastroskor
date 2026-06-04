@@ -28,6 +28,11 @@ function formatDistance(meters: number | null): string {
   return `${Math.round(meters)} m`;
 }
 
+/** GastroSkor mesafe/lezzet matrisi (0–3); float goruntusunu duzeltir. */
+function formatMatrixScore(value: number): string {
+  return (Math.round(value * 10) / 10).toFixed(1);
+}
+
 function AiAnalysisBlock({ analysis }: { analysis: PlaceAnalysis }) {
   return (
     <View style={styles.block}>
@@ -101,17 +106,21 @@ export function PlaceDetailInfo({ live, gastroScores }: Props) {
             </View>
             <View style={styles.scoreCard}>
               <Text style={styles.scoreLabel}>Mesafe</Text>
-              <Text style={styles.scoreValue}>{gastroScores.distance_score}</Text>
+              <Text style={styles.scoreValue}>{formatMatrixScore(gastroScores.distance_score)}</Text>
               <Text style={styles.scoreMeta}>
-                {formatDistance(gastroScores.distance_meters)} ·{' '}
+                Matris 0–3 · {formatDistance(gastroScores.distance_meters)} ·{' '}
                 {gastroScores.distance_origin === 'user' ? 'konumuna göre' : 'merkeze göre'}
               </Text>
             </View>
             <View style={styles.scoreCard}>
-              <Text style={styles.scoreLabel}>Lezzet (yıldız)</Text>
-              <Text style={styles.scoreValue}>{gastroScores.rating_score}</Text>
+              <Text style={styles.scoreLabel}>Google yıldız</Text>
+              <Text style={styles.scoreValue}>
+                {gastroScores.google_rating != null
+                  ? gastroScores.google_rating.toFixed(1)
+                  : '—'}
+              </Text>
               <Text style={styles.scoreMeta}>
-                Google: {gastroScores.google_rating?.toFixed(1) ?? '—'}
+                Gastro lezzet: {formatMatrixScore(gastroScores.rating_score)}/3
               </Text>
             </View>
           </View>
