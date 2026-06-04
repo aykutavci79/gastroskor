@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
+import { FollowingRestaurantsSection } from '@/components/FollowingRestaurantsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
@@ -119,6 +120,8 @@ export default function ProfilScreen() {
           </Pressable>
         </View>
       )}
+
+      {user ? <FollowingRestaurantsSection userEmail={user.email} /> : null}
 
       {user ? (
         <View style={styles.privacyCard}>

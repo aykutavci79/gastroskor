@@ -82,6 +82,7 @@ from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.services.display_name import normalize_author_name_display, public_author_name
 from app.services.restaurant_claim import ensure_restaurant_for_place
+from app.services.platform_profile_photo import google_photo_url_for_profile, sync_profile_photo_from_details
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
 from app.schemas.review import (
     ReviewAnalyzeResponse,
@@ -96,7 +97,15 @@ from app.schemas.review import (
     ReviewTextModerateResponse,
     ReviewUpdate,
 )
+from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
 from app.schemas.user import UserProfile, UserSyncPayload
+from app.services.restaurant_follow import (
+    follow_restaurant,
+    follower_count,
+    is_following,
+    list_followed_restaurants,
+    unfollow_restaurant,
+)
 from app.services.ai_analysis import AIAnalysisService
 from app.services.gastro_score_ranking import haversine_meters
 from app.services.live_place_search_service import search_live_places_optimized
@@ -617,6 +626,9 @@ async def get_live_place_details(
     restaurant_id = None
 
     if mapping:
+        if sync_profile_photo_from_details(mapping, details):
+            db.add(mapping)
+            db.commit()
         restaurant_id = str(mapping.restaurant_id)
         review_rows = (
             db.scalars(
@@ -897,10 +909,75 @@ def list_restaurants(
             "geo_indications": parse_geo_indications(restaurant.geo_indications),
             "has_geographical_indication": restaurant.has_geographical_indication,
             "gi_product_name": restaurant.gi_product_name,
+            "google_photo_url": google_photo_url_for_profile(google_profile),
         }
         merge_partner_into_row(row, partner_map.get(rid))
         result.append(row)
     return result
+
+
+@router.get("/me/restaurant-follows", response_model=RestaurantFollowListResponse)
+def list_my_restaurant_follows(
+    user_email: str = Query(..., min_length=3),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    items = list_followed_restaurants(db, user_id=user.id, limit=limit)
+    return RestaurantFollowListResponse(items=items, total=len(items))
+
+
+@router.get("/restaurants/{restaurant_id}/follow-status", response_model=RestaurantFollowStatus)
+def restaurant_follow_status(
+    restaurant_id: UUID,
+    user_email: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_restaurant_exists(db, restaurant_id)
+    following = False
+    if user_email and user_email.strip():
+        user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
+        if user:
+            following = is_following(db, user_id=user.id, restaurant_id=restaurant_id)
+    return RestaurantFollowStatus(
+        following=following,
+        follower_count=follower_count(db, restaurant_id=restaurant_id),
+    )
+
+
+@router.post("/restaurants/{restaurant_id}/follow", response_model=RestaurantFollowStatus)
+def follow_restaurant_endpoint(
+    restaurant_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
+    return RestaurantFollowStatus(
+        following=True,
+        follower_count=follower_count(db, restaurant_id=restaurant_id),
+    )
+
+
+@router.delete("/restaurants/{restaurant_id}/follow", response_model=RestaurantFollowStatus)
+def unfollow_restaurant_endpoint(
+    restaurant_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    unfollow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
+    return RestaurantFollowStatus(
+        following=False,
+        follower_count=follower_count(db, restaurant_id=restaurant_id),
+    )
+
+
+def _require_restaurant_exists(db: Session, restaurant_id: UUID) -> Restaurant:
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant or not restaurant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    return restaurant
 
 
 @router.get("/restaurants/{restaurant_id}", response_model=RestaurantRead)

@@ -53,6 +53,7 @@ export type RestaurantListItem = {
   longitude?: number | null;
   maps_directions_url?: string | null;
   distance_meters?: number | null;
+  google_photo_url?: string | null;
 };
 
 export type RestaurantPromoSettings = {
@@ -134,6 +135,7 @@ export type LivePlaceSearchItem = {
   rating_score: number;
   gastro_score: number;
   maps_directions_url: string | null;
+  google_photo_url?: string | null;
   restaurant_id?: string | null;
   is_premium_partner?: boolean;
   promo?: RestaurantPromoPublic | null;

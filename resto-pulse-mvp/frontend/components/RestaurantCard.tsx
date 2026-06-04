@@ -10,6 +10,7 @@ import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLink
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
 import { FeaturedCornerBadge } from '@/components/RestaurantPremiumFrame';
+import { resolveCardCoverUrl } from '@/lib/card-cover';
 import {
   resolveCardRatingScore,
   resolveRatingBandVisual,
@@ -54,7 +55,7 @@ export function RestaurantCard({
     cornerBadge !== undefined ? cornerBadge : isPaidPartner ? 'ÖNE ÇIKAN' : null;
   const location = [restaurant.district, restaurant.city].filter(Boolean).join(', ') || 'Konum belirtilmedi';
   const menuItems = restaurant.menu_preview ?? [];
-  const coverImage = restaurant.promo?.card_cover_image_url ?? null;
+  const coverImage = resolveCardCoverUrl(restaurant);
   const resolvedHref = href === undefined ? `/restaurants/${restaurant.id}` : href;
 
   const google =

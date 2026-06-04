@@ -9,6 +9,8 @@ import type {
   RestaurantListItem,
   RestaurantMenuItem,
   RestaurantPromoSettings,
+  RestaurantFollowListResponse,
+  RestaurantFollowStatus,
   RestaurantTrendingItem,
   Review,
   ReviewAnalyzeResult,
@@ -34,7 +36,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text();
-    let message = text || `API error ${response.status}`;
+    let message = text ? `${response.status}: ${text}` : `API error ${response.status}`;
     try {
       const parsed = JSON.parse(text) as {
         detail?: string | Array<{ msg?: string }> | Record<string, unknown>;
@@ -213,6 +215,37 @@ export function syncUser(payload: {
   default_review_name_display?: 'full' | 'masked';
 }) {
   return request<UserProfile>('/users/sync', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function listRestaurantFollows(userEmail: string, limit = 50) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<RestaurantFollowListResponse>(`/me/restaurant-follows?${query.toString()}`);
+}
+
+export function getRestaurantFollowStatus(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status?${query.toString()}`,
+  );
+}
+
+export function followRestaurant(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow?${query.toString()}`,
+    { method: 'POST' },
+  );
+}
+
+export function unfollowRestaurant(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow?${query.toString()}`,
+    { method: 'DELETE' },
+  );
 }
 
 export function analyzeReview(reviewId: string) {

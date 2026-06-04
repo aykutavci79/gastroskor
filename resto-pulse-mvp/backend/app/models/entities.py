@@ -57,6 +57,24 @@ class User(Base):
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="user")
     restaurant_ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="user")
     panel_notifications: Mapped[list["PanelNotification"]] = relationship(back_populates="user")
+    restaurant_follows: Mapped[list["UserRestaurantFollow"]] = relationship(back_populates="user")
+
+
+class UserRestaurantFollow(Base):
+    __tablename__ = "user_restaurant_follows"
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id", name="uq_user_restaurant_follow"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="restaurant_follows")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="followers")
 
 
 class Restaurant(Base):
@@ -83,6 +101,7 @@ class Restaurant(Base):
     compensation_coupons: Mapped[list["CompensationCoupon"]] = relationship(back_populates="restaurant")
     ownerships: Mapped[list["RestaurantOwnership"]] = relationship(back_populates="restaurant")
     analytics_events: Mapped[list["RestaurantAnalyticsEvent"]] = relationship(back_populates="restaurant")
+    followers: Mapped[list["UserRestaurantFollow"]] = relationship(back_populates="restaurant")
 
 
 class RestaurantOwnership(Base):
@@ -326,6 +345,7 @@ class RestaurantPlatformProfile(Base):
     profile_url: Mapped[str | None] = mapped_column(String(1024))
     avg_rating: Mapped[float | None] = mapped_column(Float)
     review_count: Mapped[int | None] = mapped_column(Integer)
+    photo_reference: Mapped[str | None] = mapped_column(String(512))
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     restaurant: Mapped["Restaurant"] = relationship(back_populates="platform_profiles")

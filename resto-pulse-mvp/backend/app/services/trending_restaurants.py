@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
+from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
 
@@ -254,6 +255,15 @@ def _serialize_candidates(
 ) -> list[dict]:
     restaurant_ids = [item["restaurant"].id for item in candidates]
     partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
+    google_profiles: dict[str, RestaurantPlatformProfile] = {}
+    if restaurant_ids:
+        for profile in db.scalars(
+            select(RestaurantPlatformProfile).where(
+                RestaurantPlatformProfile.restaurant_id.in_(restaurant_ids),
+                RestaurantPlatformProfile.platform == PlatformName.google_maps,
+            )
+        ).all():
+            google_profiles[str(profile.restaurant_id)] = profile
     result: list[dict] = []
     for item in candidates:
         restaurant = item["restaurant"]
@@ -280,6 +290,7 @@ def _serialize_candidates(
             "distance_km": _distance_km(distance_m),
             "distance_origin": distance_origin,
             "is_fallback": bool(item.get("is_fallback")),
+            "google_photo_url": google_photo_url_for_profile(google_profiles.get(rid)),
         }
         merge_partner_into_row(row, partner_map.get(rid))
         result.append(row)

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
@@ -345,6 +346,8 @@ export default function RestaurantDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
+
+          <RestaurantFollowButton restaurantId={restaurant.id} userEmail={user?.email} />
 
           <View style={styles.scoreRow}>
             {googleRating != null ? (

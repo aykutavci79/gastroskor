@@ -31,6 +31,15 @@ def build_place_photo_url(photo_reference: str, *, maxwidth: int = 400) -> str:
     )
 
 
+def first_photo_reference_from_google_result(result: dict) -> str | None:
+    for photo in result.get("photos", [])[:1]:
+        if isinstance(photo, dict):
+            ref = photo.get("photo_reference")
+            if ref:
+                return str(ref)
+    return None
+
+
 # Text Search: konum yoksa Google oncelik/populerlik + sorgu metnine gore siralar.
 # Sehir merkezi ile location+radius verince sonuclar o bolgeye yakinlasir (GPS degil).
 CITY_SEARCH_BIAS: dict[str, tuple[float, float, int]] = {
@@ -195,6 +204,7 @@ class GooglePlacesLiveClient:
             raise RuntimeError(error_message)
 
         result = payload.get("result", {})
+        photo_reference = first_photo_reference_from_google_result(result)
         photo_urls: list[str] = []
         for photo in result.get("photos", [])[:8]:
             ref = photo.get("photo_reference")
@@ -232,6 +242,7 @@ class GooglePlacesLiveClient:
             "opening_hours": opening_hours,
             "reviews": reviews,
             "photo_urls": photo_urls,
+            "photo_reference": photo_reference,
             "maps_directions_url": None,
             "maps_search_url": None,
             "analysis": None,

@@ -58,6 +58,16 @@ export type RestaurantListItem = {
   google_photo_url?: string | null;
 };
 
+export type RestaurantFollowStatus = {
+  following: boolean;
+  follower_count: number;
+};
+
+export type RestaurantFollowListResponse = {
+  items: RestaurantListItem[];
+  total: number;
+};
+
 export type RestaurantPromoSettings = {
   subscription_active: boolean;
   has_own_courier: boolean;

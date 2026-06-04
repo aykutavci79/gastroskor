@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.integrations.google_places_live import GooglePlacesLiveClient
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantOtpChallenge, RestaurantPlatformProfile, User
+from app.services.platform_profile_photo import photo_reference_from_place_details, sync_profile_photo_from_details
 from app.services.panel_access import start_trial
 from app.services.phone_tr import is_tr_mobile, normalize_tr_mobile
 from app.services.sms_otp import generate_otp_code, hash_otp_code, send_sms_otp, verify_otp_code
@@ -30,6 +31,11 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
     if profile:
         restaurant = db.get(Restaurant, profile.restaurant_id)
         if restaurant:
+            if not profile.photo_reference:
+                details = await google_client.get_place_details(place_id)
+                if sync_profile_photo_from_details(profile, details):
+                    db.add(profile)
+                    db.flush()
             return restaurant
 
     details = await google_client.get_place_details(place_id)
@@ -51,6 +57,7 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
             external_id=place_id,
             avg_rating=details.get("rating"),
             review_count=details.get("user_ratings_total"),
+            photo_reference=photo_reference_from_place_details(details),
             last_synced_at=_utcnow(),
         )
     )

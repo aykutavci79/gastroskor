@@ -53,10 +53,10 @@ Railway: `alembic upgrade head` calistir (0016 + 0017).
 > uye isletmeler takipcilerine ozel promosyon yapar. B2B satis argumani: "Musterilerinizi
 > takip ettirin, kampanya yapin."
 
-**D1 — Takip + liste (once bu)**
-- Restoran detay: Takip et / Takipten cik (giris sart)
-- Profil veya ayri sekme: **Takip ettiklerim**
-- Backend: `user_restaurant_follows` (user_id + restaurant_id)
+**D1 — Takip + liste (once bu)** — mobil + API (Expo Go test)
+- [x] Restoran detay: Takip et / Takipten cik (giris sart)
+- [x] Profil: **Takip ettiklerim**
+- [x] Backend: `user_restaurant_follows` + `/me/restaurant-follows`, follow/unfollow
 
 **D2 — Yorum bildirimi**
 - Onayli yeni GS yorumu → o restorani takip edenlere push (Expo token kaydi)

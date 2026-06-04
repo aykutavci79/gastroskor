@@ -22,6 +22,7 @@ from app.models.entities import (
     ReviewReply,
     SentimentLabel,
     User,
+    UserRestaurantFollow,
 )
 
 __all__ = [
@@ -48,4 +49,5 @@ __all__ = [
     "ReviewReply",
     "SentimentLabel",
     "User",
+    "UserRestaurantFollow",
 ]
