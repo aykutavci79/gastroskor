@@ -82,11 +82,6 @@ export default function ProfilScreen() {
           <Text style={styles.label}>Giris yapildi</Text>
           <Text style={styles.email}>{user.email}</Text>
           {user.fullName ? <Text style={styles.muted}>{user.fullName}</Text> : null}
-          <ReviewNameDisplayPicker
-            fullName={user.fullName}
-            value={nameDisplay}
-            onChange={(mode) => void persistNameDisplay(mode)}
-          />
           <Pressable style={styles.btnOutline} onPress={() => void signOut()}>
             <Text style={styles.btnOutlineText}>Cikis</Text>
           </Pressable>
@@ -124,6 +119,20 @@ export default function ProfilScreen() {
           </Pressable>
         </View>
       )}
+
+      {user ? (
+        <View style={styles.privacyCard}>
+          <Text style={styles.privacyTitle}>Yorumlarda isim gizliligi</Text>
+          <Text style={styles.muted}>
+            Varsayilan: yeni yorumlarda adin nasil gorunsun (Tam ad veya ay*** gibi gizli).
+          </Text>
+          <ReviewNameDisplayPicker
+            fullName={user.fullName ?? user.email}
+            value={nameDisplay}
+            onChange={(mode) => void persistNameDisplay(mode)}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.legal}>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacy)}>
@@ -208,6 +217,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   linkTitle: { color: GastroColors.accent, fontWeight: '700', fontSize: 15 },
+  privacyCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: GastroColors.gold,
+    backgroundColor: GastroColors.panel,
+    padding: 16,
+    gap: 10,
+  },
+  privacyTitle: { color: GastroColors.gold, fontSize: 16, fontWeight: '800' },
   about: {
     marginTop: 16,
     borderRadius: 16,

@@ -402,43 +402,22 @@ export default function RestaurantDetailScreen() {
           <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
-          {reviews.length === 0 ? (
-            <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
-          ) : (
-            reviews.map((rev) => (
-              <GsReviewCard
-                key={rev.id}
-                review={rev}
-                viewerEmail={user?.email ?? null}
-                viewerUserId={user?.id ?? null}
-                viewerName={user?.fullName ?? null}
-                onChange={(updated) =>
-                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
-                }
-                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
-              />
-            ))
-          )}
-        </View>
-
-        <View style={styles.section}>
+        <View style={[styles.section, styles.reviewFormSection]}>
           <Text style={styles.sectionTitle}>Yorum yap</Text>
           {!user ? (
             <Pressable onPress={() => router.push('/(tabs)/profil')}>
-              <Text style={styles.loginHint}>Yorum yapmak için giriş yap →</Text>
+              <Text style={styles.loginHint}>Yorum ve isim gizleme için giriş yap →</Text>
             </Pressable>
           ) : (
             <>
-              <Text style={styles.communityHint}>
-                Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
-              </Text>
               <ReviewNameDisplayPicker
-                fullName={user.fullName}
+                fullName={user.fullName ?? user.email}
                 value={nameDisplay}
                 onChange={setNameDisplay}
               />
+              <Text style={styles.communityHint}>
+                Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
+              </Text>
               <StarRatingPicker value={rating} onChange={setRating} />
               <TextInput
                 value={text}
@@ -476,6 +455,27 @@ export default function RestaurantDetailScreen() {
               </Pressable>
               {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
             </>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
+          {reviews.length === 0 ? (
+            <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
+          ) : (
+            reviews.map((rev) => (
+              <GsReviewCard
+                key={rev.id}
+                review={rev}
+                viewerEmail={user?.email ?? null}
+                viewerUserId={user?.id ?? null}
+                viewerName={user?.fullName ?? null}
+                onChange={(updated) =>
+                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+                }
+                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
+              />
+            ))
           )}
         </View>
       </ScrollView>

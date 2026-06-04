@@ -28,7 +28,7 @@ export function ReviewNameDisplayPicker({ fullName, value, onChange }: Props) {
           style={[styles.option, value === 'masked' && styles.optionActive]}
           onPress={() => onChange('masked')}>
           <Text style={[styles.optionText, value === 'masked' && styles.optionTextActive]}>
-            Gizli
+            Gizli (ay*** …)
           </Text>
         </Pressable>
       </View>
@@ -40,8 +40,15 @@ export function ReviewNameDisplayPicker({ fullName, value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 8 },
-  label: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
+  wrap: {
+    gap: 10,
+    borderWidth: 1,
+    borderColor: GastroColors.gold,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 183, 3, 0.08)',
+    padding: 12,
+  },
+  label: { color: GastroColors.text, fontSize: 14, fontWeight: '800' },
   row: { flexDirection: 'row', gap: 8 },
   option: {
     flex: 1,
