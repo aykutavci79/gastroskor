@@ -46,11 +46,7 @@ export default function YoreselProductScreen() {
       });
       setProduct(data.product);
       setItems(data.items);
-      setNote(
-        data.rating_relaxed
-          ? `4.5+ yok; ${data.applied_min_rating}+ puanlı restoranlar.`
-          : `${data.applied_min_rating}+ puan, yakından uzağa.`,
-      );
+      setNote('Mahreç etiketli mekanlar; puana göre sıralı, konum varsa yakından uzağa.');
     } catch (err) {
       setError(formatApiError(err));
       setItems([]);

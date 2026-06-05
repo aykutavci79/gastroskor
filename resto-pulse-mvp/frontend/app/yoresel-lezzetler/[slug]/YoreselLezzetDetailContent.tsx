@@ -38,7 +38,7 @@ export function YoreselLezzetDetailContent() {
         setProduct(data.product);
         setItems(data.items);
         if (data.applied_min_rating <= 0) {
-          setRatingNote('Puan filtresi gevşetildi — mahreç etiketli tüm restoranlar gösteriliyor.');
+          setRatingNote('Mahreç etiketli mekanlar; puana göre sıralı, mesafe bilgisi varsa yakından uzağa.');
         } else if (data.rating_relaxed) {
           setRatingNote(`4.5+ sonuç yok; ${data.applied_min_rating}+ puanlı restoranlar gösteriliyor.`);
         } else {

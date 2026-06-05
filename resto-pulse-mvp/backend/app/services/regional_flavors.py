@@ -194,12 +194,9 @@ def _listed_count_for_product(
     product: RegionalProductCatalogItem,
     *,
     city: str,
-    min_rating: float = 4.5,
 ) -> int:
     restaurants = [r for r in _load_city_restaurants(db, city) if restaurant_serves_product(r, product)]
-    rows = _build_rows_for_restaurants(db, restaurants)
-    filtered, _, _ = _apply_rating_filter(rows, min_rating=min_rating)
-    return len(filtered)
+    return len(restaurants)
 
 
 def _build_restaurant_row(
@@ -329,19 +326,17 @@ def list_restaurants_for_regional_product(
         origin_lat=resolved_lat,
         origin_lng=resolved_lng,
     )
-    filtered, applied_min, rating_relaxed = _apply_rating_filter(rows, min_rating=min_rating)
-
-    filtered.sort(
+    rows.sort(
         key=lambda row: (
-            row.get("distance_meters") if row.get("distance_meters") is not None else 10_000_000,
             -(_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0),
+            row.get("distance_meters") if row.get("distance_meters") is not None else 10_000_000,
         )
     )
 
     return {
-        "product": _product_payload(product, restaurant_count=len(filtered)),
+        "product": _product_payload(product, restaurant_count=len(rows)),
         "min_rating": min_rating,
-        "applied_min_rating": applied_min,
-        "rating_relaxed": rating_relaxed,
-        "items": filtered[:limit],
+        "applied_min_rating": 0.0,
+        "rating_relaxed": False,
+        "items": rows[:limit],
     }

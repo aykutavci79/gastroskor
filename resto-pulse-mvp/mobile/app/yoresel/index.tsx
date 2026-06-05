@@ -36,8 +36,7 @@ export default function YoreselLezzetlerScreen() {
         <Text style={styles.kicker}>İç turizm · Bursa</Text>
         <Text style={styles.title}>Yöresel lezzetler</Text>
         <Text style={styles.sub}>
-          Coğrafi işaretli ürünleri seç; 4.5+ puanlı restoranları yakından uzağa gör. Mahreç rozeti menüde
-          sunulan yöresel lezzeti gösterir.
+          Coğrafi işaretli ürünleri seç; mahreç etiketli mekanları puana göre, mesafe varsa yakından uzağa gör.
         </Text>
 
         {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} /> : null}
@@ -59,7 +58,7 @@ export default function YoreselLezzetlerScreen() {
                   <Text style={styles.meta}>
                     {item.registration_year} · {item.indication_type}
                     {item.restaurant_count > 0
-                      ? ` · ${item.restaurant_count} restoran · 4.5+`
+                      ? ` · ${item.restaurant_count} mahreç etiketli mekan`
                       : ' · Öneriler için dokun'}
                   </Text>
                 </View>
