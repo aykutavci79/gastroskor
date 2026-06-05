@@ -24,6 +24,8 @@ from app.models.entities import (
     FollowerCoupon,
     FollowerPromotion,
     User,
+    UserNotification,
+    UserPushToken,
     UserRestaurantFollow,
 )
 
@@ -53,5 +55,7 @@ __all__ = [
     "FollowerCoupon",
     "FollowerPromotion",
     "User",
+    "UserNotification",
+    "UserPushToken",
     "UserRestaurantFollow",
 ]

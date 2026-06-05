@@ -12,6 +12,8 @@ import type {
   RestaurantFollowListResponse,
   RestaurantFollowStatus,
   RestaurantTrendingItem,
+  RegionalProductListResponse,
+  RegionalProductRestaurantsResponse,
   Review,
   ReviewAnalyzeResult,
   ReviewReply,
@@ -94,6 +96,29 @@ export function listRestaurants(params: {
   if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
   const query = search.toString();
   return request<RestaurantListItem[]>(`/restaurants${query ? `?${query}` : ''}`);
+}
+
+export function listRegionalProducts(params?: { city?: string }) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  const query = search.toString();
+  return request<RegionalProductListResponse>(`/regional-flavors/products${query ? `?${query}` : ''}`);
+}
+
+export function listRegionalProductRestaurants(
+  slug: string,
+  params?: { city?: string; origin_lat?: number; origin_lng?: number; min_rating?: number; limit?: number },
+) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
+  if (params?.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
+  if (params?.min_rating != null) search.set('min_rating', String(params.min_rating));
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<RegionalProductRestaurantsResponse>(
+    `/regional-flavors/products/${encodeURIComponent(slug)}/restaurants${query ? `?${query}` : ''}`,
+  );
 }
 
 export function getRestaurant(id: string) {

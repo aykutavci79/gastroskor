@@ -67,6 +67,8 @@ Railway: `alembic upgrade head` calistir (0016 + 0017).
 - [x] Panel: kampanya (% , gun, max kupon) + kupon dogrula (kullanildi)
 - [x] Kisisel GS- kodu; takip aninda / kampanya acilisinda uretim
 - [x] Mobil: takipci kupon kutusu (restoran detay)
+- [x] Panel: **Takipçi listesi** (`/panel/followers`)
+- [x] Mobil: kupon bildirimi (push + Profil → Bildirimler)
 - Sadece `subscription_allows_promo` (aktif/trial uyelik)
 
 **Notlar:** KVKK gizlilik maddesi; bildirim yorgunluguna dikkat. Magaza v1.0 sonrasi v1.1

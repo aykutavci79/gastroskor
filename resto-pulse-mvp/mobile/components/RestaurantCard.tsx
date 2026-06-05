@@ -4,6 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
+import { MahrecBadge } from '@/components/MahrecBadge';
 import { GastroColors } from '@/constants/theme';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import {
@@ -182,6 +183,12 @@ export function RestaurantCard({
                     {visual.emoji} {visual.label}
                   </Text>
                 </View>
+
+                <MahrecBadge
+                  hasGeographicalIndication={Boolean(restaurant.has_geographical_indication)}
+                  giProductName={restaurant.gi_product_name ?? null}
+                  geoIndications={restaurant.geo_indications ?? []}
+                />
 
                 {(mapsUrl || travel) && (
                   <View style={styles.actionRow}>

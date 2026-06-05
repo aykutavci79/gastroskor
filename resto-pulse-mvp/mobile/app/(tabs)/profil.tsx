@@ -76,7 +76,7 @@ export default function ProfilScreen() {
       <View style={styles.hero}>
         <Text style={styles.title}>Hesap</Text>
         <Text style={styles.sub}>
-          Yorum yazmak ve isletme paneli icin Google ile giris yapin. Web panelindeki hesapla ayni olmali.
+          Yorum yazmak icin giris yapin. Google sorunluysa asagidan e-posta ile devam edin.
         </Text>
       </View>
 
@@ -125,7 +125,7 @@ export default function ProfilScreen() {
             }}
           />
 
-          <Text style={styles.dividerLabel}>veya gecici e-posta (test)</Text>
+          <Text style={styles.dividerLabel}>veya e-posta ile giris (Google calismazsa)</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}

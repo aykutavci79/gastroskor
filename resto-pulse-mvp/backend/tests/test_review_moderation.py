@@ -47,3 +47,22 @@ def test_highlights_salakca() -> None:
 def test_blocks_spaced_evasion() -> None:
     assert contains_prohibited_language("a m k") is True
     assert contains_prohibited_language("s i k gibi") is True
+
+
+def test_allows_kebap_icin_price_review() -> None:
+    """'kebap icin' birlestiginde 'pic' alt dizesi olusmamali."""
+    text = (
+        "Lezzet harika bununla birlikte eve sipariste bir porsiyon adana kebap icecek vs yok "
+        "600 TL cok yuksek sanirim 120-130 gr civari adana kebap icin bence cok yuksek fiyat "
+        "yine de elinize saglik"
+    )
+    assert contains_prohibited_language(text) is False
+    assert find_prohibited_highlights(text) == []
+
+
+def test_allows_sanirim_with_turkish_dotless_i() -> None:
+    text = (
+        "Lezzet harika, 600 TL çok yüksek sanırım 120-130 gr adana kebap için "
+        "bence pahalı yine de elinize sağlık"
+    )
+    assert contains_prohibited_language(text) is False

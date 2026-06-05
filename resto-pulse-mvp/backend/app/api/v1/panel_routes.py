@@ -73,6 +73,7 @@ from app.schemas.follower_promotion import (
     FollowerPromotionRead,
     FollowerCouponRead,
 )
+from app.schemas.user_notification import PanelFollowerListResponse
 from app.services.follower_promotion_service import (
     coupon_to_dict,
     create_follower_promotion,
@@ -80,6 +81,8 @@ from app.services.follower_promotion_service import (
     promotion_to_dict,
     redeem_follower_coupon,
 )
+from app.services.restaurant_followers import list_panel_followers
+from app.services.user_notification_service import notify_follower_coupon_issued
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
@@ -766,6 +769,22 @@ def admin_search_reviews(
     return results
 
 
+@panel_router.get("/followers", response_model=PanelFollowerListResponse)
+def list_panel_restaurant_followers(
+    user_email: str = Query(...),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    data = list_panel_followers(db, restaurant_id=ownership.restaurant_id, limit=limit, offset=offset)
+    return PanelFollowerListResponse(**data)
+
+
 @panel_router.get("/follower-promotions", response_model=list[FollowerPromotionRead])
 def list_panel_follower_promotions(user_email: str = Query(...), db: Session = Depends(get_db)):
     user = resolve_user_by_email(db, user_email)
@@ -783,7 +802,7 @@ def create_panel_follower_promotion(payload: FollowerPromotionCreate, db: Sessio
     state = build_panel_access_state(db, ownership)
     if not ownership or not state.can_access_panel or not state.can_write_actions:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Kampanya icin tam panel yetkisi gerekir.")
-    promo = create_follower_promotion(
+    promo, new_coupons = create_follower_promotion(
         db,
         ownership=ownership,
         title=payload.title,
@@ -791,6 +810,19 @@ def create_panel_follower_promotion(payload: FollowerPromotionCreate, db: Sessio
         valid_days=payload.valid_days,
         max_coupons=payload.max_coupons,
     )
+    restaurant = db.get(Restaurant, ownership.restaurant_id)
+    if restaurant:
+        for coupon in new_coupons:
+            coupon_user = db.get(User, coupon.user_id)
+            if coupon_user:
+                notify_follower_coupon_issued(
+                    db,
+                    user=coupon_user,
+                    restaurant=restaurant,
+                    coupon=coupon,
+                    promo_title=promo.title,
+                )
+        db.commit()
     return promotion_to_dict(db, promo)
 
 

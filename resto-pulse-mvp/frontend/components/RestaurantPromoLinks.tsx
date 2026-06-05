@@ -1,3 +1,4 @@
+import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import type { RestaurantPromoPublic } from '@/lib/types';
 
 type Props = {
@@ -25,8 +26,13 @@ export function RestaurantPromoLinks({ promo, compact = false }: Props) {
   return (
     <div className={`card-btn-group flex flex-wrap gap-1.5 ${compact ? 'mt-1.5' : 'mt-2'}`}>
       {instagram ? (
-        <a href={instagram} target="_blank" rel="noopener noreferrer" className={linkClass}>
-          <span aria-hidden>📷</span>
+        <a
+          href={instagram}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${linkClass} text-[#E4405F]`}
+          aria-label={`Instagram: ${instagramLabel(instagram)}`}>
+          <InstagramIcon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
           {compact ? 'IG' : instagramLabel(instagram)}
         </a>
       ) : null}

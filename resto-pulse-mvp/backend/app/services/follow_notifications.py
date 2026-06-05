@@ -38,8 +38,8 @@ async def notify_restaurant_new_follower(
             notification_type="new_follower",
             title="Yeni takipçi",
             message=f"Bir GastroSkor kullanıcısı «{place_name}» işletmenizi takip etmeye başladı.",
-            cta_label="Takipçileri gör",
-            cta_url=f"{panel_base_url()}/panel",
+            cta_label="Takipçi listesi",
+            cta_url=f"{panel_base_url()}/followers",
             dedupe_key=f"new_follower:{follower.id}:{restaurant_id}",
             metadata={
                 "restaurant_id": str(restaurant_id),

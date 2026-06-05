@@ -5,6 +5,23 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signIn, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+const AUTH_ERROR_TR: Record<string, string> = {
+  AccessDenied:
+    'Google bu hesaba izin vermedi. OAuth consent ekraninda Testing modundaysan giris yaptigin Gmail Test users listesinde olmali.',
+  Configuration:
+    'Sunucu ayari eksik: frontend/.env.local icinde GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET ve NEXTAUTH_SECRET dolu olmali. npm run dev yeniden baslat.',
+  OAuthCallback:
+    'Google donus hatasi: Client secret yanlis/eski olabilir (Cloud Console -> Web client -> yeni secret kopyala). Veya localhost callback URI eksik.',
+  OAuthSignin: 'Google giris baslatilamadi. Tarayicida http://localhost:3000 kullan (127.0.0.1 degil).',
+  Callback: 'Oturum olusturulamadi. Once /api/auth/force-signout ac, tekrar dene.',
+  Default: 'Giris basarisiz. Adres cubugundaki ?error= degerini kontrol et.',
+};
+
+function authErrorMessage(code: string | null): string | null {
+  if (!code) return null;
+  return AUTH_ERROR_TR[code] ?? AUTH_ERROR_TR.Default;
+}
+
 import { PanelNotificationCenter } from '@/components/panel/PanelNotificationCenter';
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
 
@@ -12,6 +29,12 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
   const { access, loading, error, userEmail } = usePanel();
   const pathname = usePathname();
   const router = useRouter();
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('error');
+    setAuthError(authErrorMessage(code));
+  }, []);
   const onClaimPage = pathname.startsWith('/panel/claim');
   const onAdminPage = pathname.startsWith('/panel/admin');
   const [isPanelAdmin, setIsPanelAdmin] = useState(false);
@@ -44,6 +67,11 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
       <div className="rounded-2xl border border-border/70 bg-surface-input p-8 text-center">
         <h1 className="text-xl font-semibold text-content">Restoran Paneli</h1>
         <p className="mt-2 text-sm text-content-muted">Devam etmek icin Google ile giris yapin.</p>
+        {authError ? (
+          <p className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-left text-sm text-rose-100">
+            {authError}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={() => signIn('google', { callbackUrl: '/panel' })}
@@ -115,6 +143,11 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
                 href={`/panel/feedback?restaurant_id=${access.restaurant_id ?? ''}`}
                 className={`rounded-lg px-3 py-1.5 ${pathname.startsWith('/panel/feedback') ? 'bg-emerald-500/20 text-success' : 'text-content-muted hover:bg-surface-input'}`}>
                 Sikayetler
+              </Link>
+              <Link
+                href="/panel/followers"
+                className={`rounded-lg px-3 py-1.5 ${pathname.startsWith('/panel/followers') ? 'bg-emerald-500/20 text-success' : 'text-content-muted hover:bg-surface-input'}`}>
+                Takipçiler
               </Link>
             </nav>
           ) : null}

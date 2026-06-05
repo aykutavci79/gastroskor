@@ -62,6 +62,8 @@ class User(Base):
         back_populates="user",
         foreign_keys="FollowerCoupon.user_id",
     )
+    push_tokens: Mapped[list["UserPushToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[list["UserNotification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class UserRestaurantFollow(Base):
@@ -79,6 +81,38 @@ class UserRestaurantFollow(Base):
 
     user: Mapped["User"] = relationship(back_populates="restaurant_follows")
     restaurant: Mapped["Restaurant"] = relationship(back_populates="followers")
+
+
+class UserPushToken(Base):
+    __tablename__ = "user_push_tokens"
+    __table_args__ = (UniqueConstraint("expo_push_token", name="uq_user_push_token"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    expo_push_token: Mapped[str] = mapped_column(String(255))
+    platform: Mapped[str | None] = mapped_column(String(20))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="push_tokens")
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    notification_type: Mapped[str] = mapped_column(String(40), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB, default=None)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="notifications")
 
 
 class Restaurant(Base):

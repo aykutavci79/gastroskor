@@ -64,7 +64,9 @@ function GoogleSignInWebBridgeButton({ busy, onError }: Props) {
 }
 
 function GoogleSignInNativeButton({ busy, onError }: Props) {
-  const { ready, promptAsync } = useGoogleSignInNative(onError);
+  const { ready, promptAsync } = useGoogleSignInNative((message) => {
+    onError(message);
+  });
 
   return (
     <Pressable

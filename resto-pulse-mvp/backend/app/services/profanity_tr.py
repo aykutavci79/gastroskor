@@ -217,6 +217,7 @@ PROFANITY_PHRASES = (
 )
 
 # Kisa fragmentler icin bitisik metin taramasi (sik/ananas gibi false positive onlenir).
+# "pic" compact taramada YOK: "kebap icin" -> "kebapicin" yanlis pozitif uretir; piç/pici token ile yakalanir.
 SHORT_COMPACT_FRAGMENTS = frozenset(
     {
         "amk",
@@ -227,7 +228,6 @@ SHORT_COMPACT_FRAGMENTS = frozenset(
         "sg",
         "oc",
         "bok",
-        "pic",
         "got",
         "ibne",
     }
@@ -251,6 +251,24 @@ _LEET = str.maketrans(
     }
 )
 
+# casefold sonrasi ASCII disi kalan Turkce harfler (orn. i/ı) — aksi halde "sanırım" -> "san r m".
+_TURKISH_ASCII = str.maketrans(
+    {
+        "\u0131": "i",
+        "\u0130": "i",
+        "ğ": "g",
+        "Ğ": "g",
+        "ş": "s",
+        "Ş": "s",
+        "ü": "u",
+        "Ü": "u",
+        "ö": "o",
+        "Ö": "o",
+        "ç": "c",
+        "Ç": "c",
+    }
+)
+
 
 def fold_turkish(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value.casefold())
@@ -258,7 +276,7 @@ def fold_turkish(value: str) -> str:
 
 
 def normalize_review_text(value: str) -> str:
-    folded = fold_turkish(value).translate(_LEET)
+    folded = fold_turkish(value).translate(_TURKISH_ASCII).translate(_LEET)
     return re.sub(r"[^a-z0-9\s]", " ", folded)
 
 
@@ -355,7 +373,8 @@ def contains_prohibited_language(text: str) -> bool:
 
     for fragment in BLOCKED_FRAGMENTS:
         folded_fragment = fold_turkish(fragment)
-        if len(folded_fragment) >= 4 or folded_fragment in SHORT_COMPACT_FRAGMENTS:
+        # 4 harf (pic/pici) kelime sinirinda sik sik yanlis pozitif; token eslesmesi yeterli.
+        if folded_fragment in SHORT_COMPACT_FRAGMENTS or len(folded_fragment) >= 5:
             if folded_fragment in compact:
                 return True
         if any(token == folded_fragment for token in tokens):
@@ -363,10 +382,24 @@ def contains_prohibited_language(text: str) -> bool:
         if any(token.startswith(folded_fragment) and len(token) <= len(folded_fragment) + 2 for token in tokens):
             return True
 
-    if len(tokens) >= 2:
-        joined = "".join(token for token in tokens if len(token) == 1)
+    # Bosluklu kufur: "a m k" — yalnizca ard arda 3+ tek harfli token (tum metni birlestirme).
+    run: list[str] = []
+    for token in tokens:
+        if len(token) == 1 and token.isalpha():
+            run.append(token)
+        else:
+            if len(run) >= 3:
+                joined = "".join(run)
+                for fragment in BLOCKED_FRAGMENTS:
+                    ff = fold_turkish(fragment)
+                    if ff in joined and (ff in SHORT_COMPACT_FRAGMENTS or len(ff) >= 3):
+                        return True
+            run = []
+    if len(run) >= 3:
+        joined = "".join(run)
         for fragment in BLOCKED_FRAGMENTS:
-            if fold_turkish(fragment) in joined:
+            ff = fold_turkish(fragment)
+            if ff in joined and (ff in SHORT_COMPACT_FRAGMENTS or len(ff) >= 3):
                 return True
 
     return False

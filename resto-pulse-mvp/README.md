@@ -59,7 +59,7 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 ### 2) Frontend

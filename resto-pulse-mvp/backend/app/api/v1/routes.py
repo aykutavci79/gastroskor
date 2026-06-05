@@ -38,6 +38,7 @@ from app.models import (
     User,
 )
 from app.schemas.geo_indication import GeoIndicationRead
+from app.schemas.regional_flavors import RegionalProductListResponse, RegionalProductRestaurantsResponse
 from app.schemas.feedback import (
     CompensationCouponCreate,
     CompensationCouponRead,
@@ -77,6 +78,7 @@ from app.services.city_resolver import normalize_city_key, resolve_city_from_coo
 from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
+from app.services.regional_flavors import list_regional_products, list_restaurants_for_regional_product
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
@@ -99,9 +101,24 @@ from app.schemas.review import (
 )
 from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
 from app.schemas.user import UserProfile, UserSyncPayload
-from app.services.follow_notifications import notify_restaurant_new_follower
-from app.services.follower_promotion_service import get_user_coupon_at_restaurant, issue_coupon_for_follower
+from app.schemas.user_notification import (
+    PushTokenRegister,
+    UserNotificationListResponse,
+    UserNotificationRead,
+)
 from app.schemas.follower_promotion import FollowerCouponRead
+from app.services.follow_notifications import notify_restaurant_new_follower
+from app.services.follower_promotion_service import (
+    get_user_coupon_at_restaurant,
+    issue_coupon_for_follower,
+    list_user_coupons,
+)
+from app.services.user_notification_service import (
+    list_user_notifications,
+    mark_notification_read,
+    notify_follower_coupon_issued,
+    register_push_token,
+)
 from app.services.restaurant_follow import (
     follow_restaurant,
     follower_count,
@@ -552,7 +569,10 @@ async def search_live_places(
             distance_band=distance_band,
             rating_band=rating_band,
         )
-        record_app_usage_event(db, event_type="live_search", platform="api")
+        try:
+            record_app_usage_event(db, event_type="live_search", platform="api")
+        except Exception:
+            logger.exception("live_search metrics kaydi atlandi")
         return result
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
@@ -815,6 +835,38 @@ def new_member_restaurants(
     return NewMemberRestaurantsResponse(items=items)
 
 
+@router.get("/regional-flavors/products", response_model=RegionalProductListResponse)
+def regional_flavor_products(
+    city: str = Query(default="Bursa", min_length=2, max_length=120),
+    db: Session = Depends(get_db),
+):
+    return list_regional_products(db, city=city)
+
+
+@router.get("/regional-flavors/products/{slug}/restaurants", response_model=RegionalProductRestaurantsResponse)
+def regional_flavor_product_restaurants(
+    slug: str,
+    city: str = Query(default="Bursa", min_length=2, max_length=120),
+    origin_lat: float | None = Query(default=None, ge=-90, le=90),
+    origin_lng: float | None = Query(default=None, ge=-180, le=180),
+    min_rating: float = Query(default=4.5, ge=0, le=5),
+    limit: int = Query(default=30, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    payload = list_restaurants_for_regional_product(
+        db,
+        slug=slug,
+        city=city,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
+        min_rating=min_rating,
+        limit=limit,
+    )
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Urun bulunamadi")
+    return payload
+
+
 @router.get("/restaurants", response_model=list[RestaurantListItem])
 def list_restaurants(
     q: str | None = Query(default=None, description="Isim/konum aramasi"),
@@ -930,6 +982,52 @@ def list_my_restaurant_follows(
     return RestaurantFollowListResponse(items=items, total=len(items))
 
 
+@router.post("/me/push-token")
+def register_my_push_token(payload: PushTokenRegister, db: Session = Depends(get_db)):
+    user = get_or_create_user(db, email=payload.user_email)
+    register_push_token(
+        db,
+        user_id=user.id,
+        expo_push_token=payload.expo_push_token,
+        platform=payload.platform,
+    )
+    return {"ok": True}
+
+
+@router.get("/me/notifications", response_model=UserNotificationListResponse)
+def list_my_notifications(
+    user_email: str = Query(..., min_length=3),
+    limit: int = Query(default=40, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    return list_user_notifications(db, user_id=user.id, limit=limit)
+
+
+@router.post("/me/notifications/{notification_id}/read")
+def read_my_notification(
+    notification_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    ok = mark_notification_read(db, user_id=user.id, notification_id=notification_id)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bildirim bulunamadi.")
+    return {"ok": True}
+
+
+@router.get("/me/follower-coupons", response_model=list[FollowerCouponRead])
+def list_my_follower_coupons(
+    user_email: str = Query(..., min_length=3),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=user_email)
+    rows = list_user_coupons(db, user_id=user.id, limit=limit)
+    return [FollowerCouponRead(**row) for row in rows]
+
+
 @router.get("/restaurants/{restaurant_id}/follower-coupon", response_model=FollowerCouponRead | None)
 def restaurant_follower_coupon(
     restaurant_id: UUID,
@@ -970,9 +1068,14 @@ async def follow_restaurant_endpoint(
     user = get_or_create_user(db, email=user_email)
     created = follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
     if created:
-        issue_coupon_for_follower(db, restaurant_id=restaurant_id, user_id=user.id)
+        coupon = issue_coupon_for_follower(db, restaurant_id=restaurant_id, user_id=user.id)
         db.commit()
         await notify_restaurant_new_follower(db, restaurant_id=restaurant_id, follower=user)
+        if coupon:
+            restaurant = db.get(Restaurant, restaurant_id)
+            if restaurant:
+                notify_follower_coupon_issued(db, user=user, restaurant=restaurant, coupon=coupon)
+                db.commit()
     return RestaurantFollowStatus(
         following=True,
         follower_count=follower_count(db, restaurant_id=restaurant_id),

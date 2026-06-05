@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
+import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
 import { getPanelPromo, updatePanelPromo, uploadPanelCardCoverImage, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
@@ -375,7 +376,9 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
                 <span className="text-xs text-success">{settings.public_preview.direct_order_text}</span>
               ) : null}
               {settings.public_preview.instagram_url ? (
-                <span className="text-xs text-pink-200">📷 Instagram</span>
+                <span className="inline-flex items-center gap-1 text-xs text-pink-200">
+                  <InstagramIcon className="h-3 w-3" /> Instagram
+                </span>
               ) : null}
               {settings.public_preview.card_cover_image_url ? (
                 <span className="text-xs text-brand-gold">🖼️ Kart kapak</span>

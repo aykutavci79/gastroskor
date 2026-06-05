@@ -23,6 +23,9 @@ export function PanelProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const userEmail = session?.user?.email ?? null;
+  const userName = session?.user?.name ?? null;
+  const userAvatar = session?.user?.image ?? null;
+  const googleSub = (session?.user as { id?: string } | undefined)?.id ?? null;
 
   const refresh = useCallback(async () => {
     if (!userEmail) {
@@ -35,9 +38,9 @@ export function PanelProvider({ children }: { children: React.ReactNode }) {
     try {
       await syncUser({
         email: userEmail,
-        full_name: session?.user?.name ?? null,
-        avatar_url: session?.user?.image ?? null,
-        google_sub: (session?.user as { id?: string } | undefined)?.id ?? null,
+        full_name: userName,
+        avatar_url: userAvatar,
+        google_sub: googleSub,
       });
       const data = await getPanelAccess(userEmail);
       setAccess(data);
@@ -47,12 +50,18 @@ export function PanelProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session?.user, userEmail]);
+  }, [googleSub, userAvatar, userEmail, userName]);
 
   useEffect(() => {
     if (status === 'loading') return;
+    if (status === 'unauthenticated') {
+      setAccess(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     void refresh();
-  }, [status, refresh]);
+  }, [refresh, status]);
 
   const value = useMemo(
     () => ({ access, loading, error, userEmail, refresh }),

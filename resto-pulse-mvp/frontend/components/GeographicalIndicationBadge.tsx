@@ -42,7 +42,7 @@ export function GeographicalIndicationBadge({
             className="inline-flex max-w-full flex-col gap-0.5 rounded-full border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-xs text-brand-gold"
             title={product}>
             <span className="text-[10px] font-bold uppercase tracking-wide text-brand-gold">
-              Coğrafi İşaretli Ürün
+              Mahreç
             </span>
             <span className="truncate font-medium">{product}</span>
           </span>
@@ -54,7 +54,7 @@ export function GeographicalIndicationBadge({
   return (
     <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
       <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold">
-        Coğrafi İşaretli Ürün
+        Mahreç — yöresel lezzet
       </p>
       <ul className="mt-3 space-y-2">
         {products.map((product) => (
@@ -69,7 +69,15 @@ export function GeographicalIndicationBadge({
         ))}
       </ul>
       <p className="mt-4 text-xs text-content-muted">
-        Kayıt: Türk Patent ve Marka Kurumu coğrafi işaret tescilleri (örnek veri).
+        Kayıt:{' '}
+        <a
+          href="https://ci.turkpatent.gov.tr/"
+          className="text-brand-gold underline"
+          target="_blank"
+          rel="noopener noreferrer">
+          TÜRKPATENT Coğrafi İşaretler Portalı
+        </a>
+        . Rozet, mekânın menüsünde sunulan tescilli yöresel lezzeti gösterir.
       </p>
     </section>
   );

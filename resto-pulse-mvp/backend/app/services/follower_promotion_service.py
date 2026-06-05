@@ -158,11 +158,11 @@ def issue_coupon_for_follower(
     return None
 
 
-def _issue_coupons_batch(db: Session, promo: FollowerPromotion) -> int:
+def _issue_coupons_batch(db: Session, promo: FollowerPromotion) -> list[FollowerCoupon]:
     issued, _ = promotion_stats(db, promo.id)
     remaining = max(0, promo.max_coupons - issued)
     if remaining == 0:
-        return 0
+        return []
 
     follower_ids = db.scalars(
         select(UserRestaurantFollow.user_id)
@@ -170,9 +170,9 @@ def _issue_coupons_batch(db: Session, promo: FollowerPromotion) -> int:
         .order_by(UserRestaurantFollow.created_at.asc())
     ).all()
 
-    created = 0
+    created_rows: list[FollowerCoupon] = []
     for user_id in follower_ids:
-        if created >= remaining:
+        if len(created_rows) >= remaining:
             break
         existing = db.scalar(
             select(FollowerCoupon.id).where(
@@ -182,18 +182,17 @@ def _issue_coupons_batch(db: Session, promo: FollowerPromotion) -> int:
         )
         if existing:
             continue
-        db.add(
-            FollowerCoupon(
-                promotion_id=promo.id,
-                user_id=user_id,
-                restaurant_id=promo.restaurant_id,
-                code=_generate_coupon_code(db),
-                status="issued",
-                expires_at=promo.valid_until,
-            )
+        coupon = FollowerCoupon(
+            promotion_id=promo.id,
+            user_id=user_id,
+            restaurant_id=promo.restaurant_id,
+            code=_generate_coupon_code(db),
+            status="issued",
+            expires_at=promo.valid_until,
         )
-        created += 1
-    return created
+        db.add(coupon)
+        created_rows.append(coupon)
+    return created_rows
 
 
 def create_follower_promotion(
@@ -218,10 +217,10 @@ def create_follower_promotion(
     )
     db.add(promo)
     db.flush()
-    _issue_coupons_batch(db, promo)
+    new_coupons = _issue_coupons_batch(db, promo)
     db.commit()
     db.refresh(promo)
-    return promo
+    return promo, new_coupons
 
 
 def list_promotions_for_ownership(db: Session, ownership_id: UUID) -> list[dict]:

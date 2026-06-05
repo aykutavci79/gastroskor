@@ -86,11 +86,11 @@ export function PanelFollowerCoupons({ userEmail, canWrite }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
+    <section id="follower-coupons" className="rounded-2xl border border-border/70 bg-surface-input p-5 scroll-mt-24">
       <h2 className="text-lg font-semibold text-content">Takipçi kuponları</h2>
       <p className="mt-1 text-sm text-content-muted">
         Her takipçiye benzersiz <strong className="text-content">GS-…</strong> kodu. Kasada kodu girince tek
-        kullanımlık olarak kapanır.
+        kullanımlık olarak kapanır. Yeni kuponlarda mobil uygulamaya bildirim gider.
       </p>
 
       {loading ? <p className="mt-3 text-sm text-content-muted">Yükleniyor…</p> : null}

@@ -4,6 +4,35 @@ export type GeoIndication = {
   registry_note: string | null;
 };
 
+export type RegionalProductItem = {
+  slug: string;
+  name: string;
+  city: string;
+  region: string;
+  summary: string;
+  registry_source: string;
+  turkpatent_id: string;
+  registration_year: number;
+  indication_type: string;
+  product_group: string;
+  detail_url: string;
+  restaurant_count: number;
+};
+
+export type RegionalProductListResponse = {
+  city: string;
+  items: RegionalProductItem[];
+  registry_note: string;
+};
+
+export type RegionalProductRestaurantsResponse = {
+  product: RegionalProductItem;
+  min_rating: number;
+  applied_min_rating: number;
+  rating_relaxed: boolean;
+  items: RestaurantListItem[];
+};
+
 export type ReviewCategory = {
   category: string;
   score: number | null;
@@ -67,6 +96,21 @@ export type FollowerPromotion = {
   redeemed_count: number;
   status: string;
   created_at: string;
+};
+
+export type PanelFollower = {
+  user_id: string;
+  display_name: string | null;
+  email_masked: string;
+  followed_at: string;
+  has_active_coupon: boolean;
+  coupon_code: string | null;
+  coupon_discount_percent: number | null;
+};
+
+export type PanelFollowerListResponse = {
+  items: PanelFollower[];
+  total: number;
 };
 
 export type FollowerCoupon = {

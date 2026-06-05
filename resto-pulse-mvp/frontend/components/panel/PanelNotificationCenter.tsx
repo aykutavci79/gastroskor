@@ -14,6 +14,22 @@ type Props = {
   userEmail: string;
 };
 
+/** Eski bildirimlerde /panel/panel ve canli URL + local panel uyumu. */
+function resolvePanelCtaUrl(ctaUrl: string): string {
+  try {
+    const parsed = new URL(ctaUrl, window.location.origin);
+    parsed.pathname = parsed.pathname.replace(/\/panel\/panel\/?$/i, '/panel');
+    const onLocal =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (onLocal) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return parsed.toString();
+  } catch {
+    return ctaUrl.replace(/\/panel\/panel\b/i, '/panel');
+  }
+}
+
 export function PanelNotificationCenter({ userEmail }: Props) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<PanelNotification[]>([]);
@@ -63,10 +79,11 @@ export function PanelNotificationCenter({ userEmail }: Props) {
       // ignore
     }
     if (item.cta_url) {
-      if (item.cta_url.startsWith('http')) {
-        window.open(item.cta_url, '_blank', 'noopener,noreferrer');
+      const target = resolvePanelCtaUrl(item.cta_url);
+      if (target.startsWith('http')) {
+        window.open(target, '_blank', 'noopener,noreferrer');
       } else {
-        window.location.href = item.cta_url;
+        window.location.href = target;
       }
     }
     setOpen(false);

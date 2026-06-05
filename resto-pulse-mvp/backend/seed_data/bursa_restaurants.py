@@ -23,7 +23,7 @@ class GeoIndicationSeed:
 
     product: str
     region: str | None = None
-    registry_note: str = "Turk Patent ve Marka Kurumu — Cografi Isaret"
+    registry_note: str = "Türk Patent ve Marka Kurumu — Coğrafi İşaretler Portalı"
 
 
 @dataclass(frozen=True)
@@ -59,10 +59,10 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_avg_rating=4.3,
         google_review_count=12500,
         geo_indications=[
-            GeoIndicationSeed(product="Bursa Kebabı (İskender)", region="Bursa"),
+            GeoIndicationSeed(product="Bursa Döner Kebabı", region="Bursa"),
         ],
         has_geographical_indication=True,
-        gi_product_name="Bursa Kebabı (İskender)",
+        gi_product_name="Bursa Döner Kebabı",
         sample_reviews=[
             SampleReview(
                 5,
@@ -84,6 +84,9 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Çiçek Izgara Belediye Caddesi 15 Bursa",
         google_avg_rating=4.4,
         google_review_count=8200,
+        geo_indications=[GeoIndicationSeed(product="İnegöl Köfte", region="Bursa / İnegöl")],
+        has_geographical_indication=True,
+        gi_product_name="İnegöl Köfte",
         sample_reviews=[
             SampleReview(
                 5,
@@ -126,9 +129,9 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Uludağ Kebapçısı Cemal Cemil Usta Bursa",
         google_avg_rating=4.6,
         google_review_count=3100,
-        geo_indications=[GeoIndicationSeed(product="Bursa Kebabı", region="Bursa")],
+        geo_indications=[GeoIndicationSeed(product="Bursa Döner Kebabı", region="Bursa")],
         has_geographical_indication=True,
-        gi_product_name="Bursa Kebabı",
+        gi_product_name="Bursa Döner Kebabı",
         sample_reviews=[
             SampleReview(
                 5,
@@ -151,8 +154,9 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_avg_rating=4.7,
         google_review_count=4800,
         geo_indications=[
-            GeoIndicationSeed(product="Kemalpaşa Tatlısı", region="Bursa"),
+            GeoIndicationSeed(product="Kemalpaşa Tatlısı", region="Bursa / Kemalpaşa"),
             GeoIndicationSeed(product="Bursa Süt Helvası", region="Bursa"),
+            GeoIndicationSeed(product="Bursa Tahinli Pide", region="Bursa"),
         ],
         has_geographical_indication=True,
         sample_reviews=[
@@ -176,6 +180,9 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Pideli Köfteci Yılmaz Usta Bursa",
         google_avg_rating=4.2,
         google_review_count=2100,
+        geo_indications=[GeoIndicationSeed(product="Bursa Pideli Köfte", region="Bursa")],
+        has_geographical_indication=True,
+        gi_product_name="Bursa Pideli Köfte",
         sample_reviews=[
             SampleReview(
                 5,
@@ -221,9 +228,9 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Kebapçı Tamer Bursa",
         google_avg_rating=4.4,
         google_review_count=6700,
-        geo_indications=[GeoIndicationSeed(product="Bursa Kebabı", region="Bursa")],
+        geo_indications=[GeoIndicationSeed(product="Bursa Döner Kebabı", region="Bursa")],
         has_geographical_indication=True,
-        gi_product_name="Bursa Kebabı",
+        gi_product_name="Bursa Döner Kebabı",
         sample_reviews=[
             SampleReview(
                 5,

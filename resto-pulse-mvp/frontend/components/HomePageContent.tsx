@@ -3,6 +3,7 @@
 import { FeaturedCityTop } from '@/components/FeaturedCityTop';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
+import { RegionalFlavorTeaser } from '@/components/RegionalFlavorTeaser';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 
 export function HomePageContent() {
@@ -24,6 +25,7 @@ export function HomePageContent() {
       <LivePlaceSearch city={city} cityStatus={status} userCoords={coords} embedded />
 
       <NewMemberRestaurants />
+      <RegionalFlavorTeaser />
       <FeaturedCityTop />
     </div>
   );

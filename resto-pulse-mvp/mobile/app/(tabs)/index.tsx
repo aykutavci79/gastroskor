@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchBar } from '@/components/SearchBar';
@@ -24,6 +25,7 @@ import type {
 type Coords = { lat: number; lng: number };
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
   const [inputQuery, setInputQuery] = useState('');
@@ -180,6 +182,9 @@ export default function ExploreScreen() {
         <Text style={styles.heroSub}>
           İsim yazınca Google canlı arama; üye işletmeler altın çerçeve ile listelenir.
         </Text>
+        <Pressable style={styles.yoreselBtn} onPress={() => router.push('/yoresel' as Href)}>
+          <Text style={styles.yoreselBtnText}>🍽️ Bursa yöresel lezzetler</Text>
+        </Pressable>
       </View>
 
       <SearchBar
@@ -298,6 +303,17 @@ const styles = StyleSheet.create({
   kicker: { color: GastroColors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroTitle: { color: GastroColors.text, fontSize: 22, fontWeight: '800' },
   heroSub: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
+  yoreselBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  yoreselBtnText: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
   section: { gap: 4 },
   sectionHead: {
     flexDirection: 'row',

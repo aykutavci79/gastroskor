@@ -10,6 +10,8 @@ import type {
   ReviewFilterState,
   CityTopResponse,
   NewMemberRestaurantsResponse,
+  RegionalProductListResponse,
+  RegionalProductRestaurantsResponse,
   Restaurant,
   RestaurantListItem,
   RestaurantTrendingItem,
@@ -24,16 +26,34 @@ import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-mo
 
 export { ReviewModerationApiError };
 
+function apiConnectionHint(): string {
+  const base = getApiBase();
+  if (/localhost|127\.0\.0\.1/i.test(base)) {
+    return `API baglantisi kurulamadi (${base}). Backend acik mi? backend/.env icinde GOOGLE_PLACES_API_KEY ve Postgres (5432) hazir mi?`;
+  }
+  return `API baglantisi kurulamadi (${base}). Internet veya sunucu durumunu kontrol edin.`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const hasBody = init?.body != null;
-  const response = await fetch(`${getApiV1Base()}${path}`, {
-    ...init,
-    headers: {
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...(init?.headers ?? {}),
-    },
-    cache: 'no-store',
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiV1Base()}${path}`, {
+      ...init,
+      headers: {
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(init?.headers ?? {}),
+      },
+      cache: 'no-store',
+      signal: init?.signal ?? AbortSignal.timeout(20_000),
+    });
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : 'Failed to fetch';
+    if (raw === 'Failed to fetch' || raw.includes('aborted') || raw.includes('timeout')) {
+      throw new Error(apiConnectionHint());
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -95,6 +115,29 @@ export function listNewMemberRestaurants(params?: { limit?: number }) {
   if (params?.limit != null) search.set('limit', String(params.limit));
   const query = search.toString();
   return request<NewMemberRestaurantsResponse>(`/restaurants/new-members${query ? `?${query}` : ''}`);
+}
+
+export function listRegionalProducts(params?: { city?: string }) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  const query = search.toString();
+  return request<RegionalProductListResponse>(`/regional-flavors/products${query ? `?${query}` : ''}`);
+}
+
+export function listRegionalProductRestaurants(
+  slug: string,
+  params?: { city?: string; origin_lat?: number; origin_lng?: number; min_rating?: number; limit?: number },
+) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
+  if (params?.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
+  if (params?.min_rating != null) search.set('min_rating', String(params.min_rating));
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<RegionalProductRestaurantsResponse>(
+    `/regional-flavors/products/${encodeURIComponent(slug)}/restaurants${query ? `?${query}` : ''}`,
+  );
 }
 
 export function listRestaurants(params: {
@@ -611,6 +654,12 @@ export function updatePanelNotificationPreferences(payload: {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export function listPanelFollowers(userEmail: string, limit = 100) {
+  return request<import('@/lib/types').PanelFollowerListResponse>(
+    `/panel/followers?user_email=${encodeURIComponent(userEmail)}&limit=${limit}`,
+  );
 }
 
 export function listPanelFollowerPromotions(userEmail: string) {
