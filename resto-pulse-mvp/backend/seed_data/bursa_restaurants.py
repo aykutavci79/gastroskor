@@ -108,14 +108,17 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Hacı Dayı Kebap Tophane Bursa",
         google_avg_rating=4.5,
         google_review_count=5400,
+        geo_indications=[GeoIndicationSeed(product="Bursa Cantığı", region="Bursa")],
+        has_geographical_indication=True,
+        gi_product_name="Bursa Cantığı",
         sample_reviews=[
             SampleReview(
                 5,
-                "Tophane manzarasi esliginde lahmacun ve kebap harikaydi. Personel ilgili.",
+                "Tophane manzarasi esliginde cantik ve lahmacun harikaydi. Tabeladaki H harfi silik; yerel halk Acı Dayı der.",
             ),
             SampleReview(
                 4,
-                "Bursa kebabi guzel ama fiyatlar turist yogunluguna gore bir tik yuksek.",
+                "Cantik citir, peynirli; Bursa'nin en bilinen duraklarindan. Kalabalik saatlerde bekleme olabilir.",
             ),
         ],
     ),
