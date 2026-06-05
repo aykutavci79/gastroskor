@@ -33,3 +33,61 @@ export function livePlaceDistanceLabel(item: LivePlaceSearchItem): string | unde
   const origin = item.distance_origin === 'user' ? 'konumun' : 'merkez';
   return `${dist} · ${origin}`;
 }
+
+export type LiveScoreQuery = {
+  gastro_score: number;
+  distance_score: number;
+  rating_score: number;
+  distance_meters: number | null;
+  distance_origin: 'user' | 'city_center';
+  rating: number | null;
+};
+
+function appendLiveScores(href: string, scores: LiveScoreQuery): string {
+  const q = new URLSearchParams();
+  q.set('gastro', String(scores.gastro_score));
+  q.set('ds', String(scores.distance_score));
+  q.set('rs', String(scores.rating_score));
+  if (scores.distance_meters != null) q.set('dm', String(scores.distance_meters));
+  q.set('do', scores.distance_origin);
+  if (scores.rating != null) q.set('gr', String(scores.rating));
+  return `${href}?${q.toString()}`;
+}
+
+/** GS uyesi UUID veya Google place_id ile detay sayfasi */
+export function livePlaceDetailHref(item: LivePlaceSearchItem): string {
+  if (item.restaurant_id) {
+    return `/restaurants/${item.restaurant_id}`;
+  }
+  const href = `/place/${encodeURIComponent(item.place_id)}`;
+  return appendLiveScores(href, {
+    gastro_score: item.gastro_score,
+    distance_score: item.distance_score,
+    rating_score: item.rating_score,
+    distance_meters: item.distance_meters,
+    distance_origin: item.distance_origin,
+    rating: item.rating,
+  });
+}
+
+export function parseLiveScoreSearchParams(
+  searchParams: { get: (key: string) => string | null },
+): LiveScoreQuery | null {
+  const gastro = Number(searchParams.get('gastro'));
+  if (!Number.isFinite(gastro)) return null;
+  const ds = Number(searchParams.get('ds'));
+  const rs = Number(searchParams.get('rs'));
+  const dmRaw = searchParams.get('dm');
+  const dm = dmRaw != null && dmRaw !== '' ? Number(dmRaw) : null;
+  const doRaw = searchParams.get('do');
+  const grRaw = searchParams.get('gr');
+  const gr = grRaw != null && grRaw !== '' ? Number(grRaw) : null;
+  return {
+    gastro_score: gastro,
+    distance_score: Number.isFinite(ds) ? ds : 0,
+    rating_score: Number.isFinite(rs) ? rs : 0,
+    distance_meters: dm != null && Number.isFinite(dm) ? dm : null,
+    distance_origin: doRaw === 'user' ? 'user' : 'city_center',
+    rating: gr != null && Number.isFinite(gr) ? gr : null,
+  };
+}

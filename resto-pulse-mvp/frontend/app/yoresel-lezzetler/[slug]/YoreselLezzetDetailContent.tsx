@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
-import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
+import { livePlaceDistanceLabel, livePlaceDetailHref, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import type { LivePlaceSearchItem, RegionalProductItem } from '@/lib/types';
 
 export function YoreselLezzetDetailContent() {
@@ -139,7 +139,11 @@ export function YoreselLezzetDetailContent() {
                   restaurant={livePlaceToRestaurantCard(item)}
                   compact={false}
                   distanceLabel={livePlaceDistanceLabel(item)}
-                  href={item.restaurant_id ? `/restaurants/${item.restaurant_id}` : null}
+                  googleRating={item.rating}
+                  googleReviewCount={item.user_ratings_total}
+                  distanceMeters={item.distance_meters}
+                  mapsDirectionsUrl={item.maps_directions_url}
+                  href={livePlaceDetailHref(item)}
                 />
               ))}
             </div>
