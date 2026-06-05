@@ -117,9 +117,12 @@ export type UserNotification = {
   created_at: string;
   metadata: {
     restaurant_id?: string;
+    review_id?: string;
+    reply_id?: string;
     coupon_code?: string;
     open_path?: string;
     discount_percent?: number;
+    is_restaurant_owner?: boolean;
   };
 };
 

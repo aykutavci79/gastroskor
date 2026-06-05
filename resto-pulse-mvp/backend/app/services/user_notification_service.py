@@ -8,7 +8,16 @@ import httpx
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import FollowerCoupon, Restaurant, User, UserNotification, UserPushToken
+from app.models import (
+    FollowerCoupon,
+    Restaurant,
+    RestaurantOwnership,
+    Review,
+    ReviewReply,
+    User,
+    UserNotification,
+    UserPushToken,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -174,3 +183,146 @@ def notify_follower_coupon_issued(
     push_body = f"%{discount} indirim · {coupon.code}"
     _send_expo_push(tokens, title=push_title, body=push_body, data=metadata)
     return row
+
+
+def _truncate_text(text: str, max_len: int = 120) -> str:
+    cleaned = text.strip()
+    if len(cleaned) <= max_len:
+        return cleaned
+    return cleaned[: max_len - 1].rstrip() + "…"
+
+
+def _is_verified_restaurant_owner(db: Session, *, user_id: UUID, restaurant_id: UUID) -> bool:
+    ownership = db.scalar(
+        select(RestaurantOwnership).where(
+            RestaurantOwnership.user_id == user_id,
+            RestaurantOwnership.restaurant_id == restaurant_id,
+            RestaurantOwnership.verification_status.in_(("verified", "verified_sms")),
+        )
+    )
+    return ownership is not None
+
+
+def _actor_label(db: Session, actor: User, *, restaurant_id: UUID) -> tuple[str, bool]:
+    is_owner = _is_verified_restaurant_owner(db, user_id=actor.id, restaurant_id=restaurant_id)
+    if is_owner:
+        restaurant = db.get(Restaurant, restaurant_id)
+        if restaurant and restaurant.name.strip():
+            return restaurant.name.strip(), True
+    name = (actor.full_name or "").strip()
+    if name:
+        return name, False
+    return mask_email(actor.email), False
+
+
+def _review_notification_metadata(review: Review, **extra: object) -> dict:
+    metadata = {
+        "restaurant_id": str(review.restaurant_id),
+        "review_id": str(review.id),
+        "open_path": f"/restaurant/{review.restaurant_id}",
+    }
+    metadata.update(extra)
+    return metadata
+
+
+def _persist_user_notification(
+    db: Session,
+    *,
+    recipient_id: UUID,
+    notification_type: str,
+    title: str,
+    message: str,
+    metadata: dict,
+    push_title: str,
+    push_body: str,
+) -> UserNotification | None:
+    row = UserNotification(
+        user_id=recipient_id,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        metadata_json=metadata,
+    )
+    db.add(row)
+    db.flush()
+
+    tokens = list(
+        db.scalars(select(UserPushToken.expo_push_token).where(UserPushToken.user_id == recipient_id)).all()
+    )
+    _send_expo_push(tokens, title=push_title, body=push_body, data=metadata)
+    return row
+
+
+def notify_review_reply(
+    db: Session,
+    *,
+    review: Review,
+    reply: ReviewReply,
+    actor: User,
+) -> UserNotification | None:
+    if not review.author_id or review.author_id == actor.id:
+        return None
+
+    actor_name, is_restaurant = _actor_label(db, actor, restaurant_id=review.restaurant_id)
+    snippet = _truncate_text(reply.reply_text)
+    if is_restaurant:
+        title = "İşletme yorumunuza yanıt verdi"
+        message = f"{actor_name} yorumunuza cevap yazdı: «{snippet}»"
+        push_title = f"{actor_name} yanıt verdi"
+    else:
+        title = "Yorumunuza yanıt geldi"
+        message = f"{actor_name} yorumunuza cevap yazdı: «{snippet}»"
+        push_title = "Yorumunuza yeni cevap"
+
+    metadata = _review_notification_metadata(
+        review,
+        reply_id=str(reply.id),
+        actor_user_id=str(actor.id),
+        is_restaurant_owner=is_restaurant,
+    )
+    return _persist_user_notification(
+        db,
+        recipient_id=review.author_id,
+        notification_type="review_reply",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=push_title,
+        push_body=snippet,
+    )
+
+
+def notify_review_helpful(
+    db: Session,
+    *,
+    review: Review,
+    actor: User,
+) -> UserNotification | None:
+    if not review.author_id or review.author_id == actor.id:
+        return None
+
+    actor_name, is_restaurant = _actor_label(db, actor, restaurant_id=review.restaurant_id)
+    if is_restaurant:
+        title = "İşletme yorumunuzu beğendi"
+        message = f"{actor_name} yorumunuzu yararlı buldu."
+        push_title = f"{actor_name} yorumunuzu beğendi"
+    else:
+        title = "Yorumunuz beğenildi"
+        message = f"{actor_name} yorumunuzu yararlı buldu."
+        push_title = "Yorumunuz beğenildi"
+
+    metadata = _review_notification_metadata(
+        review,
+        actor_user_id=str(actor.id),
+        is_restaurant_owner=is_restaurant,
+    )
+    return _persist_user_notification(
+        db,
+        recipient_id=review.author_id,
+        notification_type="review_helpful",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=push_title,
+        push_body=message,
+    )

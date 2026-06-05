@@ -79,7 +79,9 @@ export function UserNotificationsSection({ userEmail }: Props) {
           </View>
         ) : null}
       </View>
-      <Text style={styles.muted}>Takipçi kuponları ve kampanyalar burada görünür.</Text>
+      <Text style={styles.muted}>
+        Yorum cevapları, beğeniler, takipçi kuponları ve kampanyalar burada görünür.
+      </Text>
       {items.slice(0, 8).map((item) => (
         <Pressable
           key={item.id}

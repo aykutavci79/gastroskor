@@ -117,6 +117,8 @@ from app.services.user_notification_service import (
     list_user_notifications,
     mark_notification_read,
     notify_follower_coupon_issued,
+    notify_review_helpful,
+    notify_review_reply,
     register_push_token,
 )
 from app.services.restaurant_follow import (
@@ -1493,6 +1495,7 @@ def toggle_review_helpful(review_id: UUID, payload: ReviewAuthorAction, db: Sess
         db.delete(existing)
     else:
         db.add(ReviewHelpfulVote(review_id=review.id, user_id=user.id))
+        notify_review_helpful(db, review=review, actor=user)
 
     db.commit()
     review = load_review_or_404(db, review_id)
@@ -1515,6 +1518,8 @@ def create_review_reply(review_id: UUID, payload: ReviewReplyCreate, db: Session
         reply_text=payload.reply_text.strip(),
     )
     db.add(reply)
+    db.flush()
+    notify_review_reply(db, review=review, reply=reply, actor=user)
     db.commit()
     db.refresh(reply, attribute_names=["author"])
     return serialize_review_reply(reply)
