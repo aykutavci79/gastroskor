@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { RegionalProductCard } from '@/components/RegionalProductCard';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
@@ -46,21 +47,13 @@ export function RegionalFlavorTeaser() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3">
         {items.map((item) => (
-          <Link
+          <RegionalProductCard
             key={item.slug}
-            href={`/yoresel-lezzetler/${item.slug}`}
-            className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 transition hover:border-amber-500/50 hover:bg-amber-500/10">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-brand-gold">Mahreç</p>
-            <h3 className="mt-1 text-lg font-semibold text-content">{item.name}</h3>
-            <p className="mt-2 line-clamp-2 text-sm text-content-muted">{item.summary}</p>
-            <p className="mt-3 text-xs font-medium text-brand-gold">
-              {item.restaurant_count > 0
-                ? `${item.restaurant_count} restoran · 4.5+ puan`
-                : 'Restoran listesi yakında'}
-            </p>
-          </Link>
+            item={item}
+            href={`/yoresel-lezzetler/${item.slug}?city=Bursa`}
+          />
         ))}
       </div>
     </section>

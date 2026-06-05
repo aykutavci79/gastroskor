@@ -151,10 +151,47 @@ def seed_bursa(db, *, dry_run: bool = False) -> None:
         print("      (veya --reset ile sifirdan yukleyin)")
 
 
+def refresh_bursa_geo_tags(db, *, dry_run: bool = False) -> None:
+    updated = 0
+    missing = 0
+    for entry in BURSA_RESTAURANTS:
+        restaurant = restaurant_exists(db, entry)
+        if not restaurant:
+            missing += 1
+            continue
+        if dry_run:
+            print(f"[dry-run refresh] {entry.name} -> {entry.gi_product_name or entry.geo_indications}")
+            updated += 1
+            continue
+        restaurant.geo_indications = [
+            {
+                "product": gi.product,
+                "region": gi.region,
+                "registry_note": gi.registry_note,
+            }
+            for gi in entry.geo_indications
+        ]
+        restaurant.has_geographical_indication = entry.has_geographical_indication
+        restaurant.gi_product_name = entry.gi_product_name
+        updated += 1
+        print(f"[guncellendi] {entry.name} | mahrec={entry.gi_product_name or '-'}")
+
+    if not dry_run:
+        db.commit()
+
+    print()
+    print(f"Mahrec guncelleme: {updated} restoran, {missing} seed'de olup DB'de yok.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="GastroSkor Bursa ornek veri seed")
     parser.add_argument("--reset", action="store_true", help="Once Bursa seed kayitlarini sil")
     parser.add_argument("--dry-run", action="store_true", help="DB'ye yazma, sadece ozet")
+    parser.add_argument(
+        "--refresh-gi",
+        action="store_true",
+        help="Mevcut Bursa seed restoranlarinin mahrec/cografi isaret alanlarini guncelle",
+    )
     args = parser.parse_args()
 
     print("GastroSkor seed")
@@ -171,7 +208,10 @@ def main() -> None:
             clear_bursa_seed(db)
             print("Temizlendi.\n")
 
-        seed_bursa(db, dry_run=args.dry_run)
+        if args.refresh_gi:
+            refresh_bursa_geo_tags(db, dry_run=args.dry_run)
+        else:
+            seed_bursa(db, dry_run=args.dry_run)
     finally:
         db.close()
 

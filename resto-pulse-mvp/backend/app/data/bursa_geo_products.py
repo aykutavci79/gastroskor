@@ -26,6 +26,7 @@ class RegionalProductCatalogItem:
     indication_type: str
     detail_url: str
     list_url: str
+    image_url: str | None = None
     registry_source: str = _REGISTRY_SOURCE
 
 
@@ -63,6 +64,7 @@ def _parse_item(raw: dict, product_groups: dict[str, str]) -> RegionalProductCat
         indication_type=str(raw.get("indication_type") or "Mahreç İşareti"),
         detail_url=str(raw["detail_url"]),
         list_url=str(raw.get("list_url") or ""),
+        image_url=str(raw["image_url"]).strip() if raw.get("image_url") else None,
     )
 
 

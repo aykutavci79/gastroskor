@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+import { RegionalProductCard } from '@/components/RegionalProductCard';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
@@ -47,26 +48,13 @@ export function YoreselLezzetlerContent() {
 
       {loading ? <p className="mt-8 text-sm text-content-muted">Yükleniyor...</p> : null}
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-4">
         {items.map((item) => (
-          <Link
+          <RegionalProductCard
             key={item.slug}
-            href={`/yoresel-lezzetler/${item.slug}`}
-            className="rounded-2xl border border-border/70 bg-surface-card p-5 transition hover:border-amber-500/40">
-            <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold">
-              Mahreç
-            </span>
-            <h2 className="mt-2 text-xl font-semibold text-content">{item.name}</h2>
-            <p className="mt-1 text-xs text-content-muted">
-              {item.region} · {item.registration_year} · {item.indication_type}
-            </p>
-            <p className="mt-3 text-sm text-content-muted">{item.summary}</p>
-            <p className="mt-4 text-sm font-medium text-brand-gold">
-              {item.restaurant_count > 0
-                ? `${item.restaurant_count} restoran listeleniyor`
-                : 'Yakında restoran eklenecek'}
-            </p>
-          </Link>
+            item={item}
+            href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
+          />
         ))}
       </div>
 

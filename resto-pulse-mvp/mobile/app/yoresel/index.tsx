@@ -1,4 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -47,16 +48,25 @@ export default function YoreselLezzetlerScreen() {
               key={item.slug}
               style={styles.card}
               onPress={() => router.push(`/yoresel/${item.slug}` as Href)}>
-              <Text style={styles.badge}>MAHREÇ</Text>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.region}>{item.region}</Text>
-              <Text style={styles.summary}>{item.summary}</Text>
-              <Text style={styles.meta}>
-                {item.registration_year} · {item.indication_type}
-                {item.restaurant_count > 0
-                  ? ` · ${item.restaurant_count} restoran`
-                  : ' · Yakında restoran'}
-              </Text>
+              <View style={styles.cardRow}>
+                <View style={styles.cardBody}>
+                  <Text style={styles.badge}>MAHREÇ</Text>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.region}>{item.region}</Text>
+                  <Text style={styles.summary} numberOfLines={3}>
+                    {item.summary}
+                  </Text>
+                  <Text style={styles.meta}>
+                    {item.registration_year} · {item.indication_type}
+                    {item.restaurant_count > 0
+                      ? ` · ${item.restaurant_count} restoran`
+                      : ' · Öneriler için dokun'}
+                  </Text>
+                </View>
+                {item.image_url ? (
+                  <Image source={{ uri: item.image_url }} style={styles.thumb} contentFit="cover" />
+                ) : null}
+              </View>
             </Pressable>
           ))}
         </View>
@@ -82,7 +92,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.25)',
     backgroundColor: GastroColors.panel,
-    padding: 16,
+    overflow: 'hidden',
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'stretch' },
+  cardBody: { flex: 1, padding: 16 },
+  thumb: {
+    width: 96,
+    minHeight: 120,
+    backgroundColor: GastroColors.input,
   },
   badge: {
     color: GastroColors.gold,

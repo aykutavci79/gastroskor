@@ -16,6 +16,7 @@ class RegionalProductItem(BaseModel):
     indication_type: str
     product_group: str
     detail_url: str
+    image_url: str | None = None
     restaurant_count: int = 0
 
 

@@ -77,7 +77,8 @@ def scrape_group(page, group_id: str) -> list[dict]:
         seen.add(id);
         const card = a.closest('.product-item') || a.closest('.col-lg-3') || a.parentElement?.parentElement?.parentElement;
         const lis = card ? [...card.querySelectorAll('li')].map(li => li.innerText.trim()) : [];
-        out.push({ id, name, href, meta: lis });
+        const img = card?.querySelector('img[src*="/Pictures/GeographicalSigns/"]');
+        out.push({ id, name, href, meta: lis, image_url: img?.src || null });
       }
       return out;
     }
@@ -105,6 +106,7 @@ def scrape_group(page, group_id: str) -> list[dict]:
                 "indication_type": indication,
                 "detail_url": str(row["href"]),
                 "list_url": url,
+                "image_url": row.get("image_url"),
             }
         )
     return items

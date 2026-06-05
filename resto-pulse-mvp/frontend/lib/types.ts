@@ -16,6 +16,7 @@ export type RegionalProductItem = {
   indication_type: string;
   product_group: string;
   detail_url: string;
+  image_url: string | null;
   restaurant_count: number;
 };
 

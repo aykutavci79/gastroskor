@@ -13,7 +13,11 @@
       "turkpatent_id": "1202",
       "slug": "bursa-cantik",
       "name": "Bursa Cantık",
-      "aliases": ["Bursa Cantığı", "Cantık", "Cantik"],
+      "aliases": [
+        "Bursa Cantığı",
+        "Cantık",
+        "Cantik"
+      ],
       "city": "Bursa",
       "region": "Bursa",
       "summary": "Bursa'nın geleneksel peynirli hamur işi lezzeti.",
@@ -21,13 +25,16 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/1202",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/d219ffc8-e648-4df3-8661-fea9c9ce0a06.jpeg"
     },
     {
       "turkpatent_id": "1205",
       "slug": "bursa-cevizli-lokum",
       "name": "Bursa Cevizli Lokum",
-      "aliases": ["Cevizli Lokum"],
+      "aliases": [
+        "Cevizli Lokum"
+      ],
       "city": "Bursa",
       "region": "Bursa",
       "summary": "Bursa'da üretilen cevizli lokum.",
@@ -35,13 +42,17 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/1205",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/5243f171-0c88-4e99-ad84-1c4295bae82b.jpeg"
     },
     {
       "turkpatent_id": "2483",
       "slug": "bursa-sut-helvasi",
       "name": "Bursa Süt Helvası",
-      "aliases": ["Bursa Sut Helvasi", "Süt Helvası"],
+      "aliases": [
+        "Bursa Sut Helvasi",
+        "Süt Helvası"
+      ],
       "city": "Bursa",
       "region": "Bursa",
       "summary": "Bursa fırın ve pastanelerinde sunulan geleneksel süt helvası.",
@@ -49,13 +60,16 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/2483",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/5d1c3f87-b18f-4e0f-b75c-8dd285c9a061.jpeg"
     },
     {
       "turkpatent_id": "1204",
       "slug": "bursa-tahinli-pide",
       "name": "Bursa Tahinli Pide",
-      "aliases": ["Tahinli Pide"],
+      "aliases": [
+        "Tahinli Pide"
+      ],
       "city": "Bursa",
       "region": "Bursa",
       "summary": "Bursa fırınlarında sabah kahvaltısının vazgeçilmezi tahinli pide.",
@@ -63,7 +77,8 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/1204",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/ba27ee2b-56ca-4941-aa96-87cb1ff655ab.jpeg"
     },
     {
       "turkpatent_id": "38383",
@@ -81,13 +96,17 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/38383",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/96e55e15-4e64-4867-ac04-adbb818e993a.jpeg"
     },
     {
       "turkpatent_id": "6164",
       "slug": "inegol-sutlu-kadayifi",
       "name": "İnegöl Sütlü Kadayıfı",
-      "aliases": ["Inegol Sutlu Kadayifi", "Sütlü Kadayıf"],
+      "aliases": [
+        "Inegol Sutlu Kadayifi",
+        "Sütlü Kadayıf"
+      ],
       "city": "Bursa",
       "region": "Bursa / İnegöl",
       "summary": "İnegöl yöresine özgü sütlü kadayıf tatlısı.",
@@ -95,7 +114,8 @@
       "registration_year": 2023,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/6164",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=54&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/7049c75b-8243-4fbd-920e-621b45f48ff4.jpeg"
     },
     {
       "turkpatent_id": "2484",
@@ -115,13 +135,17 @@
       "registration_year": 2022,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/2484",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/28d8ac56-6379-44fc-9c62-86babd369703.jpeg"
     },
     {
       "turkpatent_id": "2405",
       "slug": "bursa-pideli-kofte",
       "name": "Bursa Pideli Köfte",
-      "aliases": ["Pideli Köfte", "Bursa Pideli Kofte"],
+      "aliases": [
+        "Pideli Köfte",
+        "Bursa Pideli Kofte"
+      ],
       "city": "Bursa",
       "region": "Bursa",
       "summary": "Bursa usulü pideli köfte.",
@@ -129,13 +153,17 @@
       "registration_year": 2021,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/2405",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/a4e351d5-3233-46fb-a37f-8d53333701cb.jpeg"
     },
     {
       "turkpatent_id": "9962",
       "slug": "zeyniler-hinkali",
       "name": "Zeyniler Hınkalı",
-      "aliases": ["Hınkalı", "Hinkali"],
+      "aliases": [
+        "Hınkalı",
+        "Hinkali"
+      ],
       "city": "Bursa",
       "region": "Bursa / Zeyniler",
       "summary": "Zeyniler köyüne özgü geleneksel hınkalı.",
@@ -143,13 +171,18 @@
       "registration_year": 2024,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/9962",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/80969d20-f547-45ea-947e-1b8437ac8fcb.jpeg"
     },
     {
       "turkpatent_id": "6150",
       "slug": "inegol-buryani",
       "name": "İnegöl Büryanı",
-      "aliases": ["İnegöl Mişörizi", "Inegol Buryani", "Mişörizi"],
+      "aliases": [
+        "İnegöl Mişörizi",
+        "Inegol Buryani",
+        "Mişörizi"
+      ],
       "city": "Bursa",
       "region": "Bursa / İnegöl",
       "summary": "İnegöl yöresine özgü büryanı (mişörizi).",
@@ -157,13 +190,18 @@
       "registration_year": 2024,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/6150",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/f3225a13-a3c7-4ba9-b400-bfe4edc71648.jpeg"
     },
     {
       "turkpatent_id": "37916",
       "slug": "inegol-kofte",
       "name": "İnegöl Köfte",
-      "aliases": ["İnegöl Köftesi", "Inegol Kofte", "Inegol Koftesi"],
+      "aliases": [
+        "İnegöl Köftesi",
+        "Inegol Kofte",
+        "Inegol Koftesi"
+      ],
       "city": "Bursa",
       "region": "Bursa / İnegöl",
       "summary": "İnegöl yöresine özgü ızgara köfte.",
@@ -171,13 +209,17 @@
       "registration_year": 2006,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/37916",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/78.jpg"
     },
     {
       "turkpatent_id": "6168",
       "slug": "inegol-piyazi",
       "name": "İnegöl Piyazı",
-      "aliases": ["Inegol Piyazi", "Piyaz"],
+      "aliases": [
+        "Inegol Piyazi",
+        "Piyaz"
+      ],
       "city": "Bursa",
       "region": "Bursa / İnegöl",
       "summary": "İnegöl usulü piyaz.",
@@ -185,7 +227,8 @@
       "registration_year": 2025,
       "indication_type": "Mahreç İşareti",
       "detail_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/detay/6168",
-      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi="
+      "list_url": "https://ci.turkpatent.gov.tr/cografi-isaretler/liste?il=16&tur=&urunGrubu=51&adi=",
+      "image_url": "https://ci.turkpatent.gov.tr/Pictures/GeographicalSigns/1fb63ee4-2468-4517-a270-6ab32e3309b2.jpeg"
     }
   ]
 }

@@ -1,0 +1,26 @@
+from app.data.bursa_geo_products import find_product_by_slug
+from app.services.regional_flavors import _label_matches_product, restaurant_serves_product
+from types import SimpleNamespace
+
+
+def test_label_matches_legacy_iskender_name():
+    product = find_product_by_slug("bursa-doner-kebabi")
+    assert product is not None
+    assert _label_matches_product("Bursa Kebabı (İskender)", [product.name, *product.aliases])
+
+
+def test_label_matches_partial_tokens():
+    product = find_product_by_slug("kemalpasa-tatlisi")
+    assert product is not None
+    assert _label_matches_product("Kemalpaşa Tatlısı", [product.name, *product.aliases])
+
+
+def test_restaurant_serves_product_with_geo_json():
+    product = find_product_by_slug("bursa-cantik")
+    assert product is not None
+    restaurant = SimpleNamespace(
+        has_geographical_indication=True,
+        gi_product_name="Bursa Cantığı",
+        geo_indications=[{"product": "Bursa Cantığı", "region": "Bursa"}],
+    )
+    assert restaurant_serves_product(restaurant, product)

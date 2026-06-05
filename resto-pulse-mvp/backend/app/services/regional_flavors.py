@@ -67,12 +67,36 @@ def _restaurant_product_labels(restaurant: Restaurant) -> list[str]:
 def restaurant_serves_product(restaurant: Restaurant, product: RegionalProductCatalogItem) -> bool:
     if not restaurant.has_geographical_indication and not restaurant.geo_indications:
         return False
-    labels = {_normalize_key(label) for label in _restaurant_product_labels(restaurant) if label}
+    labels = [label for label in _restaurant_product_labels(restaurant) if label]
     if not labels:
         return False
-    keys = {_normalize_key(alias) for alias in product.aliases}
-    keys.add(_normalize_key(product.name))
-    return bool(labels & keys)
+    keys = list(product.aliases) + [product.name]
+    for label in labels:
+        if _label_matches_product(label, keys):
+            return True
+    return False
+
+
+def _label_matches_product(label: str, product_keys: list[str]) -> bool:
+    normalized_label = _normalize_key(label)
+    if not normalized_label:
+        return False
+    normalized_keys = {_normalize_key(key) for key in product_keys if key.strip()}
+    if normalized_label in normalized_keys:
+        return True
+    label_tokens = set(normalized_label.split())
+    for key in normalized_keys:
+        if not key:
+            continue
+        if len(key) >= 4 and (key in normalized_label or normalized_label in key):
+            return True
+        key_tokens = set(key.split())
+        overlap = label_tokens & key_tokens
+        if len(overlap) >= 2:
+            return True
+        if overlap and any(len(token) >= 5 for token in overlap):
+            return True
+    return False
 
 
 def _effective_rating(google_rating: float | None, avg_rating: float | None) -> float | None:
@@ -163,6 +187,7 @@ def _product_payload(product: RegionalProductCatalogItem, *, restaurant_count: i
         "indication_type": product.indication_type,
         "product_group": product.product_group,
         "detail_url": product.detail_url,
+        "image_url": product.image_url,
         "restaurant_count": restaurant_count,
     }
 
@@ -244,6 +269,11 @@ def list_restaurants_for_regional_product(
             for row in rows
             if (_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0) >= applied_min
         ]
+        rating_relaxed = True
+
+    if not filtered and rows:
+        applied_min = 0.0
+        filtered = list(rows)
         rating_relaxed = True
 
     filtered.sort(
