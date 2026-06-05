@@ -26,6 +26,7 @@ class RegionalProductCatalogItem:
     indication_type: str
     detail_url: str
     list_url: str
+    live_search_query: str
     image_url: str | None = None
     registry_source: str = _REGISTRY_SOURCE
 
@@ -64,6 +65,7 @@ def _parse_item(raw: dict, product_groups: dict[str, str]) -> RegionalProductCat
         indication_type=str(raw.get("indication_type") or "Mahreç İşareti"),
         detail_url=str(raw["detail_url"]),
         list_url=str(raw.get("list_url") or ""),
+        live_search_query=str(raw.get("live_search_query") or raw["name"]),
         image_url=str(raw["image_url"]).strip() if raw.get("image_url") else None,
     )
 
@@ -91,6 +93,17 @@ def find_product_by_slug(slug: str, city: str | None = None) -> RegionalProductC
     return None
 
 
+def live_search_query_for(product: RegionalProductCatalogItem) -> str:
+    query = product.live_search_query.strip()
+    if query:
+        return query
+    for alias in product.aliases:
+        cleaned = alias.strip()
+        if cleaned and len(cleaned) >= 3:
+            return cleaned
+    return product.name
+
+
 def registry_note() -> str:
     meta = catalog_metadata()
     scraped = meta.get("scraped_at") or "bilinmiyor"
@@ -98,5 +111,5 @@ def registry_note() -> str:
     return (
         f"Ürün listesi TÜRKPATENT Coğrafi İşaretler Portalı'ndan (ci.turkpatent.gov.tr) "
         f"derlenmiştir — Bursa yemek ve fırın/pastane grupları, {count} ürün. "
-        f"Son senkron: {scraped}. Restoran rozeti menüde sunulan yöresel lezzeti gösterir."
+        f"Son senkron: {scraped}. Tescil ürünü gösterir; restoran onayı anlamına gelmez."
     )

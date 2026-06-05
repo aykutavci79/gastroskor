@@ -6,8 +6,9 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
-import { listRegionalProductRestaurants } from '@/lib/api';
-import type { RegionalProductItem, RestaurantListItem } from '@/lib/types';
+import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
+import { livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
+import type { LivePlaceSearchItem, RegionalProductItem } from '@/lib/types';
 
 export function YoreselLezzetDetailContent() {
   const params = useParams<{ slug: string }>();
@@ -16,8 +17,9 @@ export function YoreselLezzetDetailContent() {
   const city = useMemo(() => searchParams.get('city')?.trim() || 'Bursa', [searchParams]);
   const { coords } = useDetectedCity();
   const [product, setProduct] = useState<RegionalProductItem | null>(null);
-  const [items, setItems] = useState<RestaurantListItem[]>([]);
-  const [ratingNote, setRatingNote] = useState<string | null>(null);
+  const [discoveryNote, setDiscoveryNote] = useState<string | null>(null);
+  const [liveItems, setLiveItems] = useState<LivePlaceSearchItem[]>([]);
+  const [searchNote, setSearchNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,35 +28,49 @@ export function YoreselLezzetDetailContent() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listRegionalProductRestaurants(slug, {
-      city,
-      origin_lat: coords?.lat,
-      origin_lng: coords?.lng,
-      min_rating: 4.5,
-      limit: 30,
-    })
-      .then((data) => {
+
+    getRegionalProduct(slug, { city })
+      .then(async (detail) => {
         if (cancelled) return;
-        setProduct(data.product);
-        setItems(data.items);
-        if (data.applied_min_rating <= 0) {
-          setRatingNote('Mahreç etiketli mekanlar; puana göre sıralı, mesafe bilgisi varsa yakından uzağa.');
-        } else if (data.rating_relaxed) {
-          setRatingNote(`4.5+ sonuç yok; ${data.applied_min_rating}+ puanlı restoranlar gösteriliyor.`);
-        } else {
-          setRatingNote(`${data.applied_min_rating}+ puan, yakından uzağa sıralı.`);
+        setProduct(detail.product);
+        setDiscoveryNote(detail.discovery_note);
+        setSearchNote(null);
+        setLiveItems([]);
+
+        try {
+          const live = await searchLivePlaces({
+            q: detail.product.live_search_query,
+            city,
+            limit: 20,
+            origin_lat: coords?.lat,
+            origin_lng: coords?.lng,
+          });
+          if (cancelled) return;
+          setLiveItems(live.items);
+          setSearchNote(
+            live.items.length > 0
+              ? `Google canlı arama: "${detail.product.live_search_query}" · puana, yorum sayısına ve mesafeye göre sıralı.`
+              : `"${detail.product.live_search_query}" için sonuç bulunamadı.`,
+          );
+        } catch (liveErr) {
+          if (cancelled) return;
+          setLiveItems([]);
+          setSearchNote(
+            liveErr instanceof Error ? liveErr.message : 'Canlı arama şu an kullanılamıyor.',
+          );
         }
       })
       .catch((err) => {
         if (!cancelled) {
           setProduct(null);
-          setItems([]);
-          setError(err instanceof Error ? err.message : 'Restoran listesi alınamadı.');
+          setLiveItems([]);
+          setError(err instanceof Error ? err.message : 'Ürün bilgisi alınamadı.');
         }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
@@ -75,8 +91,8 @@ export function YoreselLezzetDetailContent() {
         <>
           <div className="mt-4 flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/70 bg-surface-card sm:flex-row">
             <div className="min-w-0 flex-1 p-5 sm:p-6">
-              <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold">
-                Mahreç
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold self-start">
+                TÜRKPATENT tescilli ürün
               </span>
               <h1 className="mt-3 text-3xl font-bold text-content">{product.name}</h1>
               <p className="mt-2 text-sm text-content-muted">
@@ -88,7 +104,7 @@ export function YoreselLezzetDetailContent() {
                 className="mt-3 inline-block text-xs text-brand-gold underline"
                 target="_blank"
                 rel="noopener noreferrer">
-                TÜRKPATENT tescil kaydı
+                Resmi tescil kaydı (TÜRKPATENT)
               </a>
             </div>
             {product.image_url ? (
@@ -103,20 +119,27 @@ export function YoreselLezzetDetailContent() {
             ) : null}
           </div>
 
-          {ratingNote ? <p className="mt-4 text-xs text-brand-gold">{ratingNote}</p> : null}
+          {discoveryNote ? (
+            <p className="mt-4 rounded-xl border border-border/60 bg-surface-input/40 p-4 text-xs text-content-muted">
+              {discoveryNote}
+            </p>
+          ) : null}
 
-          {items.length === 0 ? (
+          {searchNote ? <p className="mt-4 text-xs text-brand-gold">{searchNote}</p> : null}
+
+          {liveItems.length === 0 && !loading ? (
             <p className="mt-8 rounded-2xl border border-border/70 bg-surface-card p-6 text-sm text-content-muted">
-              Bu lezzet için henüz mahreç etiketli restoran bulunamadı.
+              Bu lezzet için canlı arama sonucu bulunamadı. Ana sayfadaki aramayı da deneyebilirsiniz.
             </p>
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((restaurant) => (
+              {liveItems.map((item) => (
                 <RestaurantCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
+                  key={item.place_id}
+                  restaurant={livePlaceToRestaurantCard(item)}
                   compact={false}
-                  cornerBadge="🍽️ MAHREÇ"
+                  distanceLabel={livePlaceDistanceLabel(item)}
+                  href={item.restaurant_id ? `/restaurants/${item.restaurant_id}` : null}
                 />
               ))}
             </div>

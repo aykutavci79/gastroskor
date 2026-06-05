@@ -42,8 +42,8 @@ export function YoreselLezzetlerContent() {
       </Link>
       <h1 className="mt-4 text-3xl font-bold text-content">{city} yöresel lezzetler</h1>
       <p className="mt-2 max-w-2xl text-sm text-content-muted">
-        TÜRKPATENT Coğrafi İşaretler Portalı&apos;nda tescilli {city} yemekleri — {items.length || 12}{' '}
-        lezzet. Bir ürüne tıklayın; 4.5+ puanlı restoran önerilerini yakından uzağa görün.
+        TÜRKPATENT&apos;te tescilli {city} yemekleri — {items.length || 12} lezzet. Bir ürüne tıklayın;
+        Google canlı araması ile nerede bulabileceğinizi keşfedin. GastroSkor restoran onayı vermez.
       </p>
 
       {loading ? <p className="mt-8 text-sm text-content-muted">Yükleniyor...</p> : null}

@@ -1,8 +1,5 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.geo_indication import GeoIndicationRead
-from app.schemas.restaurant import RestaurantListItem
-
 
 class RegionalProductItem(BaseModel):
     slug: str
@@ -17,7 +14,7 @@ class RegionalProductItem(BaseModel):
     product_group: str
     detail_url: str
     image_url: str | None = None
-    restaurant_count: int = 0
+    live_search_query: str
 
 
 class RegionalProductListResponse(BaseModel):
@@ -28,9 +25,8 @@ class RegionalProductListResponse(BaseModel):
     )
 
 
-class RegionalProductRestaurantsResponse(BaseModel):
+class RegionalProductDetailResponse(BaseModel):
     product: RegionalProductItem
-    min_rating: float
-    applied_min_rating: float
-    rating_relaxed: bool = False
-    items: list[RestaurantListItem]
+    discovery_note: str = Field(
+        default="Mekan listesi Google canlı aramasıdır; GastroSkor restoran onayı vermez."
+    )

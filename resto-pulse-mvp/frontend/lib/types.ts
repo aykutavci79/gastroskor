@@ -17,7 +17,7 @@ export type RegionalProductItem = {
   product_group: string;
   detail_url: string;
   image_url: string | null;
-  restaurant_count: number;
+  live_search_query: string;
 };
 
 export type RegionalProductListResponse = {
@@ -26,12 +26,9 @@ export type RegionalProductListResponse = {
   registry_note: string;
 };
 
-export type RegionalProductRestaurantsResponse = {
+export type RegionalProductDetailResponse = {
   product: RegionalProductItem;
-  min_rating: number;
-  applied_min_rating: number;
-  rating_relaxed: boolean;
-  items: RestaurantListItem[];
+  discovery_note: string;
 };
 
 export type ReviewCategory = {

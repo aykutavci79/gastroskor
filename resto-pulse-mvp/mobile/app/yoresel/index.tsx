@@ -36,7 +36,8 @@ export default function YoreselLezzetlerScreen() {
         <Text style={styles.kicker}>İç turizm · Bursa</Text>
         <Text style={styles.title}>Yöresel lezzetler</Text>
         <Text style={styles.sub}>
-          Coğrafi işaretli ürünleri seç; mahreç etiketli mekanları puana göre, mesafe varsa yakından uzağa gör.
+          TÜRKPATENT'te tescilli ürünler. Tıklayınca Google canlı araması açılır — GastroSkor restoran onayı
+          vermez.
         </Text>
 
         {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} /> : null}
@@ -56,10 +57,7 @@ export default function YoreselLezzetlerScreen() {
                     {item.summary}
                   </Text>
                   <Text style={styles.meta}>
-                    {item.registration_year} · {item.indication_type}
-                    {item.restaurant_count > 0
-                      ? ` · ${item.restaurant_count} mahreç etiketli mekan`
-                      : ' · Öneriler için dokun'}
+                    {item.registration_year} · {item.indication_type} · Canlı arama
                   </Text>
                 </View>
                 {item.image_url ? (

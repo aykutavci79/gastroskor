@@ -37,7 +37,7 @@ export function RegionalFlavorTeaser() {
           <p className="text-sm font-medium uppercase tracking-wider text-brand-gold">İç turizm</p>
           <h2 className="text-xl font-semibold text-content sm:text-2xl">Bursa yöresel lezzetler</h2>
           <p className="mt-1 text-sm text-content-muted">
-            TÜRKPATENT&apos;te tescilli 12 Bursa lezzeti — İstanbul&apos;dan gelen ziyaretçiler için rehber.
+            TÜRKPATENT&apos;te tescilli 12 Bursa lezzeti — tıklayınca canlı arama ile mekan keşfi.
           </p>
         </div>
         <Link

@@ -6,17 +6,19 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
-import { listRegionalProductRestaurants } from '@/lib/api';
+import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
-import type { RegionalProductItem, RestaurantListItem } from '@/lib/types';
+import { livePlaceDistanceLabel, livePlaceGoogleId, livePlaceToRestaurantCard } from '@/lib/live-place-card';
+import type { LivePlaceSearchItem, RegionalProductItem } from '@/lib/types';
 
 export default function YoreselProductScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ slug?: string | string[] }>();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [product, setProduct] = useState<RegionalProductItem | null>(null);
-  const [items, setItems] = useState<RestaurantListItem[]>([]);
-  const [note, setNote] = useState<string | null>(null);
+  const [liveItems, setLiveItems] = useState<LivePlaceSearchItem[]>([]);
+  const [discoveryNote, setDiscoveryNote] = useState<string | null>(null);
+  const [searchNote, setSearchNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,19 +39,32 @@ export default function YoreselProductScreen() {
       } catch {
         /* konum opsiyonel */
       }
-      const data = await listRegionalProductRestaurants(slug, {
-        city: 'Bursa',
-        origin_lat,
-        origin_lng,
-        min_rating: 4.5,
-        limit: 30,
-      });
-      setProduct(data.product);
-      setItems(data.items);
-      setNote('Mahreç etiketli mekanlar; puana göre sıralı, konum varsa yakından uzağa.');
+
+      const detail = await getRegionalProduct(slug, { city: 'Bursa' });
+      setProduct(detail.product);
+      setDiscoveryNote(detail.discovery_note);
+
+      try {
+        const live = await searchLivePlaces({
+          q: detail.product.live_search_query,
+          city: 'Bursa',
+          origin_lat,
+          origin_lng,
+          limit: 20,
+        });
+        setLiveItems(live.items);
+        setSearchNote(
+          live.items.length > 0
+            ? `Canlı arama: "${detail.product.live_search_query}"`
+            : 'Canlı arama sonucu bulunamadı.',
+        );
+      } catch {
+        setLiveItems([]);
+        setSearchNote('Canlı arama şu an kullanılamıyor.');
+      }
     } catch (err) {
       setError(formatApiError(err));
-      setItems([]);
+      setLiveItems([]);
     } finally {
       setLoading(false);
     }
@@ -71,24 +86,30 @@ export default function YoreselProductScreen() {
 
         {product ? (
           <>
+            <Text style={styles.kicker}>TÜRKPATENT tescilli ürün</Text>
             <Text style={styles.title}>{product.name}</Text>
             <Text style={styles.sub}>{product.summary}</Text>
-            {note ? <Text style={styles.note}>{note}</Text> : null}
+            {discoveryNote ? <Text style={styles.note}>{discoveryNote}</Text> : null}
+            {searchNote ? <Text style={styles.searchNote}>{searchNote}</Text> : null}
           </>
         ) : null}
 
         <View style={styles.list}>
-          {items.map((restaurant) => (
-            <RestaurantCard
-              key={restaurant.id}
-              restaurant={restaurant}
-              cornerBadge="MAHREÇ"
-            />
-          ))}
+          {liveItems.map((item) => {
+            const card = livePlaceToRestaurantCard(item);
+            return (
+              <RestaurantCard
+                key={item.place_id}
+                restaurant={card}
+                distanceLabel={livePlaceDistanceLabel(item)}
+                href={`/restaurant/${livePlaceGoogleId(item)}`}
+              />
+            );
+          })}
         </View>
 
-        {!loading && items.length === 0 && !error ? (
-          <Text style={styles.empty}>Bu lezzet için uygun restoran bulunamadı.</Text>
+        {!loading && liveItems.length === 0 && !error ? (
+          <Text style={styles.empty}>Bu lezzet için canlı arama sonucu bulunamadı.</Text>
         ) : null}
       </ScrollView>
     </Screen>
@@ -98,9 +119,11 @@ export default function YoreselProductScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: 32, gap: 12 },
   back: { color: GastroColors.muted, fontSize: 14 },
-  title: { color: GastroColors.text, fontSize: 24, fontWeight: '700', marginTop: 8 },
+  kicker: { color: GastroColors.gold, fontSize: 11, fontWeight: '700', marginTop: 8 },
+  title: { color: GastroColors.text, fontSize: 24, fontWeight: '700', marginTop: 4 },
   sub: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
-  note: { color: GastroColors.gold, fontSize: 12 },
+  note: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
+  searchNote: { color: GastroColors.gold, fontSize: 12, fontWeight: '600' },
   list: { marginTop: 8, gap: 12 },
   error: { color: GastroColors.accent, marginTop: 12 },
   empty: { color: GastroColors.muted, marginTop: 16, textAlign: 'center' },

@@ -53,3 +53,12 @@ def test_kebab_restaurant_does_not_serve_cantik():
         geo_indications=[{"product": "Bursa Döner Kebabı", "region": "Bursa"}],
     )
     assert not restaurant_serves_product(restaurant, product)
+
+
+def test_regional_product_includes_live_search_query():
+    from app.services.regional_flavors import list_regional_products
+
+    payload = list_regional_products(city="Bursa")
+    cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
+    assert cantik["live_search_query"] == "cantık"
+    assert "restaurant_count" not in cantik
