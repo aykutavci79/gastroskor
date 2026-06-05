@@ -19,6 +19,20 @@ from app.services.gastro_score_ranking import haversine_meters, resolve_origin
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
+# Sehir / bolge adlari tek basina eslestirme yapmaz (orn. "Bursa" != her Bursa urunu).
+_GENERIC_MATCH_TOKENS = frozenset(
+    {
+        "bursa",
+        "inegol",
+        "kemalpasa",
+        "mustafakemalpaşa",
+        "mustafakemalpasa",
+        "zeyniler",
+        "turkiye",
+        "turkey",
+    }
+)
+
 
 def _normalize_key(value: str) -> str:
     text = unicodedata.normalize("NFKD", value.strip().casefold())
@@ -77,6 +91,10 @@ def restaurant_serves_product(restaurant: Restaurant, product: RegionalProductCa
     return False
 
 
+def _distinct_tokens(text: str) -> set[str]:
+    return {token for token in _normalize_key(text).split() if token and token not in _GENERIC_MATCH_TOKENS}
+
+
 def _label_matches_product(label: str, product_keys: list[str]) -> bool:
     normalized_label = _normalize_key(label)
     if not normalized_label:
@@ -84,18 +102,22 @@ def _label_matches_product(label: str, product_keys: list[str]) -> bool:
     normalized_keys = {_normalize_key(key) for key in product_keys if key.strip()}
     if normalized_label in normalized_keys:
         return True
-    label_tokens = set(normalized_label.split())
+    label_tokens = _distinct_tokens(normalized_label)
     for key in normalized_keys:
         if not key:
             continue
-        if len(key) >= 4 and (key in normalized_label or normalized_label in key):
+        if len(key) >= 6 and (key in normalized_label or normalized_label in key):
             return True
-        key_tokens = set(key.split())
+        key_tokens = _distinct_tokens(key)
+        if not key_tokens:
+            continue
         overlap = label_tokens & key_tokens
         if len(overlap) >= 2:
             return True
-        if overlap and any(len(token) >= 5 for token in overlap):
-            return True
+        if len(overlap) == 1:
+            token = next(iter(overlap))
+            if len(token) >= 5:
+                return True
     return False
 
 
@@ -103,6 +125,81 @@ def _effective_rating(google_rating: float | None, avg_rating: float | None) -> 
     if google_rating is not None:
         return google_rating
     return avg_rating
+
+
+def _apply_rating_filter(rows: list[dict], *, min_rating: float) -> tuple[list[dict], float, bool]:
+    applied_min = min_rating
+    filtered = [
+        row
+        for row in rows
+        if (_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0) >= applied_min
+    ]
+    rating_relaxed = False
+    if not filtered and min_rating > 4.0:
+        applied_min = 4.0
+        filtered = [
+            row
+            for row in rows
+            if (_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0) >= applied_min
+        ]
+        rating_relaxed = True
+    if not filtered and rows:
+        applied_min = 0.0
+        filtered = list(rows)
+        rating_relaxed = True
+    return filtered, applied_min, rating_relaxed
+
+
+def _build_rows_for_restaurants(
+    db: Session,
+    restaurants: list[Restaurant],
+    *,
+    origin_lat: float | None = None,
+    origin_lng: float | None = None,
+) -> list[dict]:
+    if not restaurants:
+        return []
+    restaurant_ids = [r.id for r in restaurants]
+    google_profiles: dict[str, RestaurantPlatformProfile] = {}
+    google_place_ids: dict[str, str] = {}
+    for profile in db.scalars(
+        select(RestaurantPlatformProfile).where(
+            RestaurantPlatformProfile.restaurant_id.in_(restaurant_ids),
+            RestaurantPlatformProfile.platform == PlatformName.google_maps,
+        )
+    ).all():
+        rid = str(profile.restaurant_id)
+        google_profiles[rid] = profile
+        if profile.external_id:
+            google_place_ids[rid] = profile.external_id
+    partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
+    rows: list[dict] = []
+    for restaurant in restaurants:
+        rows.append(
+            _build_restaurant_row(
+                db,
+                restaurant,
+                origin_lat=origin_lat,
+                origin_lng=origin_lng,
+                google_profiles=google_profiles,
+                google_place_ids=google_place_ids,
+                partner_map=partner_map,
+            )
+        )
+    return rows
+
+
+def _listed_count_for_product(
+    db: Session,
+    product: RegionalProductCatalogItem,
+    *,
+    city: str,
+    min_rating: float = 4.5,
+) -> int:
+    restaurants = [r for r in _load_city_restaurants(db, city) if restaurant_serves_product(r, product)]
+    rows = _build_rows_for_restaurants(db, restaurants)
+    filtered, _, _ = _apply_rating_filter(rows, min_rating=min_rating)
+    return len(filtered)
 
 
 def _build_restaurant_row(
@@ -194,10 +291,9 @@ def _product_payload(product: RegionalProductCatalogItem, *, restaurant_count: i
 
 def list_regional_products(db: Session, *, city: str = "Bursa") -> dict:
     catalog = catalog_for_city(city)
-    restaurants = _load_city_restaurants(db, city)
     items: list[dict] = []
     for product in catalog:
-        count = sum(1 for r in restaurants if restaurant_serves_product(r, product))
+        count = _listed_count_for_product(db, product, city=city)
         items.append(_product_payload(product, restaurant_count=count))
     return {"city": city.strip() or "Bursa", "items": items, "registry_note": registry_note()}
 
@@ -227,54 +323,13 @@ def list_restaurants_for_regional_product(
             "items": [],
         }
 
-    restaurant_ids = [r.id for r in restaurants]
-    google_profiles: dict[str, RestaurantPlatformProfile] = {}
-    google_place_ids: dict[str, str] = {}
-    for profile in db.scalars(
-        select(RestaurantPlatformProfile).where(
-            RestaurantPlatformProfile.restaurant_id.in_(restaurant_ids),
-            RestaurantPlatformProfile.platform == PlatformName.google_maps,
-        )
-    ).all():
-        rid = str(profile.restaurant_id)
-        google_profiles[rid] = profile
-        if profile.external_id:
-            google_place_ids[rid] = profile.external_id
-    partner_map = partner_listings_for_restaurant_ids(db, restaurant_ids)
-
-    rows: list[dict] = []
-    for restaurant in restaurants:
-        row = _build_restaurant_row(
-            db,
-            restaurant,
-            origin_lat=resolved_lat,
-            origin_lng=resolved_lng,
-            google_profiles=google_profiles,
-            google_place_ids=google_place_ids,
-            partner_map=partner_map,
-        )
-        rows.append(row)
-
-    applied_min = min_rating
-    filtered = [
-        row
-        for row in rows
-        if (_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0) >= applied_min
-    ]
-    rating_relaxed = False
-    if not filtered and min_rating > 4.0:
-        applied_min = 4.0
-        filtered = [
-            row
-            for row in rows
-            if (_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0) >= applied_min
-        ]
-        rating_relaxed = True
-
-    if not filtered and rows:
-        applied_min = 0.0
-        filtered = list(rows)
-        rating_relaxed = True
+    rows = _build_rows_for_restaurants(
+        db,
+        restaurants,
+        origin_lat=resolved_lat,
+        origin_lng=resolved_lng,
+    )
+    filtered, applied_min, rating_relaxed = _apply_rating_filter(rows, min_rating=min_rating)
 
     filtered.sort(
         key=lambda row: (
@@ -284,7 +339,7 @@ def list_restaurants_for_regional_product(
     )
 
     return {
-        "product": _product_payload(product, restaurant_count=len(rows)),
+        "product": _product_payload(product, restaurant_count=len(filtered)),
         "min_rating": min_rating,
         "applied_min_rating": applied_min,
         "rating_relaxed": rating_relaxed,

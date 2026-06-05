@@ -23,7 +23,7 @@ export function RegionalProductCard({ item, href }: Props) {
         <p className="mt-3 line-clamp-3 text-sm text-content-muted">{item.summary}</p>
         <p className="mt-4 text-sm font-medium text-brand-gold">
           {item.restaurant_count > 0
-            ? `${item.restaurant_count} restoran listeleniyor`
+            ? `${item.restaurant_count} restoran · 4.5+`
             : 'Restoran önerileri için tıklayın'}
         </p>
       </div>

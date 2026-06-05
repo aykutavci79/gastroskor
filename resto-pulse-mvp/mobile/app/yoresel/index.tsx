@@ -59,7 +59,7 @@ export default function YoreselLezzetlerScreen() {
                   <Text style={styles.meta}>
                     {item.registration_year} · {item.indication_type}
                     {item.restaurant_count > 0
-                      ? ` · ${item.restaurant_count} restoran`
+                      ? ` · ${item.restaurant_count} restoran · 4.5+`
                       : ' · Öneriler için dokun'}
                   </Text>
                 </View>
