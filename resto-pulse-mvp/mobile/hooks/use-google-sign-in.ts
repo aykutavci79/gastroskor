@@ -33,11 +33,12 @@ export function getGoogleNativeRedirectUri(): string {
   return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
 }
 
-/** Expo Go: web koprusu. Store/EAS build: Android/iOS OAuth client varsa native (1.0.5 davranisi). */
+/** Expo Go + Android Play: web koprusu. iOS store: native OAuth client. */
 export function shouldUseNativeGoogleSignIn(): boolean {
   if (isExpoGo) return false;
+  // Android Play/EAS native: Play imza SHA-1 uyusmazsa hesap seciminden sonra google.com'a duser (1.0.8 regresyonu).
+  if (Platform.OS === 'android') return false;
   if (process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE === '1') return true;
-  if (Platform.OS === 'android' && androidClientId) return true;
   if (Platform.OS === 'ios' && iosClientId) return true;
   return false;
 }
