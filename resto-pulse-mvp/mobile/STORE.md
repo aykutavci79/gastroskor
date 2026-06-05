@@ -4,10 +4,11 @@ Bu dosya App Store / Play Store ve ic test (TestFlight, internal track) icin adi
 
 ## 1. On kosullar
 
-- [ ] Apple Developer hesabi (yillik ucret)
-- [ ] Google Play Console hesabi (tek seferlik kayit)
+- [x] Apple Developer hesabi (yillik ucret) — aktif, inceleme bekleniyor
+- [x] Google Play Console hesabi — aktif, kapali test (16 tester)
 - [ ] Expo hesabi: https://expo.dev
-- [ ] Yasal sayfalar canli: https://www.gastroskor.com.tr/gizlilik (Vercel deploy)
+- [x] Yasal sayfalar canli: https://www.gastroskor.com.tr/gizlilik (Vercel deploy)
+- [x] Destek e-postasi: destek@gastroskor.com.tr (aktif)
 
 ## 2. Ortam dosyasi
 

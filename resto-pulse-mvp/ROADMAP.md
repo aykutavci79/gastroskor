@@ -16,6 +16,8 @@ Son guncelleme: 2 Haziran 2026
 | Store hazirligi | Yasal sayfalar, EAS config, app.config.js |
 | Google giris (mobil) | Web koprusu `/mobil-giris` + `/auth/google` callback |
 | Yorum fotolari | WebP sikistirma, Railway volume notu |
+| Bursa yoresel lezzetler | TPE katalogu (12 urun), urun karti → Google canli arama (web + mobil kod) |
+| Destek e-postasi | `destek@gastroskor.com.tr` aktif (web + mobil yasal sayfalar) |
 
 ## Simdi eklendi (backend deploy gerekir)
 
@@ -122,16 +124,32 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 **Not:** WhatsApp degil — herkese acik soru-cevap. Faz D (takip) ile birlestirilebilir.
 Acilis sehirleri: **Istanbul (hacim) + Bursa (yerel tohum)**; tek sehirle sinirlama yok.
 
-## Magaza / hesap durumu (1 Haziran 2026)
+## Magaza / hesap durumu (2 Haziran 2026)
 
-- Apple Developer: odeme tamam (siparis W1619280238), kimlik dogrulama gonderildi, **Pending**
-- Active + Team ID gelince: App Store Connect, `com.gastroskor.app`, EAS iOS build
-- **Google Play Console:** kayit **tamam** (`coolisback@gmail.com`, gelistirici adi GastroSkor, ~25 USD)
-- Play dogrulama: kimlik + **telefon faturasi** gonderildi (1 Haziran), Google donus bekleniyor (~1-2 is gunu)
-- Play kalan: Android cihaz dogrulama (Console mobil uygulama), SMS telefon (kimlik onayindan sonra)
-- **Canli arama maliyet (1 Haziran):** DB-once + 24s cache + tek Google istegi (`live_place_search_service.py`, `data/place_search_cache/`)
-- Play hazir olunca: uygulama `com.gastroskor.app`, internal track, EAS Android submit
-- Mail TODO: `destek@gastroskor.com.tr` (derivekemik cPanel — addon domain veya yonlendirme)
+### Apple (iOS)
+- Developer hesabi **aktif**; uygulama **build edildi ve Apple incelemesine gonderildi**
+- Durum: **Apple onayi bekleniyor**
+- Onay gelince: TestFlight / App Store Connect uzerinden **tester linki** dagitilacak
+- Bundle ID: `com.gastroskor.app` · son build: v1.0.9 (build 8)
+
+### Google Play (Android)
+- Play Console kayit **tamam** (`coolisback@gmail.com`, gelistirici adi GastroSkor)
+- **Kapali test basladi — 16 tester** (Play Console uzerinden)
+- Paket: `com.gastroskor.app` · son build: versionCode 11
+- Sonraki: tester geri bildirimi → production / acik test karari
+
+### Ortak
+- **Canli arama maliyet:** DB-once + 24s cache + tek Google istegi
+- **Destek e-postasi:** `destek@gastroskor.com.tr` — **aktif, calisiyor**
+  - Kodda zaten: web footer, gizlilik/KVKK/kullanim kosullari, hesap-sil, `mobile/constants/legal.ts`
+  - Magaza konsollarinda da ayni adresi kullan (asagida)
+- Sistem e-postalari (bildirim vb.): Railway `EMAIL_FROM` → genelde `noreply@gastroskor.com.tr` (destekten ayri)
+
+### Siradaki magaza adimlari
+1. Apple onay gelince tester linki paylas
+2. Play kapali test geri bildirimlerini topla; kritik bug yoksa track yukselt
+3. Native Google Sign-In (store build icin, Faz B)
+4. EAS production submit (her iki platform, onay sonrasi)
 
 ## Topluluk kurallari (moderasyon)
 

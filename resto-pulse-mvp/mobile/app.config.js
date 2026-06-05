@@ -79,6 +79,7 @@ module.exports = ({ config }) => ({
     privacyPolicyUrl: 'https://www.gastroskor.com.tr/gizlilik',
     termsUrl: 'https://www.gastroskor.com.tr/kullanim-kosullari',
     kvkkUrl: 'https://www.gastroskor.com.tr/kvkk',
+    supportEmail: 'destek@gastroskor.com.tr',
     eas: {
       projectId:
         process.env.EAS_PROJECT_ID ?? '3009c65b-6419-4567-a859-363698cf6880',
