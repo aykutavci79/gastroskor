@@ -8,22 +8,26 @@ import type { RegionalProductItem } from '@/lib/types';
 
 export function RegionalFlavorTeaser() {
   const [items, setItems] = useState<RegionalProductItem[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     listRegionalProducts({ city: 'Bursa' })
       .then((data) => {
-        if (!cancelled) setItems(data.items.filter((item) => item.restaurant_count > 0).slice(0, 5));
+        if (!cancelled) setItems(data.items.slice(0, 6));
       })
       .catch(() => {
         if (!cancelled) setItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (items.length === 0) return null;
+  if (!ready || items.length === 0) return null;
 
   return (
     <section className="space-y-4">
@@ -52,7 +56,9 @@ export function RegionalFlavorTeaser() {
             <h3 className="mt-1 text-lg font-semibold text-content">{item.name}</h3>
             <p className="mt-2 line-clamp-2 text-sm text-content-muted">{item.summary}</p>
             <p className="mt-3 text-xs font-medium text-brand-gold">
-              {item.restaurant_count} restoran · 4.5+ puan
+              {item.restaurant_count > 0
+                ? `${item.restaurant_count} restoran · 4.5+ puan`
+                : 'Restoran listesi yakında'}
             </p>
           </Link>
         ))}
