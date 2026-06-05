@@ -210,6 +210,7 @@ export type LivePlaceSearchItem = {
   distance_origin: 'user' | 'city_center';
   distance_score: number;
   rating_score: number;
+  popularity_score?: number;
   gastro_score: number;
   maps_directions_url: string | null;
   google_photo_url?: string | null;

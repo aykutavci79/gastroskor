@@ -33,7 +33,7 @@ def test_bursa_doner_label_does_not_match_cantik_product():
     assert not _label_matches_product("Bursa Döner Kebabı", keys)
 
 
-def test_haci_dayi_cantik_label_matches_product():
+def test_aci_dayi_cantik_label_matches_product():
     product = find_product_by_slug("bursa-cantik")
     assert product is not None
     restaurant = SimpleNamespace(

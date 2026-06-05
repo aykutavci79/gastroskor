@@ -15,7 +15,7 @@ from app.data.bursa_geo_products import (
 from app.integrations.maps_links import build_destination_label, build_google_maps_directions_url
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
-from app.services.gastro_score_ranking import haversine_meters, resolve_origin
+from app.services.gastro_score_ranking import haversine_meters, popularity_score_for_reviews, resolve_origin
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
@@ -328,6 +328,10 @@ def list_restaurants_for_regional_product(
     )
     rows.sort(
         key=lambda row: (
+            -popularity_score_for_reviews(
+                row.get("google_review_count"),
+                _effective_rating(row.get("google_rating"), row.get("avg_rating")),
+            ),
             -(_effective_rating(row.get("google_rating"), row.get("avg_rating")) or 0),
             row.get("distance_meters") if row.get("distance_meters") is not None else 10_000_000,
         )

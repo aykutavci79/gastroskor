@@ -47,6 +47,7 @@ class LivePlaceSearchItem(BaseModel):
     )
     distance_score: float = 0.0
     rating_score: float = 0.0
+    popularity_score: float = 0.0
     gastro_score: float = 0.0
     maps_directions_url: str | None = Field(default=None)
     restaurant_id: str | None = None

@@ -15,6 +15,7 @@ class RankedLivePlace:
     distance_origin: str
     distance_score: float
     rating_score: float
+    popularity_score: float
     gastro_score: float
 
 
@@ -49,6 +50,14 @@ def rating_score_for_stars(rating: float | None) -> float:
     if rating >= 3.0:
         return 2.0
     return 1.0
+
+
+def popularity_score_for_reviews(user_ratings_total: int | None, rating: float | None = None) -> float:
+    """Google yorum sayisi — log olcek; 2900 yorum >> 50 yorum (Acı Dayı gibi ikonik mekanlar)."""
+    count = max(0, int(user_ratings_total or 0))
+    stars = rating if rating is not None else 3.5
+    raw = math.log10(count + 1) * 0.55 * (stars / 5.0)
+    return min(2.5, raw)
 
 
 def resolve_origin(
@@ -88,7 +97,8 @@ def rank_live_places(
             distance_score = distance_score_for_meters(distance_m)
 
         rating_score = rating_score_for_stars(place.rating)
-        gastro_score = distance_score + rating_score
+        popularity_score = popularity_score_for_reviews(place.user_ratings_total, place.rating)
+        gastro_score = distance_score + rating_score + popularity_score
 
         ranked.append(
             RankedLivePlace(
@@ -97,13 +107,15 @@ def rank_live_places(
                 distance_origin=distance_origin,
                 distance_score=distance_score,
                 rating_score=rating_score,
+                popularity_score=popularity_score,
                 gastro_score=gastro_score,
             )
         )
 
-    # Once gastro skor; esitlikte yildiz, sonra ham mesafe (100 m fark 8 dk yuruyuste gorunmez).
+    # Once gastro skor; esitlikte populerlik, yildiz, mesafe.
     sort_key = lambda row: (
         -row.gastro_score,
+        -row.popularity_score,
         -(row.place.rating or 0),
         row.distance_meters if row.distance_meters is not None else float("inf"),
     )

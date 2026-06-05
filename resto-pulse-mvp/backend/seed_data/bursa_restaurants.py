@@ -108,17 +108,38 @@ BURSA_RESTAURANTS: list[BursaRestaurantSeed] = [
         google_place_query="Hacı Dayı Kebap Tophane Bursa",
         google_avg_rating=4.5,
         google_review_count=5400,
+        sample_reviews=[
+            SampleReview(
+                5,
+                "Tophane manzarasi esliginde lahmacun ve kebap harikaydi. Personel ilgili.",
+            ),
+            SampleReview(
+                4,
+                "Bursa kebabi guzel ama fiyatlar turist yogunluguna gore bir tik yuksek.",
+            ),
+        ],
+    ),
+    BursaRestaurantSeed(
+        name="Acı Dayı Cantık Salonu",
+        category="Cantık / Pide",
+        district="Osmangazi",
+        address="Kayhan, Kayhan Boğazı Sk. No:11, 16230 Osmangazi/Bursa",
+        latitude=40.18488,
+        longitude=29.06435,
+        google_place_query="Acı Dayı Cantık Salonu Kayhan Bursa",
+        google_avg_rating=4.3,
+        google_review_count=2900,
         geo_indications=[GeoIndicationSeed(product="Bursa Cantığı", region="Bursa")],
         has_geographical_indication=True,
         gi_product_name="Bursa Cantığı",
         sample_reviews=[
             SampleReview(
                 5,
-                "Tophane manzarasi esliginde cantik ve lahmacun harikaydi. Tabeladaki H harfi silik; yerel halk Acı Dayı der.",
+                "Cantik citir ve peynirli; Kayhan civarinin en bilinen duragi. Tabelada H harfi silik, herkes Acı Dayı der.",
             ),
             SampleReview(
                 4,
-                "Cantik citir, peynirli; Bursa'nin en bilinen duraklarindan. Kalabalik saatlerde bekleme olabilir.",
+                "Kalabalik saatlerde sira oluyor ama cantik taze. Google yorum sayisi mekanin ne kadar populer oldugunu gosteriyor.",
             ),
         ],
     ),

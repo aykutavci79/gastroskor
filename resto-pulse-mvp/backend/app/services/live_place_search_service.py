@@ -152,6 +152,7 @@ def _ranked_to_items(
                 distance_origin=ranked.distance_origin,
                 distance_score=ranked.distance_score,
                 rating_score=ranked.rating_score,
+                popularity_score=ranked.popularity_score,
                 gastro_score=ranked.gastro_score,
                 maps_directions_url=build_google_maps_directions_url(
                     place_id=ranked.place.place_id,
@@ -260,7 +261,7 @@ async def search_live_places_optimized(
     google_called = False
     place_rows: list[LivePlaceResult]
 
-    if len(db_rows) >= min(limit, MIN_DB_HITS_TO_SKIP_GOOGLE):
+    if len(db_rows) >= limit:
         place_rows = db_rows
     else:
         google_called = True
