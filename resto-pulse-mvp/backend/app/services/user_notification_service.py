@@ -326,3 +326,71 @@ def notify_review_helpful(
         push_title=push_title,
         push_body=message,
     )
+
+
+def notify_gourmet_chat_mention(
+    db: Session,
+    *,
+    recipient: User,
+    actor: User,
+    actor_name: str,
+    room_slug: str,
+    room_title: str,
+    body: str,
+) -> UserNotification | None:
+    if recipient.id == actor.id:
+        return None
+    snippet = _truncate_text(body, max_len=100)
+    title = f"{room_title} odasinda bahsedildiniz"
+    message = f"@{actor_name} sizi etiketledi: «{snippet}»"
+    metadata = {
+        "room_slug": room_slug,
+        "room_title": room_title,
+        "actor_user_id": str(actor.id),
+        "actor_nickname": actor_name,
+        "open_path": f"/gurme/{room_slug}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=recipient.id,
+        notification_type="gourmet_chat_mention",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=f"@{actor_name} seni etiketledi",
+        push_body=snippet,
+    )
+
+
+def notify_gourmet_chat_mention(
+    db: Session,
+    *,
+    recipient: User,
+    actor: User,
+    actor_name: str,
+    room_slug: str,
+    room_title: str,
+    body: str,
+) -> UserNotification | None:
+    if recipient.id == actor.id:
+        return None
+    snippet = _truncate_text(body, max_len=100)
+    title = f"{room_title} odasinda bahsedildiniz"
+    message = f"@{actor_name} sizi etiketledi: «{snippet}»"
+    metadata = {
+        "room_slug": room_slug,
+        "room_title": room_title,
+        "actor_user_id": str(actor.id),
+        "actor_nickname": actor_name,
+        "open_path": f"/gurme/{room_slug}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=recipient.id,
+        notification_type="gourmet_chat_mention",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=f"@{actor_name} seni etiketledi",
+        push_body=snippet,
+    )

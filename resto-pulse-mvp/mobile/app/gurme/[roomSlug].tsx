@@ -1,30 +1,27 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GourmetChatQuestionCard } from '@/components/GourmetChatCards';
+import { GourmetChatMessageBubble } from '@/components/GourmetChatCards';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
-import {
-  ReviewModerationApiError,
-  createGourmetChatQuestion,
-  listGourmetChatQuestions,
-  listGourmetChatTags,
-} from '@/lib/api';
-import type { GourmetChatQuestion, GourmetChatTag } from '@/lib/types';
+import { ReviewModerationApiError, createGourmetChatMessage, listGourmetChatMessages } from '@/lib/api';
+import type { GourmetChatMessage } from '@/lib/types';
+
+const CITY = 'Bursa';
+const POLL_MS = 12_000;
 
 function param(value: string | string[] | undefined, fallback = '') {
   return Array.isArray(value) ? value[0] ?? fallback : value ?? fallback;
@@ -32,82 +29,79 @@ function param(value: string | string[] | undefined, fallback = '') {
 
 export default function GurmeRoomScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const roomSlug = param(params.roomSlug);
   const roomTitle = param(params.title, 'Oda');
   const roomEmoji = param(params.emoji, '💬');
-  const city = param(params.city, 'Bursa');
   const { user } = useSession();
 
-  const [questions, setQuestions] = useState<GourmetChatQuestion[]>([]);
-  const [tags, setTags] = useState<GourmetChatTag[]>([]);
+  const listRef = useRef<FlatList<GourmetChatMessage>>(null);
+  const [messages, setMessages] = useState<GourmetChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [askOpen, setAskOpen] = useState(false);
   const [body, setBody] = useState('');
-  const [tag, setTag] = useState('genel');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const tagLabelById = useMemo(() => {
-    const map = new Map<string, string>();
-    tags.forEach((item) => map.set(item.id, item.label));
-    return map;
-  }, [tags]);
-
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const [questionPayload, tagPayload] = await Promise.all([
-        listGourmetChatQuestions(roomSlug, city),
-        listGourmetChatTags(),
-      ]);
-      setQuestions(questionPayload.items);
-      setTags(tagPayload);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sorular yuklenemedi.');
-    } finally {
-      setLoading(false);
-    }
-  }, [roomSlug, city]);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setError(null);
+      try {
+        const payload = await listGourmetChatMessages(roomSlug, CITY);
+        setMessages(payload.items);
+      } catch (err) {
+        if (!silent) setError(err instanceof Error ? err.message : 'Mesajlar yuklenemedi.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [roomSlug],
+  );
 
   useEffect(() => {
     void load();
+    const timer = setInterval(() => void load(true), POLL_MS);
+    return () => clearInterval(timer);
   }, [load]);
 
-  const openAsk = () => {
+  useEffect(() => {
+    if (messages.length > 0) {
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    }
+  }, [messages.length]);
+
+  const ensureCanPost = () => {
     if (!user?.email) {
-      Alert.alert('Giris gerekli', 'Soru sormak icin once hesabinla giris yap.');
-      return;
+      Alert.alert('Giris gerekli', 'Sohbete yazmak icin once hesabinla giris yap.');
+      return false;
     }
     if (user.needsNicknameSetup) {
-      Alert.alert('Takma ad gerekli', 'Soru sormak icin once bir takma ad sec.');
-      return;
+      Alert.alert('Takma ad gerekli', 'Mesaj yazmak icin once bir takma ad sec.');
+      return false;
     }
-    setFormError(null);
-    setAskOpen(true);
+    return true;
   };
 
-  const submitQuestion = async () => {
-    if (!user?.email) return;
+  const submitMessage = async () => {
+    if (!user?.email || !ensureCanPost()) return;
+    const trimmed = body.trim();
+    if (!trimmed) return;
     setSubmitting(true);
     setFormError(null);
     try {
-      const created = await createGourmetChatQuestion(roomSlug, {
+      const created = await createGourmetChatMessage(roomSlug, {
         user_email: user.email,
-        city,
-        tag,
-        body: body.trim(),
+        city: CITY,
+        body: trimmed,
       });
-      setAskOpen(false);
       setBody('');
-      setTag('genel');
-      setQuestions((prev) => [created, ...prev]);
+      setMessages((prev) => [...prev, created]);
     } catch (err) {
       if (err instanceof ReviewModerationApiError) {
         setFormError(err.message);
       } else {
-        setFormError(err instanceof Error ? err.message : 'Soru gonderilemedi.');
+        setFormError(err instanceof Error ? err.message : 'Mesaj gonderilemedi.');
       }
     } finally {
       setSubmitting(false);
@@ -124,7 +118,7 @@ export default function GurmeRoomScreen() {
           <Text style={styles.headerEmoji}>{roomEmoji}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>{roomTitle}</Text>
-            <Text style={styles.headerCity}>{city === 'Istanbul' ? 'İstanbul' : city}</Text>
+            <Text style={styles.headerCity}>Bursa · canli sohbet</Text>
           </View>
         </View>
       </View>
@@ -134,132 +128,86 @@ export default function GurmeRoomScreen() {
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
-        <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-          {questions.length === 0 ? (
-            <Text style={styles.empty}>Bu odada henuz soru yok. Ilk soruyu sen sor!</Text>
-          ) : (
-            questions.map((item) => (
-              <GourmetChatQuestionCard
-                key={item.id}
-                body={item.body}
-                author={item.author}
-                createdAt={item.created_at}
-                tagLabel={tagLabelById.get(item.tag) ?? item.tag}
-                answerCount={item.answer_count}
-                onPress={() =>
-                  router.push({
-                    pathname: '/gurme/soru/[id]',
-                    params: { id: item.id, roomTitle, roomEmoji },
-                  })
-                }
-              />
-            ))
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messageList}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <Text style={styles.empty}>Henuz mesaj yok. Ilk sohbeti sen baslat!</Text>
+          }
+          renderItem={({ item }) => (
+            <GourmetChatMessageBubble
+              message={item}
+              isOwn={Boolean(user?.nickname && item.author.nickname === user.nickname)}
+            />
           )}
-        </ScrollView>
+          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+        />
       )}
 
-      <Pressable style={styles.fab} onPress={openAsk}>
-        <Text style={styles.fabText}>+ Soru sor</Text>
-      </Pressable>
-
-      <Modal visible={askOpen} animationType="slide" transparent onRequestClose={() => setAskOpen(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalWrap}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setAskOpen(false)} />
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Yeni soru</Text>
-            <Text style={styles.modalHint}>Etiket sec, sorunu yaz. Sistem odalarinda sadece metin cevaplar.</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagRow}>
-              {(tags.length ? tags : [{ id: 'genel', label: 'Genel' }]).map((item) => {
-                const active = tag === item.id;
-                return (
-                  <Pressable
-                    key={item.id}
-                    style={[styles.tagChip, active && styles.tagChipActive]}
-                    onPress={() => setTag(item.id)}>
-                    <Text style={[styles.tagChipText, active && styles.tagChipTextActive]}>{item.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.bottom + 8}>
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+          <View style={styles.composerRow}>
             <TextInput
-              style={[GastroStyles.input, styles.input]}
-              placeholder="Ornek: Bursada en iyi doner nerede?"
+              style={[GastroStyles.input, styles.composerInput]}
+              placeholder="Mesaj yaz… @takmaad ile etiketle"
               placeholderTextColor={GastroColors.placeholder}
               value={body}
               onChangeText={setBody}
               multiline
-              maxLength={500}
+              maxLength={800}
+              editable={!submitting}
             />
-            {formError ? <Text style={styles.error}>{formError}</Text> : null}
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={() => setAskOpen(false)} disabled={submitting}>
-                <Text style={styles.cancelText}>Vazgec</Text>
-              </Pressable>
-              <Pressable
-                style={[GastroStyles.btnPrimary, styles.sendBtn, submitting && { opacity: 0.6 }]}
-                onPress={() => void submitQuestion()}
-                disabled={submitting || body.trim().length < 8}>
-                <Text style={GastroStyles.btnPrimaryText}>{submitting ? 'Gonderiliyor…' : 'Gonder'}</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={[styles.sendBtn, (submitting || !body.trim()) && styles.sendBtnDisabled]}
+              onPress={() => {
+                if (!ensureCanPost()) return;
+                void submitMessage();
+              }}
+              disabled={submitting || !body.trim()}>
+              <Text style={styles.sendBtnText}>{submitting ? '…' : 'Gonder'}</Text>
+            </Pressable>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: GastroColors.bg },
-  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 10 },
+  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: GastroColors.border },
   back: { color: GastroColors.accent, fontWeight: '700' },
   headerMeta: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  headerEmoji: { fontSize: 32 },
-  headerTitle: { color: GastroColors.text, fontSize: 22, fontWeight: '800' },
-  headerCity: { color: GastroColors.muted, fontSize: 13, marginTop: 2 },
-  list: { padding: 16, paddingBottom: 96, gap: 12 },
-  empty: { color: GastroColors.muted, lineHeight: 22, textAlign: 'center', marginTop: 24 },
+  headerEmoji: { fontSize: 30 },
+  headerTitle: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
+  headerCity: { color: GastroColors.muted, fontSize: 12, marginTop: 2 },
+  messageList: { padding: 16, paddingBottom: 8, gap: 10, flexGrow: 1 },
+  empty: { color: GastroColors.muted, lineHeight: 22, textAlign: 'center', marginTop: 40 },
   error: { color: GastroColors.bad, lineHeight: 20, paddingHorizontal: 16 },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-    backgroundColor: GastroColors.accent,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  fabText: { color: GastroColors.accentDark, fontWeight: '800' },
-  modalWrap: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
-  modalCard: {
-    backgroundColor: GastroColors.panel,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    gap: 12,
+  composer: {
     borderTopWidth: 1,
-    borderColor: GastroColors.border,
-  },
-  modalTitle: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
-  modalHint: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
-  tagRow: { gap: 8, paddingVertical: 4 },
-  tagChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: GastroColors.border,
+    borderTopColor: GastroColors.border,
+    backgroundColor: GastroColors.panel,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: GastroColors.input,
+    paddingTop: 10,
+    gap: 6,
   },
-  tagChipActive: { borderColor: GastroColors.accent, backgroundColor: GastroColors.accentSoft },
-  tagChipText: { color: GastroColors.muted, fontWeight: '700', fontSize: 12 },
-  tagChipTextActive: { color: GastroColors.accent },
-  input: { minHeight: 110, textAlignVertical: 'top' },
-  modalActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
-  cancelBtn: { paddingHorizontal: 14, paddingVertical: 12 },
-  cancelText: { color: GastroColors.muted, fontWeight: '700' },
-  sendBtn: { paddingHorizontal: 18 },
+  composerRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
+  composerInput: { flex: 1, minHeight: 44, maxHeight: 120, textAlignVertical: 'top' },
+  sendBtn: {
+    backgroundColor: GastroColors.accent,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 2,
+  },
+  sendBtnDisabled: { opacity: 0.45 },
+  sendBtnText: { color: GastroColors.accentDark, fontWeight: '800', fontSize: 13 },
+  formError: { color: GastroColors.bad, fontSize: 12, lineHeight: 18 },
 });

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-GOURMET_CHAT_CITY_KEYS = frozenset({"bursa", "istanbul"})
+GOURMET_CHAT_CITY_KEYS = frozenset({"bursa"})
 
 QUESTION_BODY_MAX = 500
 ANSWER_BODY_MAX = 1200
+MESSAGE_BODY_MAX = 800
 
 
 @dataclass(frozen=True)
@@ -22,7 +23,7 @@ class GourmetRoomSeed:
 SYSTEM_GOURMET_ROOMS: tuple[GourmetRoomSeed, ...] = (
     GourmetRoomSeed(
         slug="kes-donerciler",
-        title="Keş Dönerciler",
+        title="Kes Dönerciler",
         description="Döner, dürüm ve kebap tavsiyeleri",
         emoji="🥙",
         sort_order=1,
@@ -43,8 +44,8 @@ SYSTEM_GOURMET_ROOMS: tuple[GourmetRoomSeed, ...] = (
     ),
     GourmetRoomSeed(
         slug="gece-acikanlar",
-        title="Gece Açık Olanlar",
-        description="Gece açık mekanlar ve atıştırmalıklar",
+        title="Gece Acıkanlar",
+        description="Gece acıkanlara atıştırmalık ve mekan sohbetleri",
         emoji="🌙",
         sort_order=4,
     ),

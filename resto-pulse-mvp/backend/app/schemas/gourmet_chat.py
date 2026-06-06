@@ -23,7 +23,7 @@ class GourmetChatRoomItem(BaseModel):
     emoji: str
     sort_order: int
     allow_restaurant_cards: bool
-    question_count: int = 0
+    message_count: int = 0
 
 
 class GourmetChatRoomListResponse(BaseModel):
@@ -70,3 +70,25 @@ class GourmetChatQuestionCreate(BaseModel):
 class GourmetChatAnswerCreate(BaseModel):
     user_email: str
     body: str = Field(min_length=2, max_length=1200)
+
+
+class GourmetChatMessageItem(BaseModel):
+    id: str
+    room_slug: str
+    city: str
+    body: str
+    author: GourmetChatAuthor
+    mentions: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
+class GourmetChatMessageListResponse(BaseModel):
+    city: str
+    room_slug: str
+    items: list[GourmetChatMessageItem]
+
+
+class GourmetChatMessageCreate(BaseModel):
+    user_email: str
+    city: str = "Bursa"
+    body: str = Field(min_length=1, max_length=800)

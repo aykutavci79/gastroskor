@@ -2,6 +2,8 @@ import type {
   CompetitorAiReport,
   GoogleReviewLink,
   GourmetChatAnswer,
+  GourmetChatMessage,
+  GourmetChatMessageListResponse,
   GourmetChatQuestion,
   GourmetChatQuestionDetail,
   GourmetChatQuestionListResponse,
@@ -526,6 +528,23 @@ export function listGourmetChatTags() {
 export function listGourmetChatRooms(city: string) {
   const query = new URLSearchParams({ city: city.trim() || 'Bursa' });
   return request<GourmetChatRoomListResponse>(`/gourmet-chat/rooms?${query.toString()}`);
+}
+
+export function listGourmetChatMessages(roomSlug: string, city: string) {
+  const query = new URLSearchParams({ city: city.trim() || 'Bursa' });
+  return request<GourmetChatMessageListResponse>(
+    `/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/messages?${query.toString()}`,
+  );
+}
+
+export function createGourmetChatMessage(
+  roomSlug: string,
+  payload: { user_email: string; city: string; body: string },
+) {
+  return request<GourmetChatMessage>(`/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export function listGourmetChatQuestions(roomSlug: string, city: string) {

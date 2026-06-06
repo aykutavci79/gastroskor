@@ -524,7 +524,7 @@ export type GourmetChatRoom = {
   emoji: string;
   sort_order: number;
   allow_restaurant_cards: boolean;
-  question_count: number;
+  message_count: number;
 };
 
 export type GourmetChatRoomListResponse = {
@@ -559,4 +559,20 @@ export type GourmetChatQuestionListResponse = {
 
 export type GourmetChatQuestionDetail = GourmetChatQuestion & {
   answers: GourmetChatAnswer[];
+};
+
+export type GourmetChatMessage = {
+  id: string;
+  room_slug: string;
+  city: string;
+  body: string;
+  author: GourmetChatAuthor;
+  mentions: string[];
+  created_at: string;
+};
+
+export type GourmetChatMessageListResponse = {
+  city: string;
+  room_slug: string;
+  items: GourmetChatMessage[];
 };

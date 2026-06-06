@@ -14,10 +14,10 @@ branch_labels = None
 depends_on = None
 
 ROOMS = [
-    ("kes-donerciler", "Keş Dönerciler", "Döner, dürüm ve kebap tavsiyeleri", "🥙", 1),
+    ("kes-donerciler", "Kes Dönerciler", "Döner, dürüm ve kebap tavsiyeleri", "🥙", 1),
     ("ocakbasi-muhabbeti", "Ocakbaşı Muhabbeti", "Mangal, ocakbaşı ve ızgara sohbetleri", "🔥", 2),
     ("anne-eli-ev-yemegi", "Anne Eli Ev Yemeği", "Ev yemeği, lokanta ve sulu yemek önerileri", "🍲", 3),
-    ("gece-acikanlar", "Gece Açık Olanlar", "Gece açık mekanlar ve atıştırmalıklar", "🌙", 4),
+    ("gece-acikanlar", "Gece Acıkanlar", "Gece acıkanlara atıştırmalık ve mekan sohbetleri", "🌙", 4),
     ("fiyat-performans-avcilari", "Fiyat-Performans Avcıları", "Uygun fiyat, doyurucu lezzet avı", "💰", 5),
     ("gizli-kalmis-mekanlar", "Gizli Kalmış Mekanlar", "Az bilinen ama iyi mekan keşifleri", "🗺️", 6),
 ]

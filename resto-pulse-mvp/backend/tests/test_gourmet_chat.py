@@ -8,6 +8,7 @@ from app.models.entities import GourmetChatRoom, User
 from app.services.gourmet_chat import (
     GourmetChatError,
     create_answer,
+    create_message,
     create_question,
     get_question_detail,
     list_rooms,
@@ -34,6 +35,7 @@ def db():
         )
     session.add(User(email="gurme@test.com", full_name="Test", nickname="Donerci42"))
     session.add(User(email="anon@test.com", full_name="Anon"))
+    session.add(User(email="ac@test.com", full_name="Ac", nickname="AcAdam"))
     session.commit()
     yield session
     session.close()
@@ -41,10 +43,12 @@ def db():
 
 def test_resolve_gourmet_city_bursa():
     assert resolve_gourmet_city("bursa") == "Bursa"
-    assert resolve_gourmet_city("İstanbul") == "Istanbul"
+    assert resolve_gourmet_city("Bursa") == "Bursa"
 
 
 def test_resolve_gourmet_city_rejects_other():
+    with pytest.raises(GourmetChatError):
+        resolve_gourmet_city("Istanbul")
     with pytest.raises(GourmetChatError):
         resolve_gourmet_city("Ankara")
 
@@ -63,7 +67,7 @@ def test_list_rooms_empty_counts(db: Session):
     items = list_rooms(db, city="Bursa")
     assert len(items) == 6
     assert items[0]["slug"] == "kes-donerciler"
-    assert items[0]["question_count"] == 0
+    assert items[0]["message_count"] == 0
 
 
 def test_create_question_requires_nickname(db: Session):
@@ -95,7 +99,8 @@ def test_create_question_and_answer_flow(db: Session):
 
     rooms = list_rooms(db, city="Bursa")
     doner_room = next(item for item in rooms if item["slug"] == "kes-donerciler")
-    assert doner_room["question_count"] == 1
+    assert doner_room["message_count"] == 0
+    assert doner_room["title"] == "Kes Dönerciler"
 
     answer = create_answer(
         db,
@@ -108,3 +113,20 @@ def test_create_question_and_answer_flow(db: Session):
     detail = get_question_detail(db, question["id"])
     assert detail["answer_count"] == 1
     assert len(detail["answers"]) == 1
+
+
+def test_create_message_and_mention(db: Session):
+    user = db.query(User).filter(User.email == "gurme@test.com").one()
+    message = create_message(
+        db,
+        room_slug="kes-donerciler",
+        user=user,
+        city="Bursa",
+        body="@AcAdam selam, doner onerin var mi?",
+    )
+    assert message["author"]["nickname"] == "Donerci42"
+    assert len(message["mentions"]) == 1
+
+    rooms = list_rooms(db, city="Bursa")
+    doner_room = next(item for item in rooms if item["slug"] == "kes-donerciler")
+    assert doner_room["message_count"] == 1

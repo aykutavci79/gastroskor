@@ -68,6 +68,7 @@ class User(Base):
     notifications: Mapped[list["UserNotification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     gourmet_chat_questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="author")
     gourmet_chat_answers: Mapped[list["GourmetChatAnswer"]] = relationship(back_populates="author")
+    gourmet_chat_messages: Mapped[list["GourmetChatMessage"]] = relationship(back_populates="author")
 
 
 class UserRestaurantFollow(Base):
@@ -673,6 +674,7 @@ class GourmetChatRoom(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="room", cascade="all, delete-orphan")
+    messages: Mapped[list["GourmetChatMessage"]] = relationship(back_populates="room", cascade="all, delete-orphan")
 
 
 class GourmetChatQuestion(Base):
@@ -713,4 +715,23 @@ class GourmetChatAnswer(Base):
 
     question: Mapped["GourmetChatQuestion"] = relationship(back_populates="answers")
     author: Mapped["User"] = relationship(back_populates="gourmet_chat_answers")
+
+
+class GourmetChatMessage(Base):
+    __tablename__ = "gourmet_chat_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    mentions_json: Mapped[list | None] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    room: Mapped["GourmetChatRoom"] = relationship(back_populates="messages")
+    author: Mapped["User"] = relationship(back_populates="gourmet_chat_messages")
 

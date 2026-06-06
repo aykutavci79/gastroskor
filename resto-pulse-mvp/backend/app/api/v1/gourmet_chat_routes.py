@@ -11,6 +11,9 @@ from app.models.entities import User
 from app.schemas.gourmet_chat import (
     GourmetChatAnswerCreate,
     GourmetChatAnswerItem,
+    GourmetChatMessageCreate,
+    GourmetChatMessageItem,
+    GourmetChatMessageListResponse,
     GourmetChatQuestionCreate,
     GourmetChatQuestionDetail,
     GourmetChatQuestionItem,
@@ -21,9 +24,11 @@ from app.schemas.gourmet_chat import (
 from app.services.gourmet_chat import (
     GourmetChatError,
     create_answer,
+    create_message,
     create_question,
     get_question_detail,
     list_question_tags,
+    list_room_messages,
     list_room_questions,
     list_rooms,
     resolve_gourmet_city,
@@ -135,3 +140,48 @@ def gourmet_chat_create_answer(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
         _raise_chat_error(exc)
     return GourmetChatAnswerItem.model_validate(item)
+
+
+@router.get("/rooms/{room_slug}/messages", response_model=GourmetChatMessageListResponse)
+def gourmet_chat_room_messages(
+    room_slug: str,
+    city: str = Query(default="Bursa"),
+    limit: int = Query(default=80, ge=1, le=120),
+    before_id: UUID | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    try:
+        _room, resolved_city, items = list_room_messages(
+            db, room_slug=room_slug, city=city, limit=limit, before_id=before_id
+        )
+    except GourmetChatError as exc:
+        if exc.message == "Oda bulunamadi.":
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
+        _raise_chat_error(exc)
+    return GourmetChatMessageListResponse(
+        city=resolved_city,
+        room_slug=room_slug,
+        items=[GourmetChatMessageItem.model_validate(item) for item in items],
+    )
+
+
+@router.post("/rooms/{room_slug}/messages", response_model=GourmetChatMessageItem, status_code=status.HTTP_201_CREATED)
+def gourmet_chat_create_message(
+    room_slug: str,
+    payload: GourmetChatMessageCreate,
+    db: Session = Depends(get_db),
+):
+    user = _chat_user(db, payload.user_email)
+    try:
+        item = create_message(
+            db,
+            room_slug=room_slug,
+            user=user,
+            city=payload.city,
+            body=payload.body,
+        )
+    except GourmetChatError as exc:
+        if exc.message == "Oda bulunamadi.":
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
+        _raise_chat_error(exc)
+    return GourmetChatMessageItem.model_validate(item)
