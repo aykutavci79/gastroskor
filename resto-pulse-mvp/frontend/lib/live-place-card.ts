@@ -1,5 +1,12 @@
 import type { LivePlaceSearchItem, RestaurantListItem } from '@/lib/types';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | null | undefined): boolean {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
 /** Canli arama sonucunu liste kartina donusturur. */
 export function livePlaceToRestaurantCard(item: LivePlaceSearchItem): RestaurantListItem {
   const address = item.address?.trim() || null;
@@ -52,6 +59,19 @@ function appendLiveScores(href: string, scores: LiveScoreQuery): string {
   q.set('do', scores.distance_origin);
   if (scores.rating != null) q.set('gr', String(scores.rating));
   return `${href}?${q.toString()}`;
+}
+
+/** Trend / city-top kartlari: GS UUID veya Google place detay sayfasi */
+export function trendingDetailHref(item: {
+  id: string;
+  restaurant_id?: string | null;
+  google_place_id?: string | null;
+}): string {
+  const gsId = item.restaurant_id?.trim();
+  if (gsId && isUuid(gsId)) return `/restaurants/${gsId}`;
+  if (isUuid(item.id)) return `/restaurants/${item.id}`;
+  const placeId = (item.google_place_id ?? item.id).trim();
+  return `/place/${encodeURIComponent(placeId)}`;
 }
 
 /** GS uyesi UUID veya Google place_id ile detay sayfasi */

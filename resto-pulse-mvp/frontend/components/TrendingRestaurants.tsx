@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
-import { getLivePlaceDetails, listTrendingRestaurantsWeek } from '@/lib/api';
-import type { LivePlaceDetails, RestaurantTrendingItem } from '@/lib/types';
+import { listTrendingRestaurantsWeek } from '@/lib/api';
+import { trendingDetailHref } from '@/lib/live-place-card';
+import type { RestaurantTrendingItem } from '@/lib/types';
 
 function formatDistance(item: RestaurantTrendingItem): string | null {
   if (item.distance_km != null) {
@@ -18,11 +19,6 @@ export function TrendingRestaurants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [locationLabel, setLocationLabel] = useState<string>('Bursa merkez');
-  const [details, setDetails] = useState<LivePlaceDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
-
-  const isGoogleSource = items[0]?.source === 'google' || items.length === 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -64,21 +60,6 @@ export function TrendingRestaurants() {
     };
   }, []);
 
-  async function openGoogleDetails(placeId: string) {
-    setDetailsLoading(true);
-    setDetailsError(null);
-    try {
-      const data = await getLivePlaceDetails(placeId);
-      setDetails(data);
-      document.getElementById('trending-google-details')?.scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      setDetails(null);
-      setDetailsError(err instanceof Error ? err.message : 'Detay yuklenemedi');
-    } finally {
-      setDetailsLoading(false);
-    }
-  }
-
   return (
     <section className="space-y-4">
       <div>
@@ -117,16 +98,7 @@ export function TrendingRestaurants() {
             const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
             const googleCount =
               restaurant.google_user_ratings_total ?? restaurant.google_review_count;
-            const placeId = restaurant.google_place_id ?? restaurant.id;
-
-            const footer = isGoogleSource ? (
-              <button
-                type="button"
-                onClick={() => void openGoogleDetails(placeId)}
-                className="rounded-lg bg-accent/20 px-2.5 py-1 text-[10px] font-medium text-accent hover:bg-accent/30">
-                Yorumlar
-              </button>
-            ) : undefined;
+            const isPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
 
             return (
               <RestaurantCard
@@ -139,40 +111,12 @@ export function TrendingRestaurants() {
                 mapsDirectionsUrl={restaurant.maps_directions_url}
                 googleRating={googleRating}
                 googleReviewCount={googleCount}
-                href={isGoogleSource ? null : undefined}
-                footer={footer}
+                href={trendingDetailHref(restaurant)}
+                featuredBorder={isPartner}
+                cornerBadge={isPartner ? 'ÖNE ÇIKAN' : null}
               />
             );
           })}
-        </div>
-      ) : null}
-
-      {detailsLoading ? <p className="text-sm text-content-muted">Google yorumlari yukleniyor…</p> : null}
-      {detailsError ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-brand-gold">
-          {detailsError}
-        </div>
-      ) : null}
-      {details ? (
-        <div
-          id="trending-google-details"
-          className="rounded-2xl border border-border/70 bg-surface-input p-5">
-          <h3 className="text-lg font-semibold text-content">{details.name}</h3>
-          {details.address ? <p className="text-sm text-content-muted">{details.address}</p> : null}
-          <ul className="mt-4 space-y-3">
-            {(details.reviews ?? []).slice(0, 5).map((review, idx) => (
-              <li key={idx} className="rounded-xl border border-border bg-surface-card p-3 text-sm">
-                <div className="mb-1 flex flex-wrap gap-2 text-xs text-content-muted">
-                  <span>{review.author_name ?? 'Anonim'}</span>
-                  {review.rating != null ? <span>{review.rating} yildiz</span> : null}
-                  {review.relative_time_description ? (
-                    <span>{review.relative_time_description}</span>
-                  ) : null}
-                </div>
-                {review.text ? <p className="text-content">{review.text}</p> : null}
-              </li>
-            ))}
-          </ul>
         </div>
       ) : null}
     </section>

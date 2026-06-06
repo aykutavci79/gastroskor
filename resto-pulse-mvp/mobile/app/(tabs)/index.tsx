@@ -90,6 +90,7 @@ export default function ExploreScreen() {
       lng: coords?.lng,
       city: city.trim() || 'Bursa',
       limit: 6,
+      source: 'google',
     });
   }, []);
 
@@ -128,19 +129,17 @@ export default function ExploreScreen() {
 
   const loadAll = useCallback(async () => {
     setError(null);
-    try {
-      await refreshCoordsIfStale();
-      const [_, trend] = await Promise.all([
-        loadRestaurants(activeQuery, activeCity),
-        loadTrending(activeCity),
-      ]);
-      setTrending(trend);
-    } catch (err) {
+    await refreshCoordsIfStale();
+    const restaurantsTask = loadRestaurants(activeQuery, activeCity).catch((err) => {
       setError(formatApiError(err, 'Arama'));
       setRestaurants([]);
       setLiveItems([]);
       setSearchSource('db');
-    }
+    });
+    const trendingTask = loadTrending(activeCity)
+      .then(setTrending)
+      .catch(() => setTrending([]));
+    await Promise.all([restaurantsTask, trendingTask]);
   }, [activeQuery, activeCity, loadRestaurants, loadTrending, refreshCoordsIfStale]);
 
   useEffect(() => {
@@ -206,6 +205,35 @@ export default function ExploreScreen() {
         </View>
       ) : null}
 
+      {trending.length > 0 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionTitles}>
+            <Text style={styles.sectionTitle}>ÖNE ÇIKANLAR</Text>
+            <Text style={styles.sectionSub}>Google popülerliği · yakınındaki 6 restoran</Text>
+          </View>
+          {trending.map((r, index) => {
+            const detailHref = restaurantDetailHref({
+              id: r.id,
+              restaurant_id: r.restaurant_id,
+              google_place_id: r.google_place_id,
+            });
+
+            return (
+              <RestaurantCard
+                key={`t-${r.id}`}
+                restaurant={r}
+                rank={index + 1}
+                href={detailHref}
+                googleRating={r.week_avg_rating ?? r.google_rating}
+                googleReviewCount={r.google_user_ratings_total ?? r.google_review_count}
+                distanceLabel={formatDistanceLabel(r)}
+                cornerBadge={r.is_premium_partner ? 'ÖNE ÇIKAN' : undefined}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <View style={styles.sectionTitles}>
@@ -258,35 +286,6 @@ export default function ExploreScreen() {
           })
         )}
       </View>
-
-      {trending.length > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionTitles}>
-            <Text style={styles.sectionTitle}>ÖNE ÇIKANLAR</Text>
-            <Text style={styles.sectionSub}>Google popülerliği · yakınındaki 6 restoran</Text>
-          </View>
-          {trending.map((r, index) => {
-            const detailHref = restaurantDetailHref({
-              id: r.id,
-              restaurant_id: r.restaurant_id,
-              google_place_id: r.google_place_id,
-            });
-
-            return (
-              <RestaurantCard
-                key={`t-${r.id}`}
-                restaurant={r}
-                rank={index + 1}
-                href={detailHref}
-                googleRating={r.week_avg_rating ?? r.google_rating}
-                googleReviewCount={r.google_user_ratings_total ?? r.google_review_count}
-                distanceLabel={formatDistanceLabel(r)}
-                cornerBadge={r.is_premium_partner ? 'ÖNE ÇIKAN' : undefined}
-              />
-            );
-          })}
-        </View>
-      ) : null}
 
     </Screen>
   );

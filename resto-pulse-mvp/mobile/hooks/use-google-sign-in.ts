@@ -33,14 +33,12 @@ export function getGoogleNativeRedirectUri(): string {
   return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
 }
 
-/** Expo Go + Android Play: web koprusu. iOS store: native OAuth client. */
+/** Expo Go + store build: web koprusu (NextAuth). */
 export function shouldUseNativeGoogleSignIn(): boolean {
   if (isExpoGo) return false;
-  // Android Play/EAS native: Play imza SHA-1 uyusmazsa hesap seciminden sonra google.com'a duser (1.0.8 regresyonu).
-  if (Platform.OS === 'android') return false;
-  if (process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE === '1') return true;
-  if (Platform.OS === 'ios' && iosClientId) return true;
-  return false;
+  // Play/TestFlight: web koprusu — Android SHA-1 ve iOS OAuth client ID sorunlarindan kacinir.
+  if (Platform.OS === 'android' || Platform.OS === 'ios') return false;
+  return process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE === '1';
 }
 
 export function isGoogleSignInConfigured(): boolean {

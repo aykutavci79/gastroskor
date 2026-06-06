@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { listCityTopRestaurants } from '@/lib/api';
+import { trendingDetailHref } from '@/lib/live-place-card';
 import type { RestaurantTrendingItem } from '@/lib/types';
 
 function formatDistance(item: RestaurantTrendingItem): string | null {
@@ -24,7 +25,7 @@ function Top5Card({
   const googleRating = restaurant.week_avg_rating ?? restaurant.google_rating;
   const googleCount = restaurant.google_user_ratings_total ?? restaurant.google_review_count;
   const isPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
-  const href = isPartner ? `/restaurants/${restaurant.id}` : null;
+  const href = trendingDetailHref(restaurant);
 
   return (
     <div className="home-top5-scroll-item md:w-auto md:flex-none">

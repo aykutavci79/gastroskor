@@ -73,12 +73,14 @@ export function listTrendingRestaurantsWeek(params: {
   lng?: number;
   city?: string;
   limit?: number;
+  source?: 'google' | 'gastroskor';
 }) {
   const search = new URLSearchParams();
   if (params.lat != null) search.set('lat', String(params.lat));
   if (params.lng != null) search.set('lng', String(params.lng));
   if (params.city) search.set('city', params.city);
   if (params.limit != null) search.set('limit', String(params.limit));
+  if (params.source) search.set('source', params.source);
   const query = search.toString();
   return request<RestaurantTrendingItem[]>(`/restaurants/trending-week${query ? `?${query}` : ''}`);
 }

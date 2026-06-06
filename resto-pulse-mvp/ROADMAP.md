@@ -3,8 +3,22 @@
 > **Agent notu:** Aykut unutkan — her sohbet basinda bu dosyayi kontrol et; takili kalan
 > madde varsa (Apple Pending, deploy, Faz D, magaza) kisa ve nazik hatirlat. Fazlara
 > bolme onayli; kullaniciyi fazlarla bunaltma, sadece siradaki 1-2 adimi soyle.
+> **"kral selam"** derse once asagidaki **Yarin backlog** bolumune bak.
 
-Son guncelleme: 2 Haziran 2026
+Son guncelleme: 6 Haziran 2026
+
+## Yarin backlog (EAS build tek seferde — quota koru)
+
+> Aykut: kucuk fix icin tek basina build alma; asagidakileri topla, **1.0.10** ile birlikte build.
+
+| # | Konu | Durum / not |
+|---|------|-------------|
+| 1 | **iOS Google giris** | Android web koprusu calisiyor; iOS native OAuth patliyor (EAS'ta iOS client ID yok). Kod hazir: iOS da web koprusu (`mobile/hooks/use-google-sign-in.ts`). Sürüm **1.0.10 (build 10)** local, henuz build yok. |
+| 2 | **iOS one cikanlar yok** | Kod: trending ustte + `source: google` + arama hatasi trending'i dusurmuyor. **1.0.10 build** ile TestFlight. |
+| 3 | **Web one cikan kart tiklanmiyor** | **Duzeltildi:** `FeaturedCityTop` + `TrendingRestaurants` → `trendingDetailHref` → `/place/[id]`. Vercel deploy. |
+| 4 | **Toplu EAS build** | `eas build --profile production --platform all` + submit; iOS Internal TestFlight. |
+
+**Simdi calisan (build beklemeden):** Android 1.0.9 Google giris + push; iOS 1.0.9 Internal push (Google giris icin e-posta ile devam veya 1.0.10 bekle).
 
 ## Tamamlanan
 
@@ -127,16 +141,13 @@ Acilis sehirleri: **Istanbul (hacim) + Bursa (yerel tohum)**; tek sehirle sinirl
 ## Magaza / hesap durumu (2 Haziran 2026)
 
 ### Apple (iOS)
-- Developer hesabi **aktif**; uygulama **build edildi ve Apple incelemesine gonderildi**
-- Durum: **Apple onayi bekleniyor**
-- Onay gelince: TestFlight / App Store Connect uzerinden **tester linki** dagitilacak
-- Bundle ID: `com.gastroskor.app` · son build: v1.0.9 (build 8)
+- TestFlight **Internal**: **v1.0.9 (build 9)** Testing — push profili duzeltildi
+- External (GE): 1.0.4 / 1.0.5 hala Waiting for Review (beklenebilir)
+- Bundle ID: `com.gastroskor.app` · siradaki build: **v1.0.10** (backlog maddeleriyle)
 
 ### Google Play (Android)
-- Play Console kayit **tamam** (`coolisback@gmail.com`, gelistirici adi GastroSkor)
-- **Kapali test basladi — 16 tester** (Play Console uzerinden)
-- Paket: `com.gastroskor.app` · son build: versionCode 11
-- Sonraki: tester geri bildirimi → production / acik test karari
+- Play Console kapali test — 16 tester
+- Paket: `com.gastroskor.app` · canli: **1.0.9 (versionCode 12)** AAB build alindi
 
 ### Ortak
 - **Canli arama maliyet:** DB-once + 24s cache + tek Google istegi

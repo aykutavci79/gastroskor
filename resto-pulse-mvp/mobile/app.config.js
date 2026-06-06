@@ -4,7 +4,7 @@ module.exports = ({ config }) => ({
   name: 'GastroSkor',
   owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.9',
+  version: '1.0.10',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'gastroskor',
@@ -17,11 +17,14 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '8',
+    buildNumber: '10',
     bundleIdentifier: 'com.gastroskor.app',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ['remote-notification'],
+    },
+    entitlements: {
+      'aps-environment': 'production',
     },
     config: {
       usesNonExemptEncryption: false,
@@ -33,7 +36,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 11,
+    versionCode: 13,
   },
   web: {
     bundler: 'metro',
