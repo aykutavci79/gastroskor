@@ -250,7 +250,7 @@ export function syncUser(payload: {
   avatar_url?: string | null;
   google_sub?: string | null;
   record_login?: boolean;
-  default_review_name_display?: 'full' | 'masked';
+  default_review_name_display?: 'full' | 'masked' | 'nickname';
 }) {
   return request<UserProfile>('/users/sync', {
     method: 'POST',
@@ -685,6 +685,29 @@ export function getRestaurantFollowerCoupon(restaurantId: string, userEmail: str
   const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
   return request<import('@/lib/types').FollowerCoupon | null>(
     `/restaurants/${encodeURIComponent(restaurantId)}/follower-coupon?${query.toString()}`,
+  );
+}
+
+export function getRestaurantFollowStatus(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<import('@/lib/types').RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status?${query.toString()}`,
+  );
+}
+
+export function followRestaurant(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<import('@/lib/types').RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow?${query.toString()}`,
+    { method: 'POST' },
+  );
+}
+
+export function unfollowRestaurant(restaurantId: string, userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+  return request<import('@/lib/types').RestaurantFollowStatus>(
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow?${query.toString()}`,
+    { method: 'DELETE' },
   );
 }
 

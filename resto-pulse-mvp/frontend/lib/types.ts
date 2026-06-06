@@ -169,6 +169,11 @@ export type RestaurantTrendingItem = RestaurantListItem & {
   maps_directions_url?: string | null;
 };
 
+export type RestaurantFollowStatus = {
+  following: boolean;
+  follower_count: number;
+};
+
 export type Restaurant = RestaurantListItem & {
   address: string | null;
   latitude: number | null;
@@ -365,7 +370,10 @@ export type UserProfile = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  default_review_name_display?: 'full' | 'masked';
+  avatar_preset?: string | null;
+  nickname?: string | null;
+  needs_nickname_setup?: boolean;
+  default_review_name_display?: 'full' | 'masked' | 'nickname';
   gastro_score: number | null;
   review_count: number;
 };

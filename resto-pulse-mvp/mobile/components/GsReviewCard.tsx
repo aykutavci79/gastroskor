@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { StarRatingPicker } from '@/components/StarRatingPicker';
+import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors } from '@/constants/theme';
 import {
   createReviewReply,
@@ -207,7 +208,15 @@ export function GsReviewCard({
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.author}>{review.author_name ?? 'GastroSkor Üyesi'}</Text>
+        <View style={styles.authorRow}>
+          <UserAvatar
+            avatarUrl={review.author_avatar_url}
+            avatarPreset={review.author_avatar_preset}
+            size={28}
+            fallbackLabel={review.author_name ?? '?'}
+          />
+          <Text style={styles.author}>{review.author_name ?? 'GastroSkor Üyesi'}</Text>
+        </View>
         {review.created_at ? (
           <Text style={styles.date}>{formatReviewDate(review.created_at)}</Text>
         ) : null}
@@ -376,6 +385,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   author: { color: GastroColors.text, fontSize: 14, fontWeight: '700', flex: 1 },
   date: { color: GastroColors.muted, fontSize: 11 },
   stars: { color: GastroColors.gold, fontSize: 14, letterSpacing: 1 },

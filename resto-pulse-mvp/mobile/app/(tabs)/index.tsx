@@ -1,44 +1,47 @@
 import * as Location from 'expo-location';
-import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FeaturedHighlightsSection } from '@/components/FeaturedHighlightsSection';
+import { RegionalFlavorsHomeSection } from '@/components/RegionalFlavorsHomeSection';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchBar } from '@/components/SearchBar';
+import { SloganBanner } from '@/components/SloganBanner';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
-import { listRestaurants, listTrendingRestaurantsWeek, searchLivePlaces } from '@/lib/api';
+import { listRestaurants, searchLivePlaces } from '@/lib/api';
 import {
   livePlaceDistanceLabel,
   livePlaceToRestaurantCard,
 } from '@/lib/live-place-card';
 import { restaurantDetailHref } from '@/lib/uuid';
 import { formatApiError } from '@/lib/format-api-error';
-import { formatDistanceLabel } from '@/lib/travel-estimate';
 import type {
   LivePlaceSearchItem,
   ParsedSearchIntent,
   RestaurantListItem,
-  RestaurantTrendingItem,
 } from '@/lib/types';
 
 type Coords = { lat: number; lng: number };
 
+const SECTION_GAP = 24;
+
 export default function ExploreScreen() {
-  const router = useRouter();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
   const [inputQuery, setInputQuery] = useState('');
-  const [inputCity, setInputCity] = useState('');
+  const [inputCity, setInputCity] = useState('Bursa');
   const [activeQuery, setActiveQuery] = useState('');
-  const [activeCity, setActiveCity] = useState('');
+  const [activeCity, setActiveCity] = useState('Bursa');
 
-  const [restaurants, setRestaurants] = useState<RestaurantListItem[]>([]);
-  const [liveItems, setLiveItems] = useState<LivePlaceSearchItem[]>([]);
+  const [dbRestaurants, setDbRestaurants] = useState<RestaurantListItem[]>([]);
+  const [searchItems, setSearchItems] = useState<LivePlaceSearchItem[]>([]);
+  const [searchCards, setSearchCards] = useState<RestaurantListItem[]>([]);
   const [liveParsed, setLiveParsed] = useState<ParsedSearchIntent | null>(null);
-  const [searchSource, setSearchSource] = useState<'db' | 'live'>('db');
-  const [trending, setTrending] = useState<RestaurantTrendingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [hasActiveSearch, setHasActiveSearch] = useState(false);
+
+  const [loadingDb, setLoadingDb] = useState(true);
+  const [loadingSearch, setLoadingSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +57,7 @@ export default function ExploreScreen() {
           coordsUpdatedAtRef.current = Date.now();
         }
       } catch {
-        // Konum opsiyonel
+        /* Konum opsiyonel — DB listesi icin */
       }
     })();
     return () => {
@@ -83,81 +86,81 @@ export default function ExploreScreen() {
     await ensureCoords();
   }, [ensureCoords]);
 
-  const loadTrending = useCallback(async (city: string) => {
-    const coords = coordsRef.current;
-    return listTrendingRestaurantsWeek({
-      lat: coords?.lat,
-      lng: coords?.lng,
-      city: city.trim() || 'Bursa',
-      limit: 6,
-      source: 'google',
-    });
-  }, []);
-
-  const loadRestaurants = useCallback(async (query: string, city: string) => {
+  const loadDbRestaurants = useCallback(async (city: string) => {
     await refreshCoordsIfStale();
     const coords = (await ensureCoords()) ?? coordsRef.current;
-    const q = query.trim();
-    const c = city.trim();
+    const list = await listRestaurants({
+      city: city.trim() || 'Bursa',
+      origin_lat: coords?.lat,
+      origin_lng: coords?.lng,
+    });
+    setDbRestaurants(list);
+  }, [refreshCoordsIfStale, ensureCoords]);
 
-    if (q.length >= 2) {
+  const loadSearchResults = useCallback(async (query: string, city: string) => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setHasActiveSearch(false);
+      setSearchItems([]);
+      setSearchCards([]);
+      setLiveParsed(null);
+      return;
+    }
+
+    setLoadingSearch(true);
+    setError(null);
+    try {
+      await refreshCoordsIfStale();
+      const coords = (await ensureCoords()) ?? coordsRef.current;
       const result = await searchLivePlaces({
         q,
-        city: c || 'Bursa',
+        city: city.trim() || 'Bursa',
         limit: 20,
         origin_lat: coords?.lat,
         origin_lng: coords?.lng,
       });
-      setLiveItems(result.items);
+      setSearchItems(result.items);
+      setSearchCards(result.items.map(livePlaceToRestaurantCard));
       setLiveParsed(result.parsed);
-      setRestaurants(result.items.map(livePlaceToRestaurantCard));
-      setSearchSource('live');
-      return;
+      setHasActiveSearch(true);
+    } catch (err) {
+      setError(formatApiError(err, 'Arama'));
+      setSearchItems([]);
+      setSearchCards([]);
+      setHasActiveSearch(true);
+    } finally {
+      setLoadingSearch(false);
     }
-
-    setLiveParsed(null);
-    const list = await listRestaurants({
-      q: q || undefined,
-      city: c || undefined,
-      origin_lat: coords?.lat,
-      origin_lng: coords?.lng,
-    });
-    setLiveItems([]);
-    setRestaurants(list);
-    setSearchSource('db');
   }, [refreshCoordsIfStale, ensureCoords]);
 
   const loadAll = useCallback(async () => {
-    setError(null);
-    await refreshCoordsIfStale();
-    const restaurantsTask = loadRestaurants(activeQuery, activeCity).catch((err) => {
-      setError(formatApiError(err, 'Arama'));
-      setRestaurants([]);
-      setLiveItems([]);
-      setSearchSource('db');
-    });
-    const trendingTask = loadTrending(activeCity)
-      .then(setTrending)
-      .catch(() => setTrending([]));
-    await Promise.all([restaurantsTask, trendingTask]);
-  }, [activeQuery, activeCity, loadRestaurants, loadTrending, refreshCoordsIfStale]);
+    await Promise.all([
+      loadDbRestaurants(activeCity).catch(() => setDbRestaurants([])),
+      loadSearchResults(activeQuery, activeCity),
+    ]);
+  }, [activeCity, activeQuery, loadDbRestaurants, loadSearchResults]);
 
   useEffect(() => {
-    setLoading(true);
-    loadAll().finally(() => setLoading(false));
-  }, [loadAll]);
+    setLoadingDb(true);
+    loadDbRestaurants(activeCity).finally(() => setLoadingDb(false));
+  }, [activeCity, loadDbRestaurants]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setActiveQuery(inputQuery.trim());
-      setActiveCity(inputCity.trim());
+      void loadSearchResults(inputQuery, inputCity);
     }, 500);
     return () => clearTimeout(timer);
+  }, [inputQuery, inputCity, loadSearchResults]);
+
+  useEffect(() => {
+    setActiveQuery(inputQuery.trim());
+    setActiveCity(inputCity.trim() || 'Bursa');
   }, [inputQuery, inputCity]);
 
   function commitSearch() {
     setActiveQuery(inputQuery.trim());
-    setActiveCity(inputCity.trim());
+    setActiveCity(inputCity.trim() || 'Bursa');
+    void loadSearchResults(inputQuery, inputCity);
   }
 
   async function onRefresh() {
@@ -166,181 +169,135 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }
 
-  const sectionSub =
-    searchSource === 'live' && activeQuery.length >= 2
-      ? `Google canlı arama · "${activeQuery}"`
-      : activeQuery || activeCity
-        ? 'Kayıtlı restoranlar'
-        : 'Tüm kayıtlı restoranlar';
-
   return (
     <Screen scroll style={styles.page} refreshing={refreshing} onRefresh={onRefresh}>
-      <View style={styles.hero}>
-        <Text style={styles.kicker}>GastroSkor</Text>
-        <Text style={styles.heroTitle}>Türkiye restoranlarını puanla</Text>
-        <Text style={styles.heroSub}>
-          İsim yazınca Google canlı arama; üye işletmeler altın çerçeve ile listelenir.
-        </Text>
-        <Pressable style={styles.yoreselBtn} onPress={() => router.push('/yoresel' as Href)}>
-          <Text style={styles.yoreselBtnText}>🍽️ Bursa yöresel lezzetler</Text>
-        </Pressable>
+      <FeaturedHighlightsSection />
+
+      <SloganBanner />
+
+      <RegionalFlavorsHomeSection />
+
+      <View style={styles.searchSection}>
+        <Text style={styles.sectionTitle}>Canlı arama</Text>
+        <Text style={styles.sectionSub}>Google Haritalar ile anlık mekan araması</Text>
+        <SearchBar
+          query={inputQuery}
+          city={inputCity}
+          onQueryChange={setInputQuery}
+          onCityChange={setInputCity}
+          onSearch={commitSearch}
+          searching={loadingSearch}
+        />
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.error}>{error}</Text>
+          </View>
+        ) : null}
       </View>
 
-      <SearchBar
-        query={inputQuery}
-        city={inputCity}
-        onQueryChange={setInputQuery}
-        onCityChange={setInputCity}
-        onSearch={commitSearch}
-        searching={loading}
-      />
-
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.error}>{error}</Text>
-          <Text style={styles.errorHint}>
-            Canli arama: en az 2 harf + Ara. Hata devam ederse Expo Go’da uygulamayi yenile (r) ve Profil
-            ekranindaki API adresini kontrol et.
-          </Text>
+      {hasActiveSearch && activeQuery.length >= 2 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionTitles}>
+            <Text style={styles.sectionTitle}>Arama sonuçları</Text>
+            <Text style={styles.sectionSub}>
+              Google canlı arama · &quot;{activeQuery}&quot;
+            </Text>
+          </View>
+          {loadingSearch ? (
+            <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
+          ) : searchCards.length === 0 ? (
+            <Text style={styles.empty}>
+              {liveParsed?.min_rating != null
+                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok. Farklı kelime deneyin.`
+                : 'Canlı aramada sonuç bulunamadı.'}
+            </Text>
+          ) : (
+            searchCards.map((r, index) => {
+              const liveItem = searchItems[index];
+              const detailHref = restaurantDetailHref({
+                id: r.id,
+                restaurant_id: r.restaurant_id,
+                google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
+                liveScores: liveItem
+                  ? {
+                      gastro_score: liveItem.gastro_score,
+                      distance_score: liveItem.distance_score,
+                      rating_score: liveItem.rating_score,
+                      distance_meters: liveItem.distance_meters,
+                      distance_origin: liveItem.distance_origin,
+                      rating: liveItem.rating,
+                    }
+                  : null,
+              });
+              return (
+                <RestaurantCard
+                  key={`search-${r.id}-${index}`}
+                  restaurant={r}
+                  googleRating={r.google_rating}
+                  googleReviewCount={r.google_review_count}
+                  distanceLabel={liveItem ? livePlaceDistanceLabel(liveItem) : undefined}
+                  href={detailHref}
+                />
+              );
+            })
+          )}
         </View>
       ) : null}
 
-      {trending.length > 0 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionTitles}>
-            <Text style={styles.sectionTitle}>ÖNE ÇIKANLAR</Text>
-            <Text style={styles.sectionSub}>Google popülerliği · yakınındaki 6 restoran</Text>
-          </View>
-          {trending.map((r, index) => {
+      <View style={styles.section}>
+        <View style={styles.sectionTitles}>
+          <Text style={styles.sectionTitle}>Kayıtlı restoranlar</Text>
+          <Text style={styles.sectionSub}>GastroSkor veritabanı · üye ve yorumlu mekanlar</Text>
+        </View>
+        {loadingDb ? (
+          <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
+        ) : dbRestaurants.length === 0 ? (
+          <Text style={styles.empty}>Kayıtlı restoran bulunamadı.</Text>
+        ) : (
+          dbRestaurants.map((r, index) => {
             const detailHref = restaurantDetailHref({
               id: r.id,
               restaurant_id: r.restaurant_id,
               google_place_id: r.google_place_id,
             });
-
             return (
               <RestaurantCard
-                key={`t-${r.id}`}
-                restaurant={r}
-                rank={index + 1}
-                href={detailHref}
-                googleRating={r.week_avg_rating ?? r.google_rating}
-                googleReviewCount={r.google_user_ratings_total ?? r.google_review_count}
-                distanceLabel={formatDistanceLabel(r)}
-                cornerBadge={r.is_premium_partner ? 'ÖNE ÇIKAN' : undefined}
-              />
-            );
-          })}
-        </View>
-      ) : null}
-
-      <View style={styles.section}>
-        <View style={styles.sectionHead}>
-          <View style={styles.sectionTitles}>
-            <Text style={styles.sectionTitle}>Restoranlar</Text>
-            <Text style={styles.sectionSub}>{sectionSub}</Text>
-          </View>
-          <Text style={styles.count}>{restaurants.length} sonuç</Text>
-        </View>
-        {loading ? (
-          <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
-        ) : restaurants.length === 0 ? (
-          <Text style={styles.empty}>
-            {activeQuery.length >= 2
-              ? liveParsed?.min_rating != null
-                ? `${liveParsed.min_rating}+ yıldız filtresine uyan sonuç yok. Farklı kelime veya şehir deneyin; konum açıksa daha iyi sonuç verir.`
-                : 'Canlı aramada sonuç bulunamadı. Farklı bir isim veya şehir deneyin.'
-              : 'Sonuç bulunamadı. En az 2 harf yazarak Google araması yapabilirsiniz.'}
-          </Text>
-        ) : (
-          restaurants.map((r, index) => {
-            const liveItem = searchSource === 'live' ? liveItems[index] : null;
-            const detailHref = restaurantDetailHref({
-              id: r.id,
-              restaurant_id: r.restaurant_id,
-              google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
-              liveScores: liveItem
-                ? {
-                    gastro_score: liveItem.gastro_score,
-                    distance_score: liveItem.distance_score,
-                    rating_score: liveItem.rating_score,
-                    distance_meters: liveItem.distance_meters,
-                    distance_origin: liveItem.distance_origin,
-                    rating: liveItem.rating,
-                  }
-                : null,
-            });
-
-            return (
-              <RestaurantCard
-                key={`${searchSource}-${r.id}-${index}`}
+                key={`db-${r.id}-${index}`}
                 restaurant={r}
                 googleRating={r.google_rating}
                 googleReviewCount={r.google_review_count}
-                distanceLabel={
-                  liveItem ? livePlaceDistanceLabel(liveItem) : formatDistanceLabel(r)
-                }
                 href={detailHref}
               />
             );
           })
         )}
       </View>
-
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { gap: 20 },
-  hero: {
-    ...GastroStyles.card,
-    borderRadius: 20,
-    padding: 18,
-    gap: 6,
-  },
-  kicker: { color: GastroColors.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  heroTitle: { color: GastroColors.text, fontSize: 22, fontWeight: '800' },
-  heroSub: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
-  yoreselBtn: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  yoreselBtnText: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
-  section: { gap: 4 },
-  sectionHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 4,
-  },
-  sectionTitles: { gap: 2, flex: 1 },
+  page: { gap: SECTION_GAP },
+  section: { gap: 8 },
+  searchSection: { gap: 10 },
+  sectionTitles: { gap: 4 },
   sectionTitle: {
     color: GastroColors.text,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: 0.3,
   },
   sectionSub: {
     color: GastroColors.muted,
     fontSize: 13,
+    lineHeight: 18,
   },
-  count: { color: GastroColors.muted, fontSize: 13 },
+  empty: { color: GastroColors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
   errorBox: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.4)',
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     padding: 12,
-    gap: 6,
   },
   error: GastroStyles.errorText,
-  errorHint: { color: GastroColors.muted, fontSize: 11, lineHeight: 16 },
-  empty: { color: GastroColors.muted, textAlign: 'center', padding: 24, lineHeight: 20 },
 });

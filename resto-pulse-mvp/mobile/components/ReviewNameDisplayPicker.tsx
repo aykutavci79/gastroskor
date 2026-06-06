@@ -6,12 +6,13 @@ import { previewAuthorName } from '@/lib/display-name';
 
 type Props = {
   fullName: string | null | undefined;
+  nickname?: string | null;
   value: AuthorNameDisplayMode;
   onChange: (mode: AuthorNameDisplayMode) => void;
 };
 
-export function ReviewNameDisplayPicker({ fullName, value, onChange }: Props) {
-  const preview = previewAuthorName(fullName, value);
+export function ReviewNameDisplayPicker({ fullName, nickname, value, onChange }: Props) {
+  const preview = previewAuthorName(fullName, value, nickname);
 
   return (
     <View style={styles.wrap}>
@@ -32,6 +33,15 @@ export function ReviewNameDisplayPicker({ fullName, value, onChange }: Props) {
           </Text>
         </Pressable>
       </View>
+      {nickname ? (
+        <Pressable
+          style={[styles.option, value === 'nickname' && styles.optionActive, styles.optionWide]}
+          onPress={() => onChange('nickname')}>
+          <Text style={[styles.optionText, value === 'nickname' && styles.optionTextActive]}>
+            Takma ad ({nickname})
+          </Text>
+        </Pressable>
+      ) : null}
       <Text style={styles.preview}>
         Önizleme: <Text style={styles.previewName}>{preview}</Text>
       </Text>
@@ -66,6 +76,7 @@ const styles = StyleSheet.create({
   },
   optionText: { color: GastroColors.muted, fontSize: 13, fontWeight: '600' },
   optionTextActive: { color: GastroColors.accent },
+  optionWide: { marginTop: 4 },
   preview: { color: GastroColors.muted, fontSize: 12 },
   previewName: { color: GastroColors.text, fontWeight: '700' },
 });

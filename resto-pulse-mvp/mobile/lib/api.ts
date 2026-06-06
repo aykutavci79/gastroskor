@@ -240,9 +240,63 @@ export function syncUser(payload: {
   avatar_url?: string | null;
   google_sub?: string | null;
   record_login?: boolean;
-  default_review_name_display?: 'full' | 'masked';
+  default_review_name_display?: 'full' | 'masked' | 'nickname';
 }) {
   return request<UserProfile>('/users/sync', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function checkNickname(nickname: string, userEmail?: string | null) {
+  const query = new URLSearchParams({ nickname: nickname.trim() });
+  if (userEmail?.trim()) query.set('user_email', userEmail.trim().toLowerCase());
+  return request<{ available: boolean; message?: string | null; highlights?: string[] }>(
+    `/users/nickname/check?${query.toString()}`,
+  );
+}
+
+export function updateGourmetProfile(payload: {
+  user_email: string;
+  nickname?: string;
+  avatar_preset?: string;
+  use_preset_avatar?: boolean;
+  default_review_name_display?: 'full' | 'masked' | 'nickname';
+}) {
+  return request<UserProfile>('/users/gourmet-profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadUserAvatar(
+  userEmail: string,
+  localUri: string,
+  mimeType: string,
+  fileName: string,
+) {
+  const form = new FormData();
+  form.append('user_email', userEmail.trim().toLowerCase());
+  form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
+  let response: Response;
+  try {
+    response = await fetch(`${getApiV1Base()}/users/avatar`, {
+      method: 'POST',
+      body: form,
+      signal: createFetchTimeoutSignal(60_000),
+    });
+  } catch (err) {
+    throw new Error(formatApiError(err, 'Profil fotografi'));
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    let message = text ? `${response.status}: ${text}` : `Upload failed ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      /* plain text */
+    }
+    throw new Error(formatApiError(new Error(message), 'Profil fotografi'));
+  }
+  return response.json() as Promise<UserProfile>;
 }
 
 export function listRestaurantFollows(userEmail: string, limit = 50) {

@@ -21,7 +21,7 @@ export function RegionalProductCard({ item, href }: Props) {
           {item.region} · {item.registration_year} · {item.indication_type}
         </p>
         <p className="mt-3 line-clamp-3 text-sm text-content-muted">{item.summary}</p>
-        <p className="mt-4 text-sm font-medium text-brand-gold">Nerede bulunur? Canlı arama →</p>
+        <p className="mt-4 text-sm font-medium text-brand-gold">Bu lezzeti sunan restoranlar →</p>
       </div>
       {item.image_url ? (
         <div className="relative hidden w-28 shrink-0 border-l border-border/40 bg-surface-input sm:block md:w-36 lg:w-40">

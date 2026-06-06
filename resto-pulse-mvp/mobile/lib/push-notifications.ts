@@ -1,37 +1,58 @@
-import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { registerPushToken } from '@/lib/api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+
+/** SDK 53+: uzak push Expo Go'da desteklenmiyor (dev/EAS build gerekir). */
+export function isPushNotificationsSupported(): boolean {
+  if (Platform.OS === 'web') return false;
+  return Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+}
+
+let handlerConfigured = false;
+
+async function loadNotifications(): Promise<NotificationsModule | null> {
+  if (!isPushNotificationsSupported()) return null;
+  return import('expo-notifications');
+}
+
+async function ensureNotificationHandler(): Promise<NotificationsModule | null> {
+  const Notifications = await loadNotifications();
+  if (!Notifications || handlerConfigured) return Notifications;
+  handlerConfigured = true;
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+  return Notifications;
+}
 
 export async function ensureNotificationPermissions(): Promise<boolean> {
-  if (Platform.OS === 'web') {
-    return false;
-  }
+  const Notifications = await ensureNotificationHandler();
+  if (!Notifications) return false;
   const current = await Notifications.getPermissionsAsync();
-  if (current.granted) {
-    return true;
-  }
+  if (current.granted) return true;
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
 }
 
 export async function registerUserPushToken(userEmail: string): Promise<void> {
-  if (!userEmail.trim()) return;
+  if (!isPushNotificationsSupported() || !userEmail.trim()) return;
+
   const allowed = await ensureNotificationPermissions();
   if (!allowed) return;
 
   try {
+    const Notifications = await ensureNotificationHandler();
+    if (!Notifications) return;
+
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
       Constants.easConfig?.projectId ??
@@ -47,7 +68,7 @@ export async function registerUserPushToken(userEmail: string): Promise<void> {
       platform: Platform.OS,
     });
   } catch {
-    /* Expo Go veya izin yok — sessiz */
+    /* izin yok veya cihaz desteklemiyor */
   }
 }
 

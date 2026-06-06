@@ -15,6 +15,7 @@ type Props = {
   userCoords?: { lat: number; lng: number } | null;
   /** Ana sayfada hero altinda — giris butonlari ust barda */
   embedded?: boolean;
+  onSearchPerformed?: (query: string) => void;
 };
 
 export function LivePlaceSearch({
@@ -22,6 +23,7 @@ export function LivePlaceSearch({
   cityStatus = 'denied',
   userCoords: sharedCoords = null,
   embedded = false,
+  onSearchPerformed,
 }: Props) {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,6 +102,7 @@ export function LivePlaceSearch({
       setParsedIntent(result.parsed);
       setLastDistanceOrigin(result.items[0]?.distance_origin ?? (coords ? 'user' : 'city_center'));
       setItems(result.items);
+      onSearchPerformed?.(query);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Canli arama sirasinda hata olustu.';
       setError(message);
@@ -116,11 +119,11 @@ export function LivePlaceSearch({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-content">
-            {embedded ? 'Mekan ara' : 'Canlı arama'}
+            {embedded ? 'Canlı arama' : 'Canlı arama'}
           </h2>
           <p className="text-xs text-content-muted">
             {embedded
-              ? `Google Haritalar · ${city} bolgesi`
+              ? 'Google Haritalar ile anlık mekan araması'
               : 'Canli Google Places + akilli filtre'}
             {locationStatus === 'loading' ? ' · Konum aliniyor…' : null}
             {locationStatus === 'denied' && !embedded
@@ -141,7 +144,7 @@ export function LivePlaceSearch({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Ornek: Durak muhallebicisi, donerci 4.5 yildiz..."
+          placeholder="Örn: Döner 4 yıldız Bursa"
           className="input-field flex-1"
         />
         <button type="submit" disabled={loading} className="btn-primary shrink-0">

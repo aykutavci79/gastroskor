@@ -24,7 +24,7 @@ export function SearchBar({
       <TextInput
         value={query}
         onChangeText={onQueryChange}
-        placeholder="Restoran ara..."
+        placeholder="Ara: Örn. Döner 4 yıldız Bursa"
         placeholderTextColor={GastroColors.placeholder}
         style={styles.input}
         returnKeyType="search"

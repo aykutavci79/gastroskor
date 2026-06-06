@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Props = {
   returnUrl: string;
@@ -11,19 +11,34 @@ type Props = {
 };
 
 export function MobilGirisTamamClient({ returnUrl, email, name, picture, sub }: Props) {
-  useEffect(() => {
+  const appUrl = useMemo(() => {
     const target = new URL(returnUrl);
     target.searchParams.set('email', email);
     if (name) target.searchParams.set('name', name);
     if (picture) target.searchParams.set('picture', picture);
     if (sub) target.searchParams.set('sub', sub);
-    window.location.replace(target.toString());
+    return target.toString();
   }, [returnUrl, email, name, picture, sub]);
+
+  const [showManualLink, setShowManualLink] = useState(false);
+
+  useEffect(() => {
+    window.location.replace(appUrl);
+    const timer = window.setTimeout(() => setShowManualLink(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [appUrl]);
 
   return (
     <main className="mx-auto max-w-md px-4 py-16 text-center text-zinc-300">
       <h1 className="text-xl font-semibold text-white">Giris basarili</h1>
       <p className="mt-3 text-sm">Uygulamaya yonlendiriliyorsunuz...</p>
+      {showManualLink ? (
+        <a
+          href={appUrl}
+          className="mt-6 inline-flex rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white hover:bg-accent-hover">
+          Uygulamaya don
+        </a>
+      ) : null}
     </main>
   );
 }

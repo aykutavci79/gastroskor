@@ -8,8 +8,7 @@ type Props = {
   compact?: boolean;
 };
 
-function stopNav(e: MouseEvent) {
-  e.preventDefault();
+function stopCardNav(e: MouseEvent) {
   e.stopPropagation();
 }
 
@@ -31,7 +30,7 @@ export function RestaurantCardTravelLinks({ mapsDirectionsUrl, distanceMeters, c
           href={maps}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={stopNav}
+          onClick={stopCardNav}
           className={`${pill} border-google/40 bg-google/10 text-google hover:bg-google/20 transition duration-ui ease-ui`}>
           <span aria-hidden>🗺️</span>
           Haritada ac

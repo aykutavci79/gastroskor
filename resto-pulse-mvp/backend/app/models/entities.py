@@ -47,6 +47,8 @@ class User(Base):
     review_moderation_strikes: Mapped[int] = mapped_column(Integer, default=0)
     review_banned_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     default_review_name_display: Mapped[str] = mapped_column(String(16), default="full")
+    nickname: Mapped[str | None] = mapped_column(String(32), index=True)
+    avatar_preset: Mapped[str | None] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")

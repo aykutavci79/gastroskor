@@ -6,8 +6,10 @@ import { useSession } from '@/context/session-context';
 import { getMobileGoogleReturnUri, getMobileGoogleSiteUrl, signInWithGoogleViaWeb } from '@/lib/google-sign-in-via-web';
 import {
   getGoogleSignInSetupHint,
+  isExpoGo,
   isGoogleSignInConfigured,
   shouldUseNativeGoogleSignIn,
+  useGoogleSignInExpoGo,
   useGoogleSignInNative,
 } from '@/hooks/use-google-sign-in';
 
@@ -23,12 +25,28 @@ export function GoogleSignInButton({ busy, onError }: Props) {
     return <Text style={styles.warn}>{setupHint ?? 'Google girisi yapilandirilmamis.'}</Text>;
   }
 
+  if (isExpoGo) {
+    return <GoogleSignInExpoGoButton busy={busy} onError={onError} />;
+  }
+
   if (shouldUseNativeGoogleSignIn()) {
     return <GoogleSignInNativeButton busy={busy} onError={onError} />;
   }
 
-  // Yalnizca Expo Go: site uzerinden NextAuth (mobil-giris).
   return <GoogleSignInWebBridgeButton busy={busy} onError={onError} />;
+}
+
+function GoogleSignInExpoGoButton({ busy, onError }: Props) {
+  const { ready, promptAsync } = useGoogleSignInExpoGo(onError);
+
+  return (
+    <Pressable
+      style={[styles.googleBtn, (!ready || busy) && styles.btnDisabled]}
+      disabled={!ready || busy}
+      onPress={() => void promptAsync()}>
+      <Text style={styles.googleBtnText}>Google ile giris yap</Text>
+    </Pressable>
+  );
 }
 
 function GoogleSignInWebBridgeButton({ busy, onError }: Props) {

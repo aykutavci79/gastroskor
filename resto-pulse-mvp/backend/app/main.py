@@ -8,6 +8,7 @@ from app.api.v1.routes import router as v1_router
 from app.core.config import settings
 from app.services.menu_image_storage import menu_images_dir
 from app.services.review_image_storage import review_images_dir
+from app.services.user_avatar_storage import user_avatars_dir
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,11 @@ app.include_router(v1_router, prefix=settings.api_v1_prefix)
 try:
     menu_dir = menu_images_dir()
     review_dir = review_images_dir()
+    avatar_dir = user_avatars_dir()
     app.mount("/media/menu", StaticFiles(directory=str(menu_dir)), name="menu-images")
     app.mount("/media/reviews", StaticFiles(directory=str(review_dir)), name="review-images")
-    logger.info("Media static: menu=%s reviews=%s", menu_dir, review_dir)
+    app.mount("/media/avatars", StaticFiles(directory=str(avatar_dir)), name="user-avatars")
+    logger.info("Media static: menu=%s reviews=%s avatars=%s", menu_dir, review_dir, avatar_dir)
 except OSError as exc:
     logger.warning("Media static mount skipped: %s", exc)
 

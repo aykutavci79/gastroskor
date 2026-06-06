@@ -294,6 +294,7 @@ export type MemberReview = {
   id: string;
   author_name: string | null;
   author_avatar_url: string | null;
+  author_avatar_preset?: string | null;
   rating: number;
   review_text: string;
   sentiment_label: string | null;
@@ -332,6 +333,7 @@ export type ReviewReply = {
   author_email: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
+  author_avatar_preset?: string | null;
   reply_text: string;
   created_at?: string | null;
   updated_at?: string | null;
@@ -344,7 +346,8 @@ export type Review = {
   author_email: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
-  author_name_display?: 'full' | 'masked';
+  author_avatar_preset?: string | null;
+  author_name_display?: 'full' | 'masked' | 'nickname';
   rating: number;
   review_text: string;
   sentiment_label: string | null;
@@ -369,7 +372,10 @@ export type UserProfile = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  default_review_name_display?: 'full' | 'masked';
+  avatar_preset?: string | null;
+  nickname?: string | null;
+  needs_nickname_setup?: boolean;
+  default_review_name_display?: 'full' | 'masked' | 'nickname';
   gastro_score: number | null;
   review_count: number;
 };

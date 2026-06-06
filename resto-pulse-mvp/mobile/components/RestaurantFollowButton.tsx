@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -11,12 +11,21 @@ import {
 import { followApiErrorMessage } from '@/lib/follow-api-errors';
 
 type Props = {
-  restaurantId: string;
+  restaurantId: string | null;
   userEmail: string | null | undefined;
   onFollowingChange?: (following: boolean) => void;
+  compact?: boolean;
+  /** GS kaydı yoksa (sadece Google place) detay sayfasına yönlendir */
+  detailHref?: string | null;
 };
 
-export function RestaurantFollowButton({ restaurantId, userEmail, onFollowingChange }: Props) {
+export function RestaurantFollowButton({
+  restaurantId,
+  userEmail,
+  onFollowingChange,
+  compact = false,
+  detailHref,
+}: Props) {
   const router = useRouter();
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -54,13 +63,18 @@ export function RestaurantFollowButton({ restaurantId, userEmail, onFollowingCha
     return () => {
       cancelled = true;
     };
-  }, [restaurantId, email]);
+  }, [restaurantId, email, onFollowingChange]);
 
   const toggle = useCallback(async () => {
     if (!email) {
       router.push('/(tabs)/profil');
       return;
     }
+    if (!restaurantId && detailHref) {
+      router.push(detailHref as Href);
+      return;
+    }
+    if (!restaurantId) return;
     setBusy(true);
     setError(null);
     try {
@@ -74,41 +88,60 @@ export function RestaurantFollowButton({ restaurantId, userEmail, onFollowingCha
     } finally {
       setBusy(false);
     }
-  }, [following, restaurantId, router, email]);
+  }, [following, restaurantId, router, email, detailHref]);
 
-  if (!loaded) {
+  if (!restaurantId && !detailHref) {
+    return null;
+  }
+
+  if (!loaded && restaurantId) {
     return (
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, compact && styles.wrapCompact]}>
         <ActivityIndicator size="small" color={GastroColors.accent} />
       </View>
     );
   }
 
-  const label = email
-    ? following
-      ? 'Takipten çık'
-      : 'Takip et'
-    : 'Takip için giriş yap';
+  const label = !email
+    ? compact
+      ? 'Giriş'
+      : 'Takip için giriş yap'
+    : following
+      ? compact
+        ? 'Takipte'
+        : 'Takipten çık'
+      : 'Takip et';
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
       <Pressable
-        style={[styles.btn, following && styles.btnFollowing, busy && styles.btnBusy]}
-        onPress={() => void toggle()}
+        style={[
+          styles.btn,
+          compact && styles.btnCompact,
+          following && styles.btnFollowing,
+          busy && styles.btnBusy,
+        ]}
+        onPress={(e) => {
+          e?.stopPropagation?.();
+          void toggle();
+        }}
         disabled={busy}>
         {busy ? (
           <ActivityIndicator size="small" color={following ? GastroColors.text : '#0a0a0a'} />
         ) : (
-          <Text style={[styles.btnText, following && styles.btnTextFollowing]}>{label}</Text>
+          <Text style={[styles.btnText, compact && styles.btnTextCompact, following && styles.btnTextFollowing]}>
+            {label}
+          </Text>
         )}
       </Pressable>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {!compact && error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
+  wrapCompact: { gap: 0 },
   btn: {
     alignSelf: 'flex-start',
     borderRadius: 12,
@@ -120,12 +153,19 @@ const styles = StyleSheet.create({
     minWidth: 120,
     alignItems: 'center',
   },
+  btnCompact: {
+    minWidth: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
   btnFollowing: {
     backgroundColor: 'transparent',
     borderColor: GastroColors.border,
   },
   btnBusy: { opacity: 0.7 },
   btnText: { color: '#0a0a0a', fontWeight: '800', fontSize: 14 },
+  btnTextCompact: { fontSize: 11 },
   btnTextFollowing: { color: GastroColors.text },
   error: { color: '#f87171', fontSize: 12, lineHeight: 17, maxWidth: 320 },
 });

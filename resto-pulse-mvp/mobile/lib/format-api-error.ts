@@ -30,5 +30,16 @@ export function formatApiError(err: unknown, context?: string): string {
   if (/^5\d{2}:/.test(raw) || raw.includes('Internal Server')) {
     return `${prefix}Sunucu hatasi (${base}). Backend loglarina bak; migration eksik olabilir.`;
   }
+  if (/not found/i.test(raw) && /gourmet|avatar|nickname/i.test(raw + (context ?? ''))) {
+    return (
+      `${prefix}Gurme profil API henuz canli sunucuda yok. ` +
+      'Railway\'de backend deploy edilmeli (E1 kodu + alembic 0024).'
+    );
+  }
+  if (raw === 'Not Found' || raw.includes('"detail":"Not Found"') || /^404:/.test(raw)) {
+    return (
+      `${prefix}API ucu bulunamadi (${base}). Backend guncel deploy edildi mi kontrol et.`
+    );
+  }
   return `${prefix}${raw}`;
 }

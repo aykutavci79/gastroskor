@@ -1,32 +1,33 @@
 'use client';
 
-import { FeaturedCityTop } from '@/components/FeaturedCityTop';
+import { useState } from 'react';
+
+import { FeaturedHighlightsSection } from '@/components/FeaturedHighlightsSection';
+import { HomeDbRestaurants } from '@/components/HomeDbRestaurants';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
 import { RegionalFlavorTeaser } from '@/components/RegionalFlavorTeaser';
+import { SloganBanner } from '@/components/SloganBanner';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 
 export function HomePageContent() {
   const { city, status, coords } = useDetectedCity();
+  const [hasSearched, setHasSearched] = useState(false);
 
   return (
-    <div className="space-y-8">
-      <section className="card rounded-3xl bg-gradient-to-r from-surface-card via-surface-input to-surface-card p-6 sm:p-8">
-        <h1 className="mb-3 text-2xl font-bold text-content sm:text-4xl">
-          Türkiye restoranlarını tek çatıda puanla
-        </h1>
-        <p className="max-w-2xl text-sm text-content-muted sm:text-base">
-          Mekan adını yaz, keşfet, GS yorumunu bırak. Giriş için sağ üstte{' '}
-          <strong className="text-content">Kullanıcı girişi</strong> — işletme paneli için{' '}
-          <strong className="text-content">Restoran girişi</strong>.
-        </p>
-      </section>
-
-      <LivePlaceSearch city={city} cityStatus={status} userCoords={coords} embedded />
-
+    <div className="flex flex-col gap-6">
+      <FeaturedHighlightsSection />
+      <SloganBanner />
+      <LivePlaceSearch
+        city={city}
+        cityStatus={status}
+        userCoords={coords}
+        embedded
+        onSearchPerformed={() => setHasSearched(true)}
+      />
+      <RegionalFlavorTeaser showProducts={hasSearched} />
+      <HomeDbRestaurants />
       <NewMemberRestaurants />
-      <RegionalFlavorTeaser />
-      <FeaturedCityTop />
     </div>
   );
 }

@@ -1,10 +1,15 @@
 import { InstagramIcon } from '@/components/icons/InstagramIcon';
+import type { MouseEvent } from 'react';
 import type { RestaurantPromoPublic } from '@/lib/types';
 
 type Props = {
   promo: RestaurantPromoPublic | null | undefined;
   compact?: boolean;
 };
+
+function stopCardNav(e: MouseEvent) {
+  e.stopPropagation();
+}
 
 function instagramLabel(url: string): string {
   const match = url.match(/instagram\.com\/([^/?#]+)/i);
@@ -30,6 +35,7 @@ export function RestaurantPromoLinks({ promo, compact = false }: Props) {
           href={instagram}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={stopCardNav}
           className={`${linkClass} text-[#E4405F]`}
           aria-label={`Instagram: ${instagramLabel(instagram)}`}>
           <InstagramIcon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
@@ -37,7 +43,7 @@ export function RestaurantPromoLinks({ promo, compact = false }: Props) {
         </a>
       ) : null}
       {website ? (
-        <a href={website} target="_blank" rel="noopener noreferrer" className={linkClass}>
+        <a href={website} target="_blank" rel="noopener noreferrer" onClick={stopCardNav} className={linkClass}>
           <span aria-hidden>🌐</span>
           {compact ? 'Web' : 'Web sitesi'}
         </a>

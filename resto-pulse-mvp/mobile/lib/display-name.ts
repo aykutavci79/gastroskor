@@ -1,4 +1,4 @@
-export type AuthorNameDisplayMode = 'full' | 'masked';
+export type AuthorNameDisplayMode = 'full' | 'masked' | 'nickname';
 
 export function maskPersonName(name: string | null | undefined): string {
   if (!name?.trim()) return 'GastroSkor Üyesi';
@@ -16,7 +16,13 @@ export function maskPersonName(name: string | null | undefined): string {
 export function previewAuthorName(
   fullName: string | null | undefined,
   mode: AuthorNameDisplayMode,
+  nickname?: string | null,
 ): string {
+  if (mode === 'nickname') {
+    if (nickname?.trim()) return nickname.trim();
+    if (fullName?.trim()) return fullName.trim();
+    return 'GastroSkor Üyesi';
+  }
   if (!fullName?.trim()) return 'GastroSkor Üyesi';
   if (mode === 'masked') return maskPersonName(fullName);
   return fullName.trim();

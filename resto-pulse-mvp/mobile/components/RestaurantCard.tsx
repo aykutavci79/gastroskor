@@ -5,7 +5,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
 import { MahrecBadge } from '@/components/MahrecBadge';
+import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { GastroColors } from '@/constants/theme';
+import { useSession } from '@/context/session-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import {
   resolveCardRatingScore,
@@ -44,6 +46,7 @@ export function RestaurantCard({
   onReviewsPress,
 }: Props) {
   const router = useRouter();
+  const { user } = useSession();
   const isPaidPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
   const showFeatured = featuredBorder ?? isPaidPartner;
   const badgeLabel =
@@ -83,6 +86,7 @@ export function RestaurantCard({
   const ratingVisual = resolveRatingBandVisual(ratingForBand);
 
   const mapsUrl = restaurant.maps_directions_url?.trim() || null;
+  const followId = resolveRestaurantDetailId(restaurant);
   const travel =
     restaurant.distance_meters != null && restaurant.distance_meters > 0
       ? estimateTravelMinutes(restaurant.distance_meters)
@@ -199,7 +203,7 @@ export function RestaurantCard({
                           e.stopPropagation();
                           void Linking.openURL(mapsUrl);
                         }}>
-                        <Text style={styles.ghostBtnText}>🗺️ Haritada Aç</Text>
+                        <Text style={styles.ghostBtnText}>🧭 Yol tarifi</Text>
                       </Pressable>
                     ) : null}
                     {travel ? (
@@ -214,6 +218,15 @@ export function RestaurantCard({
                     ) : null}
                   </View>
                 )}
+
+                <View style={styles.followRow}>
+                  <RestaurantFollowButton
+                    restaurantId={followId}
+                    userEmail={user?.email}
+                    detailHref={followId ? null : resolvedHref}
+                    compact
+                  />
+                </View>
 
                 {(onReviewsPress || resolvedHref) && (
                   <Pressable
@@ -367,6 +380,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 6,
+  },
+  followRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   ghostBtn: {
     borderWidth: 1,

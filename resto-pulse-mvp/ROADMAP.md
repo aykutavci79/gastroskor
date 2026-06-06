@@ -40,8 +40,10 @@ Son guncelleme: 6 Haziran 2026
 | Yorum moderasyonu | Kufur/argo filtresi, 1. uyari / 2. 7 gun ban / 3. 3 ay ban |
 | Yararli + cevap | Tek tik yararli, yorum alti kullanici cevabi, duzenle/sil |
 | Kufur sozlugu | `backend/app/services/profanity_tr.py` (genisletilebilir liste) |
+| Gurme profil (E1) | Nickname + avatar preset/foto, `/users/gourmet-profile`, yorumda takma ad modu |
 
-Railway: `alembic upgrade head` calistir (0016 + 0017).
+Railway: `alembic upgrade head` calistir (0016 + 0017 + **0024** gourmet profil).
+**Not:** E1 backend kodu henuz GitHub/Railway'e push edilmediyse mobil profil **404 Not Found** verir — once backend deploy.
 
 ## Siradaki fazlar (plan — henuz yok)
 
@@ -96,10 +98,11 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 > Tavsiyede **GS restoran karti paylasilir**; soru soran karta tiklar → detay (puan, yorum,
 > menu). Kesfet + topluluk tek akista.
 
-**E1 — Nickname + profil**
-- Kayit sonrasi veya ilk giris: takma ad sec (benzersiz, moderasyon)
-- **Profil gorseli:** kendi fotosu VEYA hazir avatar (kullanici secer); nickname yaninda
-- Gurme Sohbetlerde ve istege bagli yorumlarda nickname + avatar
+**E1 — Nickname + profil** — kodlandi (mobil + API; Railway: `alembic upgrade head` 0024)
+- [x] Kayit sonrasi veya ilk giris: takma ad sec (benzersiz, moderasyon)
+- [x] **Profil gorseli:** kendi fotosu VEYA hazir avatar (kullanici secer); nickname yaninda
+- [x] Yorumlarda istege bagli nickname + avatar (display mode: takma ad)
+- [ ] Gurme Sohbetlerde nickname + avatar (E2 feed ile birlikte)
 
 **E2 — Soru-cevap feed (sehir bazli)**
 - Sekme adi: **Gurme Sohbetler**

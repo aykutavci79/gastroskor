@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { Screen } from '@/components/ui/Screen';
 import { FollowingRestaurantsSection } from '@/components/FollowingRestaurantsSection';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
@@ -11,10 +12,9 @@ import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
-import { syncUser } from '@/lib/api';
+import { syncUser, updateGourmetProfile } from '@/lib/api';
 import { getApiBase } from '@/lib/api-base';
-import { getGoogleSignInSetupHint, isExpoGo } from '@/hooks/use-google-sign-in';
-import { getMobileGoogleReturnUri, getMobileGoogleSiteUrl } from '@/lib/google-sign-in-via-web';
+import { getGoogleSignInSetupHint, isExpoGo, expoGoRedirectUri } from '@/hooks/use-google-sign-in';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
@@ -29,7 +29,7 @@ export default function ProfilScreen() {
   useEffect(() => {
     AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
       .then((raw) => {
-        if (raw === 'masked' || raw === 'full') setNameDisplay(raw);
+        if (raw === 'masked' || raw === 'full' || raw === 'nickname') setNameDisplay(raw);
       })
       .catch(() => undefined);
   }, []);
@@ -40,6 +40,10 @@ export default function ProfilScreen() {
       await AsyncStorage.setItem(REVIEW_NAME_DISPLAY_STORAGE_KEY, mode);
       if (user?.email) {
         try {
+          await updateGourmetProfile({
+            user_email: user.email,
+            default_review_name_display: mode,
+          });
           await syncUser({
             email: user.email,
             full_name: user.fullName,
@@ -89,14 +93,11 @@ export default function ProfilScreen() {
             sonra expo start --clear.
           </Text>
           <Text style={styles.muted} selectable>
-            Site: {getMobileGoogleSiteUrl()}
-          </Text>
-          <Text style={styles.muted} selectable>
-            Donus: {getMobileGoogleReturnUri()}
+            Google redirect: {expoGoRedirectUri}
           </Text>
           <Text style={styles.muted}>
-            Expo Go Google: auth.expo.io degil, yukaridaki site uzerinden giris (mobil-giris). Telefon
-            ve PC ayni Wi‑Fi’de olmali.
+            Expo Go Google: auth.expo.io uzerinden dogrudan giris. Cloud Console Web client redirect
+            URI listesinde yukaridaki adres olmali.
           </Text>
           {getGoogleSignInSetupHint() ? (
             <Text style={styles.debugWarn}>{getGoogleSignInSetupHint()}</Text>
@@ -149,6 +150,8 @@ export default function ProfilScreen() {
         </View>
       )}
 
+      {user ? <GourmetProfileSection /> : null}
+
       {user ? <UserNotificationsSection userEmail={user.email} /> : null}
       {user ? <FollowingRestaurantsSection userEmail={user.email} /> : null}
 
@@ -160,6 +163,7 @@ export default function ProfilScreen() {
           </Text>
           <ReviewNameDisplayPicker
             fullName={user.fullName ?? user.email}
+            nickname={user.nickname}
             value={nameDisplay}
             onChange={(mode) => void persistNameDisplay(mode)}
           />

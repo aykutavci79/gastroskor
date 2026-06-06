@@ -86,6 +86,14 @@ from app.services.display_name import normalize_author_name_display, public_auth
 from app.services.restaurant_claim import ensure_restaurant_for_place
 from app.services.platform_profile_photo import google_photo_url_for_profile, sync_profile_photo_from_details
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
+from app.services.user_avatar_storage import save_user_avatar
+from app.services.gourmet_profile import (
+    NicknameValidationError,
+    check_nickname_available,
+    normalize_nickname,
+    public_user_avatar,
+    validate_avatar_preset,
+)
 from app.schemas.review import (
     ReviewAnalyzeResponse,
     ReviewAuthorAction,
@@ -100,7 +108,13 @@ from app.schemas.review import (
     ReviewUpdate,
 )
 from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
-from app.schemas.user import UserProfile, UserSyncPayload
+from app.schemas.user import (
+    AvatarPresetItem,
+    GourmetProfileUpdate,
+    NicknameCheckResponse,
+    UserProfile,
+    UserSyncPayload,
+)
 from app.schemas.user_notification import (
     PushTokenRegister,
     UserNotificationListResponse,
@@ -176,11 +190,15 @@ def parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
 def serialize_user(user: User, db: Session) -> UserProfile:
     avg_rating = db.scalar(select(func.avg(Review.rating)).where(Review.author_id == user.id))
     review_count = db.scalar(select(func.count(Review.id)).where(Review.author_id == user.id)) or 0
+    avatar_url, avatar_preset = public_user_avatar(user)
     return UserProfile(
         id=str(user.id),
         email=user.email,
         full_name=user.full_name,
-        avatar_url=user.avatar_url,
+        avatar_url=avatar_url,
+        avatar_preset=avatar_preset,
+        nickname=user.nickname,
+        needs_nickname_setup=not bool(user.nickname),
         default_review_name_display=normalize_author_name_display(user.default_review_name_display),
         gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
         review_count=int(review_count),
@@ -205,7 +223,7 @@ def get_or_create_user(
         if full_name and user.full_name != full_name:
             user.full_name = full_name
             updated = True
-        if avatar_url and user.avatar_url != avatar_url:
+        if avatar_url and not user.avatar_preset and user.avatar_url != avatar_url:
             user.avatar_url = avatar_url
             updated = True
         if google_sub and user.google_sub != google_sub:
@@ -352,13 +370,22 @@ def load_review_or_404(db: Session, review_id: UUID) -> Review:
 
 
 def serialize_review_reply(reply: ReviewReply) -> ReviewReplyRead:
+    avatar_url, avatar_preset = public_user_avatar(reply.author)
+    author_name = None
+    if reply.author:
+        author_name = public_author_name(
+            reply.author.full_name,
+            reply.author.default_review_name_display,
+            nickname=reply.author.nickname,
+        )
     return ReviewReplyRead(
         id=str(reply.id),
         review_id=str(reply.review_id),
         author_id=str(reply.author_id) if reply.author_id else None,
         author_email=reply.author.email if reply.author else None,
-        author_name=reply.author.full_name if reply.author else None,
-        author_avatar_url=reply.author.avatar_url if reply.author else None,
+        author_name=author_name,
+        author_avatar_url=avatar_url,
+        author_avatar_preset=avatar_preset,
         reply_text=reply.reply_text,
         created_at=reply.created_at.isoformat() if reply.created_at else None,
         updated_at=reply.updated_at.isoformat() if reply.updated_at else None,
@@ -367,9 +394,10 @@ def serialize_review_reply(reply: ReviewReply) -> ReviewReplyRead:
 
 def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> ReviewRead:
     raw_name = review.author.full_name if review.author else None
+    author_nickname = review.author.nickname if review.author else None
     display_mode = normalize_author_name_display(getattr(review, "author_name_display", None))
-    author_name = public_author_name(raw_name, display_mode)
-    author_avatar = review.author.avatar_url if review.author else None
+    author_name = public_author_name(raw_name, display_mode, nickname=author_nickname)
+    author_avatar, author_avatar_preset = public_user_avatar(review.author)
     helpful_votes = getattr(review, "helpful_votes", None) or []
     helpful_count = len(helpful_votes)
     viewer_marked_helpful = False
@@ -389,6 +417,7 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
         author_email=review.author.email if review.author else None,
         author_name=author_name,
         author_avatar_url=author_avatar,
+        author_avatar_preset=author_avatar_preset,
         author_name_display=display_mode,
         rating=review.rating,
         review_text=review.review_text,
@@ -672,23 +701,27 @@ async def get_live_place_details(
         member_avg_rating = db.scalar(
             select(func.avg(Review.rating)).where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
         )
-        member_reviews = [
-            {
-                "id": str(review.id),
-                "author_name": public_author_name(
-                    review.author.full_name if review.author else None,
-                    getattr(review, "author_name_display", None),
-                ),
-                "author_avatar_url": review.author.avatar_url if review.author else None,
-                "rating": review.rating,
-                "review_text": review.review_text,
-                "created_at": review.created_at.isoformat() if review.created_at else None,
-                "image_urls": review_image_urls(review),
-                "sentiment_label": review.sentiment_label.value if review.sentiment_label else None,
-                "sentiment_score": review.sentiment_score,
-            }
-            for review in review_rows
-        ]
+        member_reviews = []
+        for review in review_rows:
+            avatar_url, avatar_preset = public_user_avatar(review.author)
+            member_reviews.append(
+                {
+                    "id": str(review.id),
+                    "author_name": public_author_name(
+                        review.author.full_name if review.author else None,
+                        getattr(review, "author_name_display", None),
+                        nickname=review.author.nickname if review.author else None,
+                    ),
+                    "author_avatar_url": avatar_url,
+                    "author_avatar_preset": avatar_preset,
+                    "rating": review.rating,
+                    "review_text": review.review_text,
+                    "created_at": review.created_at.isoformat() if review.created_at else None,
+                    "image_urls": review_image_urls(review),
+                    "sentiment_label": review.sentiment_label.value if review.sentiment_label else None,
+                    "sentiment_score": review.sentiment_score,
+                }
+            )
 
     combined_texts = [review["text"] for review in filtered_reviews if review.get("text")]
     combined_texts.extend([review["review_text"] for review in member_reviews if review.get("review_text")])
@@ -1164,6 +1197,111 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
     return serialize_user(user, db)
 
 
+AVATAR_PRESET_CATALOG: list[AvatarPresetItem] = [
+    AvatarPresetItem(id="chef", label="Sef", emoji="👨‍🍳"),
+    AvatarPresetItem(id="olive", label="Zeytin", emoji="🫒"),
+    AvatarPresetItem(id="coffee", label="Kahve", emoji="☕"),
+    AvatarPresetItem(id="doner", label="Doner", emoji="🥙"),
+    AvatarPresetItem(id="dessert", label="Tatli", emoji="🍮"),
+    AvatarPresetItem(id="spice", label="Baharat", emoji="🌶️"),
+]
+
+
+@router.get("/users/avatar-presets", response_model=list[AvatarPresetItem])
+def list_avatar_presets() -> list[AvatarPresetItem]:
+    return AVATAR_PRESET_CATALOG
+
+
+@router.get("/users/nickname/check", response_model=NicknameCheckResponse)
+def check_nickname(
+    nickname: str = Query(min_length=1, max_length=32),
+    user_email: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    exclude_id = None
+    if user_email:
+        user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
+        if user:
+            exclude_id = user.id
+    error = check_nickname_available(db, nickname, exclude_user_id=exclude_id)
+    if error:
+        return NicknameCheckResponse(available=False, message=error.message, highlights=error.highlights)
+    return NicknameCheckResponse(available=True)
+
+
+@router.patch("/users/gourmet-profile", response_model=UserProfile)
+def update_gourmet_profile(payload: GourmetProfileUpdate, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == payload.user_email.strip().lower()))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+
+    updated = False
+
+    if payload.nickname is not None:
+        normalized = normalize_nickname(payload.nickname)
+        error = check_nickname_available(db, normalized, exclude_user_id=user.id)
+        if error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"message": error.message, "highlights": error.highlights},
+            )
+        if user.nickname != normalized:
+            user.nickname = normalized
+            updated = True
+
+    if payload.use_preset_avatar:
+        if payload.avatar_preset is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="avatar_preset gerekli.",
+            )
+        try:
+            validate_avatar_preset(payload.avatar_preset)
+        except NicknameValidationError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+        if user.avatar_preset != payload.avatar_preset or user.avatar_url is not None:
+            user.avatar_preset = payload.avatar_preset
+            user.avatar_url = None
+            updated = True
+
+    if payload.default_review_name_display is not None:
+        normalized_display = normalize_author_name_display(payload.default_review_name_display)
+        if normalized_display == "nickname" and not user.nickname:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Yorumlarda takma ad icin once takma ad secmelisiniz.",
+            )
+        if user.default_review_name_display != normalized_display:
+            user.default_review_name_display = normalized_display
+            updated = True
+
+    if updated:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    return serialize_user(user, db)
+
+
+@router.post("/users/avatar", response_model=UserProfile)
+async def upload_user_avatar(
+    user_email: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+
+    url = await save_user_avatar(file)
+    user.avatar_url = url
+    user.avatar_preset = None
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return serialize_user(user, db)
+
+
 @router.post("/feedback/private", response_model=PrivateFeedbackRead, status_code=status.HTTP_201_CREATED)
 def create_private_feedback_endpoint(payload: PrivateFeedbackCreate, db: Session = Depends(get_db)):
     author_uuid = None
@@ -1357,6 +1495,11 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         )
 
     name_display = normalize_author_name_display(payload.author_name_display)
+    if name_display == "nickname" and author_user and not author_user.nickname:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Yorumlarda takma ad icin once Gurme profilinizden takma ad secmelisiniz.",
+        )
     if author_user:
         author_user.default_review_name_display = name_display
         db.add(author_user)

@@ -10,8 +10,7 @@ type Props = {
   compact?: boolean;
 };
 
-function stopNav(e: MouseEvent) {
-  e.preventDefault();
+function stopCardNav(e: MouseEvent) {
   e.stopPropagation();
 }
 
@@ -37,7 +36,7 @@ export function RestaurantPromoBadges({ promo, restaurantId, menuItemCount = 0, 
         </span>
       ) : null}
       {hasMenu && restaurantId ? (
-        <Link href={`/restaurants/${restaurantId}#menu`} onClick={stopNav} className={menuClass}>
+        <Link href={`/restaurants/${restaurantId}#menu`} onClick={stopCardNav} className={menuClass}>
           <span aria-hidden>📋</span> Menu
         </Link>
       ) : null}

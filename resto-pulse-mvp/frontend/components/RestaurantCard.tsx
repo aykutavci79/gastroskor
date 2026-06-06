@@ -1,10 +1,15 @@
+'use client';
+
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import type { MouseEvent, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
 
 import { GeographicalIndicationBadge } from '@/components/GeographicalIndicationBadge';
 import { RestaurantCardCover } from '@/components/RestaurantCardCover';
 import { RestaurantCardScores } from '@/components/RestaurantCardScores';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
+import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLinks';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
@@ -35,6 +40,14 @@ type Props = {
   cornerBadge?: string | null;
 };
 
+function resolveFollowId(restaurant: RestaurantListItem): string | null {
+  const rid = restaurant.restaurant_id?.trim();
+  if (rid && /^[0-9a-f-]{36}$/i.test(rid)) return rid;
+  const id = restaurant.id?.trim();
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) return id;
+  return null;
+}
+
 export function RestaurantCard({
   restaurant,
   compact = false,
@@ -49,6 +62,8 @@ export function RestaurantCard({
   featuredBorder,
   cornerBadge,
 }: Props) {
+  const router = useRouter();
+  const { data: session } = useSession();
   const isPaidPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
   const showFeatured = featuredBorder ?? isPaidPartner;
   const badgeLabel =
@@ -64,6 +79,7 @@ export function RestaurantCard({
     googleReviewCount !== undefined ? googleReviewCount : restaurant.google_review_count;
   const travelDistance = distanceMeters ?? restaurant.distance_meters;
   const travelMaps = mapsDirectionsUrl ?? restaurant.maps_directions_url;
+  const followId = resolveFollowId(restaurant);
 
   const ratingForBand = resolveCardRatingScore({
     gastroRating: restaurant.avg_rating,
@@ -84,6 +100,13 @@ export function RestaurantCard({
   ]
     .filter(Boolean)
     .join(' ');
+
+  function onCardClick(event: MouseEvent<HTMLElement>) {
+    if (!resolvedHref) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('a, button')) return;
+    router.push(resolvedHref);
+  }
 
   const inner = (
     <>
@@ -114,10 +137,19 @@ export function RestaurantCard({
                   #{rank}
                 </span>
               ) : null}
-              <h3
-                className={`font-semibold text-content ${resolvedHref ? 'group-hover:text-accent' : ''} ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
-                {restaurant.name}
-              </h3>
+              {resolvedHref ? (
+                <Link
+                  href={resolvedHref}
+                  className={`font-semibold text-content group-hover:text-accent ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}
+                  onClick={(e) => e.stopPropagation()}>
+                  {restaurant.name}
+                </Link>
+              ) : (
+                <h3
+                  className={`font-semibold text-content ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}>
+                  {restaurant.name}
+                </h3>
+              )}
             </div>
             <p className={`text-content-muted ${compact ? 'truncate text-[10px]' : 'text-xs'}`}>{location}</p>
           </div>
@@ -165,6 +197,14 @@ export function RestaurantCard({
             distanceMeters={travelDistance}
             compact={compact}
           />
+          <div className="card-btn-group flex flex-wrap gap-1.5">
+            <RestaurantFollowButton
+              restaurantId={followId}
+              userEmail={session?.user?.email}
+              detailHref={followId ? null : resolvedHref}
+              compact
+            />
+          </div>
           <RestaurantPromoLinks promo={restaurant.promo} compact />
           <RestaurantMenuPreview
             items={menuItems.slice(0, compact ? 2 : 3)}
@@ -177,13 +217,20 @@ export function RestaurantCard({
     </>
   );
 
-  if (resolvedHref) {
-    return (
-      <Link href={resolvedHref} className={shellClass}>
-        {inner}
-      </Link>
-    );
-  }
-
-  return <article className={shellClass}>{inner}</article>;
+  return (
+    <article
+      className={`${shellClass}${resolvedHref ? ' cursor-pointer' : ''}`}
+      onClick={onCardClick}
+      onKeyDown={(event) => {
+        if (!resolvedHref) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        router.push(resolvedHref);
+      }}
+      tabIndex={resolvedHref ? 0 : undefined}
+      role={resolvedHref ? 'link' : undefined}
+      aria-label={resolvedHref ? `${restaurant.name} detay` : undefined}>
+      {inner}
+    </article>
+  );
 }

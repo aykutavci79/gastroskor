@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 import { GastroColors } from '@/constants/theme';
+import { GourmetProfileGate } from '@/components/GourmetProfileGate';
 import { useSession } from '@/context/session-context';
 import { getPanelAccess } from '@/lib/api';
 
@@ -41,7 +42,9 @@ export default function TabLayout() {
   const showBusinessTab = Boolean(user?.email && hasBusiness && !sessionLoading);
 
   return (
-    <Tabs
+    <>
+      <GourmetProfileGate />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -77,5 +80,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }

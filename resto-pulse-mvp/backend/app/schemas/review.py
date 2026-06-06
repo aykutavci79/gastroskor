@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-AuthorNameDisplayMode = Literal["full", "masked"]
+AuthorNameDisplayMode = Literal["full", "masked", "nickname"]
 
 
 class ReviewCreate(BaseModel):
@@ -51,6 +51,7 @@ class ReviewReplyRead(BaseModel):
     author_email: str | None = None
     author_name: str | None = None
     author_avatar_url: str | None = None
+    author_avatar_preset: str | None = None
     reply_text: str
     created_at: str | None = None
     updated_at: str | None = None
@@ -70,6 +71,7 @@ class ReviewRead(ReviewCreate):
     categories: list[ReviewCategoryRead] = []
     author_name: str | None = None
     author_avatar_url: str | None = None
+    author_avatar_preset: str | None = None
     author_name_display: AuthorNameDisplayMode = "full"
     helpful_count: int = 0
     viewer_marked_helpful: bool = False
