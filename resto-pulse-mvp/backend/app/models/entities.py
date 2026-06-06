@@ -66,6 +66,8 @@ class User(Base):
     )
     push_tokens: Mapped[list["UserPushToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     notifications: Mapped[list["UserNotification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    gourmet_chat_questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="author")
+    gourmet_chat_answers: Mapped[list["GourmetChatAnswer"]] = relationship(back_populates="author")
 
 
 class UserRestaurantFollow(Base):
@@ -655,4 +657,60 @@ class CompensationCoupon(Base):
     feedback: Mapped["PrivateFeedback"] = relationship(back_populates="compensation_coupons")
     restaurant: Mapped["Restaurant"] = relationship(back_populates="compensation_coupons")
     user: Mapped["User"] = relationship(back_populates="compensation_coupons")
+
+
+class GourmetChatRoom(Base):
+    __tablename__ = "gourmet_chat_rooms"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(String(280), default="")
+    emoji: Mapped[str] = mapped_column(String(8), default="💬")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=True)
+    allow_restaurant_cards: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="room", cascade="all, delete-orphan")
+
+
+class GourmetChatQuestion(Base):
+    __tablename__ = "gourmet_chat_questions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64), index=True)
+    tag: Mapped[str] = mapped_column(String(32), default="genel")
+    body: Mapped[str] = mapped_column(Text)
+    answer_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    room: Mapped["GourmetChatRoom"] = relationship(back_populates="questions")
+    author: Mapped["User"] = relationship(back_populates="gourmet_chat_questions")
+    answers: Mapped[list["GourmetChatAnswer"]] = relationship(
+        back_populates="question", cascade="all, delete-orphan"
+    )
+
+
+class GourmetChatAnswer(Base):
+    __tablename__ = "gourmet_chat_answers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_questions.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    question: Mapped["GourmetChatQuestion"] = relationship(back_populates="answers")
+    author: Mapped["User"] = relationship(back_populates="gourmet_chat_answers")
 

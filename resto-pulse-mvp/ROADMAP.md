@@ -102,29 +102,28 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 - [x] Kayit sonrasi veya ilk giris: takma ad sec (benzersiz, moderasyon)
 - [x] **Profil gorseli:** kendi fotosu VEYA hazir avatar (kullanici secer); nickname yaninda
 - [x] Yorumlarda istege bagli nickname + avatar (display mode: takma ad)
-- [ ] Gurme Sohbetlerde nickname + avatar (E2 feed ile birlikte)
+- [x] Gurme Sohbetlerde nickname + avatar (E2 feed ile birlikte)
 
-**E2 — Soru-cevap feed (sehir bazli)**
-- Sekme adi: **Gurme Sohbetler**
-- Soru: sehir secimi — **Istanbul + Bursa** (acilis); UI cok sehirli, ileride genisleme
-- Soru: etiket (doner, sutlac, kahvalti...)
-- Cevap: metin + **restoran karti embed** (foto, ad, GS puani) — tikla → restoran detay
+**E2 — Soru-cevap feed (sehir bazli)** — kodlandi (mobil + API; Railway: `alembic upgrade head` 0025)
+- [x] Sekme adi: **Gurme Sohbetler**
+- [x] Soru: sehir secimi — **Istanbul + Bursa** (acilis); UI cok sehirli, ileride genisleme
+- [x] Soru: etiket (doner, sutlac, kahvalti...)
+- [ ] Cevap: metin + **restoran karti embed** (foto, ad, GS puani) — tikla → restoran detay (E2.2 / kullanici odalari)
 
-**E2.1 — Oda yapisi (fazli acilis)**
-- Baslangic: sistem odalari sabit (kullanicilar direkt oda acamaz)
-- 6 cekirdek oda adi:
+**E2.1 — Oda yapisi (fazli acilis)** — kodlandi (6 sistem odasi seed)
+- [x] Baslangic: sistem odalari sabit (kullanicilar direkt oda acamaz)
+- [x] 6 cekirdek oda adi:
   - `kes-donerciler`
   - `ocakbasi-muhabbeti`
   - `anne-eli-ev-yemegi`
   - `gece-acikanlar`
   - `fiyat-performans-avcilari`
   - `gizli-kalmis-mekanlar`
-- Kural: once az ama aktif oda; kullanim oturunca "oda oner" ile yeni oda acilisi
-- Ozel/kapali odalar: v1.0'da yok, moderasyon olgunlasinca degerlendir
+- [ ] Kural: once az ama aktif oda; kullanim oturunca "oda oner" ile yeni oda acilisi
+- [ ] Ozel/kapali odalar: v1.0'da yok, moderasyon olgunlasinca degerlendir
 
-**E2.2 — Restoran karti paylasim kurali**
-- Uygulama ici restoran karti paylasimi: sadece kullanici olusturulan odalarda acik
-- Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
+**E2.2 — Restoran karti paylasim kurali** — kural kodda (sistem odalarinda kapali)
+- [x] Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
 - WhatsApp paylasimi: restoran kartinda "WhatsApp'ta paylas" aksiyonu olacak
 - Growth notu: paylasilan kart linki uygulamaya/deep-link'e yonlenir; uygulama kurulumu tesvik edilir
 

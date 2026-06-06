@@ -167,7 +167,7 @@ export function createReview(payload: {
   author_email?: string | null;
   author_name?: string | null;
   author_avatar_url?: string | null;
-  author_name_display?: 'full' | 'masked';
+  author_name_display?: 'full' | 'masked' | 'nickname';
 }) {
   return request<Review>('/reviews', {
     method: 'POST',

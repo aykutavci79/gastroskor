@@ -31,6 +31,12 @@ export function formatApiError(err: unknown, context?: string): string {
     return `${prefix}Sunucu hatasi (${base}). Backend loglarina bak; migration eksik olabilir.`;
   }
   if (/not found/i.test(raw) && /gourmet|avatar|nickname/i.test(raw + (context ?? ''))) {
+    if (/gourmet-chat|gurme sohbet/i.test(raw + (context ?? ''))) {
+      return (
+        `${prefix}Gurme Sohbetler API henuz canli sunucuda yok. ` +
+        'Backend deploy + Railway\'de alembic upgrade head (0025) gerekli.'
+      );
+    }
     return (
       `${prefix}Gurme profil API henuz canli sunucuda yok. ` +
       'Railway\'de backend deploy edilmeli (E1 kodu + alembic 0024).'

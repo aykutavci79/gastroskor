@@ -49,7 +49,7 @@ export function LivePlaceDetailPanel({ placeId, selectedItem = null }: Props) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY);
-      if (stored === 'masked' || stored === 'full') setMemberNameDisplay(stored);
+      if (stored === 'masked' || stored === 'full' || stored === 'nickname') setMemberNameDisplay(stored);
     } catch {
       /* ignore */
     }
@@ -478,7 +478,7 @@ export function LivePlaceDetailPanel({ placeId, selectedItem = null }: Props) {
                     <p className="text-xs text-content-muted">
                       Onizleme:{' '}
                       <span className="font-semibold text-content">
-                        {previewAuthorName(session?.user?.name ?? null, memberNameDisplay)}
+                        {previewAuthorName(session?.user?.name ?? null, memberNameDisplay, profile?.nickname)}
                       </span>
                     </p>
                   </div>

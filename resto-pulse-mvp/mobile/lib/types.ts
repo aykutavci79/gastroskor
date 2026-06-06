@@ -505,3 +505,58 @@ export type CompetitorAiReport = {
   warnings: string[];
   disclaimer: string;
 };
+
+export type GourmetChatAuthor = {
+  nickname: string;
+  avatar_url?: string | null;
+  avatar_preset?: string | null;
+};
+
+export type GourmetChatTag = {
+  id: string;
+  label: string;
+};
+
+export type GourmetChatRoom = {
+  slug: string;
+  title: string;
+  description: string;
+  emoji: string;
+  sort_order: number;
+  allow_restaurant_cards: boolean;
+  question_count: number;
+};
+
+export type GourmetChatRoomListResponse = {
+  city: string;
+  items: GourmetChatRoom[];
+};
+
+export type GourmetChatAnswer = {
+  id: string;
+  body: string;
+  author: GourmetChatAuthor;
+  created_at: string;
+};
+
+export type GourmetChatQuestion = {
+  id: string;
+  room_slug: string;
+  city: string;
+  tag: string;
+  body: string;
+  answer_count: number;
+  author: GourmetChatAuthor;
+  created_at: string;
+  preview_answers?: GourmetChatAnswer[];
+};
+
+export type GourmetChatQuestionListResponse = {
+  city: string;
+  room_slug: string;
+  items: GourmetChatQuestion[];
+};
+
+export type GourmetChatQuestionDetail = GourmetChatQuestion & {
+  answers: GourmetChatAnswer[];
+};

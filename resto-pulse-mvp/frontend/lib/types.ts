@@ -61,6 +61,8 @@ export type RestaurantPromoPublic = {
 
 export type RestaurantListItem = {
   id: string;
+  /** Google trend satirinda GastroSkor kayit UUID (varsa) */
+  restaurant_id?: string | null;
   name: string;
   city: string | null;
   district: string | null;
@@ -80,6 +82,7 @@ export type RestaurantListItem = {
   longitude?: number | null;
   maps_directions_url?: string | null;
   distance_meters?: number | null;
+  google_place_id?: string | null;
   google_photo_url?: string | null;
 };
 
@@ -335,7 +338,7 @@ export type Review = {
   author_email: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
-  author_name_display?: 'full' | 'masked';
+  author_name_display?: 'full' | 'masked' | 'nickname';
   rating: number;
   review_text: string;
   sentiment_label: string | null;

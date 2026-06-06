@@ -1,6 +1,12 @@
 import type {
   CompetitorAiReport,
   GoogleReviewLink,
+  GourmetChatAnswer,
+  GourmetChatQuestion,
+  GourmetChatQuestionDetail,
+  GourmetChatQuestionListResponse,
+  GourmetChatRoomListResponse,
+  GourmetChatTag,
   LivePlaceSearchResponse,
   LivePlaceDetails,
   PanelAccess,
@@ -508,6 +514,43 @@ export function analyzePanelCompetitor(userEmail: string, competitorId: string) 
 
 export function addPanelCompetitor(payload: { user_email: string; place_id: string; name: string }) {
   return request<{ id: string; name: string }>('/panel/competitors', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listGourmetChatTags() {
+  return request<GourmetChatTag[]>('/gourmet-chat/tags');
+}
+
+export function listGourmetChatRooms(city: string) {
+  const query = new URLSearchParams({ city: city.trim() || 'Bursa' });
+  return request<GourmetChatRoomListResponse>(`/gourmet-chat/rooms?${query.toString()}`);
+}
+
+export function listGourmetChatQuestions(roomSlug: string, city: string) {
+  const query = new URLSearchParams({ city: city.trim() || 'Bursa' });
+  return request<GourmetChatQuestionListResponse>(
+    `/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/questions?${query.toString()}`,
+  );
+}
+
+export function getGourmetChatQuestion(questionId: string) {
+  return request<GourmetChatQuestionDetail>(`/gourmet-chat/questions/${encodeURIComponent(questionId)}`);
+}
+
+export function createGourmetChatQuestion(
+  roomSlug: string,
+  payload: { user_email: string; city: string; tag: string; body: string },
+) {
+  return request<GourmetChatQuestion>(`/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/questions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createGourmetChatAnswer(questionId: string, payload: { user_email: string; body: string }) {
+  return request<GourmetChatAnswer>(`/gourmet-chat/questions/${encodeURIComponent(questionId)}/answers`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

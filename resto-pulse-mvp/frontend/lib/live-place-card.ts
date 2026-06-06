@@ -12,6 +12,7 @@ export function livePlaceToRestaurantCard(item: LivePlaceSearchItem): Restaurant
   const address = item.address?.trim() || null;
   return {
     id: item.restaurant_id ?? item.place_id,
+    restaurant_id: item.restaurant_id ?? null,
     name: item.name,
     city: null,
     district: address,

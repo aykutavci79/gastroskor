@@ -25,6 +25,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:8082",
+        "http://127.0.0.1:8082",
+        "http://localhost:19006",
+        "http://127.0.0.1:19006",
         "https://gastroskor.vercel.app",
         "https://gastroskor.com.tr",
         "https://www.gastroskor.com.tr",

@@ -32,7 +32,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
   useEffect(() => {
     try {
       const stored = localStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY);
-      if (stored === 'masked' || stored === 'full') setNameDisplay(stored);
+      if (stored === 'masked' || stored === 'full' || stored === 'nickname') setNameDisplay(stored);
     } catch {
       /* ignore */
     }
