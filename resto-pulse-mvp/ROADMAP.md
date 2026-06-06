@@ -141,7 +141,7 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 
 **E2.2 — Restoran karti paylasim kurali** — kural kodda (sistem odalarinda kapali)
 - [x] Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
-- [x] Restoran kartinda **Paylas** (WhatsApp, mesaj/DM, Instagram); sistem Gurme odalarina kart gonderilemez
+- [x] Restoran kartinda **Paylas** (sistem paylasim menusu — WhatsApp, Instagram, mesaj vb.)
 - [x] Universal / App Links (iOS + Android): paylasim linki uygulama yukluysa uygulamada acilir — `mobile/APP_LINKS.md`, Vercel AASA + assetlinks, **1.0.10 build + SHA-256 env ile test**
 
 **E2.3 — Gurme Sohbetler (web)** — henuz yok, degerlendir

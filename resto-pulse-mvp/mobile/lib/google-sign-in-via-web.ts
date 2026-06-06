@@ -8,7 +8,17 @@ export function getMobileGoogleSiteUrl(): string {
 }
 
 export function getMobileGoogleReturnUri() {
-  return Linking.createURL('auth/google');
+  return Linking.createURL('/auth/google');
+}
+
+function isAuthGoogleCallback(url: string): boolean {
+  try {
+    const parsed = Linking.parse(url);
+    const path = (parsed.path ?? '').replace(/^\/+/, '').replace(/^--\//, '');
+    return path === 'auth/google' || path.endsWith('auth/google');
+  } catch {
+    return url.includes('auth/google');
+  }
 }
 
 function parseCallbackUrl(url: string): GoogleIdTokenClaims | null {
@@ -32,12 +42,14 @@ function parseCallbackUrl(url: string): GoogleIdTokenClaims | null {
 
 function matchesReturnUri(callbackUrl: string, returnUri: string): boolean {
   if (callbackUrl.startsWith(returnUri)) return true;
+  if (!isAuthGoogleCallback(callbackUrl)) return false;
   try {
     const callback = Linking.parse(callbackUrl);
     const expected = Linking.parse(returnUri);
-    return callback.path === expected.path && callback.hostname === expected.hostname;
+    if (callback.scheme && expected.scheme && callback.scheme !== expected.scheme) return false;
+    return isAuthGoogleCallback(callbackUrl);
   } catch {
-    return false;
+    return isAuthGoogleCallback(callbackUrl);
   }
 }
 
@@ -82,7 +94,20 @@ export async function signInWithGoogleViaWeb(): Promise<GoogleIdTokenClaims> {
       }
     });
 
-    void WebBrowser.openAuthSessionAsync(startUrl, returnUri).then((result) => {
+    void (async () => {
+      try {
+        await WebBrowser.warmUpAsync();
+      } catch {
+        /* opsiyonel */
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUri);
+      try {
+        await WebBrowser.coolDownAsync();
+      } catch {
+        /* opsiyonel */
+      }
+
       if (settled) return;
 
       if (result.type === 'success') {
@@ -101,6 +126,6 @@ export async function signInWithGoogleViaWeb(): Promise<GoogleIdTokenClaims> {
       }
 
       fail('Google girisi tamamlanamadi.');
-    });
+    })();
   });
 }

@@ -16,10 +16,19 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GourmetChatMessageBubble } from '@/components/GourmetChatCards';
+import { NicknameActionSheet } from '@/components/NicknameActionSheet';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
-import { ReviewModerationApiError, createGourmetChatMessage, listGourmetChatMessages } from '@/lib/api';
-import type { GourmetChatMessage } from '@/lib/types';
+import {
+  ReviewModerationApiError,
+  addFriend,
+  createGourmetChatMessage,
+  getPublicUserByNickname,
+  listGourmetChatMessages,
+  removeFriend,
+  startDmThread,
+} from '@/lib/api';
+import type { GourmetChatAuthor, GourmetChatMessage } from '@/lib/types';
 
 const CITY = 'Bursa';
 const POLL_MS = 12_000;
@@ -44,6 +53,11 @@ export default function GurmeRoomScreen() {
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetNickname, setSheetNickname] = useState('');
+  const [sheetAuthor, setSheetAuthor] = useState<GourmetChatAuthor | null>(null);
+  const [sheetIsFriend, setSheetIsFriend] = useState(false);
+  const composerRef = useRef<TextInput>(null);
 
   const scrollToBottom = useCallback((animated = true) => {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated }));
@@ -93,6 +107,86 @@ export default function GurmeRoomScreen() {
     }
     return true;
   };
+
+  const openNicknameSheet = useCallback(
+    async (nickname: string, author?: GourmetChatAuthor) => {
+      if (!user?.email) {
+        Alert.alert('Giris gerekli', 'Bu islem icin giris yap.');
+        return;
+      }
+      if (user.nickname && nickname.toLowerCase() === user.nickname.toLowerCase()) {
+        setSheetNickname(nickname);
+        setSheetAuthor(author ?? { nickname });
+        setSheetIsFriend(false);
+        setSheetVisible(true);
+        return;
+      }
+      setSheetNickname(nickname);
+      setSheetAuthor(author ?? { nickname });
+      setSheetIsFriend(false);
+      setSheetVisible(true);
+      try {
+        const card = await getPublicUserByNickname(nickname, user.email);
+        setSheetIsFriend(card.is_friend);
+        setSheetAuthor({
+          nickname: card.nickname,
+          avatar_url: card.avatar_url,
+          avatar_preset: card.avatar_preset,
+        });
+      } catch {
+        /* keep defaults */
+      }
+    },
+    [user],
+  );
+
+  const insertMention = useCallback((nickname: string) => {
+    const token = `@${nickname} `;
+    setBody((prev) => {
+      const trimmed = prev.trimEnd();
+      if (!trimmed) return token;
+      if (trimmed.endsWith(token.trim())) return prev;
+      return `${trimmed} ${token}`;
+    });
+    setSheetVisible(false);
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }, []);
+
+  const handleAddFriend = useCallback(async () => {
+    if (!user?.email || !sheetNickname) return;
+    try {
+      await addFriend(user.email, sheetNickname);
+      setSheetIsFriend(true);
+      Alert.alert('Arkadas eklendi', `@${sheetNickname} artik arkadas listende.`);
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Eklenemedi.');
+    }
+  }, [sheetNickname, user?.email]);
+
+  const handleRemoveFriend = useCallback(async () => {
+    if (!user?.email || !sheetNickname) return;
+    try {
+      await removeFriend(user.email, sheetNickname);
+      setSheetIsFriend(false);
+      Alert.alert('Kaldirildi', `@${sheetNickname} arkadas listenden cikarildi.`);
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Silinemedi.');
+    }
+  }, [sheetNickname, user?.email]);
+
+  const handleSendDm = useCallback(async () => {
+    if (!user?.email || !sheetNickname) return;
+    try {
+      const payload = await startDmThread(user.email, sheetNickname);
+      setSheetVisible(false);
+      router.push({
+        pathname: '/dm/[threadId]',
+        params: { threadId: payload.thread_id, nickname: payload.peer.nickname },
+      } as never);
+    } catch (err) {
+      Alert.alert('Mesaj', err instanceof Error ? err.message : 'Sohbet acilamadi.');
+    }
+  }, [router, sheetNickname, user?.email]);
 
   const submitMessage = async () => {
     if (!user?.email || !ensureCanPost()) return;
@@ -161,6 +255,8 @@ export default function GurmeRoomScreen() {
               <GourmetChatMessageBubble
                 message={item}
                 isOwn={Boolean(user?.nickname && item.author.nickname === user.nickname)}
+                onNicknamePress={(nickname, author) => void openNicknameSheet(nickname, author)}
+                onMentionPress={(nickname) => void openNicknameSheet(nickname)}
               />
             )}
             onContentSizeChange={() => scrollToBottom(false)}
@@ -171,6 +267,7 @@ export default function GurmeRoomScreen() {
           {formError ? <Text style={styles.formError}>{formError}</Text> : null}
           <View style={styles.composerRow}>
             <TextInput
+              ref={composerRef}
               style={[GastroStyles.input, styles.composerInput]}
               placeholder="Mesaj yaz… @takmaad ile etiketle"
               placeholderTextColor={GastroColors.placeholder}
@@ -193,6 +290,20 @@ export default function GurmeRoomScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <NicknameActionSheet
+        visible={sheetVisible}
+        nickname={sheetNickname}
+        avatarUrl={sheetAuthor?.avatar_url}
+        avatarPreset={sheetAuthor?.avatar_preset}
+        isFriend={sheetIsFriend}
+        isSelf={Boolean(user?.nickname && sheetNickname.toLowerCase() === user.nickname.toLowerCase())}
+        onClose={() => setSheetVisible(false)}
+        onWhisper={() => insertMention(sheetNickname)}
+        onAddFriend={() => void handleAddFriend()}
+        onRemoveFriend={() => void handleRemoveFriend()}
+        onSendDm={() => void handleSendDm()}
+      />
     </SafeAreaView>
   );
 }

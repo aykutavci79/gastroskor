@@ -25,6 +25,12 @@ import type {
   Review,
   ReviewAnalyzeResult,
   ReviewReply,
+  DmInboxResponse,
+  DmMessageItem,
+  DmMessageListResponse,
+  FriendListItem,
+  FriendListResponse,
+  PublicUserCard,
   UserProfile,
 } from '@/lib/types';
 
@@ -573,4 +579,82 @@ export function createGourmetChatAnswer(questionId: string, payload: { user_emai
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function getPublicUserByNickname(nickname: string, viewerEmail?: string) {
+  const query = new URLSearchParams();
+  if (viewerEmail?.trim()) query.set('viewer_email', viewerEmail.trim().toLowerCase());
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return request<PublicUserCard>(
+    `/social/users/${encodeURIComponent(nickname)}/public${suffix}`,
+  );
+}
+
+export function listFriends(userEmail: string, limit = 100) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<FriendListResponse>(`/social/me/friends?${query.toString()}`);
+}
+
+export function addFriend(userEmail: string, targetNickname: string) {
+  return request<FriendListItem>('/social/me/friends', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      target_nickname: targetNickname,
+    }),
+  });
+}
+
+export function removeFriend(userEmail: string, targetNickname: string) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    target_nickname: targetNickname,
+  });
+  return request<{ ok: boolean }>(`/social/me/friends?${query.toString()}`, {
+    method: 'DELETE',
+  });
+}
+
+export function listDmInbox(userEmail: string, limit = 50) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<DmInboxResponse>(`/social/me/dm?${query.toString()}`);
+}
+
+export function startDmThread(userEmail: string, targetNickname: string) {
+  return request<{ thread_id: string; peer: PublicUserCard }>('/social/me/dm/start', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      target_nickname: targetNickname,
+    }),
+  });
+}
+
+export function listDmMessages(userEmail: string, threadId: string, limit = 80) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<DmMessageListResponse>(
+    `/social/me/dm/${encodeURIComponent(threadId)}/messages?${query.toString()}`,
+  );
+}
+
+export function sendDmMessage(userEmail: string, threadId: string, body: string) {
+  return request<DmMessageItem>(
+    `/social/me/dm/${encodeURIComponent(threadId)}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        user_email: userEmail.trim().toLowerCase(),
+        body,
+      }),
+    },
+  );
 }

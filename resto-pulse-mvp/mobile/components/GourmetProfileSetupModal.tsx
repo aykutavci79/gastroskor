@@ -155,7 +155,7 @@ export function GourmetProfileSetupModal({
               onChangeText={setNickname}
               autoCapitalize="none"
               autoCorrect={false}
-              maxLength={24}
+              maxLength={21}
               placeholder="ornek: DonerciAyse"
               placeholderTextColor={GastroColors.placeholder}
               style={styles.input}

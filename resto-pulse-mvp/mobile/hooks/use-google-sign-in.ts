@@ -33,11 +33,11 @@ export function getGoogleNativeRedirectUri(): string {
   return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
 }
 
-/** Expo Go + store build: web koprusu (NextAuth). */
+/** Store build: Android'de native OAuth (web koprusu Custom Tab'ta takilabiliyor). iOS: web koprusu. */
 export function shouldUseNativeGoogleSignIn(): boolean {
   if (isExpoGo) return false;
-  // Play/TestFlight: web koprusu — Android SHA-1 ve iOS OAuth client ID sorunlarindan kacinir.
-  if (Platform.OS === 'android' || Platform.OS === 'ios') return false;
+  if (Platform.OS === 'android' && androidClientId) return true;
+  if (Platform.OS === 'ios') return false;
   return process.env.EXPO_PUBLIC_USE_NATIVE_GOOGLE === '1';
 }
 
@@ -123,6 +123,8 @@ export function useGoogleSignInNative(onError: (message: string) => void) {
     iosClientId,
     androidClientId,
     redirectUri,
+    responseType: ResponseType.IdToken,
+    selectAccount: true,
   });
 
   useEffect(() => {
@@ -132,8 +134,13 @@ export function useGoogleSignInNative(onError: (message: string) => void) {
   }, [redirectUri]);
 
   useEffect(() => {
-    if (response?.type !== 'success') return;
-    const idToken = response.authentication?.idToken;
+    if (!response) return;
+    if (response.type === 'error') {
+      onError(response.error?.message ?? 'Google girisi iptal edildi veya reddedildi.');
+      return;
+    }
+    if (response.type !== 'success') return;
+    const idToken = response.authentication?.idToken ?? response.params?.id_token ?? null;
     if (!idToken) {
       onError('Google oturum jetonu alinamadi.');
       return;

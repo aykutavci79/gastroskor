@@ -158,7 +158,7 @@ export function GourmetProfileSection() {
               onChangeText={setNickname}
               autoCapitalize="none"
               autoCorrect={false}
-              maxLength={24}
+              maxLength={21}
               placeholder="Takma ad"
               placeholderTextColor={GastroColors.placeholder}
               style={styles.input}

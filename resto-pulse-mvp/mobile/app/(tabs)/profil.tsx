@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { Screen } from '@/components/ui/Screen';
 import { FollowingRestaurantsSection } from '@/components/FollowingRestaurantsSection';
+import { FriendsSection } from '@/components/FriendsSection';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
@@ -153,6 +154,7 @@ export default function ProfilScreen() {
       {user ? <GourmetProfileSection /> : null}
 
       {user ? <UserNotificationsSection userEmail={user.email} /> : null}
+      {user ? <FriendsSection userEmail={user.email} /> : null}
       {user ? <FollowingRestaurantsSection userEmail={user.email} /> : null}
 
       {user ? (

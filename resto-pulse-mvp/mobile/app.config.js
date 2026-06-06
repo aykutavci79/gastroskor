@@ -17,7 +17,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '10',
+    buildNumber: '13',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -38,7 +38,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 13,
+    versionCode: 17,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [
       {

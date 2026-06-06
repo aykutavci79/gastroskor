@@ -576,3 +576,51 @@ export type GourmetChatMessageListResponse = {
   room_slug: string;
   items: GourmetChatMessage[];
 };
+
+export type PublicUserCard = {
+  id: string;
+  nickname: string;
+  avatar_url?: string | null;
+  avatar_preset?: string | null;
+  gastro_score?: number | null;
+  review_count: number;
+  is_friend: boolean;
+};
+
+export type FriendListItem = PublicUserCard & {
+  friendship_id: string;
+  friends_since: string;
+};
+
+export type FriendListResponse = {
+  items: FriendListItem[];
+  total: number;
+};
+
+export type DmThreadSummary = {
+  id: string;
+  peer: PublicUserCard;
+  last_message?: string | null;
+  last_message_at?: string | null;
+  unread_count: number;
+};
+
+export type DmInboxResponse = {
+  items: DmThreadSummary[];
+  total: number;
+  unread_total: number;
+};
+
+export type DmMessageItem = {
+  id: string;
+  body: string;
+  sender_id: string;
+  is_own: boolean;
+  created_at: string;
+};
+
+export type DmMessageListResponse = {
+  thread_id: string;
+  peer: PublicUserCard;
+  items: DmMessageItem[];
+};

@@ -12,7 +12,7 @@ from app.models.entities import User
 from app.services.profanity_tr import contains_prohibited_language, find_prohibited_highlights
 
 NICKNAME_MIN_LEN = 3
-NICKNAME_MAX_LEN = 24
+NICKNAME_MAX_LEN = 21
 
 NICKNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]+$")
 

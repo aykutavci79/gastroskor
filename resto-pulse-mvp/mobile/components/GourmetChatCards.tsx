@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors } from '@/constants/theme';
@@ -8,6 +8,7 @@ type Props = {
   author: GourmetChatAuthor;
   createdAt?: string;
   tagLabel?: string | null;
+  onNicknamePress?: (nickname: string, author: GourmetChatAuthor) => void;
 };
 
 function formatWhen(value?: string) {
@@ -19,24 +20,48 @@ function formatWhen(value?: string) {
 
 const MENTION_SPLIT = /(@[a-zA-Z0-9_\u00C7\u00E7\u011E\u011F\u0130\u0131\u00D6\u00F6\u015E\u015F\u00DC\u00FC]+)/g;
 
-function MessageBody({ text }: { text: string }) {
+function MessageBody({
+  text,
+  onMentionPress,
+}: {
+  text: string;
+  onMentionPress?: (nickname: string) => void;
+}) {
   const parts = text.split(MENTION_SPLIT);
   return (
     <Text style={styles.messageBody}>
-      {parts.map((part, index) =>
-        part.startsWith('@') ? (
-          <Text key={`${part}-${index}`} style={styles.mention}>
-            {part}
-          </Text>
-        ) : (
-          <Text key={`${part}-${index}`}>{part}</Text>
-        ),
-      )}
+      {parts.map((part, index) => {
+        if (part.startsWith('@')) {
+          const nickname = part.slice(1);
+          if (onMentionPress && nickname) {
+            return (
+              <Text
+                key={`${part}-${index}`}
+                style={styles.mention}
+                onPress={() => onMentionPress(nickname)}>
+                {part}
+              </Text>
+            );
+          }
+          return (
+            <Text key={`${part}-${index}`} style={styles.mention}>
+              {part}
+            </Text>
+          );
+        }
+        return <Text key={`${part}-${index}`}>{part}</Text>;
+      })}
     </Text>
   );
 }
 
-export function GourmetChatAuthorRow({ author, createdAt, tagLabel }: Props) {
+export function GourmetChatAuthorRow({ author, createdAt, tagLabel, onNicknamePress }: Props) {
+  const nicknameNode = (
+    <Text style={styles.nickname} numberOfLines={1} ellipsizeMode="tail">
+      {author.nickname}
+    </Text>
+  );
+
   return (
     <View style={styles.row}>
       <UserAvatar
@@ -45,10 +70,14 @@ export function GourmetChatAuthorRow({ author, createdAt, tagLabel }: Props) {
         size={32}
         fallbackLabel={author.nickname}
       />
-      <View style={styles.meta}>
-        <Text style={styles.nickname}>{author.nickname}</Text>
-        {createdAt ? <Text style={styles.when}>{formatWhen(createdAt)}</Text> : null}
-      </View>
+      {onNicknamePress ? (
+        <Pressable style={styles.nicknamePress} onPress={() => onNicknamePress(author.nickname, author)}>
+          {nicknameNode}
+        </Pressable>
+      ) : (
+        nicknameNode
+      )}
+      {createdAt ? <Text style={styles.when}>{formatWhen(createdAt)}</Text> : null}
       {tagLabel ? (
         <View style={styles.tag}>
           <Text style={styles.tagText}>{tagLabel}</Text>
@@ -61,14 +90,27 @@ export function GourmetChatAuthorRow({ author, createdAt, tagLabel }: Props) {
 type BubbleProps = {
   message: GourmetChatMessage;
   isOwn?: boolean;
+  onNicknamePress?: (nickname: string, author: GourmetChatAuthor) => void;
+  onMentionPress?: (nickname: string) => void;
 };
 
-export function GourmetChatMessageBubble({ message, isOwn = false }: BubbleProps) {
+export function GourmetChatMessageBubble({
+  message,
+  isOwn = false,
+  onNicknamePress,
+  onMentionPress,
+}: BubbleProps) {
   return (
     <View style={[styles.bubbleWrap, isOwn && styles.bubbleWrapOwn]}>
       <View style={[styles.bubble, isOwn && styles.bubbleOwn]}>
-        {!isOwn ? <GourmetChatAuthorRow author={message.author} createdAt={message.created_at} /> : null}
-        <MessageBody text={message.body} />
+        {!isOwn ? (
+          <GourmetChatAuthorRow
+            author={message.author}
+            createdAt={message.created_at}
+            onNicknamePress={onNicknamePress}
+          />
+        ) : null}
+        <MessageBody text={message.body} onMentionPress={onMentionPress} />
         {isOwn ? <Text style={styles.ownWhen}>{formatWhen(message.created_at)}</Text> : null}
       </View>
     </View>
@@ -76,10 +118,20 @@ export function GourmetChatMessageBubble({ message, isOwn = false }: BubbleProps
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  meta: { flex: 1, gap: 1 },
-  nickname: { color: GastroColors.text, fontWeight: '700', fontSize: 13 },
-  when: { color: GastroColors.muted, fontSize: 11 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+    minWidth: '100%',
+  },
+  nicknamePress: { flex: 1, flexShrink: 1 },
+  nickname: {
+    color: GastroColors.text,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  when: { color: GastroColors.muted, fontSize: 11, flexShrink: 0 },
   ownWhen: { color: GastroColors.muted, fontSize: 10, marginTop: 4, textAlign: 'right' },
   tag: {
     borderRadius: 999,
@@ -93,7 +145,8 @@ const styles = StyleSheet.create({
   bubbleWrap: { alignItems: 'flex-start', marginBottom: 8 },
   bubbleWrapOwn: { alignItems: 'flex-end' },
   bubble: {
-    maxWidth: '92%',
+    maxWidth: '96%',
+    minWidth: '78%',
     backgroundColor: GastroColors.panel,
     borderRadius: 16,
     borderWidth: 1,
@@ -108,4 +161,3 @@ const styles = StyleSheet.create({
   messageBody: { color: GastroColors.text, fontSize: 15, lineHeight: 22 },
   mention: { color: GastroColors.accent, fontWeight: '800' },
 });
-

@@ -38,6 +38,10 @@ export function canEmbedRestaurantCardInChatRoom(room: { allow_restaurant_cards?
   return Boolean(room.allow_restaurant_cards);
 }
 
-export function whatsAppShareUrl(text: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+export function buildRestaurantAndroidIntentUrl(restaurant: RestaurantShareInput): string | null {
+  const webUrl = buildRestaurantPublicUrl(restaurant);
+  if (!webUrl.startsWith('http')) return null;
+  const parsed = new URL(webUrl);
+  const fallback = encodeURIComponent(webUrl);
+  return `intent://${parsed.host}${parsed.pathname}${parsed.search}#Intent;scheme=https;package=com.gastroskor.app;S.browser_fallback_url=${fallback};end`;
 }

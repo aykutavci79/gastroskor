@@ -52,7 +52,7 @@ export function UserNotificationsSection({ userEmail }: Props) {
       return;
     }
     const path = item.metadata?.open_path;
-    if (path?.startsWith('/restaurant/')) {
+    if (typeof path === 'string' && path.startsWith('/')) {
       router.push(path as never);
     }
   }

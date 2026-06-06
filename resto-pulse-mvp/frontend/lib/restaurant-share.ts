@@ -45,7 +45,3 @@ export function buildRestaurantShareText(
   lines.push(buildRestaurantPublicUrl(restaurant));
   return lines.join('\n');
 }
-
-export function whatsAppShareUrl(text: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-}

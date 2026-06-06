@@ -64,6 +64,7 @@ export default function RootLayout() {
             <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />
             <Stack.Screen name="gurme" options={{ headerShown: false }} />
+            <Stack.Screen name="dm" options={{ headerShown: false }} />
             <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
             <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
             <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />

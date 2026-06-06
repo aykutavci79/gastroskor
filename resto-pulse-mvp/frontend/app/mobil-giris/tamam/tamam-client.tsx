@@ -10,6 +10,16 @@ type Props = {
   sub: string;
 };
 
+function redirectToApp(appUrl: string) {
+  window.location.assign(appUrl);
+  const link = document.createElement('a');
+  link.href = appUrl;
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 export function MobilGirisTamamClient({ returnUrl, email, name, picture, sub }: Props) {
   const appUrl = useMemo(() => {
     const target = new URL(returnUrl);
@@ -20,13 +30,14 @@ export function MobilGirisTamamClient({ returnUrl, email, name, picture, sub }: 
     return target.toString();
   }, [returnUrl, email, name, picture, sub]);
 
-  const [showManualLink, setShowManualLink] = useState(false);
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const [showManualLink, setShowManualLink] = useState(isAndroid);
 
   useEffect(() => {
-    window.location.replace(appUrl);
-    const timer = window.setTimeout(() => setShowManualLink(true), 1200);
+    redirectToApp(appUrl);
+    const timer = window.setTimeout(() => setShowManualLink(true), isAndroid ? 400 : 1200);
     return () => window.clearTimeout(timer);
-  }, [appUrl]);
+  }, [appUrl, isAndroid]);
 
   return (
     <main className="mx-auto max-w-md px-4 py-16 text-center text-zinc-300">

@@ -69,6 +69,88 @@ class User(Base):
     gourmet_chat_questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="author")
     gourmet_chat_answers: Mapped[list["GourmetChatAnswer"]] = relationship(back_populates="author")
     gourmet_chat_messages: Mapped[list["GourmetChatMessage"]] = relationship(back_populates="author")
+    friendships_initiated: Mapped[list["UserFriendship"]] = relationship(
+        back_populates="user",
+        foreign_keys="UserFriendship.user_id",
+    )
+    friendships_received: Mapped[list["UserFriendship"]] = relationship(
+        back_populates="friend",
+        foreign_keys="UserFriendship.friend_user_id",
+    )
+    dm_messages_sent: Mapped[list["DmMessage"]] = relationship(back_populates="sender")
+    dm_read_states: Mapped[list["DmReadState"]] = relationship(back_populates="user")
+
+
+class UserFriendship(Base):
+    __tablename__ = "user_friendships"
+    __table_args__ = (UniqueConstraint("user_id", "friend_user_id", name="uq_user_friendship"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    friend_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="friendships_initiated", foreign_keys=[user_id])
+    friend: Mapped["User"] = relationship(back_populates="friendships_received", foreign_keys=[friend_user_id])
+
+
+class DmThread(Base):
+    __tablename__ = "dm_threads"
+    __table_args__ = (UniqueConstraint("user_low_id", "user_high_id", name="uq_dm_thread_pair"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_low_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    user_high_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+    messages: Mapped[list["DmMessage"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+    read_states: Mapped[list["DmReadState"]] = relationship(
+        back_populates="thread", cascade="all, delete-orphan"
+    )
+
+
+class DmMessage(Base):
+    __tablename__ = "dm_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("dm_threads.id", ondelete="CASCADE"), index=True
+    )
+    sender_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    thread: Mapped["DmThread"] = relationship(back_populates="messages")
+    sender: Mapped["User"] = relationship(back_populates="dm_messages_sent")
+
+
+class DmReadState(Base):
+    __tablename__ = "dm_read_states"
+    __table_args__ = (UniqueConstraint("thread_id", "user_id", name="uq_dm_read_state"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("dm_threads.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    last_read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    thread: Mapped["DmThread"] = relationship(back_populates="read_states")
+    user: Mapped["User"] = relationship(back_populates="dm_read_states")
 
 
 class UserRestaurantFollow(Base):

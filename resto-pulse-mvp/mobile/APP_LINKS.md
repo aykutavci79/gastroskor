@@ -34,6 +34,8 @@ Ayrica Play Console → **Uygulama imzalama** → **App signing key certificate*
 
 Iki imza da eklenebilir (EAS upload key + Play app signing key), virgulle ayir.
 
+**Onemli:** Play dahili test / uretim yuklemelerinde telefondaki imza **Play App Signing** anahtaridir. Sadece EAS SHA256 varsa App Links **dogrulanmaz** ve linkler webde acilir. Play SHA256'yi mutlaka ekle.
+
 Opsiyonel:
 
 ```

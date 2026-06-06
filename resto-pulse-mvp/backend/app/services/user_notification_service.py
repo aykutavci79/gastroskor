@@ -362,35 +362,34 @@ def notify_gourmet_chat_mention(
     )
 
 
-def notify_gourmet_chat_mention(
+def notify_dm_message(
     db: Session,
     *,
     recipient: User,
     actor: User,
-    actor_name: str,
-    room_slug: str,
-    room_title: str,
+    thread_id: UUID,
     body: str,
 ) -> UserNotification | None:
     if recipient.id == actor.id:
         return None
+    actor_name = actor.nickname or "Gurme"
     snippet = _truncate_text(body, max_len=100)
-    title = f"{room_title} odasinda bahsedildiniz"
-    message = f"@{actor_name} sizi etiketledi: «{snippet}»"
+    title = f"@{actor_name} size mesaj gonderdi"
+    message = f"«{snippet}»"
     metadata = {
-        "room_slug": room_slug,
-        "room_title": room_title,
         "actor_user_id": str(actor.id),
         "actor_nickname": actor_name,
-        "open_path": f"/gurme/{room_slug}",
+        "thread_id": str(thread_id),
+        "open_path": f"/dm/{thread_id}",
     }
     return _persist_user_notification(
         db,
         recipient_id=recipient.id,
-        notification_type="gourmet_chat_mention",
+        notification_type="dm_message",
         title=title,
         message=message,
         metadata=metadata,
-        push_title=f"@{actor_name} seni etiketledi",
+        push_title=f"@{actor_name} mesaj gonderdi",
         push_body=snippet,
     )
+

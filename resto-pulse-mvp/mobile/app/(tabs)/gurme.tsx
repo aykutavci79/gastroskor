@@ -2,16 +2,20 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FriendsSection } from '@/components/FriendsSection';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
-import { listGourmetChatRooms } from '@/lib/api';
+import { useSession } from '@/context/session-context';
+import { listDmInbox, listGourmetChatRooms } from '@/lib/api';
 import type { GourmetChatRoom } from '@/lib/types';
 
 const CITY = 'Bursa';
 
 export default function GurmeTabScreen() {
   const router = useRouter();
+  const { user } = useSession();
   const [rooms, setRooms] = useState<GourmetChatRoom[]>([]);
+  const [dmUnread, setDmUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,15 +24,19 @@ export default function GurmeTabScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const payload = await listGourmetChatRooms(CITY);
-      setRooms(payload.items);
+      const [roomsPayload, dmPayload] = await Promise.all([
+        listGourmetChatRooms(CITY),
+        user?.email ? listDmInbox(user.email).catch(() => ({ unread_total: 0 })) : Promise.resolve({ unread_total: 0 }),
+      ]);
+      setRooms(roomsPayload.items);
+      setDmUnread('unread_total' in dmPayload ? dmPayload.unread_total : 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Odalar yuklenemedi.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user?.email]);
 
   useEffect(() => {
     void load();
@@ -46,6 +54,19 @@ export default function GurmeTabScreen() {
         <Text style={styles.title}>Gurme Sohbetler</Text>
         <Text style={styles.subtitle}>Odaya gir, sohbete katil, @takmaad ile birini etiketle.</Text>
       </View>
+
+      <View style={styles.quickRow}>
+        <Pressable
+          style={({ pressed }) => [GastroStyles.card, styles.quickCard, pressed && { opacity: 0.92 }]}
+          onPress={() => router.push('/dm/inbox' as never)}>
+          <Text style={styles.quickTitle}>Ozel mesajlar</Text>
+          <Text style={styles.quickSub}>
+            {dmUnread > 0 ? `${dmUnread} okunmamis mesaj` : 'DM kutun'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {user?.email ? <FriendsSection userEmail={user.email} /> : null}
 
       {loading ? (
         <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} />
@@ -90,6 +111,10 @@ const styles = StyleSheet.create({
   kicker: { color: GastroColors.accent, fontWeight: '700', fontSize: 12, letterSpacing: 0.6 },
   title: { color: GastroColors.text, fontSize: 28, fontWeight: '800' },
   subtitle: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
+  quickRow: { gap: 10 },
+  quickCard: { gap: 4 },
+  quickTitle: { color: GastroColors.text, fontWeight: '800', fontSize: 15 },
+  quickSub: { color: GastroColors.accent, fontSize: 12, fontWeight: '600' },
   list: { gap: 12 },
   roomCard: { gap: 10 },
   roomTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
