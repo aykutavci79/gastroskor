@@ -43,9 +43,11 @@ export function shouldUseNativeGoogleSignIn(): boolean {
 
 export function isGoogleSignInConfigured(): boolean {
   if (isExpoGo) return Boolean(webClientId);
+  if (Platform.OS === 'android' && shouldUseNativeGoogleSignIn()) {
+    return Boolean(androidClientId);
+  }
   if (!shouldUseNativeGoogleSignIn()) return true;
   if (!webClientId) return false;
-  if (Platform.OS === 'android') return Boolean(androidClientId);
   if (Platform.OS === 'ios') return Boolean(iosClientId);
   return true;
 }
@@ -115,15 +117,19 @@ export function useGoogleSignInExpoGo(onError: (message: string) => void) {
   };
 }
 
+function readGoogleIdToken(response: AuthSession.AuthSessionResult | null): string | null {
+  if (!response || response.type !== 'success') return null;
+  const auth = 'authentication' in response ? response.authentication : null;
+  return auth?.idToken ?? response.params?.id_token ?? null;
+}
+
 export function useGoogleSignInNative(onError: (message: string) => void) {
   const { signInWithGoogle } = useSession();
   const redirectUri = getGoogleNativeRedirectUri();
+  // Android installed app: Code + auto exchange (IdToken implicit flow Play'de calismiyor).
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId,
-    iosClientId,
     androidClientId,
     redirectUri,
-    responseType: ResponseType.IdToken,
     selectAccount: true,
   });
 
@@ -140,9 +146,11 @@ export function useGoogleSignInNative(onError: (message: string) => void) {
       return;
     }
     if (response.type !== 'success') return;
-    const idToken = response.authentication?.idToken ?? response.params?.id_token ?? null;
+    const idToken = readGoogleIdToken(response);
     if (!idToken) {
-      onError('Google oturum jetonu alinamadi.');
+      onError(
+        'Google oturum jetonu alinamadi. Play imzalama SHA-1 ile GastroSkor Test client eslesmeli.',
+      );
       return;
     }
     void (async () => {

@@ -1,4 +1,42 @@
 /** @type {import('expo/config').ExpoConfig} */
+
+/** Play build: Google native OAuth geri donus scheme (EAS production env'den gelir). */
+function readGoogleAndroidOAuthScheme() {
+  const clientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim();
+  if (!clientId) return null;
+  const prefix = clientId.replace(/\.apps\.googleusercontent\.com$/i, '');
+  return `com.googleusercontent.apps.${prefix}`;
+}
+
+const googleOAuthScheme = readGoogleAndroidOAuthScheme();
+const appScheme = googleOAuthScheme ? ['gastroskor', googleOAuthScheme] : 'gastroskor';
+
+const appLinkIntentFilter = {
+  action: 'VIEW',
+  autoVerify: true,
+  data: [
+    {
+      scheme: 'https',
+      host: 'www.gastroskor.com.tr',
+      pathPrefix: '/restaurants',
+    },
+    {
+      scheme: 'https',
+      host: 'www.gastroskor.com.tr',
+      pathPrefix: '/place',
+    },
+  ],
+  category: ['BROWSABLE', 'DEFAULT'],
+};
+
+const googleOAuthIntentFilter = googleOAuthScheme
+  ? {
+      action: 'VIEW',
+      data: [{ scheme: googleOAuthScheme, path: '/oauth2redirect' }],
+      category: ['BROWSABLE', 'DEFAULT'],
+    }
+  : null;
+
 module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
@@ -7,7 +45,7 @@ module.exports = ({ config }) => ({
   version: '1.0.10',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  scheme: 'gastroskor',
+  scheme: appScheme,
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   splash: {
@@ -38,26 +76,11 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 17,
+    versionCode: 18,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [
-      {
-        action: 'VIEW',
-        autoVerify: true,
-        data: [
-          {
-            scheme: 'https',
-            host: 'www.gastroskor.com.tr',
-            pathPrefix: '/restaurants',
-          },
-          {
-            scheme: 'https',
-            host: 'www.gastroskor.com.tr',
-            pathPrefix: '/place',
-          },
-        ],
-        category: ['BROWSABLE', 'DEFAULT'],
-      },
+      appLinkIntentFilter,
+      ...(googleOAuthIntentFilter ? [googleOAuthIntentFilter] : []),
     ],
   },
   web: {

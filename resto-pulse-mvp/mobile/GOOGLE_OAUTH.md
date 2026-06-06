@@ -79,18 +79,23 @@ Mevcut **GastroSkor Web** client kalir:
 **GastroSkor Web** → Credentials → Redirect URIs listesine ekle:
 
 ```
-gastroskor://redirect
+https://www.gastroskor.com.tr/api/auth/callback/google
 ```
 
-Android Play client ID'n `3397389116-XXXX.apps.googleusercontent.com` ise ayrica:
+(`gastroskor://redirect` veya `com.googleusercontent...` **Web client'a eklenmez**.)
 
-```
-com.googleusercontent.apps.3397389116-XXXX:/oauth2redirect
-```
+### Android native (Play build)
 
-(`XXXX` = Android client ID'deki orta kisim; `apps.googleusercontent.com` olmadan.)
+EAS `production` env:
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` = **GastroSkor Test** Android client
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Web client (Expo Go + yedek)
 
-EAS secrets: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Web client, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` = Play Android client (Expo Go degil).
+`app.config.js` build sirasinda Android client ID'den OAuth scheme ekler:
+`com.googleusercontent.apps.XXXX:/oauth2redirect` — manifest intent filter otomatik.
+
+Native akis **Code + token exchange** kullanir (IdToken implicit degil).
+
+Play **Uygulama imzalama** SHA-1 → GastroSkor Test Android client'ta olmali.
 
 Ayri iOS client: Bundle ID `com.gastroskor.app`
 
