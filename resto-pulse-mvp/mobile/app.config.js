@@ -19,12 +19,14 @@ module.exports = ({ config }) => ({
     supportsTablet: true,
     buildNumber: '10',
     bundleIdentifier: 'com.gastroskor.app',
+    associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ['remote-notification'],
     },
     entitlements: {
       'aps-environment': 'production',
+      'com.apple.developer.associated-domains': ['applinks:www.gastroskor.com.tr'],
     },
     config: {
       usesNonExemptEncryption: false,
@@ -37,6 +39,26 @@ module.exports = ({ config }) => ({
     },
     package: 'com.gastroskor.app',
     versionCode: 13,
+    softwareKeyboardLayoutMode: 'resize',
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          {
+            scheme: 'https',
+            host: 'www.gastroskor.com.tr',
+            pathPrefix: '/restaurants',
+          },
+          {
+            scheme: 'https',
+            host: 'www.gastroskor.com.tr',
+            pathPrefix: '/place',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     bundler: 'metro',

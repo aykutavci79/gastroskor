@@ -17,6 +17,7 @@ Son guncelleme: 6 Haziran 2026
 | 2 | **iOS one cikanlar yok** | Kod: trending ustte + `source: google` + arama hatasi trending'i dusurmuyor. **1.0.10 build** ile TestFlight. |
 | 3 | **Web one cikan kart tiklanmiyor** | **Duzeltildi:** `FeaturedCityTop` + `TrendingRestaurants` → `trendingDetailHref` → `/place/[id]`. Vercel deploy. |
 | 4 | **Toplu EAS build** | `eas build --profile production --platform all` + submit; iOS Internal TestFlight. |
+| 5 | **Universal / App Links** | Kod hazir (`APP_LINKS.md`). Vercel: `ANDROID_SHA256_FINGERPRINTS`. **1.0.10 build** ile test. |
 
 **Simdi calisan (build beklemeden):** Android 1.0.9 Google giris + push; iOS 1.0.9 Internal push (Google giris icin e-posta ile devam veya 1.0.10 bekle).
 
@@ -65,6 +66,22 @@ Railway: `alembic upgrade head` calistir (0016 + 0017 + **0024** gourmet profil)
 3. **Kufur/argo sozlugu panelden guncelleme** (`profanity_tr.py` yerine DB veya admin arayuzu)
 4. **Isletme yaniti** panel ekrani (Faz A #5 ile birlikte)
 
+**C5 — Restoran kayit / panele erisim (Aykut — kisa vade notu)**
+
+> **Mevcut (kodda):** `/panel/claim` — isletme Google'da aranir → SMS OTP veya vergi levhasi yukleme → otomatik baglama (`ClaimRestaurantFlow`, `mobile/app/panel/claim.tsx`).
+
+> **Istenen kisa vade:** Manuel onayli basvuru
+> 1. Web formu: isletme adi, istedikleri **panel e-postasi**, telefon, adres/sehir, vergi levhasi (PDF/foto), opsiyonel web sitesi
+> 2. Form gonderilince **destek@gastroskor.com.tr** (veya admin) adresine e-posta + ekler
+> 3. Aykut inceleyip onaylar → admin panelden ilgili restorana `user_email` / panel erisimi tanimlar
+> 4. Isletme o e-posta ile Google giris yapinca **restoran dashboard** acilir
+> 5. Red durumunda otomatik e-posta (sebep opsiyonel)
+
+- [ ] Public sayfa: `/isletme-basvuru` veya panel giris altinda "Basvuru yap"
+- [ ] Backend: basvuru kaydi + e-posta (SMTP/Railway) veya form → Resend/SendGrid
+- [ ] Admin: bekleyen basvurular listesi + onay/red (mevcut `grant-access` genisletilebilir)
+- [ ] Mevcut SMS OTP akisi: istege bagli kalir (hizli self-serve) veya sadece onayli isletmelerde acilir
+
 ### Faz D — Restoran takip + takipci promosyonu (Aykut fikri — UNUTMA)
 
 > Kullanicilar sevdikleri restoranlari takip eder; yeni GS yorumunda bildirim gider;
@@ -99,7 +116,7 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 > menu). Kesfet + topluluk tek akista.
 
 **E1 — Nickname + profil** — kodlandi (mobil + API; Railway: `alembic upgrade head` 0024)
-- [x] Kayit sonrasi veya ilk giris: takma ad sec (benzersiz, moderasyon)
+- [x] Kayit sonrasi veya ilk giris: takma ad sec (**benzersiz** — ayni takma ad baska kullaniciya verilemez; buyuk/kucuk harf ayni sayilir)
 - [x] **Profil gorseli:** kendi fotosu VEYA hazir avatar (kullanici secer); nickname yaninda
 - [x] Yorumlarda istege bagli nickname + avatar (display mode: takma ad)
 - [x] Gurme Sohbetlerde nickname + avatar (E2 feed ile birlikte)
@@ -124,8 +141,14 @@ icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
 
 **E2.2 — Restoran karti paylasim kurali** — kural kodda (sistem odalarinda kapali)
 - [x] Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
-- WhatsApp paylasimi: restoran kartinda "WhatsApp'ta paylas" aksiyonu olacak
-- Growth notu: paylasilan kart linki uygulamaya/deep-link'e yonlenir; uygulama kurulumu tesvik edilir
+- [x] Restoran kartinda **Paylas** (WhatsApp, mesaj/DM, Instagram); sistem Gurme odalarina kart gonderilemez
+- [x] Universal / App Links (iOS + Android): paylasim linki uygulama yukluysa uygulamada acilir — `mobile/APP_LINKS.md`, Vercel AASA + assetlinks, **1.0.10 build + SHA-256 env ile test**
+
+**E2.3 — Gurme Sohbetler (web)** — henuz yok, degerlendir
+- [ ] Web'de Gurme sekmesi / oda listesi + akan sohbet (mobil ile ayni API: `/gourmet-chat/*`)
+- [ ] Giris: NextAuth (Google) — nickname zaten E1'de var
+- [ ] Mobildeki kurallar gecerli: sistem odalarinda restoran karti embed yok
+- [ ] Oncelik: mobil oturduktan sonra; SEO ve masaustu kullanicilar icin faydali
 
 **E3 — Bildirim + moderasyon**
 - Soruna cevap gelince push; kartli cevaplarda zengin onizleme

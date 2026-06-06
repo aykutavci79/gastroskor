@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { UserAvatar } from '@/components/UserAvatar';
@@ -16,12 +16,41 @@ export function GourmetProfileSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [nicknameHint, setNicknameHint] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const runNicknameCheck = useCallback(
+    async (value: string) => {
+      const trimmed = value.trim();
+      if (trimmed.length < 3) {
+        setNicknameHint(null);
+        return;
+      }
+      setChecking(true);
+      try {
+        const result = await checkNickname(trimmed, user?.email);
+        setNicknameHint(result.available ? 'Uygun takma ad' : result.message ?? 'Uygun degil');
+      } catch {
+        setNicknameHint(null);
+      } finally {
+        setChecking(false);
+      }
+    },
+    [user?.email],
+  );
+
+  useEffect(() => {
+    if (!editOpen) return;
+    const timer = setTimeout(() => void runNicknameCheck(nickname), 400);
+    return () => clearTimeout(timer);
+  }, [nickname, editOpen, runNicknameCheck]);
 
   const openEdit = useCallback(() => {
     setNickname(user?.nickname ?? '');
     setSelectedPreset((user?.avatarPreset as AvatarPresetId) ?? 'chef');
     setError(null);
     setMessage(null);
+    setNicknameHint(null);
     setEditOpen(true);
   }, [user?.avatarPreset, user?.nickname]);
 
@@ -128,11 +157,22 @@ export function GourmetProfileSection() {
               value={nickname}
               onChangeText={setNickname}
               autoCapitalize="none"
+              autoCorrect={false}
               maxLength={24}
               placeholder="Takma ad"
               placeholderTextColor={GastroColors.placeholder}
               style={styles.input}
             />
+            {checking ? <Text style={styles.hint}>Kontrol ediliyor...</Text> : null}
+            {nicknameHint ? (
+              <Text
+                style={[
+                  styles.hint,
+                  nicknameHint === 'Uygun takma ad' ? styles.hintOk : styles.hintBad,
+                ]}>
+                {nicknameHint}
+              </Text>
+            ) : null}
             <View style={styles.presetRow}>
               {GOURMET_AVATAR_PRESETS.map((preset) => (
                 <Pressable
@@ -144,7 +184,14 @@ export function GourmetProfileSection() {
               ))}
             </View>
             <View style={styles.actions}>
-              <Pressable style={styles.btn} onPress={() => void saveInline()} disabled={busy}>
+              <Pressable
+                style={styles.btn}
+                onPress={() => void saveInline()}
+                disabled={
+                  busy ||
+                  nickname.trim().length < 3 ||
+                  nicknameHint !== 'Uygun takma ad'
+                }>
                 {busy ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
@@ -180,6 +227,9 @@ const styles = StyleSheet.create({
   muted: { color: GastroColors.muted, fontSize: 12 },
   ok: { color: '#6ee7a0', fontSize: 12 },
   error: { color: GastroColors.bad, fontSize: 12 },
+  hint: { color: GastroColors.muted, fontSize: 12 },
+  hintOk: { color: '#6ee7a0' },
+  hintBad: { color: GastroColors.bad },
   actions: { flexDirection: 'row', gap: 8 },
   btnOutline: {
     flex: 1,

@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FollowerCouponBox } from '@/components/FollowerCouponBox';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
@@ -440,6 +441,15 @@ export default function RestaurantDetailScreen() {
               ) : null}
             </View>
           )}
+          {restaurant ? (
+            <View style={styles.shareRow}>
+              <RestaurantShareButton
+                restaurant={restaurant}
+                googleRating={googleRating}
+                gastroRating={gsRating}
+              />
+            </View>
+          ) : null}
           {googleReviews.length > 0 ? (
             <Pressable style={styles.ghostBtn} onPress={() => setGoogleReviewsVisible(true)}>
               <Text style={styles.ghostBtnText}>💬 Google yorumları ({googleReviews.length})</Text>
@@ -591,6 +601,7 @@ const styles = StyleSheet.create({
   },
   categoryText: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  shareRow: { marginTop: 4 },
   ghostBtn: {
     borderWidth: 1,
     borderColor: GastroColors.border,

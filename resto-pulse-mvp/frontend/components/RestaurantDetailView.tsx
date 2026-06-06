@@ -12,6 +12,8 @@ import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
 import { RestaurantPromoLinks } from '@/components/RestaurantPromoLinks';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
+import { OpenInAppLink } from '@/components/OpenInAppLink';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getLivePlaceDetails, getRestaurant, listRestaurantReviews, syncUser } from '@/lib/api';
@@ -174,7 +176,22 @@ export function RestaurantDetailView({
           {[restaurant.district, restaurant.city].filter(Boolean).join(' · ')}
         </p>
         {restaurant.address ? <p className="mt-1 text-sm text-content-muted">{restaurant.address}</p> : null}
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <RestaurantShareButton
+            restaurant={{
+              id: restaurant.id,
+              name: restaurant.name,
+              city: restaurant.city,
+              district: restaurant.district,
+              avg_rating: restaurant.avg_rating,
+              google_rating: restaurant.google_rating,
+              restaurant_id: restaurant.id,
+              google_place_id: restaurant.google_place_id,
+            }}
+            googleRating={restaurant.google_rating}
+            gastroRating={restaurant.avg_rating}
+          />
+          <OpenInAppLink restaurantId={restaurant.id} />
           <RestaurantPromoBadges promo={restaurant.promo} />
           <RestaurantPromoLinks promo={restaurant.promo} />
         </div>

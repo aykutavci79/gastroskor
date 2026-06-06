@@ -6,6 +6,7 @@ import type { MouseEvent } from 'react';
 import { useSession } from 'next-auth/react';
 
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { featuredCardClass } from '@/components/RestaurantPremiumFrame';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { trendingDetailHref } from '@/lib/live-place-card';
@@ -116,12 +117,15 @@ export function FeaturedCompactCard({ restaurant, href, distanceLabel, googleRat
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-2 px-2.5 pb-2.5 pt-0.5">
-          <RestaurantFollowButton
-            restaurantId={followId}
-            userEmail={session?.user?.email}
-            detailHref={followId ? null : detailHref}
-            compact
-          />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <RestaurantFollowButton
+              restaurantId={followId}
+              userEmail={session?.user?.email}
+              detailHref={followId ? null : detailHref}
+              compact
+            />
+            <RestaurantShareButton restaurant={restaurant} googleRating={rating} compact />
+          </div>
           {detailHref ? (
             <Link
               href={detailHref}

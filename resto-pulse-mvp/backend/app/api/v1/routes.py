@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -1278,7 +1279,17 @@ def update_gourmet_profile(payload: GourmetProfileUpdate, db: Session = Depends(
 
     if updated:
         db.add(user)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            err_text = str(exc.orig).lower() if exc.orig else str(exc).lower()
+            if "nickname" in err_text or "ix_users_nickname_lower" in err_text:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={"message": "Bu takma ad zaten alinmis.", "highlights": []},
+                ) from exc
+            raise
         db.refresh(user)
 
     return serialize_user(user, db)

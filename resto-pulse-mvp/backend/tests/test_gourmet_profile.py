@@ -53,3 +53,19 @@ def test_check_nickname_taken(db: Session):
     err = check_nickname_available(db, "Taken")
     assert err is not None
     assert "alinmis" in err.message.lower()
+
+
+def test_check_nickname_taken_case_insensitive(db: Session):
+    user = db.query(User).first()
+    user.nickname = "Donerci42"
+    db.commit()
+    err = check_nickname_available(db, "donerci42")
+    assert err is not None
+    assert "alinmis" in err.message.lower()
+
+
+def test_check_nickname_own_nickname_allowed(db: Session):
+    user = db.query(User).first()
+    user.nickname = "Donerci42"
+    db.commit()
+    assert check_nickname_available(db, "Donerci42", exclude_user_id=user.id) is None

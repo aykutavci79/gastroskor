@@ -24,7 +24,7 @@ from app.models.entities import (
     User,
 )
 from app.services.city_resolver import normalize_city_key, resolve_city_name
-from app.services.gourmet_profile import public_user_avatar
+from app.services.gourmet_profile import public_user_avatar, nickname_identity_key
 from app.services.review_moderation import check_review_text
 from app.services.user_notification_service import notify_gourmet_chat_mention
 
@@ -247,7 +247,7 @@ def extract_mention_nicknames(body: str) -> list[str]:
     nicknames: list[str] = []
     for match in MENTION_PATTERN.finditer(body):
         nick = match.group(1)
-        key = nick.lower()
+        key = nickname_identity_key(nick)
         if key not in seen:
             seen.add(key)
             nicknames.append(nick)
@@ -257,13 +257,13 @@ def extract_mention_nicknames(body: str) -> list[str]:
 def resolve_mentioned_users(db: Session, nicknames: list[str], *, exclude_user_id: UUID) -> list[User]:
     if not nicknames:
         return []
-    lowered = {nick.lower() for nick in nicknames}
+    keys = {nickname_identity_key(nick) for nick in nicknames}
     rows = db.scalars(select(User).where(User.nickname.is_not(None))).all()
     matched: list[User] = []
     for user in rows:
         if user.id == exclude_user_id or not user.nickname:
             continue
-        if user.nickname.lower() in lowered:
+        if nickname_identity_key(user.nickname) in keys:
             matched.append(user)
     return matched
 

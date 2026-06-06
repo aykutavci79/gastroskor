@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
 import { MahrecBadge } from '@/components/MahrecBadge';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GastroColors } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
@@ -226,6 +227,12 @@ export function RestaurantCard({
                     detailHref={followId ? null : resolvedHref}
                     compact
                   />
+                  <RestaurantShareButton
+                    restaurant={restaurant}
+                    googleRating={googleScore}
+                    gastroRating={gastroScore}
+                    compact
+                  />
                 </View>
 
                 {(onReviewsPress || resolvedHref) && (
@@ -384,6 +391,7 @@ const styles = StyleSheet.create({
   followRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 2,
   },
   ghostBtn: {

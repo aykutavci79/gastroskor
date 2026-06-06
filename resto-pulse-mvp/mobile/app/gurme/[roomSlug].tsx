@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -44,6 +45,10 @@ export default function GurmeRoomScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const scrollToBottom = useCallback((animated = true) => {
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated }));
+  }, []);
+
   const load = useCallback(
     async (silent = false) => {
       if (!silent) setError(null);
@@ -66,10 +71,16 @@ export default function GurmeRoomScreen() {
   }, [load]);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
-    }
-  }, [messages.length]);
+    if (messages.length > 0) scrollToBottom(true);
+  }, [messages.length, scrollToBottom]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const sub = Keyboard.addListener(showEvent, () => {
+      setTimeout(() => scrollToBottom(true), 50);
+    });
+    return () => sub.remove();
+  }, [scrollToBottom]);
 
   const ensureCanPost = () => {
     if (!user?.email) {
@@ -97,6 +108,7 @@ export default function GurmeRoomScreen() {
       });
       setBody('');
       setMessages((prev) => [...prev, created]);
+      scrollToBottom(true);
     } catch (err) {
       if (err instanceof ReviewModerationApiError) {
         setFormError(err.message);
@@ -110,47 +122,52 @@ export default function GurmeRoomScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.back}>← Geri</Text>
-        </Pressable>
-        <View style={styles.headerMeta}>
-          <Text style={styles.headerEmoji}>{roomEmoji}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{roomTitle}</Text>
-            <Text style={styles.headerCity}>Bursa · canli sohbet</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} hitSlop={12}>
+            <Text style={styles.back}>← Geri</Text>
+          </Pressable>
+          <View style={styles.headerMeta}>
+            <Text style={styles.headerEmoji}>{roomEmoji}</Text>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.headerTitle}>{roomTitle}</Text>
+              <Text style={styles.headerCity}>Bursa · canli sohbet</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {loading ? (
-        <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 32 }} />
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messageList}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <Text style={styles.empty}>Henuz mesaj yok. Ilk sohbeti sen baslat!</Text>
-          }
-          renderItem={({ item }) => (
-            <GourmetChatMessageBubble
-              message={item}
-              isOwn={Boolean(user?.nickname && item.author.nickname === user.nickname)}
-            />
-          )}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-        />
-      )}
+        {loading ? (
+          <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
+        ) : error ? (
+          <Text style={styles.error}>{error}</Text>
+        ) : (
+          <FlatList
+            ref={listRef}
+            style={styles.flex}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messageList}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+            ListEmptyComponent={
+              <Text style={styles.empty}>Henuz mesaj yok. Ilk sohbeti sen baslat!</Text>
+            }
+            renderItem={({ item }) => (
+              <GourmetChatMessageBubble
+                message={item}
+                isOwn={Boolean(user?.nickname && item.author.nickname === user.nickname)}
+              />
+            )}
+            onContentSizeChange={() => scrollToBottom(false)}
+          />
+        )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.bottom + 8}>
-        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           {formError ? <Text style={styles.formError}>{formError}</Text> : null}
           <View style={styles.composerRow}>
             <TextInput
@@ -159,6 +176,7 @@ export default function GurmeRoomScreen() {
               placeholderTextColor={GastroColors.placeholder}
               value={body}
               onChangeText={setBody}
+              onFocus={() => scrollToBottom(true)}
               multiline
               maxLength={800}
               editable={!submitting}
@@ -181,13 +199,23 @@ export default function GurmeRoomScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: GastroColors.bg },
-  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: GastroColors.border },
+  flex: { flex: 1 },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: GastroColors.border,
+  },
   back: { color: GastroColors.accent, fontWeight: '700' },
   headerMeta: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   headerEmoji: { fontSize: 30 },
+  headerTextWrap: { flex: 1 },
   headerTitle: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
   headerCity: { color: GastroColors.muted, fontSize: 12, marginTop: 2 },
-  messageList: { padding: 16, paddingBottom: 8, gap: 10, flexGrow: 1 },
+  loader: { marginTop: 32 },
+  messageList: { padding: 16, paddingBottom: 12, gap: 10, flexGrow: 1 },
   empty: { color: GastroColors.muted, lineHeight: 22, textAlign: 'center', marginTop: 40 },
   error: { color: GastroColors.bad, lineHeight: 20, paddingHorizontal: 16 },
   composer: {

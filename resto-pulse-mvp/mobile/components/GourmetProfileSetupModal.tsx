@@ -205,7 +205,14 @@ export function GourmetProfileSetupModal({
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Pressable style={styles.btn} onPress={() => void onSave()} disabled={busy}>
+            <Pressable
+              style={styles.btn}
+              onPress={() => void onSave()}
+              disabled={
+                busy ||
+                nickname.trim().length < 3 ||
+                nicknameHint !== 'Uygun takma ad'
+              }>
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (

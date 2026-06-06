@@ -10,6 +10,7 @@ import { RestaurantCardCover } from '@/components/RestaurantCardCover';
 import { RestaurantCardScores } from '@/components/RestaurantCardScores';
 import { RestaurantCategoryBadge } from '@/components/RestaurantCategoryBadge';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantCardTravelLinks } from '@/components/RestaurantCardTravelLinks';
 import { RestaurantPromoBadges } from '@/components/RestaurantPromoBadges';
@@ -204,6 +205,7 @@ export function RestaurantCard({
               detailHref={followId ? null : resolvedHref}
               compact
             />
+            <RestaurantShareButton restaurant={restaurant} googleRating={google} compact />
           </div>
           <RestaurantPromoLinks promo={restaurant.promo} compact />
           <RestaurantMenuPreview

@@ -55,6 +55,11 @@ def normalize_nickname(value: str) -> str:
     return unicodedata.normalize("NFKC", value.strip())
 
 
+def nickname_identity_key(value: str) -> str:
+    """Benzersizlik karsilastirmasi — buyuk/kucuk harf ve Turkce I/İ ayni sayilir."""
+    return normalize_nickname(value).casefold()
+
+
 def validate_nickname_format(nickname: str) -> None:
     if len(nickname) < NICKNAME_MIN_LEN:
         raise NicknameValidationError(f"Takma ad en az {NICKNAME_MIN_LEN} karakter olmali.")

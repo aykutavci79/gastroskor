@@ -4,6 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
+import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GastroColors, GastroShadow } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
@@ -111,11 +112,19 @@ export function FeaturedCompactCard({ restaurant, href, distanceLabel, googleRat
             detailHref={followId ? null : href}
             compact
           />
-          {href ? (
-            <Pressable style={styles.detailBtn} onPress={openDetail} hitSlop={6}>
-              <Text style={styles.detailBtnText}>Detay</Text>
-            </Pressable>
-          ) : null}
+          <View style={styles.actionRight}>
+            <RestaurantShareButton
+              restaurant={restaurant}
+              googleRating={rating}
+              gastroRating={restaurant.avg_rating}
+              compact
+            />
+            {href ? (
+              <Pressable style={styles.detailBtn} onPress={openDetail} hitSlop={6}>
+                <Text style={styles.detailBtnText}>Detay</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       </Pressable>
     </View>
@@ -184,6 +193,7 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     gap: 8,
   },
+  actionRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailBtn: {
     borderRadius: 8,
     borderWidth: 1,
