@@ -21,6 +21,45 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def apply_google_details_to_restaurant(
+    restaurant: Restaurant,
+    details: dict,
+    *,
+    city: str = "Bursa",
+) -> None:
+    name = details.get("name")
+    if name:
+        restaurant.name = name
+    address = details.get("address")
+    if address:
+        restaurant.address = address
+    if not restaurant.city:
+        restaurant.city = city
+    lat = details.get("latitude")
+    lng = details.get("longitude")
+    if lat is not None and lng is not None:
+        restaurant.latitude = float(lat)
+        restaurant.longitude = float(lng)
+
+
+async def ensure_restaurant_coordinates(db: Session, restaurant: Restaurant) -> None:
+    if restaurant.latitude is not None and restaurant.longitude is not None:
+        return
+    profile = db.scalar(
+        select(RestaurantPlatformProfile).where(
+            RestaurantPlatformProfile.restaurant_id == restaurant.id,
+            RestaurantPlatformProfile.platform == PlatformName.google_maps,
+        )
+    )
+    if not profile or not profile.external_id:
+        return
+    details = await google_client.get_place_details(profile.external_id)
+    apply_google_details_to_restaurant(restaurant, details, city=restaurant.city or "Bursa")
+    db.add(restaurant)
+    db.commit()
+    db.refresh(restaurant)
+
+
 async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str = "Bursa") -> Restaurant:
     profile = db.scalar(
         select(RestaurantPlatformProfile).where(
@@ -31,11 +70,14 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
     if profile:
         restaurant = db.get(Restaurant, profile.restaurant_id)
         if restaurant:
-            if not profile.photo_reference:
+            if restaurant.latitude is None or restaurant.longitude is None or not profile.photo_reference:
                 details = await google_client.get_place_details(place_id)
-                if sync_profile_photo_from_details(profile, details):
+                if restaurant.latitude is None or restaurant.longitude is None:
+                    apply_google_details_to_restaurant(restaurant, details, city=city)
+                    db.add(restaurant)
+                if not profile.photo_reference and sync_profile_photo_from_details(profile, details):
                     db.add(profile)
-                    db.flush()
+                db.flush()
             return restaurant
 
     details = await google_client.get_place_details(place_id)
@@ -47,6 +89,7 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
         category="Restoran",
         is_active=True,
     )
+    apply_google_details_to_restaurant(restaurant, details, city=city)
     db.add(restaurant)
     db.flush()
 

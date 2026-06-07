@@ -24,6 +24,7 @@ import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
+import { RestaurantMenuBlock } from '@/components/RestaurantMenuBlock';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
@@ -43,9 +44,11 @@ import {
 } from '@/lib/api';
 import { ReviewModerationApiError } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
+import { hasPublicMenu } from '@/lib/restaurant-menu';
 import { averageGsRating, isOwnReview, renderStarRow, sortReviewsWithViewerFirst } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { formatApiError } from '@/lib/format-api-error';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
 import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
@@ -54,6 +57,7 @@ export default function RestaurantDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
   const { user } = useSession();
   const gastroScores = useMemo(() => parseLiveScoreParams(params), [params]);
 
@@ -82,6 +86,8 @@ export default function RestaurantDetailScreen() {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const reviewFormOffsetY = useRef(0);
+  const menuOffsetY = useRef(0);
+  const pendingMenuFocus = useRef(focus === 'menu');
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -288,6 +294,17 @@ export default function RestaurantDetailScreen() {
     };
   }, [restaurant?.id, user?.email]);
 
+  useEffect(() => {
+    if (!pendingMenuFocus.current || loading || !restaurant || !hasPublicMenu(restaurant)) return;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, menuOffsetY.current - 12),
+        animated: true,
+      });
+      pendingMenuFocus.current = false;
+    });
+  }, [loading, restaurant, focus]);
+
   const gsRating = useMemo(() => averageGsRating(reviews), [reviews]);
   const hasOwnReview = useMemo(
     () => reviews.some((row) => isOwnReview(row, user?.email, user?.id)),
@@ -346,7 +363,7 @@ export default function RestaurantDetailScreen() {
         prev ? { ...prev, check_in_visitor_count: result.visitor_count } : prev,
       );
     } catch (err) {
-      Alert.alert('Check-in', err instanceof Error ? err.message : 'Check-in yapılamadı.');
+      Alert.alert('Check-in', formatApiError(err, 'Check-in'));
     } finally {
       setCheckInBusy(false);
     }
@@ -562,6 +579,16 @@ export default function RestaurantDetailScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        {restaurant && hasPublicMenu(restaurant) ? (
+          <View
+            style={styles.section}
+            onLayout={(event) => {
+              menuOffsetY.current = event.nativeEvent.layout.y;
+            }}>
+            <RestaurantMenuBlock restaurant={restaurant} menuOverride={restaurant.menu} />
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />

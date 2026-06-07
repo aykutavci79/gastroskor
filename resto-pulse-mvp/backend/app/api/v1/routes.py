@@ -91,7 +91,7 @@ from app.services.panel_notification_jobs import notify_negative_gastro_review, 
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.services.display_name import normalize_author_name_display, public_author_name
-from app.services.restaurant_claim import ensure_restaurant_for_place
+from app.services.restaurant_claim import ensure_restaurant_coordinates, ensure_restaurant_for_place
 from app.services.platform_profile_photo import google_photo_url_for_profile, sync_profile_photo_from_details
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
 from app.services.user_avatar_storage import save_user_avatar
@@ -698,8 +698,8 @@ async def get_live_place_details(
         member_avg_rating=round(float(member_avg_rating), 1) if member_avg_rating is not None else None,
         maps_directions_url=build_google_maps_directions_url(
             place_id=details["place_id"],
-            latitude=None,
-            longitude=None,
+            latitude=details.get("latitude"),
+            longitude=details.get("longitude"),
             query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
         ),
         maps_search_url=build_google_maps_search_url(
@@ -1095,12 +1095,16 @@ def get_restaurant_check_in_status(
 
 
 @router.post("/restaurants/{restaurant_id}/check-in", response_model=CheckInResult)
-def post_restaurant_check_in(
+async def post_restaurant_check_in(
     restaurant_id: UUID,
     payload: CheckInPayload,
     db: Session = Depends(get_db),
 ):
     user = get_or_create_user(db, email=payload.user_email)
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant or not restaurant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    await ensure_restaurant_coordinates(db, restaurant)
     try:
         result = create_check_in(
             db,
@@ -1114,6 +1118,8 @@ def post_restaurant_check_in(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "check_in", "message": exc.message},
         ) from exc
+    except HTTPException:
+        raise
     return CheckInResult(**result)
 
 

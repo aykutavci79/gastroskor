@@ -231,10 +231,14 @@ class GooglePlacesLiveClient:
                 "weekday_text": opening_hours_raw.get("weekday_text"),
             }
 
+        location = result.get("geometry", {}).get("location", {})
+
         return {
             "place_id": result.get("place_id", place_id),
             "name": result.get("name", "") ,
             "address": result.get("formatted_address"),
+            "latitude": location.get("lat"),
+            "longitude": location.get("lng"),
             "rating": float(result["rating"]) if result.get("rating") is not None else None,
             "user_ratings_total": result.get("user_ratings_total"),
             "phone_number": result.get("formatted_phone_number") or result.get("international_phone_number"),
