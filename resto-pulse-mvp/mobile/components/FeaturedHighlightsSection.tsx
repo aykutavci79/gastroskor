@@ -2,14 +2,14 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { FeaturedCompactCard, FEATURED_CARD_WIDTH } from '@/components/FeaturedCompactCard';
+import { FeaturedCompactCard, FEATURED_CARD_HEIGHT } from '@/components/FeaturedCompactCard';
 import { GastroColors } from '@/constants/theme';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
 import { filterFeaturedByRating } from '@/lib/featured-rating-filter';
@@ -50,7 +50,7 @@ export function FeaturedHighlightsSection() {
         if (cancelled) return;
         if (status !== 'granted') {
           setLocationState('denied');
-          setLoading(false);
+          await loadFeatured(null);
           return;
         }
         setLocationState('granted');
@@ -61,7 +61,7 @@ export function FeaturedHighlightsSection() {
       } catch {
         if (!cancelled) {
           setLocationState('denied');
-          setLoading(false);
+          await loadFeatured(null);
         }
       }
     })();
@@ -76,6 +76,7 @@ export function FeaturedHighlightsSection() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationState('denied');
+        await loadFeatured(null);
         return;
       }
       setLocationState('granted');
@@ -93,7 +94,7 @@ export function FeaturedHighlightsSection() {
         <Text style={styles.sub}>Konumuna yakın, 4.5+ yıldızlı restoranlar</Text>
       </View>
 
-      {locationState === 'denied' ? (
+      {locationState === 'denied' && !loading && items.length === 0 ? (
         <View style={styles.locationBox}>
           <Text style={styles.locationTitle}>Konumunuzu paylaşın</Text>
           <Text style={styles.locationSub}>
@@ -105,24 +106,22 @@ export function FeaturedHighlightsSection() {
         </View>
       ) : null}
 
-      {locationState === 'loading' || (locationState === 'granted' && loading) ? (
+      {loading ? (
         <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 24 }} />
       ) : null}
 
-      {locationState === 'granted' && !loading && items.length === 0 ? (
+      {!loading && items.length === 0 ? (
         <Text style={styles.empty}>Şu an öne çıkan restoran bulunamadı.</Text>
       ) : null}
 
-      {locationState === 'granted' && !loading && items.length > 0 ? (
-        <FlatList
-          data={items}
+      {!loading && items.length > 0 ? (
+        <ScrollView
           horizontal
+          nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          contentContainerStyle={styles.listContent}
-          snapToInterval={FEATURED_CARD_WIDTH + 12}
-          decelerationRate="fast"
-          renderItem={({ item }) => {
+          style={styles.strip}
+          contentContainerStyle={styles.listContent}>
+          {items.map((item, index) => {
             const detailHref = restaurantDetailHref({
               id: item.id,
               restaurant_id: item.restaurant_id,
@@ -130,14 +129,15 @@ export function FeaturedHighlightsSection() {
             });
             return (
               <FeaturedCompactCard
+                key={`${item.id}-${index}`}
                 restaurant={item}
                 href={detailHref}
                 googleRating={item.week_avg_rating ?? item.google_rating}
                 distanceLabel={formatDistanceLabel(item)}
               />
             );
-          }}
-        />
+          })}
+        </ScrollView>
       ) : null}
     </View>
   );
@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
   title: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
   listContent: { gap: 12, paddingRight: 8 },
+  strip: { height: FEATURED_CARD_HEIGHT },
   locationBox: {
     borderRadius: 16,
     borderWidth: 1,
