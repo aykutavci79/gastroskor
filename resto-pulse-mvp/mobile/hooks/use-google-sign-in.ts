@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 
 import { getExpoGoGoogleRedirectUri } from '@/lib/expo-google-redirect';
 import { parseGoogleIdToken } from '@/lib/google-auth';
+import { saveGoogleOAuthPending } from '@/lib/google-oauth-pending';
 import { useSession } from '@/context/session-context';
 
 function readClientId(value: string | undefined) {
@@ -147,9 +148,7 @@ export function useGoogleSignInNative(onError: (message: string) => void) {
     if (response.type !== 'success') return;
     const idToken = readGoogleIdToken(response);
     if (!idToken) {
-      onError(
-        'Google oturum jetonu alinamadi. Play imzalama SHA-1 ile GastroSkor Test client eslesmeli.',
-      );
+      // Cold-start'ta code oauth2redirect ekraninda islenir; burada sessiz kal.
       return;
     }
     void (async () => {
@@ -164,6 +163,15 @@ export function useGoogleSignInNative(onError: (message: string) => void) {
 
   return {
     ready: Boolean(request),
-    promptAsync,
+    promptAsync: async (options?: Parameters<typeof promptAsync>[0]) => {
+      if (request?.codeVerifier && androidClientId) {
+        await saveGoogleOAuthPending({
+          clientId: androidClientId,
+          redirectUri,
+          codeVerifier: request.codeVerifier,
+        });
+      }
+      return promptAsync(options);
+    },
   };
 }
