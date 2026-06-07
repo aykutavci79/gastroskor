@@ -13,6 +13,7 @@ authlib
 python-jose[cryptography]
 passlib[bcrypt]
 google-auth
+requests
 openai
 anthropic
 Pillow>=10.0.0
