@@ -64,7 +64,23 @@ def test_is_greeting_only():
 def test_classify_intent():
     assert classify_message_intent("selam", room_slug="kes-donerciler") == "greeting"
     assert classify_message_intent("gece acik doner oner", room_slug="gece-acikanlar") == "restaurant"
+    assert classify_message_intent("ocakbaşı", room_slug="ocakbasi-muhabbeti") == "restaurant"
+    assert classify_message_intent("mangal", room_slug="ocakbasi-muhabbeti") == "restaurant"
     assert classify_message_intent("sagol", room_slug="kes-donerciler") is None
+
+
+def test_ocakbasi_excludes_cig_kofte():
+    from app.services.gourmet_chat_assistant import (
+        _restaurant_excluded_for_room,
+        _restaurant_matches_room,
+    )
+
+    komagene = "Komagene Etsiz Cig Kofte Nilufer"
+    assert _restaurant_excluded_for_room(komagene, room_slug="ocakbasi-muhabbeti")
+    assert not _restaurant_matches_room(komagene, room_slug="ocakbasi-muhabbeti")
+    ocak = "Kasap Mehmet Ocakbasi Izgara Nilufer"
+    assert not _restaurant_excluded_for_room(ocak, room_slug="ocakbasi-muhabbeti")
+    assert _restaurant_matches_room(ocak, room_slug="ocakbasi-muhabbeti")
 
 
 def test_greeting_templates_are_warm():

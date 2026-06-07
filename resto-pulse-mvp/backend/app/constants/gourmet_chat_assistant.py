@@ -52,12 +52,61 @@ GENERAL_REPLY_TEMPLATES: tuple[str, ...] = (
 )
 
 ROOM_SEARCH_HINTS: dict[str, tuple[str, ...]] = {
-    "kes-donerciler": ("doner", "döner", "durum", "kebap", "lahmacun"),
-    "ocakbasi-muhabbeti": ("ocak", "izgara", "mangal", "kuzu", "kofte", "köfte"),
-    "anne-eli-ev-yemegi": ("ev yemegi", "lokanta", "sulu", "corba", "çorba", "ev"),
-    "gece-acikanlar": ("gece", "bufe", "büfe", "fast"),
+    "kes-donerciler": ("doner", "döner", "durum", "dürüm", "kebap", "lahmacun", "adana"),
+    "ocakbasi-muhabbeti": (
+        "ocakbasi",
+        "ocakbaşı",
+        "ocak",
+        "izgara",
+        "ızgara",
+        "mangal",
+        "grill",
+        "bbq",
+        "kasap",
+        "steak",
+        "biftek",
+        "kuzu",
+        "et lokant",
+    ),
+    "anne-eli-ev-yemegi": ("ev yemegi", "ev yemeği", "lokanta", "sulu", "corba", "çorba", "gunluk", "günlük"),
+    "gece-acikanlar": ("gece", "bufe", "büfe", "24", "acik", "açık"),
     "fiyat-performans-avcilari": ("lokanta", "doner", "döner", "pide"),
-    "gizli-kalmis-mekanlar": ("lokanta", "restoran", "cafe", "kafe"),
+    "gizli-kalmis-mekanlar": ("lokanta", "restoran", "cafe", "kafe", "mahalle"),
+}
+
+# Oda baglamina aykiri mekanlari ele (isim/kategori icinde gecerse).
+ROOM_EXCLUDE_HINTS: dict[str, tuple[str, ...]] = {
+    "ocakbasi-muhabbeti": (
+        "cig kofte",
+        "ciğ köfte",
+        "etsiz",
+        "komagene",
+        "burger",
+        "pizza",
+        "sushi",
+        "doner",
+        "döner",
+        "kebap",
+        "lahmacun",
+        "pide",
+        "tatli",
+        "tatlı",
+        "pastane",
+        "cafe",
+        "kafe",
+    ),
+    "kes-donerciler": ("cig kofte", "ciğ köfte", "komagene", "burger", "pizza", "sushi"),
+    "anne-eli-ev-yemegi": ("burger", "pizza", "sushi", "fast food", "cig kofte", "ciğ köfte"),
+}
+
+# Kisa tercih cevaplari ("ocakbasi", "mangal") -> mekan onerisi niyeti.
+ROOM_PREFERENCE_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "ocakbasi-muhabbeti": ("ocakbasi", "ocakbaşı", "mangal", "izgara", "ızgara", "kuzu"),
+    "kes-donerciler": ("doner", "döner", "durum", "dürüm", "kebap", "lahmacun"),
+    "anne-eli-ev-yemegi": ("ev yemegi", "ev yemeği", "sulu", "corba", "çorba", "lokanta"),
+    "gece-acikanlar": ("gece", "bufe", "büfe", "doner", "döner"),
+    "fiyat-performans-avcilari": ("ucuz", "uygun", "fiyat", "performans", "cigkofte", "çiğ köfte"),
+    "gizli-kalmis-mekanlar": ("gizli", "az bilinen", "sakli", "saklı"),
 }
 
 GREETING_PHRASES: tuple[str, ...] = (

@@ -24,10 +24,13 @@ from app.constants.gourmet_chat_assistant import (
     RESTAURANT_EMPTY_TEMPLATES,
     RESTAURANT_FOOTER_TEMPLATES,
     RESTAURANT_INTRO_TEMPLATES,
+    ROOM_EXCLUDE_HINTS,
+    ROOM_PREFERENCE_KEYWORDS,
     ROOM_SEARCH_HINTS,
     ROOM_TOPIC_PROMPT,
     THANKS_KEYWORDS,
 )
+from app.services.profanity_tr import fold_turkish
 from app.core.config import settings
 from app.integrations.gemini_client import gemini_text_prompt
 from app.models.entities import (
@@ -76,21 +79,39 @@ def is_greeting_only(text: str) -> bool:
     return bool(words) and all(word in GREETING_TOKENS for word in words)
 
 
+def _fold_match_text(text: str) -> str:
+    return fold_turkish(text).translate(str.maketrans("ıİ", "ii"))
+
+
+def _text_contains_any(text: str, keywords: tuple[str, ...]) -> bool:
+    folded = _fold_match_text(text)
+    return any(_fold_match_text(keyword) in folded for keyword in keywords)
+
+
+def is_room_preference_reply(text: str, room_slug: str) -> bool:
+    """Kisa tercih cevaplari: 'ocakbasi', 'mangal' vb."""
+    norm = normalize_chat_text(text)
+    if not norm or len(norm) > 40:
+        return False
+    prefs = ROOM_PREFERENCE_KEYWORDS.get(room_slug, ())
+    return bool(prefs) and _text_contains_any(norm, prefs)
+
+
 def is_restaurant_ask(text: str, room_slug: str) -> bool:
     norm = normalize_chat_text(text)
     if not norm:
         return False
-    if any(keyword in norm for keyword in RESTAURANT_ASK_KEYWORDS):
+    if _text_contains_any(norm, RESTAURANT_ASK_KEYWORDS):
         return True
     hints = ROOM_SEARCH_HINTS.get(room_slug, ())
-    return any(hint in norm for hint in hints)
+    return _text_contains_any(norm, hints)
 
 
 def classify_message_intent(text: str, *, room_slug: str) -> str | None:
     """None = cevap planlama (tesekkur vb.)."""
     if is_thanks_message(text):
         return None
-    if is_restaurant_ask(text, room_slug):
+    if is_restaurant_ask(text, room_slug) or is_room_preference_reply(text, room_slug):
         return "restaurant"
     if is_greeting_only(text):
         return "greeting"
@@ -316,10 +337,51 @@ def _schedule_job(
     return job
 
 
+def _restaurant_haystack(restaurant: Restaurant) -> str:
+    return " ".join(
+        filter(
+            None,
+            [
+                restaurant.name or "",
+                restaurant.category or "",
+                restaurant.district or "",
+            ],
+        )
+    )
+
+
+def _restaurant_matches_room(
+    haystack: str,
+    *,
+    room_slug: str,
+    extra_hints: tuple[str, ...] = (),
+) -> bool:
+    hints = ROOM_SEARCH_HINTS.get(room_slug, ()) + extra_hints
+    if not hints:
+        return True
+    return _text_contains_any(haystack, hints)
+
+
+def _restaurant_excluded_for_room(haystack: str, *, room_slug: str) -> bool:
+    excludes = ROOM_EXCLUDE_HINTS.get(room_slug, ())
+    return bool(excludes) and _text_contains_any(haystack, excludes)
+
+
 def fetch_restaurant_suggestions(
-    db: Session, *, city: str, room_slug: str, limit: int = 3
+    db: Session,
+    *,
+    city: str,
+    room_slug: str,
+    user_message: str | None = None,
+    limit: int = 3,
 ) -> list[dict]:
     hints = ROOM_SEARCH_HINTS.get(room_slug, ())
+    extra_hints: tuple[str, ...] = ()
+    if user_message:
+        folded_user = _fold_match_text(normalize_chat_text(user_message))
+        extra_hints = tuple(
+            hint for hint in hints if _fold_match_text(hint) in folded_user
+        )
     stmt = (
         select(
             Restaurant,
@@ -353,17 +415,16 @@ def fetch_restaurant_suggestions(
         if review_count == 0:
             continue
 
-        haystack = " ".join(
-            filter(
-                None,
-                [
-                    (restaurant.name or "").lower(),
-                    (restaurant.category or "").lower(),
-                    (restaurant.district or "").lower(),
-                ],
-            )
-        )
-        hint_bonus = 1.0 if hints and any(h in haystack for h in hints) else 0.0
+        haystack = _restaurant_haystack(restaurant)
+        if _restaurant_excluded_for_room(haystack, room_slug=room_slug):
+            continue
+        if hints and not _restaurant_matches_room(
+            haystack, room_slug=room_slug, extra_hints=extra_hints
+        ):
+            continue
+        hint_bonus = 2.0 if _restaurant_matches_room(
+            haystack, room_slug=room_slug, extra_hints=extra_hints
+        ) else 0.0
         score = rating * 2.0 + min(review_count, 50) * 0.02 + hint_bonus
         candidates.append((score, review_count, restaurant, rating))
 
@@ -427,10 +488,16 @@ def _polish_reply_with_gemini(
     if not settings.gourmet_assistant_gemini_personality or not settings.gemini_api_key:
         return draft
     nick = nickname or "Gurme"
+    general_guard = (
+        " ONEMLI: Taslakta mekan ismi yoksa yeni mekan ekleme; sadece tonu yumusat."
+        if intent == "general"
+        else ""
+    )
     prompt = (
         f"Kullanici ({nick}) soyledi: {user_message[:240]}\n"
         f"Niyet: {intent}\n"
-        f"Taslak cevabin (samimilesir, hafif espirili yap; mekan isimleri ve puanlari AYNEN koru):\n{draft}"
+        f"Taslak cevabin (samimilesir, hafif espirili yap; mekan isimleri ve puanlari AYNEN koru):"
+        f"{general_guard}\n{draft}"
     )
     polished = gemini_text_prompt(
         system=ASSISTANT_PERSONALITY_SYSTEM,
@@ -455,7 +522,12 @@ def build_assistant_reply(
     if job.job_kind == "greeting" or job.intent == "greeting":
         draft = _format_greeting_body(nickname=nickname, room_slug=room.slug)
     elif job.intent == "restaurant":
-        suggestions = fetch_restaurant_suggestions(db, city=job.city, room_slug=room.slug)
+        suggestions = fetch_restaurant_suggestions(
+            db,
+            city=job.city,
+            room_slug=room.slug,
+            user_message=trigger_message_body,
+        )
         draft = _format_restaurant_body(
             suggestions=suggestions,
             room_slug=room.slug,
