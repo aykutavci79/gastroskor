@@ -75,6 +75,24 @@ def test_greeting_templates_are_warm():
     assert len(body) > 20
 
 
+def test_recover_stale_greeting(db: Session, monkeypatch):
+    monkeypatch.setattr(settings, "gourmet_assistant_greeting_delay_sec", 0)
+    user = db.query(User).filter(User.email == "gurme@test.com").one()
+    # Job planlamadan sadece mesaj birak (deploy oncesi senaryo)
+    from app.models.entities import GourmetChatMessage, GourmetChatRoom
+
+    room = db.query(GourmetChatRoom).filter(GourmetChatRoom.slug == "kes-donerciler").one()
+    row = GourmetChatMessage(room_id=room.id, author_id=user.id, city="Bursa", body="selam", mentions_json=[])
+    db.add(row)
+    db.commit()
+
+    from app.services.gourmet_chat_assistant import recover_stale_for_room
+
+    assert recover_stale_for_room(db, room=room, city="Bursa") is True
+    bot_messages = db.query(GourmetChatMessage).filter(GourmetChatMessage.author_id != user.id).all()
+    assert len(bot_messages) == 1
+
+
 def test_greeting_job_posts_after_delay(db: Session, monkeypatch):
     monkeypatch.setattr(settings, "gourmet_assistant_greeting_delay_sec", 0)
     user = db.query(User).filter(User.email == "gurme@test.com").one()

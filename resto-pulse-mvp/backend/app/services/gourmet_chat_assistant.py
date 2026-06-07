@@ -575,6 +575,146 @@ def handle_human_chat_message(
     db.commit()
 
 
+def _message_created_at_utc(message: GourmetChatMessage) -> datetime:
+    created_at = message.created_at
+    if created_at.tzinfo is None:
+        return created_at.replace(tzinfo=timezone.utc)
+    return created_at
+
+
+def _bot_replied_after_message(
+    db: Session,
+    *,
+    room_id: uuid.UUID,
+    city: str,
+    assistant_id: uuid.UUID,
+    after_at: datetime,
+) -> bool:
+    return (
+        db.scalar(
+            select(func.count(GourmetChatMessage.id)).where(
+                GourmetChatMessage.room_id == room_id,
+                GourmetChatMessage.city == city,
+                GourmetChatMessage.author_id == assistant_id,
+                GourmetChatMessage.created_at > after_at,
+            )
+        )
+        or 0
+    ) > 0
+
+
+def recover_stale_for_room(db: Session, *, room: GourmetChatRoom, city: str) -> bool:
+    """Job olusmamis veya islenmemis eski mesajlara cevap ver (deploy oncesi selam vb.)."""
+    if not settings.gourmet_assistant_enabled:
+        return False
+    if _is_room_muted(db, room_id=room.id, city=city):
+        return False
+
+    assistant = get_assistant_user(db)
+    now = _utcnow()
+    hour_ago = now - timedelta(hours=1)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    if _room_message_count_since(db, room_id=room.id, city=city, since=hour_ago) >= settings.gourmet_assistant_room_max_msg_per_hour:
+        return False
+    if _assistant_messages_in_room_since(
+        db, room_id=room.id, city=city, assistant_id=assistant.id, since=hour_ago
+    ) >= settings.gourmet_assistant_max_per_room_hour:
+        return False
+
+    rows = db.scalars(
+        select(GourmetChatMessage)
+        .where(
+            GourmetChatMessage.room_id == room.id,
+            GourmetChatMessage.city == city,
+            GourmetChatMessage.author_id != assistant.id,
+        )
+        .order_by(GourmetChatMessage.created_at.desc())
+        .limit(15)
+    ).all()
+
+    for message in rows:
+        trigger_user = db.get(User, message.author_id)
+        if not trigger_user or is_assistant_user(trigger_user):
+            continue
+
+        intent = classify_message_intent(message.body, room_slug=room.slug)
+        if intent is None:
+            continue
+
+        delay_seconds = (
+            settings.gourmet_assistant_greeting_delay_sec
+            if intent == "greeting"
+            else settings.gourmet_assistant_followup_delay_sec
+        )
+        msg_at = _message_created_at_utc(message)
+        if msg_at + timedelta(seconds=delay_seconds) > now:
+            continue
+
+        if _assistant_messages_for_user_since(
+            db,
+            room_id=room.id,
+            city=city,
+            assistant_id=assistant.id,
+            trigger_user_id=trigger_user.id,
+            since=day_start,
+        ) >= settings.gourmet_assistant_max_per_user_day:
+            continue
+
+        if _human_replied_after(
+            db,
+            room_id=room.id,
+            city=city,
+            after_message=message,
+            assistant_id=assistant.id,
+            trigger_user_id=trigger_user.id,
+        ):
+            continue
+
+        if _bot_replied_after_message(
+            db,
+            room_id=room.id,
+            city=city,
+            assistant_id=assistant.id,
+            after_at=msg_at,
+        ):
+            continue
+
+        existing_job = db.scalar(
+            select(GourmetChatAssistantJob).where(
+                GourmetChatAssistantJob.trigger_message_id == message.id,
+                GourmetChatAssistantJob.status.in_(("pending", "done")),
+            )
+        )
+        if existing_job:
+            continue
+
+        job = GourmetChatAssistantJob(
+            room_id=room.id,
+            city=city,
+            trigger_user_id=trigger_user.id,
+            trigger_message_id=message.id,
+            job_kind="greeting" if intent == "greeting" else "followup",
+            intent=intent,
+            run_at=now,
+            status="pending",
+        )
+        body = build_assistant_reply(
+            db,
+            job=job,
+            room=room,
+            trigger_user=trigger_user,
+            trigger_message_body=message.body,
+        )
+        post_assistant_message(db, room=room, city=city, body=body)
+        job.status = "done"
+        db.add(job)
+        db.commit()
+        return True
+
+    return False
+
+
 def process_due_assistant_jobs(db: Session, *, limit: int = 20) -> dict[str, int]:
     if not settings.gourmet_assistant_enabled:
         return {"processed": 0, "posted": 0, "skipped": 0, "cancelled": 0}

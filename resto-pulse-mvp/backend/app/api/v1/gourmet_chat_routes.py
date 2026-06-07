@@ -151,8 +151,14 @@ def gourmet_chat_room_messages(
     db: Session = Depends(get_db),
 ):
     try:
-        from app.services.gourmet_chat_assistant import process_due_assistant_jobs
+        from app.services.gourmet_chat_assistant import process_due_assistant_jobs, recover_stale_for_room
+        from app.models.entities import GourmetChatRoom
+        from sqlalchemy import select
 
+        room = db.scalar(select(GourmetChatRoom).where(GourmetChatRoom.slug == room_slug))
+        resolved_city = resolve_gourmet_city(city)
+        if room:
+            recover_stale_for_room(db, room=room, city=resolved_city)
         process_due_assistant_jobs(db, limit=5)
         _room, resolved_city, items = list_room_messages(
             db, room_slug=room_slug, city=city, limit=limit, before_id=before_id
