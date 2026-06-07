@@ -24,6 +24,7 @@ import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GsReviewCard } from '@/components/GsReviewCard';
 import { GoogleReviewsModal } from '@/components/GoogleReviewsModal';
 import { PlaceDetailInfo } from '@/components/PlaceDetailInfo';
+import { OnlineOrderSection } from '@/components/OnlineOrderSection';
 import { RestaurantMenuBlock } from '@/components/RestaurantMenuBlock';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
@@ -580,13 +581,21 @@ export default function RestaurantDetailScreen() {
           ) : null}
         </View>
 
-        {restaurant && hasPublicMenu(restaurant) ? (
+        {restaurant && (restaurant.online_orders_available || hasPublicMenu(restaurant)) ? (
           <View
             style={styles.section}
             onLayout={(event) => {
               menuOffsetY.current = event.nativeEvent.layout.y;
             }}>
-            <RestaurantMenuBlock restaurant={restaurant} menuOverride={restaurant.menu} />
+            {restaurant.online_orders_available ? (
+              <OnlineOrderSection
+                restaurant={restaurant}
+                userEmail={user?.email ?? null}
+              />
+            ) : null}
+            {hasPublicMenu(restaurant) ? (
+              <RestaurantMenuBlock restaurant={restaurant} menuOverride={restaurant.menu} />
+            ) : null}
           </View>
         ) : null}
 

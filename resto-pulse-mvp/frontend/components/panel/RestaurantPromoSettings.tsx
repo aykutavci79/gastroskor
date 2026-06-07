@@ -17,6 +17,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState<RestaurantPromoSettings | null>(null);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
+  const [onlineOrdersEnabled, setOnlineOrdersEnabled] = useState(false);
   const [directOrderText, setDirectOrderText] = useState('');
   const [directOrderPhone, setDirectOrderPhone] = useState('');
   const [directOrderWhatsapp, setDirectOrderWhatsapp] = useState('');
@@ -38,6 +39,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
       .then((data) => {
         setSettings(data);
         setHasOwnCourier(data.has_own_courier);
+        setOnlineOrdersEnabled(data.online_orders_enabled);
         setDirectOrderText(data.direct_order_text ?? '');
         setDirectOrderPhone(data.direct_order_phone ?? '');
         setDirectOrderWhatsapp(data.direct_order_whatsapp ?? '');
@@ -60,6 +62,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
       const updated = await updatePanelPromo({
         user_email: userEmail,
         has_own_courier: hasOwnCourier,
+        online_orders_enabled: hasOwnCourier ? onlineOrdersEnabled : false,
         direct_order_text: directOrderText.trim() || null,
         direct_order_phone: directOrderPhone.trim() || null,
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
@@ -230,11 +233,27 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
           <input
             type="checkbox"
             checked={hasOwnCourier}
-            onChange={(e) => setHasOwnCourier(e.target.checked)}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setHasOwnCourier(checked);
+              if (!checked) setOnlineOrdersEnabled(false);
+            }}
             className="rounded border-border"
           />
           Kendi kuryem var (kartta rozet)
         </label>
+
+        {hasOwnCourier ? (
+          <label className="flex items-center gap-2 text-sm text-content">
+            <input
+              type="checkbox"
+              checked={onlineOrdersEnabled}
+              onChange={(e) => setOnlineOrdersEnabled(e.target.checked)}
+              className="rounded border-border"
+            />
+            Online siparis al (uygulamada menu tablosu, telefon ile)
+          </label>
+        ) : null}
 
         <div>
           <label className="text-xs text-content-muted">Teklif metni (ornek: Buradan siparis · %10 indirim)</label>

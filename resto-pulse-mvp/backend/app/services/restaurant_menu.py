@@ -26,6 +26,7 @@ def menu_item_to_dict(item: RestaurantMenuItem) -> dict:
         "category": item.category,
         "sort_order": item.sort_order,
         "is_active": item.is_active,
+        "image_url": item.image_url,
     }
 
 

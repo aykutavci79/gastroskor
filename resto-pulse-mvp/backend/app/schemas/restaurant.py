@@ -22,6 +22,7 @@ class RestaurantMenuItemPublic(BaseModel):
     price_tl: float
     description: str | None = None
     category: str | None = None
+    image_url: str | None = None
 
 
 class RestaurantPromoPublic(BaseModel):
@@ -45,6 +46,7 @@ class RestaurantRead(RestaurantCreate):
     menu: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
+    online_orders_available: bool = False
     check_in_visitor_count: int = Field(ge=0, default=0)
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +65,7 @@ class RestaurantListItem(BaseModel):
     is_premium_partner: bool = False
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
+    online_orders_available: bool = False
     card_emoji: str | None = None
     google_rating: float | None = None
     google_review_count: int | None = None

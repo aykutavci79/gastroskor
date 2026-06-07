@@ -21,6 +21,7 @@ NOTIFICATION_TYPES = {
     "negative_review",
     "competitor_update",
     "new_follower",
+    "new_order",
 }
 
 TYPE_PREF_MAP = {

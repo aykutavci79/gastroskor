@@ -68,6 +68,11 @@ from app.schemas.restaurant import (
     RestaurantRead,
     RestaurantTrendingItem,
 )
+from app.schemas.restaurant_order import (
+    RestaurantOrderActiveResponse,
+    RestaurantOrderCreate,
+    RestaurantOrderRead,
+)
 from app.services.gastro_score_ranking import haversine_meters
 from app.services.restaurant_check_in import (
     CheckInError,
@@ -75,6 +80,16 @@ from app.services.restaurant_check_in import (
     get_user_check_in_status,
     merge_check_in_counts_into_rows,
     visitor_count,
+)
+from app.services.restaurant_orders import (
+    OrderError,
+    create_restaurant_order,
+    get_ownership_for_restaurant,
+    get_pending_order_for_user,
+    notify_new_restaurant_order,
+    online_orders_available,
+    order_to_dict,
+    raise_order_http,
 )
 from app.services.restaurant_partner import (
     merge_partner_into_row,
@@ -257,6 +272,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu=menu,
         menu_preview=partner.get("menu_preview") or [],
         menu_item_count=int(partner.get("menu_item_count") or 0),
+        online_orders_available=bool(partner.get("online_orders_available")),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
     )
 
@@ -1122,6 +1138,57 @@ async def post_restaurant_check_in(
     except HTTPException:
         raise
     return CheckInResult(**result)
+
+
+@router.get("/restaurants/{restaurant_id}/orders/active", response_model=RestaurantOrderActiveResponse)
+def get_active_restaurant_order(
+    restaurant_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant or not restaurant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    user = get_or_create_user(db, email=user_email)
+    ownership = get_ownership_for_restaurant(db, restaurant_id)
+    pending = get_pending_order_for_user(db, user_id=user.id, restaurant_id=restaurant_id)
+    pending_payload = (
+        order_to_dict(pending, restaurant_name=restaurant.name) if pending else None
+    )
+    return RestaurantOrderActiveResponse(
+        online_orders_available=online_orders_available(ownership),
+        pending_order=pending_payload,
+    )
+
+
+@router.post("/restaurants/{restaurant_id}/orders", response_model=RestaurantOrderRead, status_code=status.HTTP_201_CREATED)
+async def post_restaurant_order(
+    restaurant_id: UUID,
+    payload: RestaurantOrderCreate,
+    db: Session = Depends(get_db),
+):
+    restaurant = db.get(Restaurant, restaurant_id)
+    if not restaurant or not restaurant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    user = get_or_create_user(db, email=payload.user_email)
+    try:
+        order = create_restaurant_order(
+            db,
+            restaurant_id=restaurant_id,
+            user=user,
+            customer_phone=payload.customer_phone,
+            customer_name=payload.customer_name,
+            note=payload.note,
+            lines=[line.model_dump() for line in payload.lines],
+        )
+    except OrderError as exc:
+        raise_order_http(exc)
+
+    ownership = get_ownership_for_restaurant(db, restaurant_id)
+    if ownership:
+        await notify_new_restaurant_order(db, ownership=ownership, order=order)
+
+    return order_to_dict(order, restaurant_name=restaurant.name)
 
 
 @router.post("/restaurants", response_model=RestaurantRead, status_code=status.HTTP_201_CREATED)

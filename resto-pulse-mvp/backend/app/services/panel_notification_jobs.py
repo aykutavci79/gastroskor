@@ -51,6 +51,33 @@ async def notify_negative_gastro_review(
     )
 
 
+async def notify_new_online_order(
+    db: Session,
+    *,
+    ownership: RestaurantOwnership,
+    order,
+) -> None:
+    from app.services.restaurant_orders import order_to_dict
+
+    summary = order_to_dict(order)
+    line_count = len(summary.get("lines") or [])
+    total = summary.get("total_tl")
+    customer = summary.get("customer_name") or "Musteri"
+    phone = summary.get("customer_phone") or ""
+    restaurant_id = str(order.restaurant_id)
+    await send_panel_notification(
+        db,
+        ownership=ownership,
+        notification_type="new_order",
+        title="Yeni online siparis!",
+        message=f"{customer} — {line_count} kalem, {total} TL. Tel: {phone}",
+        cta_label="Siparislere git",
+        cta_url=f"{panel_base_url()}/panel?tab=orders",
+        dedupe_key=f"new_order:{order.id}",
+        metadata={"order_id": str(order.id), "restaurant_id": restaurant_id, "total_tl": total},
+    )
+
+
 def settings_public_site() -> str:
     from app.core.config import settings
 

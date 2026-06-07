@@ -466,9 +466,28 @@ export function deletePanelMenuItem(userEmail: string, itemId: string) {
   );
 }
 
+export function listPanelOrders(userEmail: string, limit = 50) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}`;
+  return request<{ items: import('@/lib/types').RestaurantOrderRead[] }>(`/panel/orders${query}`);
+}
+
+export function decidePanelOrder(
+  orderId: string,
+  payload: { user_email: string; decision: 'accepted' | 'rejected' },
+) {
+  return request<import('@/lib/types').RestaurantOrderRead>(`/panel/orders/${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      user_email: payload.user_email.trim().toLowerCase(),
+      decision: payload.decision,
+    }),
+  });
+}
+
 export function updatePanelPromo(payload: {
   user_email: string;
   has_own_courier: boolean;
+  online_orders_enabled?: boolean;
   direct_order_text?: string | null;
   direct_order_phone?: string | null;
   direct_order_whatsapp?: string | null;

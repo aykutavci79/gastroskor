@@ -97,6 +97,7 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
     return {
         "subscription_active": active,
         "has_own_courier": bool(ownership.promo_has_own_courier),
+        "online_orders_enabled": bool(ownership.online_orders_enabled),
         "direct_order_text": ownership.promo_direct_order_text,
         "direct_order_phone": ownership.promo_direct_order_phone,
         "direct_order_whatsapp": ownership.promo_direct_order_whatsapp,

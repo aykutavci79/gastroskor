@@ -133,9 +133,33 @@ export type FollowerCouponRedeemResponse = {
   coupon: FollowerCoupon | null;
 };
 
+export type RestaurantOrderLineRead = {
+  id: string;
+  menu_item_id: string | null;
+  name: string;
+  price_tl: number;
+  quantity: number;
+  line_total_tl: number;
+};
+
+export type RestaurantOrderRead = {
+  id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  status: 'pending' | 'accepted' | 'rejected';
+  customer_phone: string;
+  customer_name: string | null;
+  note: string | null;
+  total_tl: number;
+  lines: RestaurantOrderLineRead[];
+  created_at: string | null;
+  decided_at: string | null;
+};
+
 export type RestaurantPromoSettings = {
   subscription_active: boolean;
   has_own_courier: boolean;
+  online_orders_enabled: boolean;
   direct_order_text: string | null;
   direct_order_phone: string | null;
   direct_order_whatsapp: string | null;

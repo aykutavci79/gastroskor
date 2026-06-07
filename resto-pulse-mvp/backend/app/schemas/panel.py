@@ -103,6 +103,7 @@ class MenuItemUpdateRequest(BaseModel):
 class RestaurantPromoSettingsUpdate(BaseModel):
     user_email: str
     has_own_courier: bool = False
+    online_orders_enabled: bool | None = None
     direct_order_text: str | None = Field(default=None, max_length=120)
     direct_order_phone: str | None = Field(default=None, max_length=32)
     direct_order_whatsapp: str | None = Field(default=None, max_length=32)

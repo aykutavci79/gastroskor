@@ -31,6 +31,7 @@ from app.schemas.panel import (
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
+from app.schemas.restaurant_order import PanelOrderListResponse, RestaurantOrderDecision, RestaurantOrderRead
 from app.services.panel_access import build_panel_access_state, get_user_ownership
 from app.services.panel_dashboard import build_dashboard_payload
 from app.services.competitor_ai_analysis import analyze_competitor_pair
@@ -47,6 +48,13 @@ from app.services.restaurant_menu import (
     list_panel_menu,
     menu_item_to_dict,
     update_menu_item,
+)
+from app.services.restaurant_orders import (
+    OrderError,
+    decide_restaurant_order,
+    list_panel_orders,
+    order_to_dict,
+    raise_order_http,
 )
 from app.services.restaurant_promo import ownership_promo_as_dict, subscription_allows_promo
 from app.services.restaurant_claim import (
@@ -219,6 +227,10 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
         return ownership_promo_as_dict(ownership)
 
     ownership.promo_has_own_courier = payload.has_own_courier
+    if not payload.has_own_courier:
+        ownership.online_orders_enabled = False
+    elif payload.online_orders_enabled is not None:
+        ownership.online_orders_enabled = payload.online_orders_enabled
     ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
     ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
     ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
@@ -346,6 +358,45 @@ def remove_panel_menu_item(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
     delete_menu_item(db, ownership, item_id)
     return {"deleted": True}
+
+
+@panel_router.get("/orders", response_model=PanelOrderListResponse)
+def get_panel_orders(
+    user_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    items = list_panel_orders(db, restaurant_id=ownership.restaurant_id, limit=limit)
+    return PanelOrderListResponse(items=items)
+
+
+@panel_router.patch("/orders/{order_id}", response_model=RestaurantOrderRead)
+def patch_panel_order(
+    order_id: UUID,
+    payload: RestaurantOrderDecision,
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    try:
+        order = decide_restaurant_order(
+            db,
+            ownership=ownership,
+            order_id=order_id,
+            decision=payload.decision,
+        )
+    except OrderError as exc:
+        raise_order_http(exc)
+    restaurant_name = order.restaurant.name if order.restaurant else None
+    return order_to_dict(order, restaurant_name=restaurant_name)
 
 
 @panel_router.post("/claim/start", response_model=ClaimStartResponse)

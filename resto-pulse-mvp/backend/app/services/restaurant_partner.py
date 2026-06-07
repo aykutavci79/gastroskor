@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import RestaurantOwnership
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
+from app.services.restaurant_orders import online_orders_available
 from app.services.restaurant_promo import promo_from_ownership, subscription_allows_promo
 
 
@@ -17,6 +18,7 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
         return {
             **base,
             "is_premium_partner": False,
+            "online_orders_available": False,
             "promo": None,
             "menu_preview": [],
             "menu_item_count": 0,
@@ -25,6 +27,7 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
     return {
         **base,
         "is_premium_partner": True,
+        "online_orders_available": online_orders_available(ownership),
         "promo": promo_from_ownership(ownership),
         "menu_preview": menu_full[:MENU_PREVIEW_LIMIT],
         "menu_item_count": len(menu_full),
@@ -45,6 +48,7 @@ def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
         return {
             "card_emoji": None,
             "is_premium_partner": False,
+            "online_orders_available": False,
             "promo": None,
             "menu_preview": [],
             "menu_item_count": 0,
@@ -89,12 +93,14 @@ def partner_listings_by_google_place_ids(db: Session, place_ids: list[str]) -> d
 def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
     if not partner:
         row["is_premium_partner"] = False
+        row["online_orders_available"] = False
         row.setdefault("promo", None)
         row.setdefault("menu_preview", [])
         row.setdefault("menu_item_count", 0)
         row.setdefault("card_emoji", None)
         return row
     row["is_premium_partner"] = partner["is_premium_partner"]
+    row["online_orders_available"] = partner.get("online_orders_available", False)
     row["promo"] = partner.get("promo")
     row["menu_preview"] = partner.get("menu_preview") or []
     row["menu_item_count"] = partner.get("menu_item_count") or 0

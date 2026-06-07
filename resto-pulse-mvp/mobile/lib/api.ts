@@ -163,6 +163,49 @@ export function postCheckIn(
   });
 }
 
+export function getActiveRestaurantOrder(restaurantId: string, userEmail: string) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`;
+  return request<import('@/lib/types').RestaurantOrderActiveResponse>(
+    `/restaurants/${restaurantId}/orders/active${query}`,
+  );
+}
+
+export function submitRestaurantOrder(
+  restaurantId: string,
+  payload: {
+    user_email: string;
+    customer_phone: string;
+    note?: string;
+    lines: Array<{ menu_item_id: string; quantity: number }>;
+  },
+) {
+  return request<import('@/lib/types').RestaurantOrderRead>(`/restaurants/${restaurantId}/orders`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      user_email: payload.user_email.trim().toLowerCase(),
+    }),
+  });
+}
+
+export function listPanelOrders(userEmail: string, limit = 50) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}`;
+  return request<{ items: import('@/lib/types').RestaurantOrderRead[] }>(`/panel/orders${query}`);
+}
+
+export function decidePanelOrder(
+  orderId: string,
+  payload: { user_email: string; decision: 'accepted' | 'rejected' },
+) {
+  return request<import('@/lib/types').RestaurantOrderRead>(`/panel/orders/${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      user_email: payload.user_email.trim().toLowerCase(),
+      decision: payload.decision,
+    }),
+  });
+}
+
 export function listRestaurantReviews(restaurantId: string, viewerEmail?: string | null) {
   const query = viewerEmail?.trim()
     ? `?viewer_email=${encodeURIComponent(viewerEmail.trim())}`

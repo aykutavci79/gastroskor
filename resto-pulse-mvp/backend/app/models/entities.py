@@ -97,6 +97,7 @@ class User(Base):
         back_populates="to_user",
         foreign_keys="FriendRequest.to_user_id",
     )
+    restaurant_orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="user")
 
 
 class FriendRequest(Base):
@@ -271,6 +272,7 @@ class Restaurant(Base):
     follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(back_populates="restaurant")
     follower_coupons: Mapped[list["FollowerCoupon"]] = relationship(back_populates="restaurant")
     check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="restaurant")
+    orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="restaurant")
 
 
 class RestaurantCheckIn(Base):
@@ -375,6 +377,7 @@ class RestaurantOwnership(Base):
     visit_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_competitor_ai_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     promo_has_own_courier: Mapped[bool] = mapped_column(Boolean, default=False)
+    online_orders_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     promo_direct_order_text: Mapped[str | None] = mapped_column(String(120))
     promo_direct_order_phone: Mapped[str | None] = mapped_column(String(32))
     promo_direct_order_whatsapp: Mapped[str | None] = mapped_column(String(32))
@@ -477,9 +480,61 @@ class RestaurantMenuItem(Base):
     category: Mapped[str | None] = mapped_column(String(60))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    image_url: Mapped[str | None] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="menu_items")
+
+
+class RestaurantOrderStatus(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
+class RestaurantOrder(Base):
+    __tablename__ = "restaurant_orders"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    customer_phone: Mapped[str] = mapped_column(String(32))
+    customer_name: Mapped[str | None] = mapped_column(String(120))
+    note: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[RestaurantOrderStatus] = mapped_column(
+        Enum(RestaurantOrderStatus), default=RestaurantOrderStatus.pending, index=True
+    )
+    total_tl: Mapped[float] = mapped_column(Numeric(10, 2))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="orders")
+    user: Mapped["User"] = relationship(back_populates="restaurant_orders")
+    lines: Mapped[list["RestaurantOrderLine"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan"
+    )
+
+
+class RestaurantOrderLine(Base):
+    __tablename__ = "restaurant_order_lines"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_orders.id", ondelete="CASCADE"), index=True
+    )
+    menu_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_menu_items.id", ondelete="SET NULL"), nullable=True
+    )
+    name_snapshot: Mapped[str] = mapped_column(String(120))
+    price_snapshot: Mapped[float] = mapped_column(Numeric(10, 2))
+    quantity: Mapped[int] = mapped_column(Integer)
+
+    order: Mapped["RestaurantOrder"] = relationship(back_populates="lines")
+    menu_item: Mapped["RestaurantMenuItem | None"] = relationship()
 
 
 class RestaurantSubscription(Base):
