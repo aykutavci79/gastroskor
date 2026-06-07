@@ -33,7 +33,7 @@ router = APIRouter(prefix="/social", tags=["social"])
 
 
 def _resolve_user(db, email: str) -> User:
-    from app.api.v1.routes import get_or_create_user
+    from app.services.user_accounts import get_or_create_user
 
     return get_or_create_user(db, email=email)
 

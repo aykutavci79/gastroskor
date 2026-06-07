@@ -161,6 +161,7 @@ from app.api.v1.metrics_routes import metrics_router
 from app.api.v1.gourmet_chat_routes import router as gourmet_chat_router
 from app.api.v1.panel_routes import panel_router
 from app.api.v1.social_routes import router as social_router
+from app.services.user_accounts import get_or_create_user, serialize_user
 from app.services.app_metrics import record_app_usage_event
 
 logger = logging.getLogger(__name__)
@@ -189,72 +190,6 @@ def parse_geo_indications(raw: list | None) -> list[GeoIndicationRead]:
         if isinstance(row, dict) and row.get("product"):
             items.append(GeoIndicationRead.model_validate(row))
     return items
-
-
-def serialize_user(user: User, db: Session) -> UserProfile:
-    avg_rating = db.scalar(select(func.avg(Review.rating)).where(Review.author_id == user.id))
-    review_count = db.scalar(select(func.count(Review.id)).where(Review.author_id == user.id)) or 0
-    avatar_url, avatar_preset = public_user_avatar(user)
-    return UserProfile(
-        id=str(user.id),
-        email=user.email,
-        full_name=user.full_name,
-        avatar_url=avatar_url,
-        avatar_preset=avatar_preset,
-        nickname=user.nickname,
-        needs_nickname_setup=not bool(user.nickname),
-        default_review_name_display=normalize_author_name_display(user.default_review_name_display),
-        gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
-        review_count=int(review_count),
-    )
-
-
-def get_or_create_user(
-    db: Session,
-    email: str,
-    full_name: str | None = None,
-    avatar_url: str | None = None,
-    google_sub: str | None = None,
-    default_review_name_display: str | None = None,
-) -> User:
-    email = email.strip().lower()
-    user = db.scalar(select(User).where(User.email == email))
-    if not user and google_sub:
-        user = db.scalar(select(User).where(User.google_sub == google_sub))
-
-    if user:
-        updated = False
-        if full_name and user.full_name != full_name:
-            user.full_name = full_name
-            updated = True
-        if avatar_url and not user.avatar_preset and user.avatar_url != avatar_url:
-            user.avatar_url = avatar_url
-            updated = True
-        if google_sub and user.google_sub != google_sub:
-            user.google_sub = google_sub
-            updated = True
-        if default_review_name_display is not None:
-            normalized = normalize_author_name_display(default_review_name_display)
-            if user.default_review_name_display != normalized:
-                user.default_review_name_display = normalized
-                updated = True
-        if updated:
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
-
-    user = User(
-        email=email,
-        full_name=full_name,
-        avatar_url=avatar_url,
-        google_sub=google_sub,
-        default_review_name_display=normalize_author_name_display(default_review_name_display),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 def get_google_place_id(db: Session, restaurant_id: UUID) -> str | None:

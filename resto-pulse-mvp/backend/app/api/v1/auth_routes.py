@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.v1.routes import get_or_create_user, serialize_user
+from app.services.user_accounts import get_or_create_user, serialize_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.auth import GoogleMobileAuthPayload, GoogleMobileAuthResponse
