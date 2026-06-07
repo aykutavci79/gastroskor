@@ -39,6 +39,7 @@ from app.models import (
     User,
 )
 from app.schemas.check_in import CheckInPayload, CheckInResult, CheckInStatus
+from app.schemas.geo_indication import GeoIndicationRead
 from app.schemas.regional_flavors import RegionalProductDetailResponse, RegionalProductListResponse
 from app.schemas.feedback import (
     CompensationCouponCreate,
