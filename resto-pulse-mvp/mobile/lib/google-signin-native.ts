@@ -1,4 +1,5 @@
 import { iosClientId, webClientId } from '@/lib/google-signin-config';
+import { Platform } from 'react-native';
 
 type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
 
@@ -14,6 +15,11 @@ async function loadGoogleSignIn(): Promise<GoogleSignInModule> {
 
 export async function configureGoogleSignIn() {
   if (configured || !webClientId) return;
+  if (Platform.OS === 'ios' && !iosClientId) {
+    throw new Error(
+      'iOS Google client ID yapilandirilmamis. EAS production ortamina EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ekleyip yeni build alin.',
+    );
+  }
   const { GoogleSignin } = await loadGoogleSignIn();
   GoogleSignin.configure({
     webClientId,
@@ -77,6 +83,11 @@ function normalizeGoogleTokenError(err: unknown): Error {
 export async function signInWithGoogleNative(): Promise<string> {
   if (!webClientId) {
     throw new Error('Google Web client ID yapilandirilmamis.');
+  }
+  if (Platform.OS === 'ios' && !iosClientId) {
+    throw new Error(
+      'iOS Google client ID yapilandirilmamis. EAS production ortamina EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ekleyip yeni build alin.',
+    );
   }
 
   const { GoogleSignin, isSuccessResponse } = await loadGoogleSignIn();

@@ -7,7 +7,7 @@ Mobil uygulama **@react-native-google-signin/google-signin** kullanir. Chrome Cu
 - **Expo Go'da calismaz** — Play dahili test veya EAS build gerekir.
 - **Web OAuth client ID** zorunlu (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — Android'de idToken icin.
 - **Android OAuth client** (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`) — Play SHA-1 ile eslesmeli.
-- **iOS OAuth client** (opsiyonel, TestFlight icin) — `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
+- **iOS OAuth client** (`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`) — **TestFlight/App Store icin zorunlu**.
 
 ## Google Cloud Console
 
@@ -31,6 +31,15 @@ Mobil uygulama **@react-native-google-signin/google-signin** kullanir. Chrome Cu
 Panel icin: `https://www.gastroskor.com.tr/api/auth/callback/google`
 
 Mobil SDK icin **redirect URI eklemen gerekmez** — native SDK kullanilir.
+
+### iOS client (TestFlight / App Store)
+
+| Alan | Deger |
+|------|--------|
+| Application type | iOS |
+| Bundle ID | `com.gastroskor.app` |
+
+Olustur → **Client ID**'yi kopyala → EAS production + Railway (asagida).
 
 ## EAS env (production)
 
@@ -65,5 +74,6 @@ Backend Google sertifikalari ile idToken dogrular; client'a kör güvenilmez.
 |---------|--------|
 | DEVELOPER_ERROR (Android) | Play SHA-1 + package Android client'ta mi? |
 | idToken null | Web client ID EAS'ta tanimli mi? |
+| iOS: `iosClientId was not provided` | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` EAS production'da yok — iOS OAuth client olustur + yeni build |
 | 401 token dogrulanamadi | Railway `GOOGLE_OAUTH_WEB_CLIENT_ID` = ayni Web client |
 | Expo Go | Preview/production build kullan |

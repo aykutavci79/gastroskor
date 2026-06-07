@@ -1,9 +1,7 @@
 /** @type {import('expo/config').ExpoConfig} */
 
 function readGoogleIosUrlScheme() {
-  const clientId =
-    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ||
-    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+  const clientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim();
   if (!clientId) return null;
   const prefix = clientId.replace(/\.apps\.googleusercontent\.com$/i, '');
   return `com.googleusercontent.apps.${prefix}`;
@@ -56,7 +54,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '19',
+    buildNumber: '20',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -128,6 +126,8 @@ module.exports = ({ config }) => ({
     termsUrl: 'https://www.gastroskor.com.tr/kullanim-kosullari',
     kvkkUrl: 'https://www.gastroskor.com.tr/kvkk',
     supportEmail: 'destek@gastroskor.com.tr',
+    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || null,
+    googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || null,
     eas: {
       projectId:
         process.env.EAS_PROJECT_ID ?? '3009c65b-6419-4567-a859-363698cf6880',
