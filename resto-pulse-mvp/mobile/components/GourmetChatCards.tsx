@@ -100,13 +100,15 @@ export function GourmetChatMessageBubble({
   onNicknamePress,
   onMentionPress,
 }: BubbleProps) {
+  const isAssistant = message.author.is_assistant === true;
   return (
     <View style={[styles.bubbleWrap, isOwn && styles.bubbleWrapOwn]}>
-      <View style={[styles.bubble, isOwn && styles.bubbleOwn]}>
+      <View style={[styles.bubble, isOwn && styles.bubbleOwn, isAssistant && styles.bubbleAssistant]}>
         {!isOwn ? (
           <GourmetChatAuthorRow
             author={message.author}
             createdAt={message.created_at}
+            tagLabel={isAssistant ? 'Asistan' : null}
             onNicknamePress={onNicknamePress}
           />
         ) : null}
@@ -157,6 +159,10 @@ const styles = StyleSheet.create({
   bubbleOwn: {
     backgroundColor: GastroColors.accentSoft,
     borderColor: GastroColors.accent,
+  },
+  bubbleAssistant: {
+    backgroundColor: '#1f1a12',
+    borderColor: GastroColors.gold,
   },
   messageBody: { color: GastroColors.text, fontSize: 15, lineHeight: 22 },
   mention: { color: GastroColors.accent, fontWeight: '800' },

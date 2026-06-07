@@ -524,6 +524,7 @@ export type GourmetChatAuthor = {
   nickname: string;
   avatar_url?: string | null;
   avatar_preset?: string | null;
+  is_assistant?: boolean;
 };
 
 export type GourmetChatTag = {

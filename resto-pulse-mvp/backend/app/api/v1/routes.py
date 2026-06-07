@@ -1823,3 +1823,17 @@ async def cron_panel_notifications(
     stats = await run_scheduled_notification_jobs(db)
     return {"ok": True, "stats": stats}
 
+
+@router.post("/internal/cron/gourmet-chat-assistant")
+def cron_gourmet_chat_assistant(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.gourmet_chat_assistant import process_due_assistant_jobs
+
+    stats = process_due_assistant_jobs(db)
+    return {"ok": True, "stats": stats}
+

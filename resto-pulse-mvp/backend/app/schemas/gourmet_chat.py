@@ -14,6 +14,7 @@ class GourmetChatAuthor(BaseModel):
     nickname: str
     avatar_url: str | None = None
     avatar_preset: str | None = None
+    is_assistant: bool = False
 
 
 class GourmetChatRoomItem(BaseModel):

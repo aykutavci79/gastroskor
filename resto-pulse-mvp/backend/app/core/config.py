@@ -81,6 +81,15 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     cron_secret: str | None = None
 
+    gourmet_assistant_enabled: bool = True
+    gourmet_assistant_greeting_delay_sec: int = 180
+    gourmet_assistant_followup_delay_sec: int = 60
+    gourmet_assistant_room_cooldown_sec: int = 1800
+    gourmet_assistant_max_per_room_hour: int = 3
+    gourmet_assistant_max_per_user_day: int = 5
+    gourmet_assistant_room_max_msg_per_hour: int = 20
+    gourmet_assistant_gemini_personality: bool = True
+
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False
 

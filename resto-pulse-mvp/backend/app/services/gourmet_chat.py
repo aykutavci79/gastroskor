@@ -25,6 +25,7 @@ from app.models.entities import (
 )
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.gourmet_profile import public_user_avatar, nickname_identity_key
+from app.services.gourmet_chat_assistant import handle_human_chat_message, is_assistant_user
 from app.services.review_moderation import check_review_text
 from app.services.user_notification_service import notify_gourmet_chat_mention
 
@@ -73,12 +74,13 @@ def validate_body(text: str, *, max_len: int) -> str:
 
 def serialize_author(user: User | None) -> dict:
     if not user or not user.nickname:
-        return {"nickname": "Gurme", "avatar_url": None, "avatar_preset": None}
+        return {"nickname": "Gurme", "avatar_url": None, "avatar_preset": None, "is_assistant": False}
     avatar_url, avatar_preset = public_user_avatar(user)
     return {
         "nickname": user.nickname,
         "avatar_url": avatar_url,
         "avatar_preset": avatar_preset,
+        "is_assistant": is_assistant_user(user),
     }
 
 
@@ -354,4 +356,5 @@ def create_message(
 
     db.commit()
     db.refresh(row)
+    handle_human_chat_message(db, room=room, city=resolved_city, user=user, message=row)
     return serialize_message(row)

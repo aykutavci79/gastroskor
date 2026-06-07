@@ -151,6 +151,9 @@ def gourmet_chat_room_messages(
     db: Session = Depends(get_db),
 ):
     try:
+        from app.services.gourmet_chat_assistant import process_due_assistant_jobs
+
+        process_due_assistant_jobs(db, limit=5)
         _room, resolved_city, items = list_room_messages(
             db, room_slug=room_slug, city=city, limit=limit, before_id=before_id
         )

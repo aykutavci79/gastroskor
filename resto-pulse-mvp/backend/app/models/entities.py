@@ -881,3 +881,39 @@ class GourmetChatMessage(Base):
     room: Mapped["GourmetChatRoom"] = relationship(back_populates="messages")
     author: Mapped["User"] = relationship(back_populates="gourmet_chat_messages")
 
+
+class GourmetChatRoomAssistantState(Base):
+    __tablename__ = "gourmet_chat_room_assistant_state"
+    __table_args__ = (UniqueConstraint("room_id", "city", name="uq_gourmet_chat_assistant_room_city"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64))
+    muted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class GourmetChatAssistantJob(Base):
+    __tablename__ = "gourmet_chat_assistant_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64))
+    trigger_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    trigger_message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_messages.id", ondelete="CASCADE"), index=True
+    )
+    job_kind: Mapped[str] = mapped_column(String(20))
+    intent: Mapped[str] = mapped_column(String(20))
+    run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
