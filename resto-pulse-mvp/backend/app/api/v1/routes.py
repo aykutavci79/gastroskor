@@ -4,7 +4,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -1114,9 +1114,13 @@ def list_restaurant_reviews(
             selectinload(Review.helpful_votes),
             selectinload(Review.replies).selectinload(ReviewReply.author),
         )
-        .order_by(Review.created_at.desc())
-        .limit(limit)
     )
+    if viewer_user_id:
+        own_first = case((Review.author_id == viewer_user_id, 0), else_=1)
+        stmt = stmt.order_by(own_first, Review.created_at.desc())
+    else:
+        stmt = stmt.order_by(Review.created_at.desc())
+    stmt = stmt.limit(limit)
     rows = db.scalars(stmt).all()
     return [serialize_review(row, viewer_user_id=viewer_user_id) for row in rows]
 

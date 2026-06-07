@@ -40,7 +40,7 @@ import {
 } from '@/lib/api';
 import { ReviewModerationApiError } from '@/lib/api';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import { averageGsRating, renderStarRow } from '@/lib/review-display';
+import { averageGsRating, isOwnReview, renderStarRow, sortReviewsWithViewerFirst } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
@@ -198,7 +198,7 @@ export default function RestaurantDetailScreen() {
             maps_directions_url:
               restaurantData.maps_directions_url?.trim() || live.maps_directions_url || null,
           });
-          setReviews(reviewData);
+          setReviews(sortReviewsWithViewerFirst(reviewData, user?.email, user?.id));
           setPhotoUrls(gallery);
           setGoogleRating(live.rating ?? restaurantData.google_rating ?? null);
           setGoogleReviewCount(live.user_ratings_total ?? null);
@@ -213,7 +213,7 @@ export default function RestaurantDetailScreen() {
         if (cancelled) return;
 
         setRestaurant(restaurantData);
-        setReviews(reviewData);
+        setReviews(sortReviewsWithViewerFirst(reviewData, user?.email, user?.id));
 
         const gallery: string[] = [];
         const cover =
@@ -263,9 +263,13 @@ export default function RestaurantDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, user?.email]);
+  }, [id, user?.email, user?.id]);
 
   const gsRating = useMemo(() => averageGsRating(reviews), [reviews]);
+  const hasOwnReview = useMemo(
+    () => reviews.some((row) => isOwnReview(row, user?.email, user?.id)),
+    [reviews, user?.email, user?.id],
+  );
   const visual = restaurant
     ? resolveCategoryVisual({
         category: restaurant.category,
@@ -320,7 +324,7 @@ export default function RestaurantDetailScreen() {
         viewer_can_edit: saved.viewer_can_edit ?? true,
         created_at: saved.created_at ?? new Date().toISOString(),
       };
-      setReviews((prev) => [withMeta, ...prev]);
+      setReviews((prev) => sortReviewsWithViewerFirst([withMeta, ...prev], user?.email, user?.id));
       setText('');
       setPhotos([]);
       setRating(0);
@@ -531,6 +535,13 @@ export default function RestaurantDetailScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
+          {hasOwnReview ? (
+            <View style={styles.visitedHint}>
+              <Text style={styles.visitedHintText}>
+                Daha önce bu restorana gitmişsin — puanın ve yorumun en üstte.
+              </Text>
+            </View>
+          ) : null}
           {reviews.length === 0 ? (
             <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
           ) : (
@@ -620,6 +631,16 @@ const styles = StyleSheet.create({
   },
   travelPillText: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
   sectionTitle: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
+  visitedHint: {
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 107, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 0, 0.25)',
+  },
+  visitedHintText: { color: GastroColors.accent, fontSize: 13, lineHeight: 18, fontWeight: '600' },
   loginHint: { color: GastroColors.accent, fontSize: 14, fontWeight: '700' },
   communityHint: { color: GastroColors.muted, fontSize: 11, lineHeight: 16, marginBottom: 4 },
   textArea: {

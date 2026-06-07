@@ -22,7 +22,7 @@ import {
   updateReview,
   updateReviewReply,
 } from '@/lib/api';
-import { formatReviewDate, renderStarRow } from '@/lib/review-display';
+import { formatReviewDate, isOwnReview, renderStarRow } from '@/lib/review-display';
 import type { DisplayReview, ReviewReply } from '@/lib/types';
 
 type Props = {
@@ -33,16 +33,6 @@ type Props = {
   onChange: (review: DisplayReview) => void;
   onDelete: (reviewId: string) => void;
 };
-
-function isOwnReview(
-  review: DisplayReview,
-  viewerEmail: string | null,
-  viewerUserId?: string | null,
-): boolean {
-  if (viewerUserId && review.author_id && review.author_id === viewerUserId) return true;
-  if (!viewerEmail?.trim() || !review.author_email) return false;
-  return review.author_email.toLowerCase() === viewerEmail.trim().toLowerCase();
-}
 
 function isReplyMine(reply: ReviewReply, viewerEmail: string | null): boolean {
   if (!viewerEmail?.trim() || !reply.author_email) return false;
@@ -215,7 +205,14 @@ export function GsReviewCard({
             size={28}
             fallbackLabel={review.author_name ?? '?'}
           />
-          <Text style={styles.author}>{review.author_name ?? 'GastroSkor Üyesi'}</Text>
+          <View style={styles.authorMeta}>
+            <Text style={styles.author}>{review.author_name ?? 'GastroSkor Üyesi'}</Text>
+            {ownReview ? (
+              <View style={styles.ownBadge}>
+                <Text style={styles.ownBadgeText}>Senin yorumun</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
         {review.created_at ? (
           <Text style={styles.date}>{formatReviewDate(review.created_at)}</Text>
@@ -386,7 +383,16 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  author: { color: GastroColors.text, fontSize: 14, fontWeight: '700', flex: 1 },
+  authorMeta: { flex: 1, gap: 4 },
+  author: { color: GastroColors.text, fontSize: 14, fontWeight: '700' },
+  ownBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 107, 0, 0.14)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  ownBadgeText: { color: GastroColors.accent, fontSize: 10, fontWeight: '700' },
   date: { color: GastroColors.muted, fontSize: 11 },
   stars: { color: GastroColors.gold, fontSize: 14, letterSpacing: 1 },
   text: { color: GastroColors.text, fontSize: 14, lineHeight: 20 },
