@@ -12,6 +12,7 @@ httpx
 authlib
 python-jose[cryptography]
 passlib[bcrypt]
+google-auth
 openai
 anthropic
 Pillow>=10.0.0

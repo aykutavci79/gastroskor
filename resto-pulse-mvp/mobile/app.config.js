@@ -1,15 +1,15 @@
 /** @type {import('expo/config').ExpoConfig} */
 
-/** Play build: Google native OAuth geri donus scheme (EAS production env'den gelir). */
-function readGoogleAndroidOAuthScheme() {
-  const clientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim();
+function readGoogleIosUrlScheme() {
+  const clientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ||
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
   if (!clientId) return null;
   const prefix = clientId.replace(/\.apps\.googleusercontent\.com$/i, '');
   return `com.googleusercontent.apps.${prefix}`;
 }
 
-const googleOAuthScheme = readGoogleAndroidOAuthScheme();
-const appScheme = googleOAuthScheme ? ['gastroskor', googleOAuthScheme] : 'gastroskor';
+const googleIosUrlScheme = readGoogleIosUrlScheme();
 
 const appLinkIntentFilter = {
   action: 'VIEW',
@@ -29,29 +29,24 @@ const appLinkIntentFilter = {
   category: ['BROWSABLE', 'DEFAULT'],
 };
 
-const googleOAuthIntentFilter = googleOAuthScheme
-  ? {
-      action: 'VIEW',
-      data: [{ scheme: googleOAuthScheme, path: '/oauth2redirect' }],
-      category: ['BROWSABLE', 'DEFAULT'],
-    }
-  : null;
-
-const gastroskorOAuthIntentFilter = {
-  action: 'VIEW',
-  data: [{ scheme: 'gastroskor', path: '/oauth2redirect' }],
-  category: ['BROWSABLE', 'DEFAULT'],
-};
+const googleSignInPlugin = googleIosUrlScheme
+  ? [
+      '@react-native-google-signin/google-signin',
+      {
+        iosUrlScheme: googleIosUrlScheme,
+      },
+    ]
+  : '@react-native-google-signin/google-signin';
 
 module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
   owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.10',
+  version: '1.0.11',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  scheme: appScheme,
+  scheme: 'gastroskor',
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   splash: {
@@ -61,7 +56,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '13',
+    buildNumber: '14',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -82,13 +77,9 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 21,
+    versionCode: 23,
     softwareKeyboardLayoutMode: 'resize',
-    intentFilters: [
-      appLinkIntentFilter,
-      gastroskorOAuthIntentFilter,
-      ...(googleOAuthIntentFilter ? [googleOAuthIntentFilter] : []),
-    ],
+    intentFilters: [appLinkIntentFilter],
   },
   web: {
     bundler: 'metro',
@@ -96,6 +87,7 @@ module.exports = ({ config }) => ({
     favicon: './assets/favicon.png',
   },
   plugins: [
+    googleSignInPlugin,
     'expo-router',
     'expo-font',
     [

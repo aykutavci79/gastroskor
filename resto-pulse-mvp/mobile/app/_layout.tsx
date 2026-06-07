@@ -3,7 +3,6 @@ import 'react-native-gesture-handler';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,11 +10,10 @@ import { useEffect } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
+import { GoogleSignInBootstrap } from '@/components/GoogleSignInBootstrap';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
-
-WebBrowser.maybeCompleteAuthSession();
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -49,6 +47,7 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
+        <GoogleSignInBootstrap />
         <AppMetricsTracker />
         <NotificationBootstrap />
         <ThemeProvider value={theme}>
@@ -59,8 +58,6 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: GastroColors.bg },
             }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="oauth2redirect" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/google" options={{ headerShown: false }} />
             <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />

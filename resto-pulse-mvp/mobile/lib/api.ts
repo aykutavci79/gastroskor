@@ -259,6 +259,13 @@ export function syncUser(payload: {
   return request<UserProfile>('/users/sync', { method: 'POST', body: JSON.stringify(payload) });
 }
 
+export function verifyGoogleMobileAuth(idToken: string) {
+  return request<{ profile: UserProfile }>('/auth/google/mobile', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
 export function checkNickname(nickname: string, userEmail?: string | null) {
   const query = new URLSearchParams({ nickname: nickname.trim() });
   if (userEmail?.trim()) query.set('user_email', userEmail.trim().toLowerCase());

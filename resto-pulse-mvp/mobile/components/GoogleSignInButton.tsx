@@ -2,16 +2,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
-import { useSession } from '@/context/session-context';
-import { getMobileGoogleReturnUri, getMobileGoogleSiteUrl, signInWithGoogleViaWeb } from '@/lib/google-sign-in-via-web';
-import {
-  getGoogleSignInSetupHint,
-  isExpoGo,
-  isGoogleSignInConfigured,
-  shouldUseNativeGoogleSignIn,
-  useGoogleSignInExpoGo,
-  useGoogleSignInNative,
-} from '@/hooks/use-google-sign-in';
+import { getGoogleSignInSetupHint, isExpoGo, isGoogleSignInConfigured } from '@/lib/google-signin-config';
+import { useGoogleSignIn } from '@/hooks/use-google-sign-in';
 
 type Props = {
   busy?: boolean;
@@ -21,54 +13,35 @@ type Props = {
 export function GoogleSignInButton({ busy, onError }: Props) {
   const setupHint = getGoogleSignInSetupHint();
 
+  if (isExpoGo) {
+    return (
+      <Text style={styles.warn}>
+        Google girisi Expo Go&apos;da calismaz. Play dahili test veya EAS build kullanin.
+      </Text>
+    );
+  }
+
   if (!isGoogleSignInConfigured()) {
     return <Text style={styles.warn}>{setupHint ?? 'Google girisi yapilandirilmamis.'}</Text>;
   }
 
-  if (isExpoGo) {
-    return <GoogleSignInExpoGoButton busy={busy} onError={onError} />;
-  }
-
-  if (shouldUseNativeGoogleSignIn()) {
-    return <GoogleSignInNativeButton busy={busy} onError={onError} />;
-  }
-
-  return <GoogleSignInWebBridgeButton busy={busy} onError={onError} />;
+  return <GoogleSignInNativeButton busy={busy} onError={onError} />;
 }
 
-function GoogleSignInExpoGoButton({ busy, onError }: Props) {
-  const { ready, promptAsync } = useGoogleSignInExpoGo(onError);
-
-  return (
-    <Pressable
-      style={[styles.googleBtn, (!ready || busy) && styles.btnDisabled]}
-      disabled={!ready || busy}
-      onPress={() => void promptAsync()}>
-      <Text style={styles.googleBtnText}>Google ile giris yap</Text>
-    </Pressable>
-  );
-}
-
-function GoogleSignInWebBridgeButton({ busy, onError }: Props) {
-  const { signInWithGoogle } = useSession();
+function GoogleSignInNativeButton({ busy, onError }: Props) {
+  const { ready, signIn } = useGoogleSignIn(onError);
   const [pending, setPending] = useState(false);
 
   async function onPress() {
     setPending(true);
-    if (__DEV__) {
-      console.log('[GoogleAuth] web-bridge', getMobileGoogleSiteUrl(), 'return=', getMobileGoogleReturnUri());
-    }
     try {
-      const claims = await signInWithGoogleViaWeb();
-      await signInWithGoogle(claims);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : 'Google girisi basarisiz.');
+      await signIn();
     } finally {
       setPending(false);
     }
   }
 
-  const disabled = busy || pending;
+  const disabled = busy || pending || !ready;
 
   return (
     <Pressable style={[styles.googleBtn, disabled && styles.btnDisabled]} disabled={disabled} onPress={() => void onPress()}>
@@ -77,26 +50,6 @@ function GoogleSignInWebBridgeButton({ busy, onError }: Props) {
       ) : (
         <Text style={styles.googleBtnText}>Google ile giris yap</Text>
       )}
-    </Pressable>
-  );
-}
-
-function GoogleSignInNativeButton({ busy, onError }: Props) {
-  const [useWebFallback, setUseWebFallback] = useState(false);
-  const { ready, promptAsync } = useGoogleSignInNative(() => {
-    setUseWebFallback(true);
-  });
-
-  if (useWebFallback) {
-    return <GoogleSignInWebBridgeButton busy={busy} onError={onError} />;
-  }
-
-  return (
-    <Pressable
-      style={[styles.googleBtn, (!ready || busy) && styles.btnDisabled]}
-      disabled={!ready || busy}
-      onPress={() => void promptAsync()}>
-      <Text style={styles.googleBtnText}>Google ile giris yap</Text>
     </Pressable>
   );
 }

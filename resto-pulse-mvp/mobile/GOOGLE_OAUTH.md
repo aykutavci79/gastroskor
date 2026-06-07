@@ -1,113 +1,69 @@
-# Google giris — hata cozumu
+# Google giris — Native SDK (GastroSkor mobil)
 
-`You can't sign in to this app because it doesn't comply with Google's OAuth 2.0 policy` hatasi genelde **Google Cloud yapilandirmasi** kaynaklidir.
+Mobil uygulama **@react-native-google-signin/google-signin** kullanir. Chrome Custom Tab / redirect URI akisi kaldirildi.
 
-## 1. OAuth consent screen (zorunlu)
+## Gereksinimler
 
-Google Cloud → **APIs & Services** → **OAuth consent screen**
+- **Expo Go'da calismaz** — Play dahili test veya EAS build gerekir.
+- **Web OAuth client ID** zorunlu (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — Android'de idToken icin.
+- **Android OAuth client** (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`) — Play SHA-1 ile eslesmeli.
+- **iOS OAuth client** (opsiyonel, TestFlight icin) — `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
+
+## Google Cloud Console
+
+### OAuth consent screen
 
 | Alan | Deger |
 |------|--------|
 | User type | External |
-| App name | GastroSkor |
-| User support email | senin e-postan |
-| Privacy policy | `https://www.gastroskor.com.tr/gizlilik` |
-| App home page | `https://www.gastroskor.com.tr` |
-| Authorized domains | `gastroskor.com.tr` |
-| Publishing status | **Testing** (henuz Production degil) |
+| Publishing status | Testing (veya Production) |
+| Test users | Giris yapacak tum Gmail adresleri |
 
-**Test users:** Giris yapacagin Gmail adresini ekle (Testing modunda sadece bu hesaplar girebilir).
-
----
-
-## 2. Expo Go — Android client (telefonda test)
-
-Web client ID'yi Android client olarak kullanmak **politika hatasi** verir. Ayri bir **Android** OAuth client gerekir.
-
-**Create Credentials** → **OAuth client ID** → **Android**
-
-| Alan | Expo Go icin |
-|------|----------------|
-| Name | GastroSkor Expo Go |
-| Package name | `host.exp.exponent` |
-| SHA-1 | `58:98:25:7A:09:9E:38:EB:06:D4:FC:36:0C:9E:38:40:57:D5:20:EC` |
-
-Olusan **Android Client ID**'yi `.env` dosyasina yaz:
-
-```
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=XXXX.apps.googleusercontent.com
-```
-
-`npm run start:clean` ile Expo'yu yeniden baslat.
-
----
-
-## 3. Web client (Expo Go icin kritik)
-
-Mevcut **GastroSkor Web** client → **Authorized redirect URIs** listesine ekle:
-
-```
-https://auth.expo.io/@delimanyah/gastroskor
-```
-
-(Ayni zamanda panel callback kalir: `https://www.gastroskor.com.tr/api/auth/callback/google`)
-
-Expo Go, `exp://` yerine bu HTTPS adresini kullanir. Bu adim olmadan "OAuth 2.0 policy" hatasi devam eder.
-
----
-
-## 4. Web client (panel)
-
-Mevcut **GastroSkor Web** client kalir:
-
-- **JavaScript origins:** `https://www.gastroskor.com.tr`, `https://gastroskor.com.tr`
-- **Redirect URIs:** `https://www.gastroskor.com.tr/api/auth/callback/google`
-
----
-
-## 4. Play Store / App Store build
-
-### Android OAuth client
+### Android client (GastroSkor Test)
 
 | Alan | Deger |
 |------|--------|
-| Package name | `com.gastroskor.app` |
-| SHA-1 | Play **Uygulama imzalama** SHA-1 + `eas credentials -p android` (ikisi de) |
+| Package | `com.gastroskor.app` |
+| SHA-1 | Play **Uygulama imzalama** SHA-1 |
 
-### Web client — Authorized redirect URIs (400 invalid_request icin zorunlu)
+### Web client
 
-**GastroSkor Web** → Credentials → Redirect URIs listesine ekle:
+Panel icin: `https://www.gastroskor.com.tr/api/auth/callback/google`
+
+Mobil SDK icin **redirect URI eklemen gerekmez** — native SDK kullanilir.
+
+## EAS env (production)
 
 ```
-https://www.gastroskor.com.tr/api/auth/callback/google
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=....apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=....apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=....apps.googleusercontent.com   # iOS build
 ```
 
-(`gastroskor://redirect` veya `com.googleusercontent...` **Web client'a eklenmez**.)
+## Railway env (backend token dogrulama)
 
-### Android native (Play build)
+```
+GOOGLE_OAUTH_WEB_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_OAUTH_ANDROID_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_OAUTH_IOS_CLIENT_ID=....apps.googleusercontent.com
+```
 
-EAS `production` env:
-- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` = **GastroSkor Test** Android client
-- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` = Web client (Expo Go + yedek)
+Mobil giris: `POST /api/v1/auth/google/mobile` — `{ "id_token": "..." }`
 
-`app.config.js` build sirasinda Android client ID'den OAuth scheme ekler:
-`com.googleusercontent.apps.XXXX:/oauth2redirect` — manifest intent filter otomatik.
+Backend Google sertifikalari ile idToken dogrular; client'a kör güvenilmez.
 
-Native akis **Code + token exchange** kullanir (IdToken implicit degil).
+## Akis
 
-**Redirect URI (Android client):** `com.googleusercontent.apps.XXXX:/oauth2redirect` — `gastroskor://oauth2redirect` Android client'ta **400 invalid_request** verir.
+1. Kullanici **Google ile giris yap**
+2. Native SDK hesap secer / sifre+2FA Google tarafinda
+3. `idToken` → API `/auth/google/mobile`
+4. Profil oturumu acilir
 
-Play **Uygulama imzalama** SHA-1 → GastroSkor Test Android client'ta olmali.
+## Sorun giderme
 
-Ayri iOS client: Bundle ID `com.gastroskor.app`
-
----
-
-## 5. Hala calismiyorsa
-
-1. Giris yaptigin Gmail **Test users** listesinde mi?
-2. Gizlilik sayfasi canli mi? (Vercel deploy)
-3. Expo terminalinde `[GoogleAuth] redirectUri=` loguna bak
-4. Google Cloud degisiklikleri 5–10 dk gecikebilir
-
-Store surumu icin uzun vadede `@react-native-google-signin/google-signin` + EAS development build onerilir (Expo Go disinda).
+| Belirti | Cozum |
+|---------|--------|
+| DEVELOPER_ERROR (Android) | Play SHA-1 + package Android client'ta mi? |
+| idToken null | Web client ID EAS'ta tanimli mi? |
+| 401 token dogrulanamadi | Railway `GOOGLE_OAUTH_WEB_CLIENT_ID` = ayni Web client |
+| Expo Go | Preview/production build kullan |

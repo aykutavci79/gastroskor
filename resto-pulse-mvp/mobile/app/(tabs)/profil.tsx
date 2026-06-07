@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { Screen } from '@/components/ui/Screen';
@@ -15,7 +15,7 @@ import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { syncUser, updateGourmetProfile } from '@/lib/api';
 import { getApiBase } from '@/lib/api-base';
-import { getGoogleSignInSetupHint, isExpoGo, expoGoRedirectUri } from '@/hooks/use-google-sign-in';
+import { getGoogleSignInSetupHint, isExpoGo } from '@/lib/google-signin-config';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
@@ -81,7 +81,7 @@ export default function ProfilScreen() {
       <View style={styles.hero}>
         <Text style={styles.title}>Hesap</Text>
         <Text style={styles.sub}>
-          Yorum yazmak icin giris yapin. Google sorunluysa asagidan e-posta ile devam edin.
+          Yorum yazmak icin giris yapin. Google native SDK (Play build) veya e-posta ile devam edin.
         </Text>
       </View>
 
@@ -93,12 +93,8 @@ export default function ProfilScreen() {
             Canli arama ve giris bu adrese gider. Degistirmek icin mobile/.env → EXPO_PUBLIC_API_URL,
             sonra expo start --clear.
           </Text>
-          <Text style={styles.muted} selectable>
-            Google redirect: {expoGoRedirectUri}
-          </Text>
           <Text style={styles.muted}>
-            Expo Go Google: auth.expo.io uzerinden dogrudan giris. Cloud Console Web client redirect
-            URI listesinde yukaridaki adres olmali.
+            Google girisi Expo Go&apos;da calismaz. Play dahili test / EAS build kullanin.
           </Text>
           {getGoogleSignInSetupHint() ? (
             <Text style={styles.debugWarn}>{getGoogleSignInSetupHint()}</Text>

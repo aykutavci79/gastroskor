@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
 
     google_places_api_key: str | None = None
+    google_oauth_web_client_id: str | None = None
+    google_oauth_android_client_id: str | None = None
+    google_oauth_ios_client_id: str | None = None
     gemini_api_key: str | None = None
     places_timeout_ms: int = 10000
     places_max_reviews: int = 5

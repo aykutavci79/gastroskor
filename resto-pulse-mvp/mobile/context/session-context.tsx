@@ -2,8 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
+import { signOutGoogleNative } from '@/lib/google-signin-native';
 import { registerUserPushToken } from '@/lib/push-notifications';
-import type { GoogleIdTokenClaims } from '@/lib/google-auth';
+import type { UserProfile } from '@/lib/types';
 
 const STORAGE_KEY = 'gastroskor.session.v1';
 
@@ -21,7 +22,7 @@ export type SessionUser = {
 type SessionContextValue = {
   user: SessionUser | null;
   loading: boolean;
-  signInWithGoogle: (claims: GoogleIdTokenClaims) => Promise<void>;
+  signInWithGoogleProfile: (profile: UserProfile) => Promise<void>;
   signInWithEmail: (email: string, fullName?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -29,15 +30,16 @@ type SessionContextValue = {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-function profileToSession(parsed: SessionUser, profile: Awaited<ReturnType<typeof syncUser>>): SessionUser {
+function profileToSession(email: string, profile: UserProfile, googleSub?: string | null): SessionUser {
   return {
-    ...parsed,
     id: profile.id,
-    email: parsed.email.trim().toLowerCase(),
+    email: email.trim().toLowerCase(),
+    fullName: profile.full_name ?? null,
     avatarUrl: profile.avatar_url,
     avatarPreset: profile.avatar_preset ?? null,
     nickname: profile.nickname ?? null,
     needsNicknameSetup: profile.needs_nickname_setup ?? !profile.nickname,
+    googleSub: googleSub ?? null,
   };
 }
 
@@ -57,7 +59,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       avatar_url: user.avatarUrl ?? null,
       google_sub: user.googleSub ?? null,
     });
-    const next = profileToSession(user, profile);
+    const next = profileToSession(user.email, profile, user.googleSub);
     await persistUser(next);
     setUser(next);
   }, [user]);
@@ -81,7 +83,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             avatar_url: parsed.avatarUrl ?? null,
             google_sub: parsed.googleSub ?? null,
           });
-          const next = profileToSession(parsed, profile);
+          const next = profileToSession(parsed.email, profile, parsed.googleSub);
           await persistUser(next);
           setUser(next);
           void registerUserPushToken(next.email);
@@ -96,31 +98,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signInWithGoogle = useCallback(async (claims: GoogleIdTokenClaims) => {
-    const email = claims.email?.trim().toLowerCase();
-    if (!email) {
-      throw new Error('Google hesabiniz e-posta paylasmadi. Baska bir hesap deneyin.');
-    }
-    if (claims.email_verified === false) {
-      throw new Error('Google e-postasi dogrulanmamis.');
-    }
-    const profile = await syncUser({
-      email,
-      full_name: claims.name ?? null,
-      avatar_url: claims.picture ?? null,
-      google_sub: claims.sub,
-      record_login: true,
-    });
-    const next: SessionUser = {
-      id: profile.id,
-      email,
-      fullName: claims.name ?? null,
-      avatarUrl: profile.avatar_url ?? claims.picture ?? null,
-      avatarPreset: profile.avatar_preset ?? null,
-      nickname: profile.nickname ?? null,
-      needsNicknameSetup: profile.needs_nickname_setup ?? !profile.nickname,
-      googleSub: claims.sub,
-    };
+  const signInWithGoogleProfile = useCallback(async (profile: UserProfile) => {
+    const email = profile.email.trim().toLowerCase();
+    const next = profileToSession(email, profile);
     await persistUser(next);
     setUser(next);
     void registerUserPushToken(email);
@@ -132,28 +112,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Gecerli bir e-posta girin.');
     }
     const profile = await syncUser({ email: normalized, full_name: fullName ?? null, record_login: true });
-    const next: SessionUser = {
-      id: profile.id,
-      email: normalized,
-      fullName: fullName ?? null,
-      avatarUrl: profile.avatar_url,
-      avatarPreset: profile.avatar_preset ?? null,
-      nickname: profile.nickname ?? null,
-      needsNicknameSetup: profile.needs_nickname_setup ?? !profile.nickname,
-    };
+    const next = profileToSession(normalized, profile);
     await persistUser(next);
     setUser(next);
     void registerUserPushToken(normalized);
   }, []);
 
   const signOut = useCallback(async () => {
+    await signOutGoogleNative();
     await AsyncStorage.removeItem(STORAGE_KEY);
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, signInWithGoogle, signInWithEmail, signOut, refreshProfile }),
-    [user, loading, signInWithGoogle, signInWithEmail, signOut, refreshProfile],
+    () => ({ user, loading, signInWithGoogleProfile, signInWithEmail, signOut, refreshProfile }),
+    [user, loading, signInWithGoogleProfile, signInWithEmail, signOut, refreshProfile],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
