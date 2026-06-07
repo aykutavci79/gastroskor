@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.config import settings
 from app.models.entities import User
 from app.services.profanity_tr import (
     contains_prohibited_language,
@@ -29,6 +30,8 @@ class ReviewModerationError(Exception):
 
 
 def check_review_text(review_text: str) -> ReviewModerationError | None:
+    if not settings.content_moderation_enabled:
+        return None
     if not review_text.strip():
         return None
     highlights = find_prohibited_highlights(review_text)

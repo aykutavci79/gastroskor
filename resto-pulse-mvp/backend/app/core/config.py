@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     cron_secret: str | None = None
 
+    # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
+    content_moderation_enabled: bool = False
+
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
 

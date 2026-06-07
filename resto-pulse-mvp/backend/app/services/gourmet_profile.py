@@ -8,6 +8,7 @@ import unicodedata
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.entities import User
 from app.services.profanity_tr import contains_prohibited_language, find_prohibited_highlights
 
@@ -72,7 +73,7 @@ def validate_nickname_format(nickname: str) -> None:
     lowered = nickname.lower()
     if lowered in RESERVED_NICKNAMES:
         raise NicknameValidationError("Bu takma ad kullanilamaz.")
-    if contains_prohibited_language(nickname):
+    if settings.content_moderation_enabled and contains_prohibited_language(nickname):
         highlights = find_prohibited_highlights(nickname)
         raise NicknameValidationError("Takma ad uygun degil.", highlights)
 
