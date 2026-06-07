@@ -18,12 +18,20 @@ order_status = postgresql.ENUM(
     "accepted",
     "rejected",
     name="restaurantorderstatus",
-    create_type=True,
+    create_type=False,
 )
 
 
 def upgrade() -> None:
-    order_status.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE restaurantorderstatus AS ENUM ('pending', 'accepted', 'rejected');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
 
     op.add_column(
         "restaurant_ownerships",
@@ -91,4 +99,4 @@ def downgrade() -> None:
     op.drop_table("restaurant_orders")
     op.drop_column("restaurant_menu_items", "image_url")
     op.drop_column("restaurant_ownerships", "online_orders_enabled")
-    order_status.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS restaurantorderstatus")
