@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     Enum,
     Float,
@@ -33,6 +34,14 @@ class SentimentLabel(str, enum.Enum):
     positive = "positive"
     neutral = "neutral"
     negative = "negative"
+
+
+class FriendRequestStatus(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
+    cancelled = "cancelled"
+    blocked = "blocked"
 
 
 class User(Base):
@@ -79,6 +88,38 @@ class User(Base):
     )
     dm_messages_sent: Mapped[list["DmMessage"]] = relationship(back_populates="sender")
     dm_read_states: Mapped[list["DmReadState"]] = relationship(back_populates="user")
+    check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="user")
+    friend_requests_sent: Mapped[list["FriendRequest"]] = relationship(
+        back_populates="from_user",
+        foreign_keys="FriendRequest.from_user_id",
+    )
+    friend_requests_received: Mapped[list["FriendRequest"]] = relationship(
+        back_populates="to_user",
+        foreign_keys="FriendRequest.to_user_id",
+    )
+
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+    __table_args__ = (UniqueConstraint("from_user_id", "to_user_id", name="uq_friend_request_pair"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    from_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    to_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[FriendRequestStatus] = mapped_column(
+        Enum(FriendRequestStatus), default=FriendRequestStatus.pending, index=True
+    )
+    rejection_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    from_user: Mapped["User"] = relationship(back_populates="friend_requests_sent", foreign_keys=[from_user_id])
+    to_user: Mapped["User"] = relationship(back_populates="friend_requests_received", foreign_keys=[to_user_id])
 
 
 class UserFriendship(Base):
@@ -229,6 +270,29 @@ class Restaurant(Base):
     followers: Mapped[list["UserRestaurantFollow"]] = relationship(back_populates="restaurant")
     follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(back_populates="restaurant")
     follower_coupons: Mapped[list["FollowerCoupon"]] = relationship(back_populates="restaurant")
+    check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="restaurant")
+
+
+class RestaurantCheckIn(Base):
+    __tablename__ = "restaurant_check_ins"
+    __table_args__ = (
+        UniqueConstraint("user_id", "restaurant_id", "check_in_date", name="uq_check_in_per_day"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    latitude: Mapped[float] = mapped_column(Float)
+    longitude: Mapped[float] = mapped_column(Float)
+    check_in_date: Mapped[date] = mapped_column(Date, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="check_ins")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="check_ins")
 
 
 class FollowerPromotion(Base):

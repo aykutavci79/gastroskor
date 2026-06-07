@@ -10,6 +10,7 @@ from app.integrations.maps_links import build_destination_label, build_google_ma
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review, User, UserRestaurantFollow
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.platform_profile_photo import google_photo_url_for_profile
+from app.services.restaurant_check_in import merge_check_in_counts_into_rows
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
 
@@ -133,6 +134,7 @@ def build_restaurant_list_rows(db: Session, restaurants: list[Restaurant]) -> li
         }
         merge_partner_into_row(row, partner_map.get(rid))
         result.append(row)
+    merge_check_in_counts_into_rows(db, result)
     return result
 
 

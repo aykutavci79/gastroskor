@@ -45,6 +45,7 @@ class RestaurantRead(RestaurantCreate):
     menu: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
+    check_in_visitor_count: int = Field(ge=0, default=0)
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -70,6 +71,7 @@ class RestaurantListItem(BaseModel):
     maps_directions_url: str | None = None
     distance_meters: float | None = None
     google_photo_url: str | None = None
+    check_in_visitor_count: int = Field(ge=0, default=0)
     model_config = ConfigDict(from_attributes=True)
 
 

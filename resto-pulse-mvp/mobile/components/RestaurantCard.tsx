@@ -189,6 +189,12 @@ export function RestaurantCard({
                   </Text>
                 </View>
 
+                {(restaurant.check_in_visitor_count ?? 0) > 0 ? (
+                  <Text style={styles.checkInCount}>
+                    👣 {(restaurant.check_in_visitor_count ?? 0).toLocaleString('tr-TR')} ziyaretçi
+                  </Text>
+                ) : null}
+
                 <MahrecBadge
                   hasGeographicalIndication={Boolean(restaurant.has_geographical_indication)}
                   giProductName={restaurant.gi_product_name ?? null}
@@ -378,6 +384,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   categoryText: {
+    color: GastroColors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  checkInCount: {
     color: GastroColors.muted,
     fontSize: 11,
     fontWeight: '600',

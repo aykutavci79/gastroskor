@@ -58,6 +58,7 @@ class LivePlaceSearchItem(BaseModel):
     card_emoji: str | None = None
     member_avg_rating: float | None = None
     google_photo_url: str | None = None
+    check_in_visitor_count: int = Field(ge=0, default=0)
 
 
 class LivePlaceSearchResponse(BaseModel):

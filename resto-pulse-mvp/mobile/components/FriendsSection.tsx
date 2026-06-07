@@ -1,6 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,8 +12,17 @@ import {
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors, GastroStyles } from '@/constants/theme';
-import { addFriend, listFriends, removeFriend, startDmThread } from '@/lib/api';
-import type { FriendListItem } from '@/lib/types';
+import {
+  acceptFriendRequest,
+  addFriend,
+  cancelFriendRequest,
+  listFriendRequests,
+  listFriends,
+  rejectFriendRequest,
+  removeFriend,
+  startDmThread,
+} from '@/lib/api';
+import type { FriendListItem, FriendRequestItem } from '@/lib/types';
 
 type Props = {
   userEmail: string;
@@ -23,28 +31,31 @@ type Props = {
 export function FriendsSection({ userEmail }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<FriendListItem[]>([]);
+  const [incoming, setIncoming] = useState<FriendRequestItem[]>([]);
+  const [outgoing, setOutgoing] = useState<FriendRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nicknameInput, setNicknameInput] = useState('');
-  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    listFriends(userEmail)
-      .then((data) => setItems(data.items))
+    Promise.all([listFriends(userEmail), listFriendRequests(userEmail)])
+      .then(([friends, requests]) => {
+        setItems(friends.items);
+        setIncoming(requests.incoming);
+        setOutgoing(requests.outgoing);
+      })
       .catch((err) => {
-        setItems([]);
-        setError(err instanceof Error ? err.message : 'Arkadas listesi yuklenemedi.');
+        setError(err instanceof Error ? err.message : 'Arkadaş listesi yüklenemedi.');
       })
       .finally(() => setLoading(false));
   }, [userEmail]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function onAddFriend() {
     const nick = nicknameInput.trim();
@@ -53,9 +64,46 @@ export function FriendsSection({ userEmail }: Props) {
     try {
       await addFriend(userEmail, nick);
       setNicknameInput('');
+      Alert.alert('İstek gönderildi', `@${nick} kullanıcısına arkadaşlık isteği iletildi.`);
       load();
     } catch (err) {
-      Alert.alert('Arkadas eklenemedi', err instanceof Error ? err.message : 'Hata');
+      Alert.alert('İstek gönderilemedi', err instanceof Error ? err.message : 'Hata');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAccept(requestId: string) {
+    setBusy(true);
+    try {
+      await acceptFriendRequest(userEmail, requestId);
+      load();
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Kabul edilemedi.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onReject(requestId: string) {
+    setBusy(true);
+    try {
+      await rejectFriendRequest(userEmail, requestId);
+      load();
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Reddedilemedi.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onCancelOutgoing(nickname: string) {
+    setBusy(true);
+    try {
+      await cancelFriendRequest(userEmail, nickname);
+      load();
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'İptal edilemedi.');
     } finally {
       setBusy(false);
     }
@@ -69,15 +117,15 @@ export function FriendsSection({ userEmail }: Props) {
         params: { threadId: payload.thread_id, nickname: payload.peer.nickname },
       } as never);
     } catch (err) {
-      Alert.alert('Mesaj', err instanceof Error ? err.message : 'Sohbet acilamadi.');
+      Alert.alert('Mesaj', err instanceof Error ? err.message : 'Sohbet açılamadı.');
     }
   }
 
   async function onRemove(peerNickname: string) {
-    Alert.alert('Arkadaslik', `@${peerNickname} listeden cikarilsin mi?`, [
-      { text: 'Vazgec', style: 'cancel' },
+    Alert.alert('Arkadaşlık', `@${peerNickname} listeden çıkarılsın mı?`, [
+      { text: 'Vazgeç', style: 'cancel' },
       {
-        text: 'Cikar',
+        text: 'Çıkar',
         style: 'destructive',
         onPress: () => {
           void removeFriend(userEmail, peerNickname)
@@ -92,9 +140,9 @@ export function FriendsSection({ userEmail }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Arkadaslarim</Text>
+      <Text style={styles.title}>Arkadaşlarım</Text>
       <Text style={styles.sub}>
-        Takma ad ile arkadas ekle. Sohbette birine dokunarak da ekleyebilirsin.
+        Takma ad ile istek gönder. Karşı taraf kabul edince mesajlaşabilirsiniz.
       </Text>
 
       <View style={styles.addRow}>
@@ -112,7 +160,7 @@ export function FriendsSection({ userEmail }: Props) {
           style={[styles.addBtn, (busy || !nicknameInput.trim()) && styles.addBtnDisabled]}
           onPress={() => void onAddFriend()}
           disabled={busy || !nicknameInput.trim()}>
-          <Text style={styles.addBtnText}>{busy ? '…' : 'Ekle'}</Text>
+          <Text style={styles.addBtnText}>{busy ? '…' : 'İstek gönder'}</Text>
         </Pressable>
       </View>
 
@@ -120,33 +168,89 @@ export function FriendsSection({ userEmail }: Props) {
         <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 12 }} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
-      ) : items.length === 0 ? (
-        <Text style={styles.muted}>Henuz arkadas yok. Gurme sohbetten veya yukaridan ekle.</Text>
       ) : (
-        <View style={styles.list}>
-          {items.map((friend) => (
-            <View key={friend.id} style={styles.row}>
-              <UserAvatar
-                avatarUrl={friend.avatar_url}
-                avatarPreset={friend.avatar_preset}
-                size={36}
-                fallbackLabel={friend.nickname}
-              />
-              <View style={styles.rowMeta}>
-                <Text style={styles.rowName}>@{friend.nickname}</Text>
-                {friend.gastro_score != null ? (
-                  <Text style={styles.rowScore}>Gastro {friend.gastro_score.toFixed(1)}</Text>
-                ) : null}
-              </View>
-              <Pressable style={styles.msgBtn} onPress={() => void openDm(friend.nickname)}>
-                <Text style={styles.msgBtnText}>Mesaj</Text>
-              </Pressable>
-              <Pressable onPress={() => void onRemove(friend.nickname)} hitSlop={8}>
-                <Text style={styles.removeText}>×</Text>
-              </Pressable>
+        <>
+          {incoming.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionLabel}>Gelen istekler ({incoming.length})</Text>
+              {incoming.map((request) => (
+                <View key={request.id} style={styles.row}>
+                  <UserAvatar
+                    avatarUrl={request.peer.avatar_url}
+                    avatarPreset={request.peer.avatar_preset}
+                    size={36}
+                    fallbackLabel={request.peer.nickname}
+                  />
+                  <View style={styles.rowMeta}>
+                    <Text style={styles.rowName}>@{request.peer.nickname}</Text>
+                  </View>
+                  <Pressable
+                    style={styles.acceptBtn}
+                    onPress={() => void onAccept(request.id)}
+                    disabled={busy}>
+                    <Text style={styles.acceptBtnText}>Kabul</Text>
+                  </Pressable>
+                  <Pressable onPress={() => void onReject(request.id)} hitSlop={8} disabled={busy}>
+                    <Text style={styles.rejectText}>Reddet</Text>
+                  </Pressable>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          ) : null}
+
+          {outgoing.length > 0 ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionLabel}>Giden istekler ({outgoing.length})</Text>
+              {outgoing.map((request) => (
+                <View key={request.id} style={styles.row}>
+                  <UserAvatar
+                    avatarUrl={request.peer.avatar_url}
+                    avatarPreset={request.peer.avatar_preset}
+                    size={36}
+                    fallbackLabel={request.peer.nickname}
+                  />
+                  <View style={styles.rowMeta}>
+                    <Text style={styles.rowName}>@{request.peer.nickname}</Text>
+                    <Text style={styles.rowScore}>Bekliyor</Text>
+                  </View>
+                  <Pressable onPress={() => void onCancelOutgoing(request.peer.nickname)} hitSlop={8}>
+                    <Text style={styles.rejectText}>İptal</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {items.length === 0 ? (
+            <Text style={styles.muted}>Henüz arkadaş yok. Gurme sohbetten veya yukarıdan ekle.</Text>
+          ) : (
+            <View style={styles.list}>
+              <Text style={styles.sectionLabel}>Arkadaşlar ({items.length})</Text>
+              {items.map((friend) => (
+                <View key={friend.id} style={styles.row}>
+                  <UserAvatar
+                    avatarUrl={friend.avatar_url}
+                    avatarPreset={friend.avatar_preset}
+                    size={36}
+                    fallbackLabel={friend.nickname}
+                  />
+                  <View style={styles.rowMeta}>
+                    <Text style={styles.rowName}>@{friend.nickname}</Text>
+                    {friend.gastro_score != null ? (
+                      <Text style={styles.rowScore}>Gastro {friend.gastro_score.toFixed(1)}</Text>
+                    ) : null}
+                  </View>
+                  <Pressable style={styles.msgBtn} onPress={() => void openDm(friend.nickname)}>
+                    <Text style={styles.msgBtnText}>Mesaj</Text>
+                  </Pressable>
+                  <Pressable onPress={() => void onRemove(friend.nickname)} hitSlop={8}>
+                    <Text style={styles.removeText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -176,6 +280,8 @@ const styles = StyleSheet.create({
   addBtnText: { color: GastroColors.accentDark, fontWeight: '800' },
   muted: { color: GastroColors.muted, fontSize: 13 },
   error: { color: '#f87171', fontSize: 13 },
+  sectionBlock: { gap: 8 },
+  sectionLabel: { color: GastroColors.text, fontSize: 13, fontWeight: '700' },
   list: { gap: 8 },
   row: {
     flexDirection: 'row',
@@ -189,6 +295,14 @@ const styles = StyleSheet.create({
   rowMeta: { flex: 1, gap: 2 },
   rowName: { color: GastroColors.text, fontWeight: '700', fontSize: 14 },
   rowScore: { color: GastroColors.muted, fontSize: 11 },
+  acceptBtn: {
+    borderRadius: 10,
+    backgroundColor: GastroColors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  acceptBtnText: { color: GastroColors.accentDark, fontWeight: '800', fontSize: 12 },
+  rejectText: { color: '#f87171', fontWeight: '700', fontSize: 12, paddingHorizontal: 4 },
   msgBtn: {
     borderRadius: 10,
     borderWidth: 1,

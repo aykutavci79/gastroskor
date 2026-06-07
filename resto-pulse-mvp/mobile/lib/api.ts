@@ -25,11 +25,15 @@ import type {
   Review,
   ReviewAnalyzeResult,
   ReviewReply,
+  CheckInResult,
+  CheckInStatus,
   DmInboxResponse,
   DmMessageItem,
   DmMessageListResponse,
   FriendListItem,
   FriendListResponse,
+  FriendRequestItem,
+  FriendRequestListResponse,
   PublicUserCard,
   UserProfile,
 } from '@/lib/types';
@@ -71,6 +75,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       } else if (parsed.detail && typeof parsed.detail === 'object' && !Array.isArray(parsed.detail)) {
         const modErr = parseModerationDetail(parsed.detail);
         if (modErr) throw modErr;
+        const detailObj = parsed.detail as { message?: string };
+        if (typeof detailObj.message === 'string' && detailObj.message.trim()) {
+          message = detailObj.message;
+        }
       }
     } catch (err) {
       if (err instanceof ReviewModerationApiError) throw err;
@@ -132,6 +140,27 @@ export function getRegionalProduct(slug: string, params?: { city?: string }) {
 
 export function getRestaurant(id: string) {
   return request<Restaurant>(`/restaurants/${id}`);
+}
+
+export function getCheckInStatus(restaurantId: string, userEmail?: string | null) {
+  const query = userEmail?.trim()
+    ? `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`
+    : '';
+  return request<CheckInStatus>(`/restaurants/${restaurantId}/check-in/status${query}`);
+}
+
+export function postCheckIn(
+  restaurantId: string,
+  payload: { user_email: string; latitude: number; longitude: number },
+) {
+  return request<CheckInResult>(`/restaurants/${restaurantId}/check-in`, {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: payload.user_email.trim().toLowerCase(),
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+    }),
+  });
 }
 
 export function listRestaurantReviews(restaurantId: string, viewerEmail?: string | null) {
@@ -606,12 +635,47 @@ export function listFriends(userEmail: string, limit = 100) {
 }
 
 export function addFriend(userEmail: string, targetNickname: string) {
-  return request<FriendListItem>('/social/me/friends', {
+  return request<FriendRequestItem>('/social/me/friends', {
     method: 'POST',
     body: JSON.stringify({
       user_email: userEmail.trim().toLowerCase(),
       target_nickname: targetNickname,
     }),
+  });
+}
+
+export function listFriendRequests(userEmail: string, limit = 50) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    limit: String(limit),
+  });
+  return request<FriendRequestListResponse>(`/social/me/friend-requests?${query.toString()}`);
+}
+
+export function acceptFriendRequest(userEmail: string, requestId: string) {
+  return request<FriendListItem>(`/social/me/friend-requests/${encodeURIComponent(requestId)}/accept`, {
+    method: 'POST',
+    body: JSON.stringify({ user_email: userEmail.trim().toLowerCase() }),
+  });
+}
+
+export function rejectFriendRequest(userEmail: string, requestId: string) {
+  return request<{ ok: boolean; status: string }>(
+    `/social/me/friend-requests/${encodeURIComponent(requestId)}/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ user_email: userEmail.trim().toLowerCase() }),
+    },
+  );
+}
+
+export function cancelFriendRequest(userEmail: string, targetNickname: string) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    target_nickname: targetNickname,
+  });
+  return request<{ ok: boolean }>(`/social/me/friend-requests?${query.toString()}`, {
+    method: 'DELETE',
   });
 }
 

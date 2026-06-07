@@ -21,6 +21,7 @@ export function livePlaceToRestaurantCard(item: LivePlaceSearchItem): Restaurant
     distance_meters: item.distance_meters,
     google_place_id: item.place_id,
     google_photo_url: item.google_photo_url ?? null,
+    check_in_visitor_count: item.check_in_visitor_count ?? 0,
     geo_indications: [],
     has_geographical_indication: false,
     gi_product_name: null,

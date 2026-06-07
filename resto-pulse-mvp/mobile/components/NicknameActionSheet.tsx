@@ -9,10 +9,14 @@ type Props = {
   avatarUrl?: string | null;
   avatarPreset?: string | null;
   isFriend?: boolean;
+  friendRequestStatus?: string | null;
   isSelf?: boolean;
   onClose: () => void;
   onWhisper: () => void;
   onAddFriend: () => void;
+  onAcceptFriend?: () => void;
+  onRejectFriend?: () => void;
+  onCancelFriendRequest?: () => void;
   onRemoveFriend: () => void;
   onSendDm: () => void;
 };
@@ -23,10 +27,14 @@ export function NicknameActionSheet({
   avatarUrl,
   avatarPreset,
   isFriend = false,
+  friendRequestStatus = null,
   isSelf = false,
   onClose,
   onWhisper,
   onAddFriend,
+  onAcceptFriend,
+  onRejectFriend,
+  onCancelFriendRequest,
   onRemoveFriend,
   onSendDm,
 }: Props) {
@@ -50,15 +58,35 @@ export function NicknameActionSheet({
           </View>
 
           {isSelf ? (
-            <Text style={styles.selfHint}>Bu senin takma adin.</Text>
+            <Text style={styles.selfHint}>Bu senin takma adın.</Text>
           ) : (
             <View style={styles.actions}>
-              <ActionButton label="Fisilda (@etiketle)" onPress={onWhisper} accent />
-              <ActionButton label="Ozel mesaj gonder" onPress={onSendDm} />
+              <ActionButton label="Fısılda (@etiketle)" onPress={onWhisper} accent />
               {isFriend ? (
-                <ActionButton label="Arkadas listesinden cikar" onPress={onRemoveFriend} danger />
+                <>
+                  <ActionButton label="Özel mesaj gönder" onPress={onSendDm} />
+                  <ActionButton label="Arkadaş listesinden çıkar" onPress={onRemoveFriend} danger />
+                </>
+              ) : friendRequestStatus === 'pending_incoming' ? (
+                <>
+                  <ActionButton label="Arkadaşlık isteğini kabul et" onPress={onAcceptFriend ?? onClose} accent />
+                  <ActionButton label="Reddet" onPress={onRejectFriend ?? onClose} danger />
+                </>
+              ) : friendRequestStatus === 'pending_outgoing' ? (
+                <>
+                  <Text style={styles.pendingHint}>Arkadaşlık isteği bekliyor.</Text>
+                  <ActionButton label="İsteği iptal et" onPress={onCancelFriendRequest ?? onClose} />
+                </>
+              ) : friendRequestStatus === 'blocked' || friendRequestStatus === 'cooldown' ? (
+                <Text style={styles.pendingHint}>
+                  {friendRequestStatus === 'blocked'
+                    ? 'Bu kullanıcıya istek gönderemezsiniz.'
+                    : 'Reddedildi. Bir süre sonra tekrar deneyebilirsiniz.'}
+                </Text>
               ) : (
-                <ActionButton label="Arkadas ekle" onPress={onAddFriend} />
+                <>
+                  <ActionButton label="Arkadaşlık isteği gönder" onPress={onAddFriend} />
+                </>
               )}
             </View>
           )}
@@ -123,6 +151,7 @@ const styles = StyleSheet.create({
   nickname: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 13 },
   selfHint: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
+  pendingHint: { color: GastroColors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   actions: { gap: 8 },
   actionBtn: {
     borderRadius: 12,

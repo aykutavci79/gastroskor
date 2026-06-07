@@ -9,6 +9,7 @@ from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Revi
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
 from app.services.platform_profile_photo import google_photo_url_for_profile
+from app.services.restaurant_check_in import merge_check_in_counts_into_rows
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_for_restaurant_ids
 
 
@@ -294,4 +295,5 @@ def _serialize_candidates(
         }
         merge_partner_into_row(row, partner_map.get(rid))
         result.append(row)
+    merge_check_in_counts_into_rows(db, result)
     return result

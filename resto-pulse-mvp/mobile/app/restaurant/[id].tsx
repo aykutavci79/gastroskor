@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -32,10 +33,12 @@ import { GastroColors } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import {
   createReview,
+  getCheckInStatus,
   getLivePlaceDetails,
   getRestaurant,
   listRestaurantReviews,
   moderateReviewText,
+  postCheckIn,
   uploadReviewImage,
 } from '@/lib/api';
 import { ReviewModerationApiError } from '@/lib/api';
@@ -45,7 +48,7 @@ import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
-import type { DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
+import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
@@ -74,6 +77,8 @@ export default function RestaurantDetailScreen() {
   const [moderationHighlights, setModerationHighlights] = useState<string[]>([]);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
   const [following, setFollowing] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus | null>(null);
+  const [checkInBusy, setCheckInBusy] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const reviewFormOffsetY = useRef(0);
@@ -265,6 +270,24 @@ export default function RestaurantDetailScreen() {
     };
   }, [id, user?.email, user?.id]);
 
+  useEffect(() => {
+    if (!restaurant?.id || !isUuid(restaurant.id)) {
+      setCheckInStatus(null);
+      return;
+    }
+    let cancelled = false;
+    void getCheckInStatus(restaurant.id, user?.email)
+      .then((status) => {
+        if (!cancelled) setCheckInStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setCheckInStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id, user?.email]);
+
   const gsRating = useMemo(() => averageGsRating(reviews), [reviews]);
   const hasOwnReview = useMemo(
     () => reviews.some((row) => isOwnReview(row, user?.email, user?.id)),
@@ -285,6 +308,49 @@ export default function RestaurantDetailScreen() {
   const locationLine = [restaurant?.district, restaurant?.city, restaurant?.address]
     .filter(Boolean)
     .join(' · ');
+  const visitorCount =
+    checkInStatus?.visitor_count ?? restaurant?.check_in_visitor_count ?? 0;
+  const lastVisitLabel = checkInStatus?.last_check_in_at
+    ? new Date(checkInStatus.last_check_in_at).toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
+  async function onCheckIn() {
+    if (!restaurant?.id) return;
+    if (!user?.email) {
+      router.push('/(tabs)/profil');
+      return;
+    }
+    setCheckInBusy(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Konum gerekli', 'Check-in için konum izni vermelisiniz.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({});
+      const result = await postCheckIn(restaurant.id, {
+        user_email: user.email,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      setCheckInStatus({
+        visitor_count: result.visitor_count,
+        checked_in_today: true,
+        last_check_in_at: result.created_at,
+      });
+      setRestaurant((prev) =>
+        prev ? { ...prev, check_in_visitor_count: result.visitor_count } : prev,
+      );
+    } catch (err) {
+      Alert.alert('Check-in', err instanceof Error ? err.message : 'Check-in yapılamadı.');
+    } finally {
+      setCheckInBusy(false);
+    }
+  }
 
   async function submitReview() {
     if (!restaurant) return;
@@ -424,6 +490,42 @@ export default function RestaurantDetailScreen() {
                 {visual.emoji} {visual.label}
               </Text>
             </View>
+          ) : null}
+
+          {visitorCount > 0 ? (
+            <Text style={styles.checkInMeta}>
+              👣 {visitorCount.toLocaleString('tr-TR')} benzersiz ziyaretçi
+            </Text>
+          ) : null}
+
+          {user && lastVisitLabel ? (
+            <Text style={styles.checkInMeta}>
+              Son ziyaretin: {checkInStatus?.checked_in_today ? 'bugün' : lastVisitLabel}
+            </Text>
+          ) : null}
+
+          {isUuid(restaurant.id) ? (
+            !user ? (
+              <Pressable onPress={() => router.push('/(tabs)/profil')}>
+                <Text style={styles.checkInLogin}>Check-in için giriş yap →</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={[
+                  styles.checkInBtn,
+                  (checkInBusy || checkInStatus?.checked_in_today) && styles.checkInBtnDisabled,
+                ]}
+                onPress={() => void onCheckIn()}
+                disabled={checkInBusy || Boolean(checkInStatus?.checked_in_today)}>
+                <Text style={styles.checkInBtnText}>
+                  {checkInStatus?.checked_in_today
+                    ? '✓ Bugün check-in yaptın'
+                    : checkInBusy
+                      ? 'Konum alınıyor…'
+                      : '📍 Buradayım (check-in)'}
+                </Text>
+              </Pressable>
+            )
           ) : null}
 
           {(mapsUrl || travel) && (
@@ -611,6 +713,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   categoryText: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
+  checkInMeta: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
+  checkInLogin: { color: GastroColors.accent, fontSize: 13, fontWeight: '700' },
+  checkInBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: GastroColors.accent,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  checkInBtnDisabled: { opacity: 0.55 },
+  checkInBtnText: { color: GastroColors.accentDark, fontWeight: '800', fontSize: 13 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   shareRow: { marginTop: 4 },
   ghostBtn: {

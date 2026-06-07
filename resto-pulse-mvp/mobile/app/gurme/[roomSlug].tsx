@@ -22,9 +22,12 @@ import { useSession } from '@/context/session-context';
 import {
   ReviewModerationApiError,
   addFriend,
+  acceptFriendRequest,
+  cancelFriendRequest,
   createGourmetChatMessage,
   getPublicUserByNickname,
   listGourmetChatMessages,
+  rejectFriendRequest,
   removeFriend,
   startDmThread,
 } from '@/lib/api';
@@ -57,6 +60,8 @@ export default function GurmeRoomScreen() {
   const [sheetNickname, setSheetNickname] = useState('');
   const [sheetAuthor, setSheetAuthor] = useState<GourmetChatAuthor | null>(null);
   const [sheetIsFriend, setSheetIsFriend] = useState(false);
+  const [sheetFriendRequestStatus, setSheetFriendRequestStatus] = useState<string | null>(null);
+  const [sheetFriendRequestId, setSheetFriendRequestId] = useState<string | null>(null);
   const composerRef = useRef<TextInput>(null);
 
   const scrollToBottom = useCallback((animated = true) => {
@@ -117,17 +122,23 @@ export default function GurmeRoomScreen() {
       if (user.nickname && nickname.toLowerCase() === user.nickname.toLowerCase()) {
         setSheetNickname(nickname);
         setSheetAuthor(author ?? { nickname });
-        setSheetIsFriend(false);
-        setSheetVisible(true);
-        return;
-      }
-      setSheetNickname(nickname);
-      setSheetAuthor(author ?? { nickname });
       setSheetIsFriend(false);
+      setSheetFriendRequestStatus(null);
+      setSheetFriendRequestId(null);
       setSheetVisible(true);
-      try {
-        const card = await getPublicUserByNickname(nickname, user.email);
-        setSheetIsFriend(card.is_friend);
+      return;
+    }
+    setSheetNickname(nickname);
+    setSheetAuthor(author ?? { nickname });
+    setSheetIsFriend(false);
+    setSheetFriendRequestStatus(null);
+    setSheetFriendRequestId(null);
+    setSheetVisible(true);
+    try {
+      const card = await getPublicUserByNickname(nickname, user.email);
+      setSheetIsFriend(card.is_friend);
+      setSheetFriendRequestStatus(card.friend_request_status ?? null);
+      setSheetFriendRequestId(card.friend_request_id ?? null);
         setSheetAuthor({
           nickname: card.nickname,
           avatar_url: card.avatar_url,
@@ -156,10 +167,45 @@ export default function GurmeRoomScreen() {
     if (!user?.email || !sheetNickname) return;
     try {
       await addFriend(user.email, sheetNickname);
-      setSheetIsFriend(true);
-      Alert.alert('Arkadas eklendi', `@${sheetNickname} artik arkadas listende.`);
+      setSheetFriendRequestStatus('pending_outgoing');
+      Alert.alert('İstek gönderildi', `@${sheetNickname} kullanıcısına arkadaşlık isteği iletildi.`);
     } catch (err) {
-      Alert.alert('Hata', err instanceof Error ? err.message : 'Eklenemedi.');
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Gönderilemedi.');
+    }
+  }, [sheetNickname, user?.email]);
+
+  const handleAcceptFriend = useCallback(async () => {
+    if (!user?.email || !sheetFriendRequestId) return;
+    try {
+      await acceptFriendRequest(user.email, sheetFriendRequestId);
+      setSheetIsFriend(true);
+      setSheetFriendRequestStatus('friends');
+      Alert.alert('Arkadaş eklendi', `@${sheetNickname} artık arkadaş listende.`);
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Kabul edilemedi.');
+    }
+  }, [sheetFriendRequestId, sheetNickname, user?.email]);
+
+  const handleRejectFriend = useCallback(async () => {
+    if (!user?.email || !sheetFriendRequestId) return;
+    try {
+      await rejectFriendRequest(user.email, sheetFriendRequestId);
+      setSheetFriendRequestStatus(null);
+      setSheetFriendRequestId(null);
+      setSheetVisible(false);
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Reddedilemedi.');
+    }
+  }, [sheetFriendRequestId, user?.email]);
+
+  const handleCancelFriendRequest = useCallback(async () => {
+    if (!user?.email || !sheetNickname) return;
+    try {
+      await cancelFriendRequest(user.email, sheetNickname);
+      setSheetFriendRequestStatus(null);
+      setSheetFriendRequestId(null);
+    } catch (err) {
+      Alert.alert('Hata', err instanceof Error ? err.message : 'İptal edilemedi.');
     }
   }, [sheetNickname, user?.email]);
 
@@ -297,10 +343,14 @@ export default function GurmeRoomScreen() {
         avatarUrl={sheetAuthor?.avatar_url}
         avatarPreset={sheetAuthor?.avatar_preset}
         isFriend={sheetIsFriend}
+        friendRequestStatus={sheetFriendRequestStatus}
         isSelf={Boolean(user?.nickname && sheetNickname.toLowerCase() === user.nickname.toLowerCase())}
         onClose={() => setSheetVisible(false)}
         onWhisper={() => insertMention(sheetNickname)}
         onAddFriend={() => void handleAddFriend()}
+        onAcceptFriend={() => void handleAcceptFriend()}
+        onRejectFriend={() => void handleRejectFriend()}
+        onCancelFriendRequest={() => void handleCancelFriendRequest()}
         onRemoveFriend={() => void handleRemoveFriend()}
         onSendDm={() => void handleSendDm()}
       />

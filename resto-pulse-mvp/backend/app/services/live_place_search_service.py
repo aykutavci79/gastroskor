@@ -16,6 +16,7 @@ from app.services.gastro_score_ranking import rank_live_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
+from app.services.restaurant_check_in import visitor_counts_for_restaurants
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_by_google_place_ids
 from app.services.smart_filters import SmartFilterCriteria, apply_smart_filters, merge_criteria
 
@@ -182,20 +183,23 @@ def _enrich_with_partners(
     place_ids = [item.place_id for item in items]
     partner_by_place = partner_listings_by_google_place_ids(db, place_ids)
     member_ratings: dict[str, float | None] = {}
-    restaurant_ids = [
-        partner_by_place[pid]["restaurant_id"]
-        for pid in place_ids
-        if pid in partner_by_place and partner_by_place[pid].get("restaurant_id")
-    ]
-    if restaurant_ids:
-        for rid in restaurant_ids:
-            try:
-                rid_uuid = UUID(rid)
-            except ValueError:
-                continue
-            avg = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == rid_uuid))
+    restaurant_ids: list[str] = []
+    for item in items:
+        partner = partner_by_place.get(item.place_id)
+        if partner and partner.get("restaurant_id"):
+            restaurant_ids.append(str(partner["restaurant_id"]))
+    uuid_ids: list[UUID] = []
+    for rid in restaurant_ids:
+        try:
+            uuid_ids.append(UUID(rid))
+        except ValueError:
+            continue
+    if uuid_ids:
+        for rid in uuid_ids:
+            avg = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == rid))
             if avg is not None:
-                member_ratings[rid] = round(float(avg), 1)
+                member_ratings[str(rid)] = round(float(avg), 1)
+    check_in_counts = visitor_counts_for_restaurants(db, uuid_ids) if uuid_ids else {}
 
     enriched: list[LivePlaceSearchItem] = []
     for item in items:
@@ -205,6 +209,8 @@ def _enrich_with_partners(
         rid = row.get("restaurant_id")
         if rid and rid in member_ratings:
             row["member_avg_rating"] = member_ratings[rid]
+        if rid:
+            row["check_in_visitor_count"] = check_in_counts.get(rid, 0)
         enriched.append(LivePlaceSearchItem(**row))
     return enriched
 

@@ -14,17 +14,24 @@ from app.schemas.social import (
     FriendAddPayload,
     FriendListItem,
     FriendListResponse,
+    FriendRequestActionPayload,
+    FriendRequestItem,
+    FriendRequestListResponse,
     PublicUserCard,
 )
 from app.services.user_social import (
     UserSocialError,
-    add_friend,
+    accept_friend_request,
+    cancel_friend_request,
     find_user_by_nickname,
     list_dm_inbox,
     list_dm_messages,
+    list_friend_requests,
     list_friends,
+    reject_friend_request,
     remove_friend,
     send_dm_message,
+    send_friend_request,
     serialize_public_user,
     start_dm_thread,
 )
@@ -76,14 +83,70 @@ def get_my_friends(
     return FriendListResponse(items=[FriendListItem(**row) for row in items], total=len(items))
 
 
-@router.post("/me/friends", response_model=FriendListItem)
+@router.post("/me/friends", response_model=FriendRequestItem)
 def post_add_friend(payload: FriendAddPayload, db: Session = Depends(get_db)):
     user = _resolve_user(db, payload.user_email)
     try:
-        row = add_friend(db, user_id=user.id, target_nickname=payload.target_nickname)
+        row = send_friend_request(db, user_id=user.id, target_nickname=payload.target_nickname)
+    except UserSocialError as exc:
+        _raise_social_error(exc)
+    return FriendRequestItem(**row)
+
+
+@router.get("/me/friend-requests", response_model=FriendRequestListResponse)
+def get_friend_requests(
+    user_email: str = Query(..., min_length=3),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, user_email)
+    payload = list_friend_requests(db, user_id=user.id, limit=limit)
+    return FriendRequestListResponse(
+        incoming=[FriendRequestItem(**row) for row in payload["incoming"]],
+        outgoing=[FriendRequestItem(**row) for row in payload["outgoing"]],
+        total_pending=payload["total_pending"],
+    )
+
+
+@router.post("/me/friend-requests/{request_id}/accept", response_model=FriendListItem)
+def post_accept_friend_request(
+    request_id: UUID,
+    payload: FriendRequestActionPayload,
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, payload.user_email)
+    try:
+        row = accept_friend_request(db, user_id=user.id, request_id=request_id)
     except UserSocialError as exc:
         _raise_social_error(exc)
     return FriendListItem(**row)
+
+
+@router.post("/me/friend-requests/{request_id}/reject")
+def post_reject_friend_request(
+    request_id: UUID,
+    payload: FriendRequestActionPayload,
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, payload.user_email)
+    try:
+        return reject_friend_request(db, user_id=user.id, request_id=request_id)
+    except UserSocialError as exc:
+        _raise_social_error(exc)
+
+
+@router.delete("/me/friend-requests")
+def delete_friend_request(
+    user_email: str = Query(..., min_length=3),
+    target_nickname: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, user_email)
+    try:
+        cancel_friend_request(db, user_id=user.id, target_nickname=target_nickname)
+    except UserSocialError as exc:
+        _raise_social_error(exc)
+    return {"ok": True}
 
 
 @router.delete("/me/friends")

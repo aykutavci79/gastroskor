@@ -11,6 +11,9 @@ class PublicUserCard(BaseModel):
     gastro_score: float | None = None
     review_count: int = Field(ge=0, default=0)
     is_friend: bool = False
+    friend_request_status: str | None = None
+    friend_request_id: str | None = None
+    cooldown_until: datetime | None = None
 
 
 class FriendListItem(PublicUserCard):
@@ -26,6 +29,26 @@ class FriendListResponse(BaseModel):
 class FriendAddPayload(BaseModel):
     user_email: str
     target_nickname: str
+
+
+class FriendRequestItem(BaseModel):
+    id: str
+    direction: str
+    status: str
+    created_at: datetime
+    responded_at: datetime | None = None
+    cooldown_until: datetime | None = None
+    peer: PublicUserCard
+
+
+class FriendRequestListResponse(BaseModel):
+    incoming: list[FriendRequestItem]
+    outgoing: list[FriendRequestItem]
+    total_pending: int
+
+
+class FriendRequestActionPayload(BaseModel):
+    user_email: str
 
 
 class FriendRemovePayload(BaseModel):

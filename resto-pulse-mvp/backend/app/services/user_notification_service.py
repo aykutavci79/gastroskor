@@ -393,3 +393,63 @@ def notify_dm_message(
         push_body=snippet,
     )
 
+
+def notify_friend_request(
+    db: Session,
+    *,
+    recipient: User,
+    actor: User,
+    request_id: UUID,
+) -> UserNotification | None:
+    if recipient.id == actor.id:
+        return None
+    actor_name = actor.nickname or "Gurme"
+    title = f"@{actor_name} arkadaslik istegi gonderdi"
+    message = "Profil → Arkadaslarim bolumunden kabul veya reddedebilirsiniz."
+    metadata = {
+        "actor_user_id": str(actor.id),
+        "actor_nickname": actor_name,
+        "friend_request_id": str(request_id),
+        "open_path": "/(tabs)/profil",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=recipient.id,
+        notification_type="friend_request",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title="Yeni arkadaslik istegi",
+        push_body=f"@{actor_name} seni eklemek istiyor",
+    )
+
+
+def notify_friend_request_accepted(
+    db: Session,
+    *,
+    recipient: User,
+    actor: User,
+    request_id: UUID,
+) -> UserNotification | None:
+    if recipient.id == actor.id:
+        return None
+    actor_name = actor.nickname or "Gurme"
+    title = f"@{actor_name} isteginizi kabul etti"
+    message = "Artik birbirinize ozel mesaj gonderebilirsiniz."
+    metadata = {
+        "actor_user_id": str(actor.id),
+        "actor_nickname": actor_name,
+        "friend_request_id": str(request_id),
+        "open_path": "/(tabs)/profil",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=recipient.id,
+        notification_type="friend_request_accepted",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title="Arkadaslik istegi kabul edildi",
+        push_body=f"@{actor_name} artik arkadasin",
+    )
+

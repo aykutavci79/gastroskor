@@ -38,7 +38,7 @@ from app.models import (
     SentimentLabel,
     User,
 )
-from app.schemas.geo_indication import GeoIndicationRead
+from app.schemas.check_in import CheckInPayload, CheckInResult, CheckInStatus
 from app.schemas.regional_flavors import RegionalProductDetailResponse, RegionalProductListResponse
 from app.schemas.feedback import (
     CompensationCouponCreate,
@@ -68,6 +68,13 @@ from app.schemas.restaurant import (
     RestaurantTrendingItem,
 )
 from app.services.gastro_score_ranking import haversine_meters
+from app.services.restaurant_check_in import (
+    CheckInError,
+    create_check_in,
+    get_user_check_in_status,
+    merge_check_in_counts_into_rows,
+    visitor_count,
+)
 from app.services.restaurant_partner import (
     merge_partner_into_row,
     partner_listing_for_restaurant,
@@ -249,6 +256,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu=menu,
         menu_preview=partner.get("menu_preview") or [],
         menu_item_count=int(partner.get("menu_item_count") or 0),
+        check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
     )
 
 
@@ -928,6 +936,7 @@ def list_restaurants(
         }
         merge_partner_into_row(row, partner_map.get(rid))
         result.append(row)
+    merge_check_in_counts_into_rows(db, result)
     return result
 
 
@@ -1069,6 +1078,43 @@ def get_restaurant(restaurant_id: UUID, db: Session = Depends(get_db)):
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     return serialize_restaurant(restaurant, db=db)
+
+
+@router.get("/restaurants/{restaurant_id}/check-in/status", response_model=CheckInStatus)
+def get_restaurant_check_in_status(
+    restaurant_id: UUID,
+    user_email: str | None = Query(default=None, min_length=3),
+    db: Session = Depends(get_db),
+):
+    if not db.get(Restaurant, restaurant_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+    viewer_id = None
+    if user_email:
+        viewer_id = resolve_user_uuid(db, email=user_email)
+    return CheckInStatus(**get_user_check_in_status(db, user_id=viewer_id, restaurant_id=restaurant_id))
+
+
+@router.post("/restaurants/{restaurant_id}/check-in", response_model=CheckInResult)
+def post_restaurant_check_in(
+    restaurant_id: UUID,
+    payload: CheckInPayload,
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_user(db, email=payload.user_email)
+    try:
+        result = create_check_in(
+            db,
+            user_id=user.id,
+            restaurant_id=restaurant_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+        )
+    except CheckInError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "check_in", "message": exc.message},
+        ) from exc
+    return CheckInResult(**result)
 
 
 @router.post("/restaurants", response_model=RestaurantRead, status_code=status.HTTP_201_CREATED)

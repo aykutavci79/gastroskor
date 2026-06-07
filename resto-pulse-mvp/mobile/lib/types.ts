@@ -83,6 +83,7 @@ export type RestaurantListItem = {
   distance_meters?: number | null;
   google_place_id?: string | null;
   google_photo_url?: string | null;
+  check_in_visitor_count?: number;
 };
 
 export type RestaurantFollowStatus = {
@@ -220,6 +221,19 @@ export type LivePlaceSearchItem = {
   menu_item_count?: number;
   member_avg_rating?: number | null;
   google_photo_url?: string | null;
+  check_in_visitor_count?: number;
+};
+
+export type CheckInStatus = {
+  visitor_count: number;
+  checked_in_today: boolean;
+  last_check_in_at: string | null;
+};
+
+export type CheckInResult = {
+  check_in_id: string;
+  created_at: string;
+  visitor_count: number;
 };
 
 export type FeedbackStatus = 'open' | 'in_review' | 'resolved' | 'rejected';
@@ -585,6 +599,25 @@ export type PublicUserCard = {
   gastro_score?: number | null;
   review_count: number;
   is_friend: boolean;
+  friend_request_status?: string | null;
+  friend_request_id?: string | null;
+  cooldown_until?: string | null;
+};
+
+export type FriendRequestItem = {
+  id: string;
+  direction: 'incoming' | 'outgoing';
+  status: string;
+  created_at: string;
+  responded_at?: string | null;
+  cooldown_until?: string | null;
+  peer: PublicUserCard;
+};
+
+export type FriendRequestListResponse = {
+  incoming: FriendRequestItem[];
+  outgoing: FriendRequestItem[];
+  total_pending: number;
 };
 
 export type FriendListItem = PublicUserCard & {

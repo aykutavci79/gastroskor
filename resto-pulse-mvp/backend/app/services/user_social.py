@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.entities import DmMessage, DmReadState, DmThread, User, UserFriendship
+from app.models.entities import (
+    DmMessage,
+    DmReadState,
+    DmThread,
+    FriendRequest,
+    FriendRequestStatus,
+    User,
+    UserFriendship,
+)
 from app.services.gourmet_profile import nickname_identity_key, public_user_avatar
 from app.services.review_moderation import check_review_text
-from app.services.user_notification_service import notify_dm_message
+from app.services.user_notification_service import (
+    notify_dm_message,
+    notify_friend_request,
+    notify_friend_request_accepted,
+)
 
 DM_BODY_MAX = 800
+FRIEND_REQUEST_COOLDOWN_DAYS = 7
 
 
 class UserSocialError(Exception):
@@ -36,26 +49,6 @@ def find_user_by_nickname(db: Session, nickname: str) -> User | None:
     return None
 
 
-def serialize_public_user(db: Session, user: User, *, viewer_id: UUID | None = None) -> dict:
-    from app.models.entities import Review
-
-    avg_rating = db.scalar(select(func.avg(Review.rating)).where(Review.author_id == user.id))
-    review_count = db.scalar(select(func.count(Review.id)).where(Review.author_id == user.id)) or 0
-    avatar_url, avatar_preset = public_user_avatar(user)
-    is_friend = False
-    if viewer_id and viewer_id != user.id:
-        is_friend = is_friend_pair(db, viewer_id, user.id)
-    return {
-        "id": str(user.id),
-        "nickname": user.nickname or "Gurme",
-        "avatar_url": avatar_url,
-        "avatar_preset": avatar_preset,
-        "gastro_score": round(float(avg_rating), 1) if avg_rating is not None else None,
-        "review_count": int(review_count),
-        "is_friend": is_friend,
-    }
-
-
 def is_friend_pair(db: Session, user_a: UUID, user_b: UUID) -> bool:
     if user_a == user_b:
         return False
@@ -70,22 +63,274 @@ def is_friend_pair(db: Session, user_a: UUID, user_b: UUID) -> bool:
     return row is not None
 
 
-def add_friend(db: Session, *, user_id: UUID, target_nickname: str) -> dict:
+def _get_friend_request_row(db: Session, from_id: UUID, to_id: UUID) -> FriendRequest | None:
+    return db.scalar(
+        select(FriendRequest).where(
+            FriendRequest.from_user_id == from_id,
+            FriendRequest.to_user_id == to_id,
+        )
+    )
+
+
+def _friend_request_state_for_viewer(
+    db: Session,
+    *,
+    viewer_id: UUID | None,
+    target_id: UUID,
+) -> dict:
+    if not viewer_id or viewer_id == target_id:
+        return {
+            "friend_request_status": None,
+            "friend_request_id": None,
+            "cooldown_until": None,
+        }
+    if is_friend_pair(db, viewer_id, target_id):
+        return {
+            "friend_request_status": "friends",
+            "friend_request_id": None,
+            "cooldown_until": None,
+        }
+
+    outgoing = _get_friend_request_row(db, viewer_id, target_id)
+    if outgoing:
+        if outgoing.status == FriendRequestStatus.pending:
+            return {
+                "friend_request_status": "pending_outgoing",
+                "friend_request_id": str(outgoing.id),
+                "cooldown_until": None,
+            }
+        if outgoing.status == FriendRequestStatus.blocked:
+            return {
+                "friend_request_status": "blocked",
+                "friend_request_id": str(outgoing.id),
+                "cooldown_until": None,
+            }
+        if outgoing.status == FriendRequestStatus.rejected:
+            if outgoing.rejection_count >= 2:
+                return {
+                    "friend_request_status": "blocked",
+                    "friend_request_id": str(outgoing.id),
+                    "cooldown_until": None,
+                }
+            if outgoing.last_rejected_at:
+                cooldown_until = outgoing.last_rejected_at + timedelta(days=FRIEND_REQUEST_COOLDOWN_DAYS)
+                if cooldown_until > _utcnow():
+                    return {
+                        "friend_request_status": "cooldown",
+                        "friend_request_id": str(outgoing.id),
+                        "cooldown_until": cooldown_until,
+                    }
+
+    incoming = _get_friend_request_row(db, target_id, viewer_id)
+    if incoming and incoming.status == FriendRequestStatus.pending:
+        return {
+            "friend_request_status": "pending_incoming",
+            "friend_request_id": str(incoming.id),
+            "cooldown_until": None,
+        }
+    if incoming and incoming.status == FriendRequestStatus.blocked:
+        return {
+            "friend_request_status": "blocked",
+            "friend_request_id": str(incoming.id),
+            "cooldown_until": None,
+        }
+
+    return {
+        "friend_request_status": None,
+        "friend_request_id": None,
+        "cooldown_until": None,
+    }
+
+
+def serialize_public_user(db: Session, user: User, *, viewer_id: UUID | None = None) -> dict:
+    from app.models.entities import Review
+
+    avg_rating = db.scalar(select(func.avg(Review.rating)).where(Review.author_id == user.id))
+    review_count = db.scalar(select(func.count(Review.id)).where(Review.author_id == user.id)) or 0
+    avatar_url, avatar_preset = public_user_avatar(user)
+    is_friend = False
+    if viewer_id and viewer_id != user.id:
+        is_friend = is_friend_pair(db, viewer_id, user.id)
+    request_state = _friend_request_state_for_viewer(db, viewer_id=viewer_id, target_id=user.id)
+    return {
+        "id": str(user.id),
+        "nickname": user.nickname or "Gurme",
+        "avatar_url": avatar_url,
+        "avatar_preset": avatar_preset,
+        "gastro_score": round(float(avg_rating), 1) if avg_rating is not None else None,
+        "review_count": int(review_count),
+        "is_friend": is_friend,
+        **request_state,
+    }
+
+
+def _serialize_friend_request(db: Session, row: FriendRequest, *, viewer_id: UUID) -> dict:
+    peer = row.to_user if row.from_user_id == viewer_id else row.from_user
+    direction = "outgoing" if row.from_user_id == viewer_id else "incoming"
+    return {
+        "id": str(row.id),
+        "direction": direction,
+        "status": row.status.value,
+        "created_at": row.created_at,
+        "responded_at": row.responded_at,
+        "cooldown_until": (
+            row.last_rejected_at + timedelta(days=FRIEND_REQUEST_COOLDOWN_DAYS)
+            if row.status == FriendRequestStatus.rejected
+            and row.rejection_count < 2
+            and row.last_rejected_at
+            else None
+        ),
+        "peer": serialize_public_user(db, peer, viewer_id=viewer_id),
+    }
+
+
+def send_friend_request(db: Session, *, user_id: UUID, target_nickname: str) -> dict:
     target = find_user_by_nickname(db, target_nickname)
     if not target or not target.nickname:
         raise UserSocialError("Kullanici bulunamadi.")
     if target.id == user_id:
-        raise UserSocialError("Kendinizi arkadas olarak ekleyemezsiniz.")
+        raise UserSocialError("Kendinize arkadaslik istegi gonderemezsiniz.")
     if is_friend_pair(db, user_id, target.id):
         raise UserSocialError("Zaten arkadas listenizde.")
-    row = UserFriendship(user_id=user_id, friend_user_id=target.id)
-    db.add(row)
+
+    incoming = _get_friend_request_row(db, target.id, user_id)
+    if incoming and incoming.status == FriendRequestStatus.pending:
+        raise UserSocialError("Bu kullanici size zaten istek gondermis. Gelen isteklerden kabul edebilirsiniz.")
+
+    row = _get_friend_request_row(db, user_id, target.id)
+    now = _utcnow()
+    if row:
+        if row.status == FriendRequestStatus.pending:
+            raise UserSocialError("Zaten bekleyen bir isteginiz var.")
+        if row.status == FriendRequestStatus.blocked or (
+            row.status == FriendRequestStatus.rejected and row.rejection_count >= 2
+        ):
+            raise UserSocialError("Bu kullaniciya bir daha istek gonderemezsiniz.")
+        if row.status == FriendRequestStatus.rejected and row.last_rejected_at:
+            cooldown_until = row.last_rejected_at + timedelta(days=FRIEND_REQUEST_COOLDOWN_DAYS)
+            if cooldown_until > now:
+                days_left = max(1, (cooldown_until.date() - now.date()).days)
+                raise UserSocialError(
+                    f"Isteginiz reddedildi. {days_left} gun sonra tekrar deneyebilirsiniz."
+                )
+        row.status = FriendRequestStatus.pending
+        row.responded_at = None
+        row.created_at = now
+    else:
+        row = FriendRequest(from_user_id=user_id, to_user_id=target.id, created_at=now)
+        db.add(row)
+
+    db.flush()
+    sender = db.get(User, user_id)
+    if sender and target:
+        notify_friend_request(db, recipient=target, actor=sender, request_id=row.id)
     db.commit()
     db.refresh(row)
+    return _serialize_friend_request(db, row, viewer_id=user_id)
+
+
+def add_friend(db: Session, *, user_id: UUID, target_nickname: str) -> dict:
+    """Geriye uyumluluk: aninda ekleme yerine istek gonderir."""
+    payload = send_friend_request(db, user_id=user_id, target_nickname=target_nickname)
+    peer = payload["peer"]
     return {
-        "friendship_id": str(row.id),
-        "friends_since": row.created_at,
-        **serialize_public_user(db, target, viewer_id=user_id),
+        "friendship_id": payload["id"],
+        "friends_since": payload["created_at"],
+        **peer,
+    }
+
+
+def accept_friend_request(db: Session, *, user_id: UUID, request_id: UUID) -> dict:
+    row = db.scalar(
+        select(FriendRequest)
+        .where(FriendRequest.id == request_id)
+        .options(selectinload(FriendRequest.from_user), selectinload(FriendRequest.to_user))
+    )
+    if not row or row.to_user_id != user_id:
+        raise UserSocialError("Istek bulunamadi.")
+    if row.status != FriendRequestStatus.pending:
+        raise UserSocialError("Bu istek artik beklemiyor.")
+
+    now = _utcnow()
+    if not is_friend_pair(db, row.from_user_id, row.to_user_id):
+        db.add(UserFriendship(user_id=row.from_user_id, friend_user_id=row.to_user_id, created_at=now))
+    row.status = FriendRequestStatus.accepted
+    row.responded_at = now
+    db.flush()
+
+    if row.from_user and row.to_user:
+        notify_friend_request_accepted(db, recipient=row.from_user, actor=row.to_user, request_id=row.id)
+    db.commit()
+    db.refresh(row)
+    friendship = db.scalar(
+        select(UserFriendship).where(
+            UserFriendship.user_id == row.from_user_id,
+            UserFriendship.friend_user_id == row.to_user_id,
+        )
+    )
+    peer = row.from_user
+    return {
+        "friendship_id": str(friendship.id) if friendship else str(row.id),
+        "friends_since": friendship.created_at if friendship else now,
+        **serialize_public_user(db, peer, viewer_id=user_id),
+    }
+
+
+def reject_friend_request(db: Session, *, user_id: UUID, request_id: UUID) -> dict:
+    row = db.scalar(select(FriendRequest).where(FriendRequest.id == request_id))
+    if not row or row.to_user_id != user_id:
+        raise UserSocialError("Istek bulunamadi.")
+    if row.status != FriendRequestStatus.pending:
+        raise UserSocialError("Bu istek artik beklemiyor.")
+
+    now = _utcnow()
+    row.rejection_count += 1
+    row.last_rejected_at = now
+    row.responded_at = now
+    if row.rejection_count >= 2:
+        row.status = FriendRequestStatus.blocked
+    else:
+        row.status = FriendRequestStatus.rejected
+    db.commit()
+    db.refresh(row)
+    return {"ok": True, "status": row.status.value}
+
+
+def cancel_friend_request(db: Session, *, user_id: UUID, target_nickname: str) -> None:
+    target = find_user_by_nickname(db, target_nickname)
+    if not target:
+        raise UserSocialError("Kullanici bulunamadi.")
+    row = _get_friend_request_row(db, user_id, target.id)
+    if not row or row.status != FriendRequestStatus.pending:
+        raise UserSocialError("Bekleyen istek bulunamadi.")
+    row.status = FriendRequestStatus.cancelled
+    row.responded_at = _utcnow()
+    db.commit()
+
+
+def list_friend_requests(db: Session, *, user_id: UUID, limit: int = 50) -> dict:
+    rows = db.scalars(
+        select(FriendRequest)
+        .where(
+            FriendRequest.status == FriendRequestStatus.pending,
+            or_(FriendRequest.from_user_id == user_id, FriendRequest.to_user_id == user_id),
+        )
+        .options(selectinload(FriendRequest.from_user), selectinload(FriendRequest.to_user))
+        .order_by(FriendRequest.created_at.desc())
+        .limit(min(max(limit, 1), 100))
+    ).all()
+    incoming: list[dict] = []
+    outgoing: list[dict] = []
+    for row in rows:
+        payload = _serialize_friend_request(db, row, viewer_id=user_id)
+        if payload["direction"] == "incoming":
+            incoming.append(payload)
+        else:
+            outgoing.append(payload)
+    return {
+        "incoming": incoming,
+        "outgoing": outgoing,
+        "total_pending": len(rows),
     }
 
 
@@ -104,6 +349,11 @@ def remove_friend(db: Session, *, user_id: UUID, target_nickname: str) -> None:
     if not row:
         raise UserSocialError("Arkadas listenizde degil.")
     db.delete(row)
+    for from_id, to_id in ((user_id, target.id), (target.id, user_id)):
+        req = _get_friend_request_row(db, from_id, to_id)
+        if req and req.status == FriendRequestStatus.accepted:
+            req.status = FriendRequestStatus.cancelled
+            req.responded_at = _utcnow()
     db.commit()
 
 
@@ -232,6 +482,8 @@ def start_dm_thread(db: Session, *, user_id: UUID, target_nickname: str) -> dict
         raise UserSocialError("Kullanici bulunamadi.")
     if target.id == user_id:
         raise UserSocialError("Kendinize mesaj gonderemezsiniz.")
+    if not is_friend_pair(db, user_id, target.id):
+        raise UserSocialError("Ozel mesaj icin once arkadas olmalisiniz.")
     thread = get_or_create_thread(db, user_id=user_id, peer_id=target.id)
     db.commit()
     db.refresh(thread)
@@ -302,6 +554,9 @@ def send_dm_message(
     thread = db.get(DmThread, thread_id)
     if not thread or user_id not in (thread.user_low_id, thread.user_high_id):
         raise UserSocialError("Sohbet bulunamadi.")
+    peer_id = _thread_peer_id(thread, user_id)
+    if not is_friend_pair(db, user_id, peer_id):
+        raise UserSocialError("Ozel mesaj icin once arkadas olmalisiniz.")
     cleaned = _validate_dm_body(body)
     now = _utcnow()
     row = DmMessage(thread_id=thread.id, sender_id=user_id, body=cleaned, created_at=now)
