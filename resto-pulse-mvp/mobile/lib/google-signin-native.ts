@@ -15,8 +15,54 @@ export function configureGoogleSignIn() {
     webClientId,
     iosClientId,
     offlineAccess: false,
+    scopes: ['email', 'profile'],
   });
   configured = true;
+}
+
+async function clearStaleAccessToken() {
+  try {
+    const tokens = await GoogleSignin.getTokens();
+    if (tokens.accessToken) {
+      await GoogleSignin.clearCachedAccessToken(tokens.accessToken);
+    }
+  } catch {
+    /* Oturum yok veya token zaten gecersiz */
+  }
+}
+
+function readIdTokenFromSignIn(response: Awaited<ReturnType<typeof GoogleSignin.signIn>>) {
+  if (!isSuccessResponse(response)) return null;
+  return response.data.idToken?.trim() || null;
+}
+
+async function readIdTokenAfterSignIn(
+  response: Awaited<ReturnType<typeof GoogleSignin.signIn>>,
+): Promise<string> {
+  const fromSignIn = readIdTokenFromSignIn(response);
+  if (fromSignIn) return fromSignIn;
+
+  try {
+    const tokens = await GoogleSignin.getTokens();
+    const fromTokens = tokens.idToken?.trim();
+    if (fromTokens) return fromTokens;
+  } catch (err) {
+    throw normalizeGoogleTokenError(err);
+  }
+
+  throw new Error(
+    'Google idToken alinamadi. EAS production ortaminda EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (Web client) tanimli olmali.',
+  );
+}
+
+function normalizeGoogleTokenError(err: unknown): Error {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (/authorization grant|invalid_grant|redirect.*uri|Bad Request/i.test(raw)) {
+    return new Error(
+      'Google oturumu tamamlanamadi. Uygulamayi Play Store uzerinden en son surume guncelleyin; sorun surerse cihazdaki Google hesabindan cikis yapip tekrar deneyin.',
+    );
+  }
+  return err instanceof Error ? err : new Error(raw || 'Google oturum jetonu alinamadi.');
 }
 
 export async function signInWithGoogleNative(): Promise<string> {
@@ -26,16 +72,29 @@ export async function signInWithGoogleNative(): Promise<string> {
   }
 
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  const response = await GoogleSignin.signIn();
-  if (!isSuccessResponse(response)) {
-    throw new Error('Google girisi iptal edildi.');
-  }
 
-  const { idToken } = await GoogleSignin.getTokens();
-  if (!idToken?.trim()) {
-    throw new Error('Google oturum jetonu alinamadi. Web client ID kontrol edin.');
+  // Signed-out / coklu hesap: onceki Google oturum kalintisini temizle
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    /* noop */
   }
-  return idToken.trim();
+  await clearStaleAccessToken();
+
+  let response = await GoogleSignin.signIn();
+  try {
+    return await readIdTokenAfterSignIn(response);
+  } catch (firstErr) {
+    // invalid_grant vb. — bir kez daha temiz oturum dene
+    try {
+      await GoogleSignin.signOut();
+      await clearStaleAccessToken();
+      response = await GoogleSignin.signIn();
+      return await readIdTokenAfterSignIn(response);
+    } catch {
+      throw firstErr instanceof Error ? firstErr : normalizeGoogleTokenError(firstErr);
+    }
+  }
 }
 
 export function readGoogleSignInError(err: unknown): string {
@@ -50,7 +109,8 @@ export function readGoogleSignInError(err: unknown): string {
       return 'Google Play Services guncel degil veya yuklu degil.';
     }
   }
-  return err instanceof Error ? err.message : 'Google girisi basarisiz.';
+  if (err instanceof Error) return err.message;
+  return 'Google girisi basarisiz.';
 }
 
 export async function signOutGoogleNative() {

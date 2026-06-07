@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
@@ -82,6 +83,10 @@ export default function ProfilScreen() {
         <Text style={styles.title}>Hesap</Text>
         <Text style={styles.sub}>
           Yorum yazmak icin giris yapin. Google native SDK (Play build) veya e-posta ile devam edin.
+        </Text>
+        <Text style={styles.versionMeta}>
+          Surum {Constants.expoConfig?.version ?? '?'} · build{' '}
+          {Constants.expoConfig?.android?.versionCode ?? '?'}
         </Text>
       </View>
 
@@ -204,6 +209,7 @@ const styles = StyleSheet.create({
   hero: { gap: 6 },
   title: { color: GastroColors.text, fontSize: 24, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 14, lineHeight: 20 },
+  versionMeta: { color: GastroColors.muted, fontSize: 11, marginTop: 8, opacity: 0.85 },
   card: {
     borderRadius: 16,
     borderWidth: 1,
