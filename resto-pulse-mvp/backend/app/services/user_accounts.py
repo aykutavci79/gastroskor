@@ -25,6 +25,13 @@ def serialize_user(user: User, db: Session) -> UserProfile:
     )
 
 
+def _is_uploaded_avatar_url(url: str | None) -> bool:
+    if not url:
+        return False
+    lowered = url.lower()
+    return "/avatars/" in lowered or "/media/avatars/" in lowered or "user_avatars/" in lowered
+
+
 def get_or_create_user(
     db: Session,
     email: str,
@@ -44,8 +51,11 @@ def get_or_create_user(
             user.full_name = full_name
             updated = True
         if avatar_url and not user.avatar_preset and user.avatar_url != avatar_url:
-            user.avatar_url = avatar_url
-            updated = True
+            if _is_uploaded_avatar_url(user.avatar_url) and not _is_uploaded_avatar_url(avatar_url):
+                pass
+            else:
+                user.avatar_url = avatar_url
+                updated = True
         if google_sub and user.google_sub != google_sub:
             user.google_sub = google_sub
             updated = True

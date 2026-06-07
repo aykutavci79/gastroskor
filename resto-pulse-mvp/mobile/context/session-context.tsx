@@ -23,6 +23,7 @@ type SessionContextValue = {
   user: SessionUser | null;
   loading: boolean;
   signInWithGoogleProfile: (profile: UserProfile) => Promise<void>;
+  applyProfile: (profile: UserProfile) => Promise<void>;
   signInWithEmail: (email: string, fullName?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -51,12 +52,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const applyProfile = useCallback(async (profile: UserProfile) => {
+    const email = profile.email.trim().toLowerCase();
+    const next = profileToSession(email, profile, user?.googleSub ?? null);
+    await persistUser(next);
+    setUser(next);
+  }, [user?.googleSub]);
+
   const refreshProfile = useCallback(async () => {
     if (!user?.email) return;
+    // avatar_url gonderme — oturumdaki eski Google URL'si yuklenen fotoyu ezmesin.
     const profile = await syncUser({
       email: user.email,
       full_name: user.fullName ?? null,
-      avatar_url: user.avatarUrl ?? null,
       google_sub: user.googleSub ?? null,
     });
     const next = profileToSession(user.email, profile, user.googleSub);
@@ -80,7 +88,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           const profile = await syncUser({
             email: parsed.email,
             full_name: parsed.fullName ?? null,
-            avatar_url: parsed.avatarUrl ?? null,
             google_sub: parsed.googleSub ?? null,
           });
           const next = profileToSession(parsed.email, profile, parsed.googleSub);
@@ -125,8 +132,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, signInWithGoogleProfile, signInWithEmail, signOut, refreshProfile }),
-    [user, loading, signInWithGoogleProfile, signInWithEmail, signOut, refreshProfile],
+    () => ({
+      user,
+      loading,
+      signInWithGoogleProfile,
+      applyProfile,
+      signInWithEmail,
+      signOut,
+      refreshProfile,
+    }),
+    [user, loading, signInWithGoogleProfile, applyProfile, signInWithEmail, signOut, refreshProfile],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

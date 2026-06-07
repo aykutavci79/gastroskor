@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
 import { MahrecBadge } from '@/components/MahrecBadge';
+import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { GastroColors } from '@/constants/theme';
@@ -15,6 +16,11 @@ import {
   resolveRatingBandVisual,
 } from '@/lib/rating-band-visual';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
+import {
+  hasPublicMenu,
+  restaurantMenuItemCount,
+  restaurantMenuItems,
+} from '@/lib/restaurant-menu';
 import { estimateTravelMinutes, formatDistanceLabel } from '@/lib/travel-estimate';
 import { resolveRestaurantDetailId } from '@/lib/uuid';
 import type { RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
@@ -92,9 +98,20 @@ export function RestaurantCard({
     restaurant.distance_meters != null && restaurant.distance_meters > 0
       ? estimateTravelMinutes(restaurant.distance_meters)
       : null;
+  const menuItems = restaurantMenuItems(restaurant);
+  const menuCount = restaurantMenuItemCount(restaurant);
+  const showMenu = hasPublicMenu(restaurant);
 
   function openDetail() {
     if (resolvedHref) router.push(resolvedHref as Href);
+  }
+
+  function openMenu() {
+    if (!detailId) return;
+    router.push({
+      pathname: '/restaurant/[id]',
+      params: { id: detailId, focus: 'menu' },
+    });
   }
 
   function openReviews() {
@@ -240,6 +257,22 @@ export function RestaurantCard({
                     compact
                   />
                 </View>
+
+                {showMenu && detailId ? (
+                  <View style={styles.menuBlock}>
+                    <Pressable
+                      style={styles.menuChip}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openMenu();
+                      }}>
+                      <Text style={styles.menuChipText}>📋 Menü</Text>
+                    </Pressable>
+                    {menuItems.length > 0 ? (
+                      <RestaurantMenuPreview items={menuItems} totalCount={menuCount} />
+                    ) : null}
+                  </View>
+                ) : null}
 
                 {(onReviewsPress || resolvedHref) && (
                   <Pressable
@@ -405,6 +438,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 2,
   },
+  menuBlock: { gap: 4, marginTop: 2 },
+  menuChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 183, 3, 0.4)',
+    backgroundColor: 'rgba(255, 183, 3, 0.12)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  menuChipText: { color: GastroColors.gold, fontSize: 11, fontWeight: '700' },
   ghostBtn: {
     borderWidth: 1,
     borderColor: GastroColors.border,

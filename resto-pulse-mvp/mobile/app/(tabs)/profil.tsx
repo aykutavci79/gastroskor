@@ -49,7 +49,6 @@ export default function ProfilScreen() {
           await syncUser({
             email: user.email,
             full_name: user.fullName,
-            avatar_url: user.avatarUrl ?? null,
             google_sub: user.googleSub ?? null,
             default_review_name_display: mode,
           });

@@ -9,7 +9,7 @@ import { checkNickname, updateGourmetProfile, uploadUserAvatar } from '@/lib/api
 import { useSession } from '@/context/session-context';
 
 export function GourmetProfileSection() {
-  const { user, refreshProfile } = useSession();
+  const { user, applyProfile, refreshProfile } = useSession();
   const [editOpen, setEditOpen] = useState(false);
   const [nickname, setNickname] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<AvatarPresetId>('chef');
@@ -105,13 +105,13 @@ export function GourmetProfileSection() {
     setBusy(true);
     setError(null);
     try {
-      await uploadUserAvatar(
+      const profile = await uploadUserAvatar(
         user.email,
         asset.uri,
         asset.mimeType ?? 'image/jpeg',
         asset.fileName ?? 'avatar.jpg',
       );
-      await refreshProfile();
+      await applyProfile(profile);
       setMessage('Profil fotografi guncellendi.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Yukleme basarisiz');

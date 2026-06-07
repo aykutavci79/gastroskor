@@ -30,7 +30,7 @@ export function GourmetProfileSetupModal({
   onDismiss,
   dismissible = false,
 }: Props) {
-  const { user, refreshProfile } = useSession();
+  const { user, applyProfile, refreshProfile } = useSession();
   const [nickname, setNickname] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<AvatarPresetId>('chef');
   const [avatarMode, setAvatarMode] = useState<'preset' | 'photo'>('preset');
@@ -116,7 +116,8 @@ export function GourmetProfileSetupModal({
       }
 
       if (avatarMode === 'photo' && localPhotoUri) {
-        await uploadUserAvatar(user.email, localPhotoUri, localPhotoMime, localPhotoName);
+        const profile = await uploadUserAvatar(user.email, localPhotoUri, localPhotoMime, localPhotoName);
+        await applyProfile(profile);
         await updateGourmetProfile({
           user_email: user.email,
           nickname: trimmed,

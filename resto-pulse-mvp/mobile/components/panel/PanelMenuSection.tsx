@@ -42,7 +42,10 @@ export function PanelMenuSection({ userEmail, subscriptionActive }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Menu ve fiyatlar</Text>
+      <Text style={styles.title}>Menü ve fiyatlar</Text>
+      <Text style={styles.hint}>
+        Fotoğraf yüklemeden ürün adı ve fiyat girerek dijital menü oluşturabilirsin.
+      </Text>
       {items.map((item) => (
         <View key={item.id} style={styles.itemRow}>
           <Text style={styles.itemName}>
@@ -85,6 +88,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: { color: GastroColors.text, fontWeight: '700', fontSize: 16 },
+  hint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   itemName: { ...GastroStyles.bodyText, flex: 1 },
   delete: { ...GastroStyles.errorText, fontSize: 12 },
