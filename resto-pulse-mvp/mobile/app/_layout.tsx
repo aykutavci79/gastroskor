@@ -59,6 +59,7 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: GastroColors.bg },
             }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="oauth2redirect" options={{ headerShown: false }} />
             <Stack.Screen name="auth/google" options={{ headerShown: false }} />
             <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />

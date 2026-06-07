@@ -37,6 +37,12 @@ const googleOAuthIntentFilter = googleOAuthScheme
     }
   : null;
 
+const gastroskorOAuthIntentFilter = {
+  action: 'VIEW',
+  data: [{ scheme: 'gastroskor', path: '/oauth2redirect' }],
+  category: ['BROWSABLE', 'DEFAULT'],
+};
+
 module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
@@ -76,10 +82,11 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 18,
+    versionCode: 19,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [
       appLinkIntentFilter,
+      gastroskorOAuthIntentFilter,
       ...(googleOAuthIntentFilter ? [googleOAuthIntentFilter] : []),
     ],
   },

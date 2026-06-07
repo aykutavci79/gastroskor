@@ -24,11 +24,10 @@ export const expoGoRedirectUri = getExpoGoGoogleRedirectUri();
 export const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-/** Play/EAS build: Google Web client'ta bu URI'ler Authorized redirect URIs listesinde olmali. */
+/** Play build: Android OAuth geri donusu (Google -> gastroskor://oauth2redirect). */
 export function getGoogleNativeRedirectUri(): string {
   if (Platform.OS === 'android' && androidClientId) {
-    const prefix = androidClientId.replace('.apps.googleusercontent.com', '');
-    return `com.googleusercontent.apps.${prefix}:/oauth2redirect`;
+    return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'oauth2redirect' });
   }
   return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
 }
