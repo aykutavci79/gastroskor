@@ -11,9 +11,10 @@ import type { RestaurantListItem } from '@/lib/types';
 
 type Props = {
   userEmail: string;
+  compact?: boolean;
 };
 
-export function FollowingRestaurantsSection({ userEmail }: Props) {
+export function FollowingRestaurantsSection({ userEmail, compact = false }: Props) {
   const [items, setItems] = useState<RestaurantListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +40,16 @@ export function FollowingRestaurantsSection({ userEmail }: Props) {
   );
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Takip ettiklerim</Text>
-      <Text style={styles.sub}>
-        Liste yüksek puandan düşüğe sıralı. Satıra dokununca kart açılır. Üye işletmelere yeni
-        takipçi bildirimi gider.
-      </Text>
+    <View style={[styles.card, compact && styles.cardCompact]}>
+      {!compact ? (
+        <>
+          <Text style={styles.title}>Takip ettiklerim</Text>
+          <Text style={styles.sub}>
+            Liste yuksek puandan dusuge sirali. Satira dokununca kart acilir. Uye isletmelere yeni
+            takipci bildirimi gider.
+          </Text>
+        </>
+      ) : null}
       {loading ? (
         <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 12 }} />
       ) : error ? (
@@ -72,6 +77,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
+  cardCompact: { marginTop: 0 },
   title: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
   muted: { color: GastroColors.muted, fontSize: 13 },

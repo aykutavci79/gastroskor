@@ -7,6 +7,7 @@ import { RegionalFlavorsHomeSection } from '@/components/RegionalFlavorsHomeSect
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchBar } from '@/components/SearchBar';
 import { SloganBanner } from '@/components/SloganBanner';
+import { TabScreenHeader } from '@/components/TabScreenHeader';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { listRestaurants, searchLivePlaces } from '@/lib/api';
@@ -171,6 +172,13 @@ export default function ExploreScreen() {
 
   return (
     <Screen scroll style={styles.page} refreshing={refreshing} onRefresh={onRefresh}>
+      <TabScreenHeader
+        title="Keşfet"
+        subtitle="Yakınındaki lezzetleri ara ve kesfet."
+        showBrandMark
+        showDmAvatar
+      />
+
       <FeaturedHighlightsSection />
 
       <SloganBanner />

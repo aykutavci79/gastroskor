@@ -7,6 +7,7 @@ import {
   parseNotificationOpenPath,
   registerUserPushToken,
 } from '@/lib/push-notifications';
+import { readPushNotificationsEnabled } from '@/lib/push-preference';
 
 export function NotificationBootstrap() {
   const router = useRouter();
@@ -14,7 +15,9 @@ export function NotificationBootstrap() {
 
   useEffect(() => {
     if (!isPushNotificationsSupported() || !user?.email) return;
-    void registerUserPushToken(user.email);
+    void readPushNotificationsEnabled().then((enabled) => {
+      if (enabled) void registerUserPushToken(user.email);
+    });
   }, [user?.email]);
 
   useEffect(() => {

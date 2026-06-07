@@ -43,20 +43,20 @@ module.exports = ({ config }) => ({
   name: 'GastroSkor',
   owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.13',
+  version: '1.0.14',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/logo.png',
   scheme: 'gastroskor',
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   splash: {
-    image: './assets/icon.png',
+    image: './assets/logo.png',
     resizeMode: 'contain',
     backgroundColor: '#141414',
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '16',
+    buildNumber: '17',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -74,17 +74,17 @@ module.exports = ({ config }) => ({
   android: {
     adaptiveIcon: {
       backgroundColor: '#141414',
-      foregroundImage: './assets/android-icon-foreground.png',
+      foregroundImage: './assets/logo.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 25,
+    versionCode: 26,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [appLinkIntentFilter],
   },
   web: {
     bundler: 'metro',
     output: 'static',
-    favicon: './assets/favicon.png',
+    favicon: './assets/logo.png',
   },
   plugins: [
     googleSignInPlugin,
@@ -95,7 +95,7 @@ module.exports = ({ config }) => ({
       'expo-splash-screen',
       {
         backgroundColor: '#141414',
-        image: './assets/icon.png',
+        image: './assets/logo.png',
         imageWidth: 160,
       },
     ],
@@ -115,7 +115,7 @@ module.exports = ({ config }) => ({
     [
       'expo-notifications',
       {
-        icon: './assets/icon.png',
+        icon: './assets/logo.png',
         color: '#FF6B00',
       },
     ],

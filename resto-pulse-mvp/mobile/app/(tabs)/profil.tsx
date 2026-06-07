@@ -2,12 +2,12 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
 
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
+import { GastroBrandMark } from '@/components/GastroBrandMark';
+import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
 import { Screen } from '@/components/ui/Screen';
-import { FollowingRestaurantsSection } from '@/components/FollowingRestaurantsSection';
-import { FriendsSection } from '@/components/FriendsSection';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
@@ -82,7 +82,7 @@ export default function ProfilScreen() {
       <View style={styles.hero}>
         <Text style={styles.title}>Hesap</Text>
         <Text style={styles.sub}>
-          Yorum yazmak icin giris yapin. Google native SDK (Play build) veya e-posta ile devam edin.
+          Giris, bildirimler ve gizlilik ayarlari. Takip ve arkadaslar Takip sekmesinde.
         </Text>
         <Text style={styles.versionMeta}>
           Surum {Constants.expoConfig?.version ?? '?'} · build{' '}
@@ -154,9 +154,13 @@ export default function ProfilScreen() {
 
       {user ? <GourmetProfileSection /> : null}
 
-      {user ? <UserNotificationsSection userEmail={user.email} /> : null}
-      {user ? <FriendsSection userEmail={user.email} /> : null}
-      {user ? <FollowingRestaurantsSection userEmail={user.email} /> : null}
+      {user ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Bildirimler</Text>
+          <PushNotificationsToggle />
+          <UserNotificationsSection userEmail={user.email} embedded />
+        </View>
+      ) : null}
 
       {user ? (
         <View style={styles.privacyCard}>
@@ -185,16 +189,10 @@ export default function ProfilScreen() {
         </Pressable>
       </View>
 
-      <Pressable
-        style={styles.linkCard}
-        onPress={() => void WebBrowser.openBrowserAsync('https://www.gastroskor.com.tr/panel')}>
-        <Text style={styles.linkTitle}>Web paneli ac</Text>
-        <Text style={styles.muted}>Tarayicida tam panel (admin, detayli ayarlar)</Text>
-      </Pressable>
-
       <View style={styles.about}>
+        <GastroBrandMark size="sm" showTagline />
         <Text style={styles.aboutTitle}>Hakkinda</Text>
-        <Text style={styles.muted}>GastroSkor — yakinindaki en iyi lezzetleri kesfet.</Text>
+        <Text style={styles.muted}>Yakinindaki en iyi lezzetleri kesfet.</Text>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync('https://cursor.com')}>
           <Text style={styles.aboutCredit}>
             Gelistirme aracı: <Text style={styles.aboutCreditLink}>Cursor</Text>
@@ -241,6 +239,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   btnOutlineText: { color: GastroColors.muted },
+  sectionTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
   legal: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -248,15 +247,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   legalLink: { color: GastroColors.accent, fontSize: 12, fontWeight: '600' },
-  linkCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: GastroColors.border,
-    padding: 16,
-    gap: 4,
-    marginTop: 8,
-  },
-  linkTitle: { color: GastroColors.accent, fontWeight: '700', fontSize: 15 },
   privacyCard: {
     marginTop: 12,
     borderRadius: 16,
@@ -274,9 +264,10 @@ const styles = StyleSheet.create({
     borderColor: GastroColors.border,
     backgroundColor: GastroColors.panel,
     padding: 16,
-    gap: 6,
+    gap: 10,
+    alignItems: 'center',
   },
-  aboutTitle: { color: GastroColors.text, fontSize: 14, fontWeight: '800' },
+  aboutTitle: { color: GastroColors.text, fontSize: 14, fontWeight: '800', alignSelf: 'stretch' },
   aboutCredit: { color: GastroColors.muted, fontSize: 12, marginTop: 4 },
   aboutCreditLink: { color: GastroColors.muted, fontWeight: '600', textDecorationLine: 'underline' },
   error: GastroStyles.errorText,

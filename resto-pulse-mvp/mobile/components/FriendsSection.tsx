@@ -12,6 +12,7 @@ import {
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors, GastroStyles } from '@/constants/theme';
+import { useAppBadges } from '@/context/app-badges-context';
 import {
   acceptFriendRequest,
   addFriend,
@@ -26,10 +27,12 @@ import type { FriendListItem, FriendRequestItem } from '@/lib/types';
 
 type Props = {
   userEmail: string;
+  compact?: boolean;
 };
 
-export function FriendsSection({ userEmail }: Props) {
+export function FriendsSection({ userEmail, compact = false }: Props) {
   const router = useRouter();
+  const { refresh: refreshBadges } = useAppBadges();
   const [items, setItems] = useState<FriendListItem[]>([]);
   const [incoming, setIncoming] = useState<FriendRequestItem[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequestItem[]>([]);
@@ -46,12 +49,13 @@ export function FriendsSection({ userEmail }: Props) {
         setItems(friends.items);
         setIncoming(requests.incoming);
         setOutgoing(requests.outgoing);
+        void refreshBadges();
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Arkadaş listesi yüklenemedi.');
       })
       .finally(() => setLoading(false));
-  }, [userEmail]);
+  }, [userEmail, refreshBadges]);
 
   useEffect(() => {
     load();
@@ -139,7 +143,7 @@ export function FriendsSection({ userEmail }: Props) {
   }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, compact && styles.cardCompact]}>
       <Text style={styles.title}>Arkadaşlarım</Text>
       <Text style={styles.sub}>
         Takma ad ile istek gönder. Karşı taraf kabul edince mesajlaşabilirsiniz.
@@ -266,6 +270,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
+  cardCompact: { marginTop: 0 },
   title: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },

@@ -5,11 +5,18 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { GastroColors } from '@/constants/theme';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
+import { AppBadgesProvider, useAppBadges } from '@/context/app-badges-context';
 import { useSession } from '@/context/session-context';
 import { getPanelAccess } from '@/lib/api';
 
-export default function TabLayout() {
+function badgeLabel(count: number): string | undefined {
+  if (count <= 0) return undefined;
+  return count > 9 ? '9+' : String(count);
+}
+
+function TabsWithBadges() {
   const { user, loading: sessionLoading } = useSession();
+  const { notificationUnread, takipPending, refresh } = useAppBadges();
   const [hasBusiness, setHasBusiness] = useState(false);
 
   useEffect(() => {
@@ -32,19 +39,18 @@ export default function TabLayout() {
 
   useFocusEffect(
     useCallback(() => {
+      void refresh();
       if (!user?.email) return;
       getPanelAccess(user.email)
         .then((access) => setHasBusiness(Boolean(access.has_ownership)))
         .catch(() => setHasBusiness(false));
-    }, [user?.email]),
+    }, [refresh, user?.email]),
   );
 
   const showBusinessTab = Boolean(user?.email && hasBusiness && !sessionLoading);
 
   return (
-    <>
-      <GourmetProfileGate />
-      <Tabs
+    <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -56,6 +62,7 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: GastroColors.accent,
         tabBarInactiveTintColor: GastroColors.muted,
+        tabBarBadgeStyle: { backgroundColor: GastroColors.accent, color: '#fff', fontSize: 10 },
       }}>
       <Tabs.Screen
         name="index"
@@ -67,8 +74,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gurme"
         options={{
-          title: 'Gurme',
+          title: 'Sohbet',
           tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="takip"
+        options={{
+          title: 'Takip',
+          tabBarBadge: badgeLabel(takipPending),
+          tabBarIcon: ({ color, size }) => <Ionicons name="heart" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -83,10 +98,21 @@ export default function TabLayout() {
         name="profil"
         options={{
           title: 'Hesap',
+          tabBarBadge: badgeLabel(notificationUnread),
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <>
+      <GourmetProfileGate />
+      <AppBadgesProvider>
+        <TabsWithBadges />
+      </AppBadgesProvider>
     </>
   );
 }
