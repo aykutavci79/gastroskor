@@ -5,7 +5,7 @@ Set-Location $PSScriptRoot\..
 
 $argsList = @("build", "--profile", "production", "--platform", "android")
 if ($args.Count -gt 0) {
-  $argsList = $args
+  $argsList += $args
 }
 
 Write-Host "NODE_OPTIONS=$env:NODE_OPTIONS"

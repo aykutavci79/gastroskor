@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { getExpoGoGoogleRedirectUri } from '@/lib/expo-google-redirect';
+import { getGoogleAndroidRedirectUri } from '@/lib/google-android-redirect';
 import { parseGoogleIdToken } from '@/lib/google-auth';
 import { saveGoogleOAuthPending } from '@/lib/google-oauth-pending';
 import { useSession } from '@/context/session-context';
@@ -25,10 +26,10 @@ export const expoGoRedirectUri = getExpoGoGoogleRedirectUri();
 export const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-/** Play build: Android OAuth geri donusu (Google -> gastroskor://oauth2redirect). */
+/** Play build: Google Android client reverse scheme redirect (invalid_request on gastroskor://). */
 export function getGoogleNativeRedirectUri(): string {
   if (Platform.OS === 'android' && androidClientId) {
-    return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'oauth2redirect' });
+    return getGoogleAndroidRedirectUri(androidClientId);
   }
   return AuthSession.makeRedirectUri({ scheme: 'gastroskor', path: 'redirect' });
 }

@@ -82,7 +82,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/android-icon-foreground.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 20,
+    versionCode: 21,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [
       appLinkIntentFilter,

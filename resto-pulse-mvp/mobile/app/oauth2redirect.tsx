@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
@@ -17,6 +18,22 @@ function readParam(value: string | string[] | undefined): string | undefined {
   return typeof value === 'string' ? value.trim() : undefined;
 }
 
+async function readOAuthParamsFromInitialUrl(): Promise<{
+  code?: string;
+  error?: string;
+  error_description?: string;
+}> {
+  const initialUrl = await Linking.getInitialURL();
+  if (!initialUrl) return {};
+  const parsed = Linking.parse(initialUrl);
+  const query = parsed.queryParams ?? {};
+  return {
+    code: readParam(query.code as string | string[] | undefined),
+    error: readParam(query.error as string | string[] | undefined),
+    error_description: readParam(query.error_description as string | string[] | undefined),
+  };
+}
+
 /** Google native OAuth geri donusu — code burada islenir (Profil ekrani acik olmasa bile). */
 export default function GoogleOAuthRedirectScreen() {
   const params = useLocalSearchParams<{
@@ -32,15 +49,16 @@ export default function GoogleOAuthRedirectScreen() {
     WebBrowser.maybeCompleteAuthSession();
 
     void (async () => {
-      const oauthError = readParam(params.error);
+      const fromUrl = await readOAuthParamsFromInitialUrl();
+      const oauthError = readParam(params.error) ?? fromUrl.error;
       if (oauthError) {
         setBusy(false);
-        setError(readParam(params.error_description) ?? oauthError);
+        setError(readParam(params.error_description) ?? fromUrl.error_description ?? oauthError);
         await clearGoogleOAuthPending();
         return;
       }
 
-      const code = readParam(params.code);
+      const code = readParam(params.code) ?? fromUrl.code;
       if (!code) {
         setBusy(false);
         setError('Google giris kodu alinamadi. Tekrar deneyin.');

@@ -95,6 +95,8 @@ EAS `production` env:
 
 Native akis **Code + token exchange** kullanir (IdToken implicit degil).
 
+**Redirect URI (Android client):** `com.googleusercontent.apps.XXXX:/oauth2redirect` — `gastroskor://oauth2redirect` Android client'ta **400 invalid_request** verir.
+
 Play **Uygulama imzalama** SHA-1 → GastroSkor Test Android client'ta olmali.
 
 Ayri iOS client: Bundle ID `com.gastroskor.app`
