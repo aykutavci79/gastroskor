@@ -14,8 +14,9 @@ export function useGoogleSignIn(onError: (message: string) => void) {
       setReady(false);
       return;
     }
-    configureGoogleSignIn();
-    setReady(true);
+    void configureGoogleSignIn()
+      .then(() => setReady(true))
+      .catch(() => setReady(false));
   }, []);
 
   const signIn = useCallback(async () => {

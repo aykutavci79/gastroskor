@@ -1,16 +1,20 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-
 import { iosClientId, webClientId } from '@/lib/google-signin-config';
 
+type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
+
+let googleSignInModule: GoogleSignInModule | null = null;
 let configured = false;
 
-export function configureGoogleSignIn() {
+async function loadGoogleSignIn(): Promise<GoogleSignInModule> {
+  if (!googleSignInModule) {
+    googleSignInModule = await import('@react-native-google-signin/google-signin');
+  }
+  return googleSignInModule;
+}
+
+export async function configureGoogleSignIn() {
   if (configured || !webClientId) return;
+  const { GoogleSignin } = await loadGoogleSignIn();
   GoogleSignin.configure({
     webClientId,
     iosClientId,
@@ -20,7 +24,7 @@ export function configureGoogleSignIn() {
   configured = true;
 }
 
-async function clearStaleAccessToken() {
+async function clearStaleAccessToken(GoogleSignin: GoogleSignInModule['GoogleSignin']) {
   try {
     const tokens = await GoogleSignin.getTokens();
     if (tokens.accessToken) {
@@ -31,15 +35,20 @@ async function clearStaleAccessToken() {
   }
 }
 
-function readIdTokenFromSignIn(response: Awaited<ReturnType<typeof GoogleSignin.signIn>>) {
+function readIdTokenFromSignIn(
+  response: Awaited<ReturnType<GoogleSignInModule['GoogleSignin']['signIn']>>,
+  isSuccessResponse: GoogleSignInModule['isSuccessResponse'],
+) {
   if (!isSuccessResponse(response)) return null;
   return response.data.idToken?.trim() || null;
 }
 
 async function readIdTokenAfterSignIn(
-  response: Awaited<ReturnType<typeof GoogleSignin.signIn>>,
+  GoogleSignin: GoogleSignInModule['GoogleSignin'],
+  isSuccessResponse: GoogleSignInModule['isSuccessResponse'],
+  response: Awaited<ReturnType<GoogleSignInModule['GoogleSignin']['signIn']>>,
 ): Promise<string> {
-  const fromSignIn = readIdTokenFromSignIn(response);
+  const fromSignIn = readIdTokenFromSignIn(response, isSuccessResponse);
   if (fromSignIn) return fromSignIn;
 
   try {
@@ -66,31 +75,31 @@ function normalizeGoogleTokenError(err: unknown): Error {
 }
 
 export async function signInWithGoogleNative(): Promise<string> {
-  configureGoogleSignIn();
   if (!webClientId) {
     throw new Error('Google Web client ID yapilandirilmamis.');
   }
 
+  const { GoogleSignin, isSuccessResponse } = await loadGoogleSignIn();
+  await configureGoogleSignIn();
+
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-  // Signed-out / coklu hesap: onceki Google oturum kalintisini temizle
   try {
     await GoogleSignin.signOut();
   } catch {
     /* noop */
   }
-  await clearStaleAccessToken();
+  await clearStaleAccessToken(GoogleSignin);
 
   let response = await GoogleSignin.signIn();
   try {
-    return await readIdTokenAfterSignIn(response);
+    return await readIdTokenAfterSignIn(GoogleSignin, isSuccessResponse, response);
   } catch (firstErr) {
-    // invalid_grant vb. — bir kez daha temiz oturum dene
     try {
       await GoogleSignin.signOut();
-      await clearStaleAccessToken();
+      await clearStaleAccessToken(GoogleSignin);
       response = await GoogleSignin.signIn();
-      return await readIdTokenAfterSignIn(response);
+      return await readIdTokenAfterSignIn(GoogleSignin, isSuccessResponse, response);
     } catch {
       throw firstErr instanceof Error ? firstErr : normalizeGoogleTokenError(firstErr);
     }
@@ -98,14 +107,11 @@ export async function signInWithGoogleNative(): Promise<string> {
 }
 
 export function readGoogleSignInError(err: unknown): string {
-  if (isErrorWithCode(err)) {
-    if (err.code === statusCodes.SIGN_IN_CANCELLED) {
-      return 'Google girisi iptal edildi.';
-    }
-    if (err.code === statusCodes.IN_PROGRESS) {
-      return 'Google girisi zaten devam ediyor.';
-    }
-    if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const code = String((err as { code?: unknown }).code ?? '');
+    if (code === 'SIGN_IN_CANCELLED') return 'Google girisi iptal edildi.';
+    if (code === 'IN_PROGRESS') return 'Google girisi zaten devam ediyor.';
+    if (code === 'PLAY_SERVICES_NOT_AVAILABLE') {
       return 'Google Play Services guncel degil veya yuklu degil.';
     }
   }
@@ -115,7 +121,8 @@ export function readGoogleSignInError(err: unknown): string {
 
 export async function signOutGoogleNative() {
   try {
-    configureGoogleSignIn();
+    const { GoogleSignin } = await loadGoogleSignIn();
+    await configureGoogleSignIn();
     await GoogleSignin.signOut();
   } catch {
     /* noop */

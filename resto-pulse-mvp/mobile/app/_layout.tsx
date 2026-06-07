@@ -10,7 +10,6 @@ import { useEffect } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
-import { GoogleSignInBootstrap } from '@/components/GoogleSignInBootstrap';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
@@ -47,7 +46,6 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
-        <GoogleSignInBootstrap />
         <AppMetricsTracker />
         <NotificationBootstrap />
         <ThemeProvider value={theme}>
