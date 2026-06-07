@@ -13,18 +13,29 @@ down_revision = "20260612_0028"
 branch_labels = None
 depends_on = None
 
-friend_request_status = sa.Enum(
+friend_request_status = postgresql.ENUM(
     "pending",
     "accepted",
     "rejected",
     "cancelled",
     "blocked",
     name="friendrequeststatus",
+    create_type=False,
 )
 
 
 def upgrade() -> None:
-    friend_request_status.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE friendrequeststatus AS ENUM (
+                'pending', 'accepted', 'rejected', 'cancelled', 'blocked'
+            );
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
     op.create_table(
         "friend_requests",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
@@ -49,4 +60,4 @@ def downgrade() -> None:
     op.drop_index("ix_friend_requests_to_user_id", table_name="friend_requests")
     op.drop_index("ix_friend_requests_from_user_id", table_name="friend_requests")
     op.drop_table("friend_requests")
-    friend_request_status.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS friendrequeststatus")
