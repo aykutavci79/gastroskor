@@ -127,6 +127,35 @@ def test_greeting_job_posts_after_delay(db: Session, monkeypatch):
     assert stats["posted"] == 1
 
 
+def test_vague_restaurant_ask_detected():
+    from app.services.gourmet_chat_assistant import is_vague_restaurant_ask
+
+    assert is_vague_restaurant_ask("cok aciktim onerin var mi", room_slug="kes-donerciler")
+    assert not is_vague_restaurant_ask("gece acik doner oner", room_slug="gece-acikanlar")
+
+
+def test_live_search_guide_mentions_query_not_restaurant_name():
+    from app.services.gourmet_chat_assistant import _format_live_search_guide_body
+
+    body = _format_live_search_guide_body(
+        room_slug="kes-donerciler",
+        nickname="Ali",
+        user_message="doner oner lutfen",
+    )
+    assert "Ali" in body
+    assert "doner 4.5 yildiz" in body
+    assert "Canli Arama" in body or "Canlı Arama" in body or "canli" in body.lower()
+    assert "1." not in body
+
+
+def test_live_search_ask_craving_when_vague():
+    from app.services.gourmet_chat_assistant import _format_live_search_ask_craving_body
+
+    body = _format_live_search_ask_craving_body(room_slug="kes-donerciler", nickname="Veli")
+    assert "Veli" in body
+    assert "cektigi" in body or "cektiği" in body or "istiyorsun" in body
+
+
 def test_human_reply_cancels_assistant(db: Session, monkeypatch):
     monkeypatch.setattr(settings, "gourmet_assistant_greeting_delay_sec", 60)
     user_a = db.query(User).filter(User.email == "gurme@test.com").one()

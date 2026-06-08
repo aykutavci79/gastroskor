@@ -20,10 +20,11 @@ from app.constants.gourmet_chat_assistant import (
     GREETING_PHRASES,
     GREETING_REPLY_TEMPLATES,
     GREETING_TOKENS,
+    HUNGRY_KEYWORDS,
+    LIVE_SEARCH_ASK_CRAVING_TEMPLATES,
+    LIVE_SEARCH_GUIDE_TEMPLATES,
     RESTAURANT_ASK_KEYWORDS,
-    RESTAURANT_EMPTY_TEMPLATES,
-    RESTAURANT_FOOTER_TEMPLATES,
-    RESTAURANT_INTRO_TEMPLATES,
+    ROOM_DEFAULT_LIVE_QUERY,
     ROOM_EXCLUDE_HINTS,
     ROOM_PREFERENCE_KEYWORDS,
     ROOM_SEARCH_HINTS,
@@ -101,10 +102,55 @@ def is_restaurant_ask(text: str, room_slug: str) -> bool:
     norm = normalize_chat_text(text)
     if not norm:
         return False
+    if _text_contains_any(norm, HUNGRY_KEYWORDS):
+        return True
     if _text_contains_any(norm, RESTAURANT_ASK_KEYWORDS):
         return True
     hints = ROOM_SEARCH_HINTS.get(room_slug, ())
     return _text_contains_any(norm, hints)
+
+
+def _message_has_food_hint(text: str, *, room_slug: str) -> bool:
+    norm = normalize_chat_text(text)
+    if not norm:
+        return False
+    hints = ROOM_SEARCH_HINTS.get(room_slug, ())
+    return _text_contains_any(norm, hints)
+
+
+def is_vague_restaurant_ask(text: str, *, room_slug: str) -> bool:
+    """Mekan istegi var ama ne yemek arandigi net degil."""
+    if is_room_preference_reply(text, room_slug):
+        return False
+    if _message_has_food_hint(text, room_slug=room_slug):
+        return False
+    norm = normalize_chat_text(text)
+    if not norm:
+        return False
+    return _text_contains_any(norm, HUNGRY_KEYWORDS) or _text_contains_any(norm, RESTAURANT_ASK_KEYWORDS)
+
+
+def _relaxed_live_query(query: str) -> str:
+    relaxed = query.replace("4.5", "4").replace("4,5", "4")
+    if relaxed == query and "4.5" not in query and "4,5" not in query:
+        return f"{query} 4 yildiz" if "yildiz" not in query and "yıldız" not in query else query
+    return relaxed
+
+
+def _build_live_search_query(*, room_slug: str, user_message: str | None) -> tuple[str, str]:
+    hints = ROOM_SEARCH_HINTS.get(room_slug, ())
+    picked_hint: str | None = None
+    if user_message:
+        folded_user = _fold_match_text(normalize_chat_text(user_message))
+        for hint in hints:
+            if _fold_match_text(hint) in folded_user:
+                picked_hint = hint
+                break
+    if picked_hint:
+        base = f"{picked_hint} 4.5 yildiz"
+    else:
+        base = ROOM_DEFAULT_LIVE_QUERY.get(room_slug, "restoran 4.5 yildiz")
+    return base, _relaxed_live_query(base)
 
 
 def classify_message_intent(text: str, *, room_slug: str) -> str | None:
@@ -455,27 +501,31 @@ def _format_greeting_body(*, nickname: str | None, room_slug: str) -> str:
     return template.format(nick=nick, topic=topic)
 
 
-def _format_restaurant_body(*, suggestions: list[dict], room_slug: str, nickname: str | None) -> str:
+def _format_live_search_ask_craving_body(*, room_slug: str, nickname: str | None) -> str:
     nick = nickname or "Gurme"
-    topic = ROOM_TOPIC_PROMPT.get(room_slug, "Mekan aramana yardim edebilirim.")
-    if not suggestions:
-        template = random.choice(RESTAURANT_EMPTY_TEMPLATES)
-        return template.format(nick=nick, topic=topic)
-    intro = random.choice(RESTAURANT_INTRO_TEMPLATES).format(nick=nick)
-    lines = [intro]
-    for index, item in enumerate(suggestions, start=1):
-        rating = f" — {item['rating']} puan" if item.get("rating") else ""
-        district = f" ({item['district']})" if item.get("district") else ""
-        lines.append(f"{index}. {item['name']}{district}{rating}")
-    lines.append(random.choice(RESTAURANT_FOOTER_TEMPLATES))
-    return "\n".join(lines)
+    topic = ROOM_TOPIC_PROMPT.get(room_slug, "Ne tur yemek arıyorsun?")
+    template = random.choice(LIVE_SEARCH_ASK_CRAVING_TEMPLATES)
+    return template.format(nick=nick, topic=topic)
+
+
+def _format_live_search_guide_body(
+    *,
+    room_slug: str,
+    nickname: str | None,
+    user_message: str | None,
+) -> str:
+    nick = nickname or "Gurme"
+    query, relaxed = _build_live_search_query(room_slug=room_slug, user_message=user_message)
+    template = random.choice(LIVE_SEARCH_GUIDE_TEMPLATES)
+    return template.format(nick=nick, query=query, relaxed_query=relaxed)
 
 
 def _format_general_body(*, room_slug: str, nickname: str | None) -> str:
     nick = nickname or "Gurme"
     topic = ROOM_TOPIC_PROMPT.get(room_slug, "Yemek sohbeti")
+    default_query, _ = _build_live_search_query(room_slug=room_slug, user_message=None)
     template = random.choice(GENERAL_REPLY_TEMPLATES)
-    return template.format(nick=nick, topic=topic)
+    return template.format(nick=nick, topic=topic, default_query=default_query)
 
 
 def _polish_reply_with_gemini(
@@ -488,11 +538,14 @@ def _polish_reply_with_gemini(
     if not settings.gourmet_assistant_gemini_personality or not settings.gemini_api_key:
         return draft
     nick = nickname or "Gurme"
-    general_guard = (
-        " ONEMLI: Taslakta mekan ismi yoksa yeni mekan ekleme; sadece tonu yumusat."
-        if intent == "general"
-        else ""
-    )
+    if intent == "restaurant":
+        general_guard = (
+            " ONEMLI: Mekan ismi ekleme. Canli Arama adimlari ve «» icindeki arama metinlerini AYNEN koru."
+        )
+    elif intent == "general":
+        general_guard = " ONEMLI: Taslakta mekan ismi yoksa yeni mekan ekleme; sadece tonu yumusat."
+    else:
+        general_guard = ""
     prompt = (
         f"Kullanici ({nick}) soyledi: {user_message[:240]}\n"
         f"Niyet: {intent}\n"
@@ -522,17 +575,14 @@ def build_assistant_reply(
     if job.job_kind == "greeting" or job.intent == "greeting":
         draft = _format_greeting_body(nickname=nickname, room_slug=room.slug)
     elif job.intent == "restaurant":
-        suggestions = fetch_restaurant_suggestions(
-            db,
-            city=job.city,
-            room_slug=room.slug,
-            user_message=trigger_message_body,
-        )
-        draft = _format_restaurant_body(
-            suggestions=suggestions,
-            room_slug=room.slug,
-            nickname=nickname,
-        )
+        if is_vague_restaurant_ask(trigger_message_body, room_slug=room.slug):
+            draft = _format_live_search_ask_craving_body(room_slug=room.slug, nickname=nickname)
+        else:
+            draft = _format_live_search_guide_body(
+                room_slug=room.slug,
+                nickname=nickname,
+                user_message=trigger_message_body,
+            )
     else:
         draft = _format_general_body(room_slug=room.slug, nickname=nickname)
 
