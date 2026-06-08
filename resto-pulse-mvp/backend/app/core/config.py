@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     netgsm_user: str | None = None
     netgsm_password: str | None = None
     netgsm_header: str | None = None
+    iletimerkezi_api_key: str | None = None
+    iletimerkezi_api_hash: str | None = None
+    iletimerkezi_sender: str = "APITEST"
     otp_expiry_minutes: int = 10
     panel_admin_secret: str | None = None
     panel_admin_emails: str = ""
