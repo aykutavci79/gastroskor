@@ -247,13 +247,13 @@ export default function GurmeRoomScreen() {
     setSubmitting(true);
     setFormError(null);
     try {
-      const created = await createGourmetChatMessage(roomSlug, {
+      await createGourmetChatMessage(roomSlug, {
         user_email: user.email,
         city: CITY,
         body: trimmed,
       });
       setBody('');
-      setMessages((prev) => [...prev, created]);
+      await load(true);
       scrollToBottom(true);
     } catch (err) {
       if (err instanceof ReviewModerationApiError) {

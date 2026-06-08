@@ -190,7 +190,14 @@ def _pick_question(db: Session, *, room: GourmetChatRoom, city: str) -> GourmetT
     return random.choice(pick_from)
 
 
-def open_trivia_round(db: Session, *, room: GourmetChatRoom, city: str) -> GourmetTriviaRound | None:
+def open_trivia_round(
+    db: Session,
+    *,
+    room: GourmetChatRoom,
+    city: str,
+    force: bool = False,
+    commit: bool = True,
+) -> GourmetTriviaRound | None:
     if not settings.gourmet_trivia_enabled:
         return None
     ensure_trivia_questions_seeded(db)
@@ -204,14 +211,19 @@ def open_trivia_round(db: Session, *, room: GourmetChatRoom, city: str) -> Gourm
     if open_round:
         return None
 
-    last_opened = db.scalar(
-        select(GourmetTriviaRound.opened_at)
-        .where(GourmetTriviaRound.room_id == room.id, GourmetTriviaRound.city == city)
-        .order_by(GourmetTriviaRound.opened_at.desc())
-        .limit(1)
-    )
-    if last_opened and (_utcnow() - last_opened).total_seconds() < settings.gourmet_trivia_interval_sec:
-        return None
+    if not force:
+        last_closed = db.scalar(
+            select(GourmetTriviaRound.closed_at)
+            .where(
+                GourmetTriviaRound.room_id == room.id,
+                GourmetTriviaRound.city == city,
+                GourmetTriviaRound.closed_at.is_not(None),
+            )
+            .order_by(GourmetTriviaRound.closed_at.desc())
+            .limit(1)
+        )
+        if last_closed and (_utcnow() - last_closed).total_seconds() < settings.gourmet_trivia_interval_sec:
+            return None
 
     question = _pick_question(db, room=room, city=city)
     if not question:
@@ -230,11 +242,14 @@ def open_trivia_round(db: Session, *, room: GourmetChatRoom, city: str) -> Gourm
         expires_at=expires,
     )
     db.add(round_row)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return round_row
 
 
-def expire_open_rounds(db: Session) -> int:
+def expire_open_rounds(db: Session, *, chain_next: bool = True) -> int:
     if not settings.gourmet_trivia_enabled:
         return 0
     now = _utcnow()
@@ -247,6 +262,7 @@ def expire_open_rounds(db: Session) -> int:
         ).all()
     )
     expired = 0
+    chain_targets: list[tuple[GourmetChatRoom, str]] = []
     for round_row in rows:
         room = db.get(GourmetChatRoom, round_row.room_id)
         question = db.get(GourmetTriviaQuestion, round_row.question_id)
@@ -266,8 +282,13 @@ def expire_open_rounds(db: Session) -> int:
         round_row.status = "expired"
         round_row.closed_at = now
         db.add(round_row)
+        chain_targets.append((room, round_row.city))
         expired += 1
     if expired:
+        db.flush()
+        if chain_next:
+            for room, city in chain_targets:
+                open_trivia_round(db, room=room, city=city, force=True, commit=False)
         db.commit()
     return expired
 
@@ -321,6 +342,7 @@ def try_process_trivia_answer(
         body="tebrikler, doğru! (+1 puan)",
         mention_user=user,
     )
+    open_trivia_round(db, room=room, city=city, force=True, commit=False)
     return True
 
 
