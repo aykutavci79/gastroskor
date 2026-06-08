@@ -196,16 +196,13 @@ export function getOrderPhoneStatus(userEmail: string) {
 }
 
 export function sendOrderPhoneOtp(userEmail: string, phone: string) {
-  return request<{ sent: boolean; phone_masked: string; expires_in_minutes: number }>(
-    '/order-phone/send-otp',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        user_email: userEmail.trim().toLowerCase(),
-        phone: phone.trim(),
-      }),
-    },
-  );
+  return request<import('@/lib/types').OrderPhoneSendOtpResponse>('/order-phone/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      phone: phone.trim(),
+    }),
+  });
 }
 
 export function verifyOrderPhoneOtp(userEmail: string, phone: string, code: string) {

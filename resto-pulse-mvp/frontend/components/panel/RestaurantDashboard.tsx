@@ -10,6 +10,7 @@ import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
 import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { PanelOrdersSection } from '@/components/panel/PanelOrdersSection';
+import { PanelResetSection } from '@/components/panel/PanelResetSection';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
 import type { CompetitorAiReport, PanelDashboard } from '@/lib/types';
 
@@ -137,6 +138,13 @@ export function RestaurantDashboard() {
             orderStats={{
               total: summary.online_orders_accepted_total,
               last180Days: summary.online_orders_accepted_180_days,
+            }}
+          />
+          <PanelResetSection
+            userEmail={userEmail}
+            restaurantName={restaurant.name}
+            onReset={() => {
+              void getPanelDashboard(userEmail).then(setData).catch(() => undefined);
             }}
           />
           <PanelFollowerCoupons userEmail={userEmail} canWrite={Boolean(access?.can_write_actions)} />

@@ -57,6 +57,14 @@ class OrderPhoneStatus(BaseModel):
     verified_at: str | None = None
 
 
+class OrderPhoneSendOtpResponse(BaseModel):
+    sent: bool = True
+    phone_masked: str
+    expires_in_minutes: int
+    delivery_mode: str = "live"
+    info_message: str | None = None
+
+
 class OrderPhoneSendOtpRequest(BaseModel):
     user_email: str = Field(min_length=3)
     phone: str = Field(min_length=10, max_length=32)

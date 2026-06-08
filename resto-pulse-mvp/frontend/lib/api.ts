@@ -510,6 +510,16 @@ export function updatePanelPromo(payload: {
   });
 }
 
+export function resetPanelPublicData(userEmail: string, hideFromPublic = true) {
+  return request<import('@/lib/types').PanelResetPublicDataResponse>('/panel/reset-public-data', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      hide_from_public: hideFromPublic,
+    }),
+  });
+}
+
 export async function uploadPanelMenuImage(userEmail: string, file: File) {
   const form = new FormData();
   form.append('user_email', userEmail);

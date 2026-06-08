@@ -43,6 +43,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
   const [verifiedPhoneE164, setVerifiedPhoneE164] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [address, setAddress] = useState('');
@@ -144,6 +145,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     if (!next || next !== verifiedPhoneE164) {
       setPhoneVerified(false);
       setOtpSent(false);
+      setOtpInfo(null);
       setOtpCode('');
     } else {
       setPhoneVerified(true);
@@ -158,9 +160,15 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     }
     setOtpSending(true);
     setError(null);
+    setOtpInfo(null);
     try {
-      await sendOrderPhoneOtp(userEmail, phone.trim());
+      const result = await sendOrderPhoneOtp(userEmail, phone.trim());
       setOtpSent(true);
+      if (result.info_message) {
+        setOtpInfo(result.info_message);
+      } else if (result.delivery_mode === 'live') {
+        setOtpInfo(`${result.phone_masked} numarasina SMS gonderildi. Kod ${result.expires_in_minutes} dk gecerli.`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SMS kodu gonderilemedi.');
     } finally {
@@ -242,7 +250,11 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       return;
     }
     if (!phoneMatchesVerified) {
-      setError('Telefon numaranizi SMS ile dogrulayin.');
+      setError(
+        otpSent
+          ? 'SMS kodunu girip Dogrula deyin.'
+          : 'Once SMS kodu gonder deyin, gelen kodu dogrulayin.',
+      );
       return;
     }
     if (address.trim().length < 10) {
@@ -365,6 +377,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
           <Text style={styles.otpHint}>
             Sahte numaralari onlemek icin SMS ile dogrulama gerekli. Restoran sizi bu numaradan arayacak.
           </Text>
+          {otpInfo ? <Text style={styles.otpInfo}>{otpInfo}</Text> : null}
           {!otpSent ? (
             <Pressable
               style={[styles.otpBtn, otpSending && styles.submitDisabled]}
@@ -586,6 +599,7 @@ const styles = StyleSheet.create({
   verifiedHint: { color: '#4ade80', fontSize: 12, fontWeight: '700' },
   otpBlock: { gap: 8 },
   otpHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17 },
+  otpInfo: { color: '#fbbf24', fontSize: 12, lineHeight: 17 },
   otpBtn: {
     borderRadius: 10,
     borderWidth: 1,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +17,8 @@ from app.services.sms_otp import generate_otp_code, hash_otp_code, send_sms_otp,
 
 RESEND_COOLDOWN_SECONDS = 60
 MAX_OTP_ATTEMPTS = 5
+
+logger = logging.getLogger(__name__)
 
 
 def _utcnow() -> datetime:
@@ -85,11 +88,33 @@ async def send_order_phone_otp(db: Session, *, user: User, raw_phone: str) -> di
     db.add(challenge)
     db.commit()
 
-    await send_sms_otp(phone_e164=phone_e164, code=code)
+    try:
+        delivery = await send_sms_otp(phone_e164=phone_e164, code=code)
+    except Exception as exc:
+        logger.exception("order phone OTP SMS failed for %s", mask_order_phone(phone_e164))
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"SMS gonderilemedi: {exc}",
+        ) from exc
+
+    mode = delivery.get("delivery_mode", "live")
+    info_message: str | None = None
+    if mode == "mock":
+        info_message = (
+            "Sunucu SMS mock modunda. Railway: SMS_PROVIDER=iletimerkezi ve gecerli API key/hash gerekir."
+        )
+    elif mode == "apitest":
+        info_message = (
+            "APITEST modu: SMS yalnizca iletiMerkezi panelindeki test numaraniza gider ve "
+            "mesajda dogrulama kodu olmaz. Canli OTP icin onayli SMS basligi (sender) gerekir."
+        )
+
     return {
         "sent": True,
         "phone_masked": mask_order_phone(phone_e164),
         "expires_in_minutes": settings.otp_expiry_minutes,
+        "delivery_mode": mode,
+        "info_message": info_message,
     }
 
 

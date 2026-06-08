@@ -31,6 +31,9 @@ from app.schemas.panel import (
     PanelNotificationPreferencesUpdate,
     PanelNotificationRead,
     PanelNotificationsResponse,
+    PanelAdminResetPublicDataRequest,
+    PanelResetPublicDataRequest,
+    PanelResetPublicDataResponse,
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
@@ -48,6 +51,11 @@ from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
+from app.services.panel_reset import (
+    load_ownership_by_place_id,
+    load_ownership_for_reset,
+    reset_ownership_public_data,
+)
 from app.services.menu_image_storage import save_menu_image
 from app.services.card_emoji import CARD_EMOJI_PRESETS, normalize_card_emoji
 from app.services.promo_social import normalize_instagram
@@ -352,38 +360,73 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
     if not ownership or not state.can_access_panel:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
 
-    if payload.card_emoji is not None:
+    fields = payload.model_fields_set
+
+    if "card_emoji" in fields:
         try:
-            ownership.card_emoji = normalize_card_emoji(payload.card_emoji)
+            ownership.card_emoji = normalize_card_emoji(payload.card_emoji) if payload.card_emoji else None
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
-    if payload.card_cover_image_url is not None:
-        ownership.promo_card_cover_image_url = payload.card_cover_image_url.strip() or None
+    if "card_cover_image_url" in fields:
+        ownership.promo_card_cover_image_url = (payload.card_cover_image_url or "").strip() or None
 
-    if not subscription_allows_promo(ownership.subscription):
-        db.add(ownership)
-        db.commit()
-        db.refresh(ownership)
-        return ownership_promo_as_dict(ownership)
+    if "menu_image_url" in fields:
+        ownership.promo_menu_image_url = (payload.menu_image_url or "").strip() or None
 
-    ownership.promo_has_own_courier = payload.has_own_courier
-    if not payload.has_own_courier:
-        ownership.online_orders_enabled = False
-    elif payload.online_orders_enabled is not None:
-        ownership.online_orders_enabled = payload.online_orders_enabled
-    ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
-    ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
-    ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
-    ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
-    if payload.menu_image_url is not None:
-        ownership.promo_menu_image_url = payload.menu_image_url.strip() or None
-    if payload.instagram is not None:
-        ownership.promo_instagram = normalize_instagram(payload.instagram)
+    if subscription_allows_promo(ownership.subscription):
+        ownership.promo_has_own_courier = payload.has_own_courier
+        if not payload.has_own_courier:
+            ownership.online_orders_enabled = False
+        elif payload.online_orders_enabled is not None:
+            ownership.online_orders_enabled = payload.online_orders_enabled
+        ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
+        ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
+        ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
+        ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
+        if "instagram" in fields:
+            ownership.promo_instagram = normalize_instagram(payload.instagram) if payload.instagram else None
+
     db.add(ownership)
     db.commit()
     db.refresh(ownership)
     return ownership_promo_as_dict(ownership)
+
+
+@panel_router.post("/reset-public-data", response_model=PanelResetPublicDataResponse)
+def reset_panel_public_data(payload: PanelResetPublicDataRequest, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    ownership = load_ownership_for_reset(db, ownership.id)
+    if not ownership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mekan bulunamadi.")
+    result = reset_ownership_public_data(db, ownership, hide_from_public=payload.hide_from_public)
+    return PanelResetPublicDataResponse.model_validate(result)
+
+
+@panel_router.post("/admin/reset-public-data", response_model=PanelResetPublicDataResponse)
+def admin_reset_panel_public_data(
+    payload: PanelAdminResetPublicDataRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    ownership = None
+    if payload.ownership_id:
+        try:
+            ownership_id = UUID(payload.ownership_id.strip())
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="ownership_id gecersiz.") from exc
+        ownership = load_ownership_for_reset(db, ownership_id)
+    elif payload.place_id:
+        ownership = load_ownership_by_place_id(db, payload.place_id.strip())
+    if not ownership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mekan paneli bulunamadi.")
+    result = reset_ownership_public_data(db, ownership, hide_from_public=payload.hide_from_public)
+    return PanelResetPublicDataResponse.model_validate(result)
 
 
 @panel_router.post("/promo/menu-image")

@@ -128,6 +128,25 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     card_emoji: str | None = Field(default=None, max_length=16)
 
 
+class PanelResetPublicDataRequest(BaseModel):
+    user_email: str
+    hide_from_public: bool = True
+
+
+class PanelAdminResetPublicDataRequest(BaseModel):
+    user_email: str
+    place_id: str | None = None
+    ownership_id: str | None = None
+    hide_from_public: bool = True
+
+
+class PanelResetPublicDataResponse(BaseModel):
+    orders_deleted: int
+    menu_items_deleted: int
+    hide_from_public: bool
+    restaurant_name: str | None = None
+
+
 class PanelNotificationRead(BaseModel):
     id: str
     notification_type: str

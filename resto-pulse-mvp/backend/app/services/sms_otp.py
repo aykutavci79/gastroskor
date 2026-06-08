@@ -93,17 +93,21 @@ async def _send_iletimerkezi_otp(*, phone_e164: str, code: str) -> None:
         raise RuntimeError(f"iletiMerkezi SMS failed ({status_code}): {body_text[:500]}")
 
 
-async def send_sms_otp(*, phone_e164: str, code: str) -> None:
-    if settings.sms_provider == "mock" or settings.environment == "development":
-        logger.info("SMS OTP -> %s code=%s (mock provider)", phone_e164, code)
-        return
-
+async def send_sms_otp(*, phone_e164: str, code: str) -> dict[str, str]:
     provider = (settings.sms_provider or "mock").strip().lower()
+    if provider == "mock":
+        logger.info("SMS OTP -> %s code=%s (mock provider)", phone_e164, code)
+        return {"delivery_mode": "mock"}
+
     if provider == "netgsm":
         await _send_netgsm_otp(phone_e164=phone_e164, code=code)
-        return
+        return {"delivery_mode": "live"}
+
     if provider in {"iletimerkezi", "ileti_merkezi", "iletimerkezi.com"}:
+        sender = (settings.iletimerkezi_sender or "APITEST").strip() or "APITEST"
         await _send_iletimerkezi_otp(phone_e164=phone_e164, code=code)
-        return
+        if sender.upper() == "APITEST":
+            return {"delivery_mode": "apitest"}
+        return {"delivery_mode": "live"}
 
     raise ValueError(f"Unsupported SMS provider: {settings.sms_provider}")

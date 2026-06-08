@@ -70,6 +70,7 @@ from app.schemas.restaurant import (
 )
 from app.schemas.restaurant_order import (
     OrderPhoneSendOtpRequest,
+    OrderPhoneSendOtpResponse,
     OrderPhoneStatus,
     OrderPhoneVerifyOtpRequest,
     RestaurantOrderActiveResponse,
@@ -1186,7 +1187,7 @@ def get_order_phone_status(user_email: str = Query(..., min_length=3), db: Sessi
     return OrderPhoneStatus.model_validate(order_phone_status_for_user(user))
 
 
-@router.post("/order-phone/send-otp")
+@router.post("/order-phone/send-otp", response_model=OrderPhoneSendOtpResponse)
 async def post_order_phone_send_otp(payload: OrderPhoneSendOtpRequest, db: Session = Depends(get_db)):
     user = get_or_create_user(db, email=payload.user_email)
     return await send_order_phone_otp(db, user=user, raw_phone=payload.phone)

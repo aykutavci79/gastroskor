@@ -15,6 +15,7 @@ export function PanelAdminTools() {
   const [results, setResults] = useState<LivePlaceSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [forceTakeover, setForceTakeover] = useState(true);
+  const [hideFromPublicOnReset, setHideFromPublicOnReset] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applications, setApplications] = useState<PanelApplication[]>([]);
@@ -111,6 +112,40 @@ export function PanelAdminTools() {
       router.push('/panel');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Baglama basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onResetPlace(place: LivePlaceSearchItem) {
+    const ok = window.confirm(
+      `${place.name} test siparisleri, menu ve promo silinsin mi?` +
+        (hideFromPublicOnReset ? ' Siteden de gizlenir (deneme kapanir).' : ''),
+    );
+    if (!ok) return;
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/panel/admin/reset-public-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          place_id: place.place_id,
+          hide_from_public: hideFromPublicOnReset,
+        }),
+      });
+      const data = (await res.json()) as {
+        detail?: string;
+        orders_deleted?: number;
+        menu_items_deleted?: number;
+      };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Sifirlama basarisiz');
+      setMessage(
+        `${place.name}: ${data.orders_deleted ?? 0} siparis, ${data.menu_items_deleted ?? 0} menu silindi.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sifirlama basarisiz');
     } finally {
       setLoading(false);
     }
@@ -244,7 +279,17 @@ export function PanelAdminTools() {
       </section>
 
       <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
-        <form onSubmit={onSearch} className="flex gap-2">
+        <h3 className="text-sm font-semibold text-content">Mekan ara / sifirla</h3>
+        <label className="mt-3 flex items-center gap-2 text-xs text-content-muted">
+          <input
+            type="checkbox"
+            checked={hideFromPublicOnReset}
+            onChange={(e) => setHideFromPublicOnReset(e.target.checked)}
+            className="rounded border-border"
+          />
+          Sifirlamada siteden gizle (deneme kapat)
+        </label>
+        <form onSubmit={onSearch} className="mt-3 flex gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -267,13 +312,22 @@ export function PanelAdminTools() {
                 <p className="font-medium text-content">{place.name}</p>
                 <p className="text-xs text-content-muted">{place.address}</p>
               </div>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => void onGrant(place)}
-                className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-400 disabled:opacity-50">
-                Panele bagla
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void onGrant(place)}
+                  className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-400 disabled:opacity-50">
+                  Panele bagla
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void onResetPlace(place)}
+                  className="rounded-lg border border-rose-500/50 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:opacity-50">
+                  Test verilerini sil
+                </button>
+              </div>
             </li>
           ))}
         </ul>

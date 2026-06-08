@@ -86,6 +86,14 @@ export type OrderPhoneStatus = {
   verified_at?: string | null;
 };
 
+export type OrderPhoneSendOtpResponse = {
+  sent: boolean;
+  phone_masked: string;
+  expires_in_minutes: number;
+  delivery_mode?: 'mock' | 'apitest' | 'live' | string;
+  info_message?: string | null;
+};
+
 export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
   pending_order: RestaurantOrderRead | null;

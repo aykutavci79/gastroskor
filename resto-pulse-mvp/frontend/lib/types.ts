@@ -179,6 +179,13 @@ export type RestaurantPromoSettings = {
   public_preview: RestaurantPromoPublic | null;
 };
 
+export type PanelResetPublicDataResponse = {
+  orders_deleted: number;
+  menu_items_deleted: number;
+  hide_from_public: boolean;
+  restaurant_name: string | null;
+};
+
 export type CityTopResponse = {
   city: string;
   items: RestaurantTrendingItem[];
