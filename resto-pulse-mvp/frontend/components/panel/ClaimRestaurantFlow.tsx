@@ -165,6 +165,23 @@ export function ClaimRestaurantFlow() {
     }
   }
 
+  if (access?.contract_blocked) {
+    return (
+      <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-rose-100">
+        <p className="font-semibold">Panel kapatıldı</p>
+        <p className="mt-2 text-sm">
+          {access.panel_block_reason ??
+            'Deneme süresi bitti ve imzalı sözleşme ulaşmadı.'}
+        </p>
+        <p className="mt-2 text-sm">
+          <a href="mailto:destek@gastroskor.com.tr" className="underline">
+            destek@gastroskor.com.tr
+          </a>
+        </p>
+      </div>
+    );
+  }
+
   if (access?.can_access_panel && access.verification_status !== 'pending_sms' && !isPanelAdmin) {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-success">
@@ -187,6 +204,13 @@ export function ClaimRestaurantFlow() {
         </p>
         <p className="mt-2 text-xs text-content-muted">
           Ornek arama: <span className="text-content-muted">Urfali Kebap Bursa</span> veya isletme adiniz + sehir
+        </p>
+        <p className="mt-3 text-sm text-content-muted">
+          Vergi levhası ve resmi başvuru için{' '}
+          <Link href="/isletme-basvuru" className="text-accent underline">
+            işletme başvuru formu
+          </Link>{' '}
+          (sözleşme + belge yükleme).
         </p>
 
         {isPanelAdmin ? (

@@ -28,6 +28,10 @@ class PanelAccessState:
     restaurant_name: str | None
     google_place_id: str | None
     pending_visit: bool
+    contract_required: bool = False
+    contract_signed_received: bool = False
+    contract_blocked: bool = False
+    panel_block_reason: str | None = None
 
 
 def _utcnow() -> datetime:
@@ -106,6 +110,10 @@ def build_panel_access_state(db: Session, ownership: RestaurantOwnership | None)
             restaurant_name=None,
             google_place_id=None,
             pending_visit=False,
+            contract_required=False,
+            contract_signed_received=False,
+            contract_blocked=False,
+            panel_block_reason=None,
         )
 
     subscription = ownership.subscription
@@ -116,6 +124,22 @@ def build_panel_access_state(db: Session, ownership: RestaurantOwnership | None)
     has_panel_record = ownership.verification_status in allowed_statuses
     subscription_ok = subscription is not None and subscription.status in {"trial", "active"}
     can_access = has_panel_record and subscription_ok and ownership.verification_status != "rejected"
+
+    contract_required = bool(ownership.contract_required)
+    contract_signed_received = ownership.contract_signed_received_at is not None
+    contract_blocked = (
+        contract_required
+        and not contract_signed_received
+        and subscription is not None
+        and subscription.status == "lapsed"
+    )
+    panel_block_reason = None
+    if contract_blocked:
+        can_access = False
+        panel_block_reason = (
+            "Deneme süresi sona erdi ve imzalı sözleşme henüz ulaşmadı. "
+            "Panel yeniden açılması için destek@gastroskor.com.tr ile iletişime geçin."
+        )
 
     trial_days_left = None
     subscription_status = subscription.status if subscription else None
@@ -154,6 +178,10 @@ def build_panel_access_state(db: Session, ownership: RestaurantOwnership | None)
         restaurant_name=ownership.restaurant.name if ownership.restaurant else None,
         google_place_id=ownership.google_place_id,
         pending_visit=ownership.verification_status == "pending_visit",
+        contract_required=contract_required,
+        contract_signed_received=contract_signed_received,
+        contract_blocked=contract_blocked,
+        panel_block_reason=panel_block_reason,
     )
 
 

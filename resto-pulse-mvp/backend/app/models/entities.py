@@ -351,6 +351,42 @@ class FollowerCoupon(Base):
     redeemed_by: Mapped["User | None"] = relationship(foreign_keys=[redeemed_by_user_id])
 
 
+class RestaurantPanelApplication(Base):
+    __tablename__ = "restaurant_panel_applications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    business_name: Mapped[str] = mapped_column(String(200))
+    contact_name: Mapped[str] = mapped_column(String(120))
+    panel_email: Mapped[str] = mapped_column(String(255), index=True)
+    phone: Mapped[str] = mapped_column(String(32))
+    address: Mapped[str] = mapped_column(Text)
+    city: Mapped[str] = mapped_column(String(80), default="Bursa")
+    website: Mapped[str | None] = mapped_column(String(500))
+    google_place_id: Mapped[str | None] = mapped_column(String(255))
+    google_place_name: Mapped[str | None] = mapped_column(String(255))
+    tax_document_key: Mapped[str] = mapped_column(String(512))
+    tax_document_content_type: Mapped[str] = mapped_column(String(80))
+    contract_version: Mapped[str] = mapped_column(String(40))
+    contract_accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    contract_postal_promised: Mapped[bool] = mapped_column(Boolean, default=True)
+    applicant_notes: Mapped[str | None] = mapped_column(Text)
+    admin_notes: Mapped[str | None] = mapped_column(Text)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_by_email: Mapped[str | None] = mapped_column(String(255))
+    ownership_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    ownership: Mapped["RestaurantOwnership | None"] = relationship(
+        back_populates="panel_application", foreign_keys=[ownership_id]
+    )
+
+
 class RestaurantOwnership(Base):
     __tablename__ = "restaurant_ownerships"
     __table_args__ = (
@@ -386,6 +422,12 @@ class RestaurantOwnership(Base):
     promo_card_cover_image_url: Mapped[str | None] = mapped_column(String(1024))
     promo_instagram: Mapped[str | None] = mapped_column(String(120))
     card_emoji: Mapped[str | None] = mapped_column(String(16))
+    contract_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    contract_electronic_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    contract_signed_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    panel_application_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_panel_applications.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
@@ -413,6 +455,9 @@ class RestaurantOwnership(Base):
     )
     follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
+    )
+    panel_application: Mapped["RestaurantPanelApplication | None"] = relationship(
+        back_populates="ownership", foreign_keys=[panel_application_id], uselist=False
     )
 
 

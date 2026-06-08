@@ -18,6 +18,20 @@ class PanelAccessRead(BaseModel):
     restaurant_name: str | None = None
     google_place_id: str | None = None
     pending_visit: bool = False
+    contract_required: bool = False
+    contract_signed_received: bool = False
+    contract_blocked: bool = False
+    panel_block_reason: str | None = None
+
+
+class PanelApplicationListResponse(BaseModel):
+    items: list[dict]
+
+
+class PanelApplicationActionRequest(BaseModel):
+    user_email: str
+    admin_note: str | None = None
+    force_takeover: bool = False
 
 
 class ClaimStartRequest(BaseModel):

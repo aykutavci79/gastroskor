@@ -22,6 +22,7 @@ function authErrorMessage(code: string | null): string | null {
   return AUTH_ERROR_TR[code] ?? AUTH_ERROR_TR.Default;
 }
 
+import { PanelContractBanner } from '@/components/panel/PanelContractBanner';
 import { PanelNotificationCenter } from '@/components/panel/PanelNotificationCenter';
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
 
@@ -61,6 +62,8 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
       router.replace('/panel/claim');
     }
   }, [access, loading, onAdminPage, onClaimPage, router, userEmail]);
+
+  const contractBlocked = Boolean(access?.contract_blocked);
 
   if (!userEmail) {
     return (
@@ -155,7 +158,27 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
         </div>
         {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
       </section>
-      {children}
+      {contractBlocked ? (
+        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-sm text-rose-100">
+          <p className="font-semibold text-rose-50">Panel erişimi kapatıldı</p>
+          <p className="mt-2">
+            {access?.panel_block_reason ??
+              'Deneme süresi sona erdi ve imzalı sözleşme ulaşmadı.'}
+          </p>
+          <p className="mt-2">
+            Sözleşmeyi ilettikten sonra{' '}
+            <a href="mailto:destek@gastroskor.com.tr" className="underline">
+              destek@gastroskor.com.tr
+            </a>{' '}
+            ile iletişime geçin.
+          </p>
+        </div>
+      ) : (
+        <>
+          <PanelContractBanner />
+          {children}
+        </>
+      )}
     </div>
   );
 }

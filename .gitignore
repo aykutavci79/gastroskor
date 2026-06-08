@@ -47,3 +47,4 @@ scripts/check-sqlite-tables.js
 scripts/check_sqlite_story_count.cjs
 scripts/check_sqlite_story_count.js
 scripts/bootstrap-admin.js
+.vercel

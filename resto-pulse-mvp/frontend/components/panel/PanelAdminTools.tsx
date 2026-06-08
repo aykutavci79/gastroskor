@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import { searchLivePlaces } from '@/lib/api';
-import type { LivePlaceSearchItem } from '@/lib/types';
+import type { LivePlaceSearchItem, PanelApplication } from '@/lib/types';
 
 export function PanelAdminTools() {
   const { userEmail, refresh } = usePanel();
@@ -17,6 +17,10 @@ export function PanelAdminTools() {
   const [forceTakeover, setForceTakeover] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applications, setApplications] = useState<PanelApplication[]>([]);
+  const [appsLoading, setAppsLoading] = useState(false);
+  const [appFilter, setAppFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('pending');
+  const [forceTakeoverApps, setForceTakeoverApps] = useState(true);
 
   useEffect(() => {
     fetch('/api/panel/admin/status')
@@ -24,6 +28,47 @@ export function PanelAdminTools() {
       .then((data: { is_panel_admin?: boolean }) => setAllowed(Boolean(data.is_panel_admin)))
       .catch(() => setAllowed(false));
   }, []);
+
+  async function loadApplications(filter = appFilter) {
+    setAppsLoading(true);
+    try {
+      const query = filter ? `?status=${filter}` : '';
+      const res = await fetch(`/api/panel/admin/applications${query}`);
+      const data = (await res.json()) as { items?: PanelApplication[]; detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Basvurular yuklenemedi');
+      setApplications(data.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Basvurular yuklenemedi');
+    } finally {
+      setAppsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (allowed) void loadApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed, appFilter]);
+
+  async function onAppAction(appId: string, action: 'approve' | 'reject' | 'mark-contract-received') {
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/panel/admin/applications/${appId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force_takeover: forceTakeoverApps }),
+      });
+      const data = (await res.json()) as { detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Islem basarisiz');
+      setMessage(`Basvuru ${action} tamamlandi.`);
+      await loadApplications();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Islem basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSearch(event: FormEvent) {
     event.preventDefault();
@@ -92,6 +137,96 @@ export function PanelAdminTools() {
           /panel/admin/kpi
         </a>
       </p>
+      <section className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-6">
+        <h2 className="text-xl font-semibold text-sky-100">Isletme basvurulari</h2>
+        <p className="mt-1 text-sm text-content-muted">
+          <a href="/isletme-basvuru" className="text-accent underline" target="_blank" rel="noreferrer">
+            /isletme-basvuru
+          </a>{' '}
+          formundan gelen kayitlar. Onay icin basvuru sahibi ayni e-posta ile once Google girisi yapmis olmali.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(['pending', 'approved', 'rejected', ''] as const).map((value) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              onClick={() => setAppFilter(value)}
+              className={`rounded-lg px-3 py-1 text-xs ${
+                appFilter === value ? 'bg-sky-500/30 text-sky-50' : 'border border-border text-content-muted'
+              }`}>
+              {value === 'pending' ? 'Bekleyen' : value === 'approved' ? 'Onayli' : value === 'rejected' ? 'Red' : 'Tumu'}
+            </button>
+          ))}
+          <label className="ml-auto flex items-center gap-2 text-xs text-content-muted">
+            <input
+              type="checkbox"
+              checked={forceTakeoverApps}
+              onChange={(e) => setForceTakeoverApps(e.target.checked)}
+            />
+            Onayda mekani devral
+          </label>
+        </div>
+        {appsLoading ? <p className="mt-3 text-sm text-content-muted">Yukleniyor...</p> : null}
+        <ul className="mt-4 space-y-3">
+          {applications.map((app) => (
+            <li key={app.id} className="rounded-xl border border-border bg-surface/80 p-4 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-content">
+                    {app.business_name}{' '}
+                    <span className="text-xs font-normal text-content-muted">({app.status})</span>
+                  </p>
+                  <p className="text-xs text-content-muted">
+                    {app.contact_name} · {app.panel_email} · {app.phone}
+                  </p>
+                  <p className="text-xs text-content-muted">
+                    {app.google_place_name ?? 'Mekan secilmemis'} · {app.city}
+                  </p>
+                  <p className="mt-1 text-xs text-content-muted">{new Date(app.created_at ?? '').toLocaleString('tr-TR')}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`/api/panel/admin/applications/${app.id}/tax-document`}
+                    className="rounded-lg border border-border px-2 py-1 text-xs text-content-muted hover:bg-surface-input">
+                    Vergi levhasi
+                  </a>
+                  {app.status === 'pending' ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void onAppAction(app.id, 'approve')}
+                        className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">
+                        Onayla
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void onAppAction(app.id, 'reject')}
+                        className="rounded-lg bg-rose-600/80 px-2 py-1 text-xs text-white">
+                        Reddet
+                      </button>
+                    </>
+                  ) : null}
+                  {app.status === 'approved' ? (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => void onAppAction(app.id, 'mark-contract-received')}
+                      className="rounded-lg bg-amber-500 px-2 py-1 text-xs font-semibold text-amber-950">
+                      Sozlesme geldi
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {!appsLoading && applications.length === 0 ? (
+          <p className="mt-3 text-sm text-content-muted">Kayit yok.</p>
+        ) : null}
+      </section>
+
       <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
         <h2 className="text-xl font-semibold text-brand-gold">Admin: Mekan bagla (bypass)</h2>
         <p className="mt-2 text-sm text-amber-50/90">

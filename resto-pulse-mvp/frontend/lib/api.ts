@@ -748,3 +748,27 @@ export function trackAnalyticsEvent(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export function getPanelContract() {
+  return request<import('@/lib/types').PanelContractInfo>('/panel/applications/contract');
+}
+
+export async function submitBusinessApplication(form: FormData) {
+  const response = await fetch(`${getApiV1Base()}/panel/applications`, {
+    method: 'POST',
+    body: form,
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = text || `API error ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (typeof parsed.detail === 'string') message = parsed.detail;
+    } catch {
+      // plain text
+    }
+    throw new Error(message);
+  }
+  return response.json() as Promise<{ ok: boolean; application: import('@/lib/types').PanelApplication }>;
+}

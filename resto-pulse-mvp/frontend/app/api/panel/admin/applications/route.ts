@@ -1,0 +1,40 @@
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+
+import { authOptions } from '@/lib/auth-options';
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr').replace(/\/$/, '');
+const ADMIN_EMAILS = (process.env.PANEL_ADMIN_EMAILS ?? '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+function adminHeaders(secret: string | undefined) {
+  const headers: Record<string, string> = {};
+  if (secret) headers['X-Panel-Admin-Secret'] = secret;
+  return headers;
+}
+
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email?.trim();
+  if (!email) {
+    return NextResponse.json({ detail: 'Google ile giris gerekli.' }, { status: 401 });
+  }
+  if (!ADMIN_EMAILS.length || !ADMIN_EMAILS.includes(email.toLowerCase())) {
+    return NextResponse.json({ detail: 'Admin yetkisi yok.' }, { status: 403 });
+  }
+
+  const secret = process.env.PANEL_ADMIN_SECRET?.trim();
+  const { searchParams } = new URL(request.url);
+  const statusFilter = searchParams.get('status');
+  const query = new URLSearchParams({ user_email: email });
+  if (statusFilter) query.set('status', statusFilter);
+
+  const response = await fetch(`${API_BASE}/api/v1/panel/admin/applications?${query}`, {
+    headers: adminHeaders(secret),
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+  return NextResponse.json(data, { status: response.status });
+}

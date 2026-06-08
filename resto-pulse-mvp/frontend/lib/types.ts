@@ -452,6 +452,42 @@ export type PanelAccess = {
   restaurant_name: string | null;
   google_place_id: string | null;
   pending_visit: boolean;
+  contract_required?: boolean;
+  contract_signed_received?: boolean;
+  contract_blocked?: boolean;
+  panel_block_reason?: string | null;
+};
+
+export type PanelContractInfo = {
+  version: string;
+  title: string;
+  updated: string;
+  text: string;
+  postal_address: string;
+  support_email: string;
+};
+
+export type PanelApplication = {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  business_name: string;
+  contact_name: string;
+  panel_email: string;
+  phone: string;
+  address: string;
+  city: string;
+  website: string | null;
+  google_place_id: string | null;
+  google_place_name: string | null;
+  contract_version: string;
+  contract_accepted_at: string | null;
+  contract_postal_promised: boolean;
+  applicant_notes: string | null;
+  admin_notes: string | null;
+  reviewed_at: string | null;
+  reviewed_by_email: string | null;
+  ownership_id: string | null;
+  created_at: string | null;
 };
 
 export type PanelNotification = {

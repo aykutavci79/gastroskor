@@ -28,7 +28,11 @@ export default function TermsPage() {
       <h2 className="text-lg font-semibold text-content">İşletme paneli</h2>
       <p>
         Mekan sahipleri doğru bilgi vermekle yükümlüdür. Abonelik ve tanıtım koşulları panel sözleşmesinde
-        ayrıca belirtilir.
+        ayrıca belirtilir. Başvuru için{' '}
+        <a href="/isletme-basvuru" className="text-accent hover:underline">
+          işletme başvuru formu
+        </a>{' '}
+        kullanılabilir.
       </p>
       <h2 className="text-lg font-semibold text-content">Sorumluluk sınırı</h2>
       <p>

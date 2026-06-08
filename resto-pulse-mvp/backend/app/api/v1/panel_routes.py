@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,6 +23,8 @@ from app.schemas.panel import (
     ClaimStartResponse,
     CompetitorAddRequest,
     PanelAccessRead,
+    PanelApplicationActionRequest,
+    PanelApplicationListResponse,
     MenuItemCreateRequest,
     MenuItemUpdateRequest,
     PanelNotificationPreferencesRead,
@@ -97,6 +100,16 @@ from app.services.follower_promotion_service import (
 )
 from app.services.restaurant_followers import list_panel_followers
 from app.services.user_notification_service import notify_follower_coupon_issued, notify_order_rejected
+from app.services.panel_application import (
+    approve_panel_application,
+    contract_payload,
+    get_application_tax_document,
+    list_panel_applications,
+    mark_contract_signed_received,
+    reject_panel_application,
+    submit_panel_application,
+    application_to_dict,
+)
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
@@ -131,6 +144,128 @@ def serialize_access(state) -> PanelAccessRead:
         restaurant_name=state.restaurant_name,
         google_place_id=state.google_place_id,
         pending_visit=state.pending_visit,
+        contract_required=state.contract_required,
+        contract_signed_received=state.contract_signed_received,
+        contract_blocked=state.contract_blocked,
+        panel_block_reason=state.panel_block_reason,
+    )
+
+
+@panel_router.get("/applications/contract")
+def panel_application_contract():
+    return contract_payload()
+
+
+@panel_router.post("/applications")
+async def submit_business_application(
+    business_name: str = Form(...),
+    contact_name: str = Form(...),
+    panel_email: str = Form(...),
+    phone: str = Form(...),
+    address: str = Form(...),
+    city: str = Form(default="Bursa"),
+    website: str | None = Form(default=None),
+    google_place_id: str | None = Form(default=None),
+    google_place_name: str | None = Form(default=None),
+    applicant_notes: str | None = Form(default=None),
+    contract_accepted: bool = Form(...),
+    contract_postal_promised: bool = Form(...),
+    tax_document: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    application = await submit_panel_application(
+        db,
+        business_name=business_name,
+        contact_name=contact_name,
+        panel_email=panel_email,
+        phone=phone,
+        address=address,
+        city=city,
+        website=website,
+        google_place_id=google_place_id,
+        google_place_name=google_place_name,
+        applicant_notes=applicant_notes,
+        contract_accepted=contract_accepted,
+        contract_postal_promised=contract_postal_promised,
+        tax_file=tax_document,
+    )
+    return {"ok": True, "application": application_to_dict(application)}
+
+
+@panel_router.get("/admin/applications", response_model=PanelApplicationListResponse)
+def admin_list_applications(
+    user_email: str = Query(...),
+    status_filter: str | None = Query(default=None, alias="status"),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=user_email, secret_header=x_panel_admin_secret)
+    return {"items": list_panel_applications(db, status_filter=status_filter)}
+
+
+@panel_router.post("/admin/applications/{application_id}/approve")
+async def admin_approve_application(
+    application_id: UUID,
+    payload: PanelApplicationActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    app = await approve_panel_application(
+        db,
+        application_id=application_id,
+        admin_email=payload.user_email,
+        force_takeover=payload.force_takeover,
+        admin_note=payload.admin_note,
+    )
+    return {"ok": True, "application": application_to_dict(app)}
+
+
+@panel_router.post("/admin/applications/{application_id}/reject")
+def admin_reject_application(
+    application_id: UUID,
+    payload: PanelApplicationActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    app = reject_panel_application(
+        db,
+        application_id=application_id,
+        admin_email=payload.user_email,
+        admin_note=payload.admin_note,
+    )
+    return {"ok": True, "application": application_to_dict(app)}
+
+
+@panel_router.post("/admin/applications/{application_id}/mark-contract-received")
+def admin_mark_contract_received(
+    application_id: UUID,
+    payload: PanelApplicationActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    return mark_contract_signed_received(
+        db,
+        application_id=application_id,
+        admin_email=payload.user_email,
+    )
+
+
+@panel_router.get("/admin/applications/{application_id}/tax-document")
+def admin_download_tax_document(
+    application_id: UUID,
+    user_email: str = Query(...),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=user_email, secret_header=x_panel_admin_secret)
+    data, content_type, filename = get_application_tax_document(application_id, db)
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
