@@ -382,9 +382,7 @@ class RestaurantPanelApplication(Base):
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    ownership: Mapped["RestaurantOwnership | None"] = relationship(
-        back_populates="panel_application", foreign_keys=[ownership_id]
-    )
+    ownership: Mapped["RestaurantOwnership | None"] = relationship(foreign_keys=[ownership_id])
 
 
 class RestaurantOwnership(Base):
@@ -457,7 +455,7 @@ class RestaurantOwnership(Base):
         back_populates="ownership", cascade="all, delete-orphan"
     )
     panel_application: Mapped["RestaurantPanelApplication | None"] = relationship(
-        back_populates="ownership", foreign_keys=[panel_application_id], uselist=False
+        foreign_keys=[panel_application_id], uselist=False
     )
 
 
