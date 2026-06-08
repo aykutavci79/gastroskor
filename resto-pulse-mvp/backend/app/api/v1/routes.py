@@ -1946,3 +1946,17 @@ def cron_gourmet_chat_assistant(
     stats = process_due_assistant_jobs(db)
     return {"ok": True, "stats": stats}
 
+
+@router.post("/internal/cron/gourmet-trivia")
+def cron_gourmet_trivia(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.gourmet_trivia import process_trivia_tick
+
+    stats = process_trivia_tick(db)
+    return {"ok": True, "stats": stats}
+

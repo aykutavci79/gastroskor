@@ -26,6 +26,7 @@ from app.models.entities import (
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.gourmet_profile import public_user_avatar, nickname_identity_key
 from app.services.gourmet_chat_assistant import handle_human_chat_message, is_assistant_user
+from app.services.gourmet_trivia import is_trivia_bot_user, try_process_trivia_answer
 from app.services.review_moderation import check_review_text
 from app.services.user_notification_service import notify_gourmet_chat_mention
 
@@ -80,7 +81,7 @@ def serialize_author(user: User | None) -> dict:
         "nickname": user.nickname,
         "avatar_url": avatar_url,
         "avatar_preset": avatar_preset,
-        "is_assistant": is_assistant_user(user),
+        "is_assistant": is_assistant_user(user) or is_trivia_bot_user(user),
     }
 
 
@@ -353,6 +354,14 @@ def create_message(
             room_title=room.title,
             body=cleaned_body,
         )
+
+    try_process_trivia_answer(
+        db,
+        room=room,
+        city=resolved_city,
+        user=user,
+        message_body=cleaned_body,
+    )
 
     db.commit()
     db.refresh(row)

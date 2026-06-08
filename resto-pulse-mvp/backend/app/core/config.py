@@ -90,6 +90,10 @@ class Settings(BaseSettings):
     gourmet_assistant_room_max_msg_per_hour: int = 20
     gourmet_assistant_gemini_personality: bool = True
 
+    gourmet_trivia_enabled: bool = True
+    gourmet_trivia_interval_sec: int = 180
+    gourmet_trivia_answer_window_sec: int = 90
+
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False
 

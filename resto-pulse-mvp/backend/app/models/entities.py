@@ -1050,3 +1050,63 @@ class GourmetChatAssistantJob(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
+
+class GourmetTriviaQuestion(Base):
+    __tablename__ = "gourmet_trivia_questions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_text: Mapped[str] = mapped_column(Text)
+    answers_json: Mapped[list] = mapped_column(JSON, default=list)
+    room_tag: Mapped[str | None] = mapped_column(String(40), index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class GourmetTriviaRound(Base):
+    __tablename__ = "gourmet_trivia_rounds"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_trivia_questions.id", ondelete="CASCADE")
+    )
+    status: Mapped[str] = mapped_column(String(20), default="open", index=True)
+    winner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
+    )
+    question_message_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_messages.id", ondelete="SET NULL")
+    )
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    room: Mapped["GourmetChatRoom"] = relationship()
+    question: Mapped["GourmetTriviaQuestion"] = relationship()
+    winner: Mapped["User | None"] = relationship(foreign_keys=[winner_user_id])
+
+
+class GourmetTriviaScore(Base):
+    __tablename__ = "gourmet_trivia_scores"
+    __table_args__ = (UniqueConstraint("user_id", "room_id", "city", name="uq_gourmet_trivia_score"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("gourmet_chat_rooms.id", ondelete="CASCADE"), index=True
+    )
+    city: Mapped[str] = mapped_column(String(64))
+    correct_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_correct_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship()
+    room: Mapped["GourmetChatRoom"] = relationship()
+

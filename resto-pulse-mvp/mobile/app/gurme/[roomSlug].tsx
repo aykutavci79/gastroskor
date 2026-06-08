@@ -27,11 +27,12 @@ import {
   createGourmetChatMessage,
   getPublicUserByNickname,
   listGourmetChatMessages,
+  listGourmetTriviaLeaderboard,
   rejectFriendRequest,
   removeFriend,
   startDmThread,
 } from '@/lib/api';
-import type { GourmetChatAuthor, GourmetChatMessage } from '@/lib/types';
+import type { GourmetChatAuthor, GourmetChatMessage, GourmetTriviaLeaderboardItem } from '@/lib/types';
 
 const CITY = 'Bursa';
 const POLL_MS = 12_000;
@@ -51,6 +52,7 @@ export default function GurmeRoomScreen() {
 
   const listRef = useRef<FlatList<GourmetChatMessage>>(null);
   const [messages, setMessages] = useState<GourmetChatMessage[]>([]);
+  const [leaderboard, setLeaderboard] = useState<GourmetTriviaLeaderboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [body, setBody] = useState('');
@@ -72,8 +74,12 @@ export default function GurmeRoomScreen() {
     async (silent = false) => {
       if (!silent) setError(null);
       try {
-        const payload = await listGourmetChatMessages(roomSlug, CITY);
+        const [payload, board] = await Promise.all([
+          listGourmetChatMessages(roomSlug, CITY),
+          listGourmetTriviaLeaderboard(roomSlug, CITY, 5),
+        ]);
         setMessages(payload.items);
+        setLeaderboard(board.items);
       } catch (err) {
         if (!silent) setError(err instanceof Error ? err.message : 'Mesajlar yuklenemedi.');
       } finally {
@@ -279,6 +285,17 @@ export default function GurmeRoomScreen() {
           </View>
         </View>
 
+        {leaderboard.length > 0 ? (
+          <View style={styles.leaderboard}>
+            <Text style={styles.leaderboardTitle}>BilBakalim · top {leaderboard.length}</Text>
+            <Text style={styles.leaderboardRow} numberOfLines={2}>
+              {leaderboard
+                .map((row, index) => `${index + 1}. ${row.nickname} (${row.correct_count})`)
+                .join(' · ')}
+            </Text>
+          </View>
+        ) : null}
+
         {loading ? (
           <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
         ) : error ? (
@@ -375,6 +392,19 @@ const styles = StyleSheet.create({
   headerTextWrap: { flex: 1 },
   headerTitle: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
   headerCity: { color: GastroColors.muted, fontSize: 12, marginTop: 2 },
+  leaderboard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: GastroColors.panel,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    gap: 4,
+  },
+  leaderboardTitle: { color: GastroColors.muted, fontSize: 11, fontWeight: '700' },
+  leaderboardRow: { color: GastroColors.text, fontSize: 12, lineHeight: 18 },
   loader: { marginTop: 32 },
   messageList: { padding: 16, paddingBottom: 12, gap: 10, flexGrow: 1 },
   empty: { color: GastroColors.muted, lineHeight: 22, textAlign: 'center', marginTop: 40 },

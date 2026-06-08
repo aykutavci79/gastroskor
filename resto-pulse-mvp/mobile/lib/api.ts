@@ -4,6 +4,7 @@ import type {
   GourmetChatAnswer,
   GourmetChatMessage,
   GourmetChatMessageListResponse,
+  GourmetTriviaLeaderboardResponse,
   GourmetChatQuestion,
   GourmetChatQuestionDetail,
   GourmetChatQuestionListResponse,
@@ -649,6 +650,16 @@ export function listGourmetChatMessages(roomSlug: string, city: string) {
   const query = new URLSearchParams({ city: city.trim() || 'Bursa' });
   return request<GourmetChatMessageListResponse>(
     `/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/messages?${query.toString()}`,
+  );
+}
+
+export function listGourmetTriviaLeaderboard(roomSlug: string, city: string, limit = 5) {
+  const query = new URLSearchParams({
+    city: city.trim() || 'Bursa',
+    limit: String(limit),
+  });
+  return request<GourmetTriviaLeaderboardResponse>(
+    `/gourmet-chat/rooms/${encodeURIComponent(roomSlug)}/trivia/leaderboard?${query.toString()}`,
   );
 }
 

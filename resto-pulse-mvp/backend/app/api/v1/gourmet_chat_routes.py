@@ -14,6 +14,7 @@ from app.schemas.gourmet_chat import (
     GourmetChatMessageCreate,
     GourmetChatMessageItem,
     GourmetChatMessageListResponse,
+    GourmetTriviaLeaderboardResponse,
     GourmetChatQuestionCreate,
     GourmetChatQuestionDetail,
     GourmetChatQuestionItem,
@@ -142,6 +143,20 @@ def gourmet_chat_create_answer(
     return GourmetChatAnswerItem.model_validate(item)
 
 
+@router.get("/rooms/{room_slug}/trivia/leaderboard", response_model=GourmetTriviaLeaderboardResponse)
+def gourmet_trivia_leaderboard(
+    room_slug: str,
+    city: str = Query(default="Bursa"),
+    limit: int = Query(default=10, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    from app.services.gourmet_trivia import leaderboard_for_room
+
+    resolved_city = resolve_gourmet_city(city)
+    items = leaderboard_for_room(db, room_slug=room_slug, city=resolved_city, limit=limit)
+    return GourmetTriviaLeaderboardResponse(city=resolved_city, room_slug=room_slug, items=items)
+
+
 @router.get("/rooms/{room_slug}/messages", response_model=GourmetChatMessageListResponse)
 def gourmet_chat_room_messages(
     room_slug: str,
@@ -153,12 +168,14 @@ def gourmet_chat_room_messages(
     try:
         from app.services.gourmet_chat_assistant import process_due_assistant_jobs, recover_stale_for_room
         from app.models.entities import GourmetChatRoom
+        from app.services.gourmet_trivia import process_trivia_tick
         from sqlalchemy import select
 
         room = db.scalar(select(GourmetChatRoom).where(GourmetChatRoom.slug == room_slug))
         resolved_city = resolve_gourmet_city(city)
         if room:
             recover_stale_for_room(db, room=room, city=resolved_city)
+            process_trivia_tick(db, room=room, city=resolved_city)
         process_due_assistant_jobs(db, limit=5)
         _room, resolved_city, items = list_room_messages(
             db, room_slug=room_slug, city=city, limit=limit, before_id=before_id

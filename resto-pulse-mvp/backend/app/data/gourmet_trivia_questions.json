@@ -1,0 +1,1706 @@
+[
+  {
+    "text": "Bursa'nın meşhur döner çeşidinin adı nedir?",
+    "answers": [
+      "iskender",
+      "iskender kebap",
+      "bursa iskender"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "Kemalpaşa tatlısı hangi ilin coğrafi işaretli ürünüdür?",
+    "answers": [
+      "bursa",
+      "bursa ili"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Çantık hangi şehirle özdeşleşmiştir?",
+    "answers": [
+      "bursa"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Menemen hangi ülkenin klasik kahvaltı yemeğidir?",
+    "answers": [
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "Sütlaç genelde hangi öğünde tatlı olarak yenir?",
+    "answers": [
+      "akşam",
+      "aksam",
+      "yemek sonrası"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Lahmacunda hamurun üzerine ne yayılır?",
+    "answers": [
+      "kıyma",
+      "kiyma",
+      "et"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Baklavanın temel katmanı nedir?",
+    "answers": [
+      "yufka",
+      "yufka hamuru"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Ayran hangi ana maddeden yapılır?",
+    "answers": [
+      "yoğurt",
+      "yogurt"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Türk kahvesi hangi öğütülmüş üründen yapılır?",
+    "answers": [
+      "kahve",
+      "kahve çekirdeği"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Mantı genelde hangi sosla servis edilir?",
+    "answers": [
+      "yoğurt",
+      "yogurt",
+      "sarımsaklı yoğurt"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Adana kebabı hangi şehirle özdeşleşmiştir?",
+    "answers": [
+      "adana"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Künefe hangi şehirle özdeşleşir?",
+    "answers": [
+      "hatay",
+      "antakya"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Çiğ köfte geleneksel olarak pişmiş et içerir mi?",
+    "answers": [
+      "hayır",
+      "hayir",
+      "et yok"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Balık ekmek hangi şehirde sokak lezzeti olarak bilinir?",
+    "answers": [
+      "istanbul",
+      "eminönü",
+      "eminonu"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Kokoreç hangi organdan yapılır?",
+    "answers": [
+      "bağırsak",
+      "bagirsak",
+      "küçükbağırsak"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Midye dolma hangi deniz ürünüyle yapılır?",
+    "answers": [
+      "midye"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Tavuk döner hangi etten yapılır?",
+    "answers": [
+      "tavuk"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "Et dönerde en yaygın et hangisidir?",
+    "answers": [
+      "kuzu",
+      "dana",
+      "kuzu eti"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "İnegöl köftesi hangi ilçeyle özdeşleşir?",
+    "answers": [
+      "inegöl",
+      "inegol",
+      "bursa"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "İskender kebabını kim popülerleştirmiştir?",
+    "answers": [
+      "iskender efendi",
+      "iskender"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "Kestane şekeri Bursa'da hangi mevsimde çok satılır?",
+    "answers": [
+      "sonbahar",
+      "kış",
+      "kis"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Cevizli lokum hangi şehirle özdeşleşir?",
+    "answers": [
+      "bursa"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Pizza hangi ülkeden dünyaya yayılmıştır?",
+    "answers": [
+      "italya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Sushi hangi ülkenin mutfağındandır?",
+    "answers": [
+      "japonya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Taco hangi ülkenin sokak yemeğidir?",
+    "answers": [
+      "meksika"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Pho çorbası hangi ülkededir?",
+    "answers": [
+      "vietnam"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Pad thai hangi ülkenin yemeğidir?",
+    "answers": [
+      "tayland",
+      "thailand"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hamburger popülerleşmesinde hangi ülke öncülük etmiştir?",
+    "answers": [
+      "abd",
+      "amerika",
+      "usa"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Fish and chips hangi ülkenin klasik yemeğidir?",
+    "answers": [
+      "ingiltere",
+      "britanya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Humusun ana malzemesi nedir?",
+    "answers": [
+      "nohut"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Cacığın ana malzemesi nedir?",
+    "answers": [
+      "yoğurt",
+      "yogurt"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Karnıyarık hangi sebze ile yapılır?",
+    "answers": [
+      "patlıcan",
+      "patlican"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "İmam bayıldı hangi sebze ile yapılır?",
+    "answers": [
+      "patlıcan",
+      "patlican"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "Mercimek çorbasının ana malzemesi nedir?",
+    "answers": [
+      "mercimek"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "Pilavın temel tahılı nedir?",
+    "answers": [
+      "pirinç",
+      "pirinc"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "Bulgur pilavında hangi tahıl kullanılır?",
+    "answers": [
+      "bulgur"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "Lahmacun şekli genelde nasıldır?",
+    "answers": [
+      "uzun",
+      "oval",
+      "uzun servis"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Dondurma nasıl servis edilir?",
+    "answers": [
+      "soğuk",
+      "soguk"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Çorba genelde nasıl tüketilir?",
+    "answers": [
+      "sıcak",
+      "sicak"
+    ],
+    "room_tag": "anne-eli-ev-yemegi"
+  },
+  {
+    "text": "Gaziantep hangi yemekle özdeşleşir?",
+    "answers": [
+      "baklava",
+      "baklava",
+      "gaziantep"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Konya hangi yemekle özdeşleşir?",
+    "answers": [
+      "etli ekmek",
+      "etli ekmek",
+      "konya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Edirne hangi yemekle özdeşleşir?",
+    "answers": [
+      "tava kuzu",
+      "tava kuzu",
+      "edirne"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "İzmir hangi yemekle özdeşleşir?",
+    "answers": [
+      "boyoz",
+      "boyoz",
+      "i̇zmir"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Trabzon hangi yemekle özdeşleşir?",
+    "answers": [
+      "hamsi",
+      "hamsi",
+      "trabzon"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Rize hangi yemekle özdeşleşir?",
+    "answers": [
+      "muhlama",
+      "muhlama",
+      "rize"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Antalya hangi yemekle özdeşleşir?",
+    "answers": [
+      "piyaz",
+      "piyaz",
+      "antalya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Mersin hangi yemekle özdeşleşir?",
+    "answers": [
+      "tantuni",
+      "tantuni",
+      "mersin"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Erzurum hangi yemekle özdeşleşir?",
+    "answers": [
+      "cağ kebap",
+      "cağ kebap",
+      "erzurum"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Van hangi yemekle özdeşleşir?",
+    "answers": [
+      "otlu peynir",
+      "otlu peynir",
+      "van"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Bursa hangi yemekle özdeşleşir?",
+    "answers": [
+      "iskender",
+      "iskender",
+      "bursa"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Urfa hangi yemekle özdeşleşir?",
+    "answers": [
+      "çiğ köfte",
+      "çiğ köfte",
+      "urfa"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Diyarbakır hangi yemekle özdeşleşir?",
+    "answers": [
+      "ciğer kebabı",
+      "ciğer kebabı",
+      "diyarbakır"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Kayseri hangi yemekle özdeşleşir?",
+    "answers": [
+      "mantı",
+      "mantı",
+      "kayseri"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Eskişehir hangi yemekle özdeşleşir?",
+    "answers": [
+      "met helvası",
+      "met helvası",
+      "eskişehir"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "ezme için temel malzeme hangisidir?",
+    "answers": [
+      "domates",
+      "domates"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "tarator için temel malzeme hangisidir?",
+    "answers": [
+      "ceviz",
+      "ceviz"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "börek için temel malzeme hangisidir?",
+    "answers": [
+      "yufka",
+      "yufka"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "lahmacun için temel malzeme hangisidir?",
+    "answers": [
+      "kıyma",
+      "kıyma"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "iskender için temel malzeme hangisidir?",
+    "answers": [
+      "döner eti",
+      "döner eti"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "tantuni için temel malzeme hangisidir?",
+    "answers": [
+      "et",
+      "et"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "piyaz için temel malzeme hangisidir?",
+    "answers": [
+      "fasulye",
+      "fasulye"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "hummus için temel malzeme hangisidir?",
+    "answers": [
+      "nohut",
+      "nohut"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "guacamole için temel malzeme hangisidir?",
+    "answers": [
+      "avokado",
+      "avokado"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "ratatouille için temel malzeme hangisidir?",
+    "answers": [
+      "sebze",
+      "sebze"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Espresso hangi kültürle özdeşleşir?",
+    "answers": [
+      "italya",
+      "italya"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Matcha hangi kültürle özdeşleşir?",
+    "answers": [
+      "japonya",
+      "japonya"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Salep hangi kültürle özdeşleşir?",
+    "answers": [
+      "türkiye",
+      "türkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Boza hangi kültürle özdeşleşir?",
+    "answers": [
+      "türkiye",
+      "türkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Şalgam hangi kültürle özdeşleşir?",
+    "answers": [
+      "türkiye",
+      "türkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Rakı hangi kültürle özdeşleşir?",
+    "answers": [
+      "türkiye",
+      "türkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Şerbet hangi kültürle özdeşleşir?",
+    "answers": [
+      "osmanlı",
+      "osmanlı"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Şiş kebap hangi alete takılarak pişirilir?",
+    "answers": [
+      "şiş",
+      "sis",
+      "metal şiş"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Adana kebabı hangi şehirdendir?",
+    "answers": [
+      "adana"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Urfa kebabında acı biber bulunur mu?",
+    "answers": [
+      "hayır",
+      "hayir",
+      "yok"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Kuzu şiş hangi etten yapılır?",
+    "answers": [
+      "kuzu"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Kaburga dolması hangi etle yapılır?",
+    "answers": [
+      "kuzu",
+      "dana"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Mangal ateşi için en yaygın yakıt?",
+    "answers": [
+      "kömür",
+      "komur",
+      "odun"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "Gece sokaklarında simit yanında ne içilir?",
+    "answers": [
+      "çay",
+      "cay",
+      "ayran"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Tost genelde hangi eşyada pişirilir?",
+    "answers": [
+      "tost makinesi",
+      "tost makinesinde"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Patates kızartması hangi yağda kızartılır?",
+    "answers": [
+      "ayçiçek",
+      "aycicek",
+      "sıvı yağ"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Hamburgerde etin altında ne olur?",
+    "answers": [
+      "ekmek",
+      "somun"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Döner dürüm hangi hamurla sarılır?",
+    "answers": [
+      "lavash",
+      "lavaş",
+      "tortilla",
+      "yufka"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Fiyat-performans için genelde hangi öğün daha uygundur?",
+    "answers": [
+      "öğle",
+      "ogle",
+      "öğle yemeği"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "Ev yemeği lokantasında tabldot ne demektir?",
+    "answers": [
+      "günün yemeği",
+      "gunun yemegi"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "Menüde 'porsiyon' neyi ifade eder?",
+    "answers": [
+      "kişilik",
+      "kisilik",
+      "tek porsiyon"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "Bursa ile özdeşleşen lezzet hangisidir: kestane şekeri?",
+    "answers": [
+      "kestane şekeri",
+      "kestane şekeri"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Bursa ile özdeşleşen lezzet hangisidir: cevizli lokum?",
+    "answers": [
+      "cevizli lokum",
+      "cevizli lokum"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Bursa ile özdeşleşen lezzet hangisidir: kemalpaşa?",
+    "answers": [
+      "kemalpaşa",
+      "kemalpaşa"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Gaziantep ile özdeşleşen lezzet hangisidir: baklava?",
+    "answers": [
+      "baklava",
+      "baklava"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Gaziantep ile özdeşleşen lezzet hangisidir: katmer?",
+    "answers": [
+      "katmer",
+      "katmer"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Konya ile özdeşleşen lezzet hangisidir: etli ekmek?",
+    "answers": [
+      "etli ekmek",
+      "etli ekmek"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Konya ile özdeşleşen lezzet hangisidir: bamya?",
+    "answers": [
+      "bamya",
+      "bamya"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Antalya ile özdeşleşen lezzet hangisidir: piyaz?",
+    "answers": [
+      "piyaz",
+      "piyaz"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Trabzon ile özdeşleşen lezzet hangisidir: hamsi?",
+    "answers": [
+      "hamsi",
+      "hamsi"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Trabzon ile özdeşleşen lezzet hangisidir: kuymak?",
+    "answers": [
+      "kuymak",
+      "kuymak"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Hangisi çorba değildir: mercimek, yayla, baklava?",
+    "answers": [
+      "baklava"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi tatlı değildir: sütlaç, künefe, lahmacun?",
+    "answers": [
+      "lahmacun"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi kahvaltılık değildir: menemen, simit, iskender?",
+    "answers": [
+      "iskender"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi döner türü değildir: tavuk, et, baklava?",
+    "answers": [
+      "baklava"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi içecek değildir: ayran, rakı, pilav?",
+    "answers": [
+      "pilav"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi Bursa lezzeti değildir: iskender, cantık, lahmacun?",
+    "answers": [
+      "lahmacun"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi gece atıştırmalığıdır: midye, baklava, kokoreç?",
+    "answers": [
+      "baklava"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Hangisi ocakbaşı etidir: şiş, lahmacun, kaburga?",
+    "answers": [
+      "lahmacun"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Türk mutfağında 'zeytinyağlı' ne demektir?",
+    "answers": [
+      "zeytinyağı ile",
+      "zeytinyagi ile"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Lokum hangi malzeme ile tatlandırılır?",
+    "answers": [
+      "şeker",
+      "seker"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Pide fırında mı pişirilir?",
+    "answers": [
+      "evet",
+      "firin",
+      "fırın"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Dürüm hangi ülke mutfağından yaygınlaşmıştır?",
+    "answers": [
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "Kısır hangi tahıldan yapılır?",
+    "answers": [
+      "bulgur"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Çoban salatasında domates yanında ne olur?",
+    "answers": [
+      "salatalık",
+      "salatalik",
+      "soğan"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Kıymalı pide hangi etle yapılır?",
+    "answers": [
+      "kıyma",
+      "kiyma"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Fırın sütlaç hangi kapta pişirilir?",
+    "answers": [
+      "toprak",
+      "güveç",
+      "guvec"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Tost peyniri genelde hangisidir?",
+    "answers": [
+      "kaşar",
+      "kasar"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "Simit üzerine ne serpilir?",
+    "answers": [
+      "susam"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "Poğaça içine ne konabilir?",
+    "answers": [
+      "peynir",
+      "patates",
+      "kıyma"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "Börek türlerinden biri hangisidir?",
+    "answers": [
+      "su böreği",
+      "su boregi",
+      "sigara böreği"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "Çay genelde hangi bitkiden yapılır?",
+    "answers": [
+      "çay yaprağı",
+      "cay yapragi",
+      "tea"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Türk kahvesi fincanında köpük adı nedir?",
+    "answers": [
+      "köpük",
+      "kopuk",
+      "kaimaki"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Granita hangi sıcaklıkta servis edilir?",
+    "answers": [
+      "soğuk",
+      "soguk",
+      "buzlu"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Dondurma hangi maddeden yapılır?",
+    "answers": [
+      "süt",
+      "sut"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Waffle hangi ülkede popülerleşmiştir?",
+    "answers": [
+      "belçika",
+      "belcika",
+      "abd"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Crepe hangi ülkeye özdeşleşir?",
+    "answers": [
+      "fransa"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "Ramen hangi ülkenin çorbasıdır?",
+    "answers": [
+      "japonya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Kimchi hangi ülkenin turşusudur?",
+    "answers": [
+      "kore",
+      "güney kore"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'döner' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'döner' tatlı mı tuzlu mu: döner?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'lahmacun' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'lahmacun' tatlı mı tuzlu mu: lahmacun?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'pide' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'pide' tatlı mı tuzlu mu: pide?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'mantı' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'mantı' tatlı mı tuzlu mu: mantı?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'börek' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'börek' tatlı mı tuzlu mu: börek?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'gözleme' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'gözleme' tatlı mı tuzlu mu: gözleme?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'kumpir' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'kumpir' tatlı mı tuzlu mu: kumpir?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'tantuni' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'tantuni' tatlı mı tuzlu mu: tantuni?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'çiğ köfte' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'çiğ köfte' tatlı mı tuzlu mu: çiğ köfte?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'iskender' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'iskender' tatlı mı tuzlu mu: iskender?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'adana kebap' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'adana kebap' tatlı mı tuzlu mu: adana kebap?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'urfa kebap' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'urfa kebap' tatlı mı tuzlu mu: urfa kebap?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'hamsi' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'hamsi' tatlı mı tuzlu mu: hamsi?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'pilav' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'pilav' tatlı mı tuzlu mu: pilav?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'kuru fasulye' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'kuru fasulye' tatlı mı tuzlu mu: kuru fasulye?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'nohut' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'nohut' tatlı mı tuzlu mu: nohut?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'mercimek' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'mercimek' tatlı mı tuzlu mu: mercimek?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'ezogelin' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'ezogelin' tatlı mı tuzlu mu: ezogelin?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'yayla' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'yayla' tatlı mı tuzlu mu: yayla?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'tarhana' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'tarhana' tatlı mı tuzlu mu: tarhana?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'ayran' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'ayran' tatlı mı tuzlu mu: ayran?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'şalgam' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'şalgam' tatlı mı tuzlu mu: şalgam?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'boza' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'boza' tatlı mı tuzlu mu: boza?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'salep' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'salep' tatlı mı tuzlu mu: salep?",
+    "answers": [
+      "tuzlu"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'lokum' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'lokum' tatlı mı tuzlu mu: lokum?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "fiyat"
+  },
+  {
+    "text": "'baklava' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'baklava' tatlı mı tuzlu mu: baklava?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "'künefe' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'künefe' tatlı mı tuzlu mu: künefe?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": null
+  },
+  {
+    "text": "'sütlaç' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'sütlaç' tatlı mı tuzlu mu: sütlaç?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "doner"
+  },
+  {
+    "text": "'aşure' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'aşure' tatlı mı tuzlu mu: aşure?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "ocakbasi"
+  },
+  {
+    "text": "'helva' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'helva' tatlı mı tuzlu mu: helva?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "tatli"
+  },
+  {
+    "text": "'tulumba' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'tulumba' tatlı mı tuzlu mu: tulumba?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "kahvalti"
+  },
+  {
+    "text": "'revani' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'revani' tatlı mı tuzlu mu: revani?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "gece"
+  },
+  {
+    "text": "'kadayıf' hangi mutfakta en çok bilinir?",
+    "answers": [
+      "türk",
+      "turk",
+      "türkiye",
+      "turkiye"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "'kadayıf' tatlı mı tuzlu mu: kadayıf?",
+    "answers": [
+      "tatlı"
+    ],
+    "room_tag": "kahve"
+  },
+  {
+    "text": "Paella hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "ispanya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Goulash hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "macaristan"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Schnitzel hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "avusturya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Poutine hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "kanada"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Pavlova hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "avustralya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Moussaka hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "yunanistan"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Falafel hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "ortadogu"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Shawarma hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "ortadogu"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Kebab hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "ortadogu"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Curry hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "hindistan"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Naan hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "hindistan"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Ramen hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "japonya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Sushi hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "japonya"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Kimchi hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "kore"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Pho hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "vietnam"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Tom yum hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "tayland"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Burrito hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "meksika"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Taco hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "meksika"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Croissant hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "fransa"
+    ],
+    "room_tag": "genel"
+  },
+  {
+    "text": "Baguette hangi mutfak/ülkeyle özdeşleşir?",
+    "answers": [
+      "fransa"
+    ],
+    "room_tag": "genel"
+  }
+]

@@ -641,6 +641,18 @@ export type GourmetChatMessageListResponse = {
   items: GourmetChatMessage[];
 };
 
+export type GourmetTriviaLeaderboardItem = {
+  nickname: string;
+  correct_count: number;
+  last_correct_at?: string | null;
+};
+
+export type GourmetTriviaLeaderboardResponse = {
+  city: string;
+  room_slug: string;
+  items: GourmetTriviaLeaderboardItem[];
+};
+
 export type PublicUserCard = {
   id: string;
   nickname: string;

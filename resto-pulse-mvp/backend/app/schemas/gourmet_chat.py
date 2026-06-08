@@ -93,3 +93,15 @@ class GourmetChatMessageCreate(BaseModel):
     user_email: str
     city: str = "Bursa"
     body: str = Field(min_length=1, max_length=800)
+
+
+class GourmetTriviaLeaderboardItem(BaseModel):
+    nickname: str
+    correct_count: int
+    last_correct_at: str | None = None
+
+
+class GourmetTriviaLeaderboardResponse(BaseModel):
+    city: str
+    room_slug: str
+    items: list[GourmetTriviaLeaderboardItem] = Field(default_factory=list)
