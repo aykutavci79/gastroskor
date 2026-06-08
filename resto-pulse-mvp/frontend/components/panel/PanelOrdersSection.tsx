@@ -2,21 +2,38 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { usePanelOrderAlerts } from '@/hooks/use-panel-order-alerts';
 import { decidePanelOrder, listPanelOrders } from '@/lib/api';
+import {
+  primePanelOrderAudio,
+  readPanelOrderSoundEnabled,
+  requestPanelOrderNotificationPermission,
+  writePanelOrderSoundEnabled,
+} from '@/lib/panel-order-bell';
 import type { RestaurantOrderRead } from '@/lib/types';
 
 type Props = {
   userEmail: string;
 };
 
+const POLL_MS = 10_000;
+
 export function PanelOrdersSection({ userEmail }: Props) {
   const [items, setItems] = useState<RestaurantOrderRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [notifyPermission, setNotifyPermission] = useState<'default' | 'granted' | 'denied'>('default');
+
+  useEffect(() => {
+    setSoundEnabled(readPanelOrderSoundEnabled());
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifyPermission(Notification.permission);
+    }
+  }, []);
 
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await listPanelOrders(userEmail);
       setItems(data.items);
@@ -30,9 +47,28 @@ export function PanelOrdersSection({ userEmail }: Props) {
 
   useEffect(() => {
     void reload();
-    const timer = window.setInterval(() => void reload(), 20000);
+    const timer = window.setInterval(() => void reload(), POLL_MS);
     return () => window.clearInterval(timer);
   }, [reload]);
+
+  const pending = items.filter((row) => row.status === 'pending');
+  usePanelOrderAlerts(pending, soundEnabled);
+
+  useEffect(() => {
+    if (pending.length === 0 || typeof document === 'undefined') return;
+    const base = 'GastroSkor Panel';
+    if (document.visibilityState !== 'visible') {
+      document.title = `(${pending.length}) Yeni siparis · ${base}`;
+    }
+    function onVisible() {
+      if (document.visibilityState === 'visible') document.title = base;
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      document.title = base;
+    };
+  }, [pending.length]);
 
   async function onDecision(orderId: string, decision: 'accepted' | 'rejected') {
     setBusyId(orderId);
@@ -47,21 +83,52 @@ export function PanelOrdersSection({ userEmail }: Props) {
     }
   }
 
-  const pending = items.filter((row) => row.status === 'pending');
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    writePanelOrderSoundEnabled(next);
+    if (next) primePanelOrderAudio();
+  }
+
+  async function enableDesktopNotify() {
+    primePanelOrderAudio();
+    const ok = await requestPanelOrderNotificationPermission();
+    setNotifyPermission(ok ? 'granted' : Notification.permission);
+  }
 
   return (
     <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-content">Online siparisler</h2>
-        <button
-          type="button"
-          onClick={() => void reload()}
-          className="rounded-lg border border-border px-3 py-1 text-xs text-content-muted hover:bg-surface-card">
-          Yenile
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-content-muted">
+            <input
+              type="checkbox"
+              checked={soundEnabled}
+              onChange={toggleSound}
+              className="rounded border-border"
+            />
+            Zil sesi
+          </label>
+          {notifyPermission !== 'granted' ? (
+            <button
+              type="button"
+              onClick={() => void enableDesktopNotify()}
+              className="rounded-lg border border-border px-2 py-1 text-xs text-content-muted hover:bg-surface-card">
+              Masaustu bildirimi
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="rounded-lg border border-border px-3 py-1 text-xs text-content-muted hover:bg-surface-card">
+            Yenile
+          </button>
+        </div>
       </div>
       <p className="mt-1 text-sm text-content-muted">
-        Musteri telefonu ile gelir; onaylayinca musteri tekrar siparis verebilir. Odeme kapida.
+        Musteri telefonu ile gelir; onaylayinca musteri tekrar siparis verebilir. Odeme kapida. Sekme arka plandayken
+        zil {Math.round(POLL_MS / 1000)} sn arayla calar.
       </p>
 
       {loading ? <p className="mt-4 text-sm text-content-muted">Yukleniyor...</p> : null}
@@ -71,9 +138,15 @@ export function PanelOrdersSection({ userEmail }: Props) {
         <p className="mt-4 text-sm text-content-muted">Bekleyen siparis yok.</p>
       ) : null}
 
+      {pending.length > 0 ? (
+        <p className="mt-3 text-sm font-semibold text-brand-gold">
+          {pending.length} siparis onay bekliyor
+        </p>
+      ) : null}
+
       <ul className="mt-4 space-y-3">
         {pending.map((order) => (
-          <li key={order.id} className="rounded-xl border border-brand-gold/30 bg-surface-card p-4">
+          <li key={order.id} className="rounded-xl border border-brand-gold/30 bg-surface-card p-4 ring-1 ring-brand-gold/20">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-semibold text-content">
