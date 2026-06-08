@@ -66,7 +66,7 @@ def test_classify_intent():
     assert classify_message_intent("gece acik doner oner", room_slug="gece-acikanlar") == "restaurant"
     assert classify_message_intent("ocakbaşı", room_slug="ocakbasi-muhabbeti") == "restaurant"
     assert classify_message_intent("mangal", room_slug="ocakbasi-muhabbeti") == "restaurant"
-    assert classify_message_intent("sagol", room_slug="kes-donerciler") is None
+    assert classify_message_intent("sagol", room_slug="kes-donerciler") == "thanks"
 
 
 def test_ocakbasi_excludes_cig_kofte():
@@ -88,7 +88,21 @@ def test_greeting_templates_are_warm():
 
     body = _format_greeting_body(nickname="Ali", room_slug="kes-donerciler")
     assert "Ali" in body
+    assert any(token in body for token in ("KuruPilav", "nasil", "naber", "Hos", "Iyi"))
     assert len(body) > 20
+
+
+def test_general_banter_skips_app_tutorial():
+    from app.services.gourmet_chat_assistant import _format_general_body
+
+    body = _format_general_body(
+        room_slug="kes-donerciler",
+        nickname="Veli",
+        user_message="bugun yorgunum ya",
+    )
+    assert "Veli" in body
+    assert "Canli Arama" not in body
+    assert "Kesfet" not in body
 
 
 def test_recover_stale_greeting(db: Session, monkeypatch):
@@ -144,7 +158,7 @@ def test_live_search_guide_mentions_query_not_restaurant_name():
     )
     assert "Ali" in body
     assert "doner 4.5 yildiz" in body
-    assert "Canli Arama" in body or "Canlı Arama" in body or "canli" in body.lower()
+    assert "Kesfet" in body or "arama" in body.lower()
     assert "1." not in body
 
 
@@ -153,7 +167,7 @@ def test_live_search_ask_craving_when_vague():
 
     body = _format_live_search_ask_craving_body(room_slug="kes-donerciler", nickname="Veli")
     assert "Veli" in body
-    assert "cektigi" in body or "cektiği" in body or "istiyorsun" in body
+    assert "canin" in body or "arayorsun" in body or "yemek" in body
 
 
 def test_human_reply_cancels_assistant(db: Session, monkeypatch):

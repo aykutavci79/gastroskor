@@ -1,4 +1,4 @@
-"""Gurme Sohbetler — GastroSkor Asistan (sablon + DB; opsiyonel Gemini tonu)."""
+"""Gurme Sohbetler — KuruPilav (sohbet + opsiyonel Gemini tonu)."""
 
 from __future__ import annotations
 
@@ -16,11 +16,15 @@ from app.constants.gourmet_chat_assistant import (
     ASSISTANT_NICKNAME,
     ASSISTANT_PERSONALITY_SYSTEM,
     ASSISTANT_USER_EMAIL,
+    BANTER_REPLY_TEMPLATES,
     GENERAL_REPLY_TEMPLATES,
     GREETING_PHRASES,
     GREETING_REPLY_TEMPLATES,
     GREETING_TOKENS,
+    HALHATIR_KEYWORDS,
+    HALHATIR_REPLY_TEMPLATES,
     HUNGRY_KEYWORDS,
+    THANKS_REPLY_TEMPLATES,
     LIVE_SEARCH_ASK_CRAVING_TEMPLATES,
     LIVE_SEARCH_GUIDE_TEMPLATES,
     RESTAURANT_ASK_KEYWORDS,
@@ -154,9 +158,9 @@ def _build_live_search_query(*, room_slug: str, user_message: str | None) -> tup
 
 
 def classify_message_intent(text: str, *, room_slug: str) -> str | None:
-    """None = cevap planlama (tesekkur vb.)."""
+    """None = cevap planlama yok."""
     if is_thanks_message(text):
-        return None
+        return "thanks"
     if is_restaurant_ask(text, room_slug) or is_room_preference_reply(text, room_slug):
         return "restaurant"
     if is_greeting_only(text):
@@ -170,6 +174,20 @@ def get_assistant_user(db: Session) -> User:
     email = ASSISTANT_USER_EMAIL
     user = db.scalar(select(User).where(User.email == email))
     if user:
+        changed = False
+        if user.nickname != ASSISTANT_NICKNAME:
+            user.nickname = ASSISTANT_NICKNAME
+            changed = True
+        if user.full_name != ASSISTANT_NICKNAME:
+            user.full_name = ASSISTANT_NICKNAME
+            changed = True
+        if user.avatar_preset != ASSISTANT_AVATAR_PRESET:
+            user.avatar_preset = ASSISTANT_AVATAR_PRESET
+            changed = True
+        if changed:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
         return user
     user = User(
         email=email,
@@ -520,12 +538,23 @@ def _format_live_search_guide_body(
     return template.format(nick=nick, query=query, relaxed_query=relaxed)
 
 
-def _format_general_body(*, room_slug: str, nickname: str | None) -> str:
+def _format_thanks_body(*, nickname: str | None) -> str:
+    nick = nickname or "Gurme"
+    return random.choice(THANKS_REPLY_TEMPLATES).format(nick=nick)
+
+
+def _format_general_body(
+    *,
+    room_slug: str,
+    nickname: str | None,
+    user_message: str | None = None,
+) -> str:
     nick = nickname or "Gurme"
     topic = ROOM_TOPIC_PROMPT.get(room_slug, "Yemek sohbeti")
-    default_query, _ = _build_live_search_query(room_slug=room_slug, user_message=None)
-    template = random.choice(GENERAL_REPLY_TEMPLATES)
-    return template.format(nick=nick, topic=topic, default_query=default_query)
+    norm = normalize_chat_text(user_message or "")
+    if norm and _text_contains_any(norm, HALHATIR_KEYWORDS):
+        return random.choice(HALHATIR_REPLY_TEMPLATES).format(nick=nick)
+    return random.choice(BANTER_REPLY_TEMPLATES).format(nick=nick, topic=topic)
 
 
 def _polish_reply_with_gemini(
@@ -540,16 +569,18 @@ def _polish_reply_with_gemini(
     nick = nickname or "Gurme"
     if intent == "restaurant":
         general_guard = (
-            " ONEMLI: Mekan ismi ekleme. Canli Arama adimlari ve «» icindeki arama metinlerini AYNEN koru."
+            " ONEMLI: Mekan ismi ekleme. «» icindeki arama metinlerini AYNEN koru; kisa ve samimi anlat."
         )
-    elif intent == "general":
-        general_guard = " ONEMLI: Taslakta mekan ismi yoksa yeni mekan ekleme; sadece tonu yumusat."
+    elif intent in {"greeting", "general", "thanks"}:
+        general_guard = (
+            " ONEMLI: Uygulama, Canli Arama, Kesfet sekmesi anlatma. Sadece hal hatir, geyik, sicak sohbet."
+        )
     else:
         general_guard = ""
     prompt = (
         f"Kullanici ({nick}) soyledi: {user_message[:240]}\n"
         f"Niyet: {intent}\n"
-        f"Taslak cevabin (samimilesir, hafif espirili yap; mekan isimleri ve puanlari AYNEN koru):"
+        f"Taslak cevabin (KuruPilav gibi samimilesir, hafif espirili yap):"
         f"{general_guard}\n{draft}"
     )
     polished = gemini_text_prompt(
@@ -574,6 +605,8 @@ def build_assistant_reply(
     nickname = trigger_user.nickname
     if job.job_kind == "greeting" or job.intent == "greeting":
         draft = _format_greeting_body(nickname=nickname, room_slug=room.slug)
+    elif job.intent == "thanks":
+        draft = _format_thanks_body(nickname=nickname)
     elif job.intent == "restaurant":
         if is_vague_restaurant_ask(trigger_message_body, room_slug=room.slug):
             draft = _format_live_search_ask_craving_body(room_slug=room.slug, nickname=nickname)
@@ -584,7 +617,11 @@ def build_assistant_reply(
                 user_message=trigger_message_body,
             )
     else:
-        draft = _format_general_body(room_slug=room.slug, nickname=nickname)
+        draft = _format_general_body(
+            room_slug=room.slug,
+            nickname=nickname,
+            user_message=trigger_message_body,
+        )
 
     return _polish_reply_with_gemini(
         draft=draft,

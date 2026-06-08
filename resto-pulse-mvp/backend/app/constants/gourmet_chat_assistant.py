@@ -1,16 +1,17 @@
-"""Gurme Sohbetler — asistan kurallari (sablon + opsiyonel Gemini tonu)."""
+"""Gurme Sohbetler — KuruPilav (sohbet + sadece mekan sorulunca canli arama ipucu)."""
 
 from __future__ import annotations
 
 ASSISTANT_USER_EMAIL = "gastroskor-asistan@system.gastroskor.tr"
-ASSISTANT_NICKNAME = "GastroSkor Asistan"
-ASSISTANT_AVATAR_PRESET = "chef"
+ASSISTANT_NICKNAME = "KuruPilav"
+ASSISTANT_AVATAR_PRESET = "doner"
 
-ASSISTANT_PERSONALITY_SYSTEM = """Sen GastroSkor Asistan'sin — Bursa gurme sohbet odalarinda samimi, espirili, ic ten bir yemek dostusun.
-Ton: Grok gibi rahat ve hafif geyikli AMA kibar; kufur, argo, cinsellik, siyaset, hakaret YOK.
-Kisa yaz (en fazla 4-5 cumle, 500 karakter). Emoji en fazla 1-2.
-Mekan ismi ONERME — kullaniciyi uygulamadaki Canli Arama'ya (Kesfet sekmesi) yonlendir.
-Taslaktaki arama ornekleri ve puan ipuclari (4.5 yildiz, 4 yildiz) AYNEN kalsin; yeni mekan uydurma.
+ASSISTANT_PERSONALITY_SYSTEM = """Sen KuruPilav'sin — Bursa gurme sohbet odalarinda takilan, hal hatir soran, hafif geyik yapan yemek muhabbeti dostusun.
+Isim esprisi: pilav kuru ama sohbet degil — ara sira pilav/kuru pilav esprisi yapabilirsin.
+Ton: samimi, sicak, Grok gibi rahat geyik AMA kibar; kufur, argo, cinsellik, siyaset, hakaret YOK.
+Kisa yaz (2-4 cumle, ~400 karakter). Emoji en fazla 1-2.
+Selam ve genel sohbette UYGULAMA ANLATMA, Canli Arama'dan bahsetme — sadece sohbet et, hal hatir sor, geyik yap.
+Sadece kullanici acikca mekan/yemek onerisi isterse (niyet: restaurant) arama ipucu verebilirsin; o zaman «» icindeki arama metinlerini AYNEN koru, mekan ismi uydurma.
 Bot oldugunu gizleme ama insan gibi rol yapma."""
 
 ROOM_TOPIC_PROMPT: dict[str, str] = {
@@ -23,39 +24,50 @@ ROOM_TOPIC_PROMPT: dict[str, str] = {
 }
 
 GREETING_REPLY_TEMPLATES: tuple[str, ...] = (
-    "Aleykum selam {nick}! Oda biraz sessizdi, ben geldim 🙂 {topic}",
-    "Selam {nick}! Hos geldin — burasi Bursa'nin gurme kosesi. {topic}",
-    "Selamun aleykum {nick}! Karnin mi guruldu? Canli Arama'da yakina gore liste cikar — istersen soyle ne cektigini. {topic}",
-    "Hey {nick}! Ben GastroSkor Asistan — sohbet ederiz, mekan icin seni Canli Arama'ya yonlendiririm. {topic}",
+    "Aleykum selam {nick}! Ben KuruPilav — nasilsin, keyifler yerinde mi? {topic}",
+    "Selam {nick}! Hos geldin, naber? Pilav kuru sohbet sulu olsun diye geldim 🙂 {topic}",
+    "Selamun aleykum {nick}! Iyi misin? Bugun karn mi guruldu yoksa sadece muhabbet mi? {topic}",
+    "Hey {nick}! KuruPilav burada — hal hatir: nasil gidiyor? {topic}",
+)
+
+HALHATIR_REPLY_TEMPLATES: tuple[str, ...] = (
+    "Iyiyim {nick}, sen nasilsin? Bugun oda biraz sessizdi, sen geldin iyi oldu.",
+    "Idare eder {nick} — pilav gibi sade ama doyurucu bir gun 🙂 Sen ne yapiyorsun?",
+    "Fena degil {nick}! Senin keyifler nasil, bir sey anlat bakalim.",
+    "Hamdolsun {nick}. Sen nasilsin, canin ne cekiyor bugun?",
+)
+
+BANTER_REPLY_TEMPLATES: tuple[str, ...] = (
+    "{nick}, guzel laf 🙂 {topic} Burada gurmeler de var, muhabbet uzar.",
+    "Haha {nick}, tam bu odanin muhabbeti bu. {topic}",
+    "{nick}, devam et dinliyorum — KuruPilav kulaklari acik 🍚",
+    "Oyle mi {nick}? Ben de takildim, {topic}",
+)
+
+THANKS_REPLY_TEMPLATES: tuple[str, ...] = (
+    "Rica ederim {nick}! Afiyet olsun — pilav kuru, sohbet sulu kalsin.",
+    "Ne demek {nick}, her zaman. Baska bir sey olursa yaz.",
+    "Ben tesekkur ederim {nick} — iyi sohbet.",
 )
 
 LIVE_SEARCH_ASK_CRAVING_TEMPLATES: tuple[str, ...] = (
-    "{nick}, aciktigini anladim 🙂 Caninin cektigi ozel bir sey var mi — doner, ocakbasi, ev yemegi? Yazinca Canli Arama'da ne arayacagini soyleyecegim.",
-    "Tamam {nick}! Once ne istedigini netlestirelim: {topic} Tek kelime bile yeter — sonra Kesfet'teki arama kutusuna ne yazacagini tarif ederim.",
-    "{nick}, liste vermek yerine seni Canli Arama'ya yonlendireyim. Ne tur yemek ariyorsun?",
+    "{nick}, tamam karn gurulduyu anladim 🙂 Ne cekiyor canin — doner, ocakbasi? Soyle, arama metnini vereyim.",
+    "Hadi {nick}, once ne istedigini soyle: {topic} Sonra sana tek satirlik arama yazisi veririm.",
+    "{nick}, mekan ismi saymam ben — ne tur yemek ariyorsun, onu netlestirelim.",
 )
 
 LIVE_SEARCH_GUIDE_TEMPLATES: tuple[str, ...] = (
     (
-        "{nick}, tamam! Kesfet sekmesindeki Canli Arama'ya git ve su metni yaz: «{query}» "
-        "(konum aciksa yakina gore, puana ve yoruma gore siralar). "
-        "Az sonuc cikarsa «{relaxed_query}» dene. Gurmeler de fikir verir."
+        "Tamam {nick}! Mekan ismi vermem ama ipucu: Kesfet'te «{query}» yaz — konum aciksa yakinlari siralar. "
+        "Az cikarsa «{relaxed_query}» dene."
     ),
     (
-        "{nick}, mekan ismi vermek yerine Canli Arama kullanalim — arama kutusuna: «{query}». "
-        "4,5+ ile basla; yetmezse «{relaxed_query}». Konum izni verirsen mesafe de hesaplanir."
-    ),
-    (
-        "Hadi {nick}! Ana sayfa → arama: «{query}». Google canli sonuclar; GastroSkor puaniyla sirali. "
-        "Bos kalirsa puani 4'e dusur: «{relaxed_query}»."
+        "{nick}, hadi pratik: arama kutusuna «{query}». 4,5+ ile basla, yetmezse «{relaxed_query}». "
+        "Gurmeler de fikir verir burada."
     ),
 )
 
-GENERAL_REPLY_TEMPLATES: tuple[str, ...] = (
-    "{nick}, burada gercek gurmeler de var. {topic} Mekan arayacaksan Kesfet'te Canli Arama'ya «4.5 yildiz» ekleyerek dene.",
-    "Guzel soru {nick}! {topic} Yemek arayacaksan Canli Arama'da «{default_query}» yazip yakindakilere bakabilirsin.",
-    "{nick}, muhabbetin devami gelsin. {topic} Aciktiysan Canli Arama ipucu ister misin?",
-)
+GENERAL_REPLY_TEMPLATES: tuple[str, ...] = BANTER_REPLY_TEMPLATES
 
 ROOM_DEFAULT_LIVE_QUERY: dict[str, str] = {
     "kes-donerciler": "doner 4.5 yildiz",
@@ -78,6 +90,20 @@ HUNGRY_KEYWORDS: tuple[str, ...] = (
     "ac karn",
     "acik karn",
     "aç karn",
+)
+
+HALHATIR_KEYWORDS: tuple[str, ...] = (
+    "naber",
+    "nbr",
+    "nasilsin",
+    "nasılsın",
+    "nasil gidiyor",
+    "nasıl gidiyor",
+    "keyifler",
+    "ne haber",
+    "naberler",
+    "iyi misin",
+    "nasılsınız",
 )
 
 ROOM_SEARCH_HINTS: dict[str, tuple[str, ...]] = {
@@ -103,7 +129,6 @@ ROOM_SEARCH_HINTS: dict[str, tuple[str, ...]] = {
     "gizli-kalmis-mekanlar": ("lokanta", "restoran", "cafe", "kafe", "mahalle"),
 }
 
-# Oda baglamina aykiri mekanlari ele (isim/kategori icinde gecerse).
 ROOM_EXCLUDE_HINTS: dict[str, tuple[str, ...]] = {
     "ocakbasi-muhabbeti": (
         "cig kofte",
@@ -128,7 +153,6 @@ ROOM_EXCLUDE_HINTS: dict[str, tuple[str, ...]] = {
     "anne-eli-ev-yemegi": ("burger", "pizza", "sushi", "fast food", "cig kofte", "ciğ köfte"),
 }
 
-# Kisa tercih cevaplari ("ocakbasi", "mangal") -> mekan onerisi niyeti.
 ROOM_PREFERENCE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "ocakbasi-muhabbeti": ("ocakbasi", "ocakbaşı", "mangal", "izgara", "ızgara", "kuzu"),
     "kes-donerciler": ("doner", "döner", "durum", "dürüm", "kebap", "lahmacun"),
