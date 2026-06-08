@@ -15,6 +15,7 @@ import { getActiveRestaurantOrder, submitRestaurantOrder } from '@/lib/api';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
 
 const PHONE_STORAGE_KEY = 'gastroskor_order_phone';
+const ADDRESS_STORAGE_KEY = 'gastroskor_order_address';
 
 type LineState = {
   selected: boolean;
@@ -31,8 +32,10 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
   const menuItems = restaurant.menu ?? restaurant.menu_preview ?? [];
   const [lines, setLines] = useState<Record<string, LineState>>({});
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
   const [pendingOrder, setPendingOrder] = useState<RestaurantOrderRead | null>(null);
+  const [rejectedOrder, setRejectedOrder] = useState<RestaurantOrderRead | null>(null);
   const [available, setAvailable] = useState(restaurant.online_orders_available ?? false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -48,6 +51,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       const active = await getActiveRestaurantOrder(restaurant.id, userEmail);
       setAvailable(active.online_orders_available);
       setPendingOrder(active.pending_order);
+      setRejectedOrder(active.pending_order ? null : active.recent_rejected_order ?? null);
       if (!active.pending_order) {
         setLines({});
       }
@@ -69,9 +73,20 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
   }, [pendingOrder, refreshActive]);
 
   useEffect(() => {
+    if (pendingOrder || !rejectedOrder) return;
+    const timer = setInterval(() => void refreshActive(), 30000);
+    return () => clearInterval(timer);
+  }, [pendingOrder, rejectedOrder, refreshActive]);
+
+  useEffect(() => {
     AsyncStorage.getItem(PHONE_STORAGE_KEY)
       .then((value) => {
         if (value) setPhone(value);
+      })
+      .catch(() => undefined);
+    AsyncStorage.getItem(ADDRESS_STORAGE_KEY)
+      .then((value) => {
+        if (value) setAddress(value);
       })
       .catch(() => undefined);
   }, []);
@@ -134,14 +149,20 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       setError('Telefon numaranizi girin — restoran sizi arayacak.');
       return;
     }
+    if (address.trim().length < 10) {
+      setError('Teslimat adresinizi yazin (mahalle, sokak, bina).');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
     try {
       await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
+      await AsyncStorage.setItem(ADDRESS_STORAGE_KEY, address.trim());
       await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
+        customer_address: address.trim(),
         note: note.trim() || undefined,
         lines: payloadLines,
       });
@@ -171,7 +192,31 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
           <Text style={styles.pendingBody}>
             Siparisin restorana iletildi. Onay veya red gelene kadar yeni siparis veremezsin.
           </Text>
-          <Text style={styles.pendingMeta}>{pendingOrder.total_tl.toFixed(0)} TL · {pendingOrder.lines.length} kalem</Text>
+          <Text style={styles.pendingMeta}>
+            {pendingOrder.order_number ? `${pendingOrder.order_number} · ` : ''}
+            {pendingOrder.total_tl.toFixed(0)} TL · {pendingOrder.lines.length} kalem
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (rejectedOrder) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.title}>Online siparis</Text>
+        <View style={styles.rejectedCard}>
+          <Text style={styles.rejectedTitle}>Siparis reddedildi</Text>
+          <Text style={styles.rejectedBody}>
+            {rejectedOrder.reject_message ||
+              'Restoran siparisinizi kabul edemedi. Baska bir zaman tekrar deneyebilirsiniz.'}
+          </Text>
+          {rejectedOrder.order_number ? (
+            <Text style={styles.pendingMeta}>Siparis no: {rejectedOrder.order_number}</Text>
+          ) : null}
+          <Pressable style={styles.dismissBtn} onPress={() => setRejectedOrder(null)}>
+            <Text style={styles.dismissBtnText}>Tamam, yeni siparis verebilirim</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -212,6 +257,14 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       />
       <TextInput
         style={[styles.input, styles.noteInput]}
+        value={address}
+        onChangeText={setAddress}
+        placeholder="Teslimat adresi (mahalle, sokak, bina, daire)"
+        placeholderTextColor={GastroColors.muted}
+        multiline
+      />
+      <TextInput
+        style={[styles.input, styles.noteInput]}
         value={note}
         onChangeText={setNote}
         placeholder="Not (opsiyonel)"
@@ -236,7 +289,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
           <Text style={styles.submitText}>Siparisi gonder</Text>
         )}
       </Pressable>
-      <Text style={styles.legal}>Numaraniz yalnizca bu restorana iletilir; odeme kapida.</Text>
+      <Text style={styles.legal}>Telefon ve adresiniz yalnizca bu restorana iletilir; odeme kapida.</Text>
     </View>
   );
 }
@@ -382,4 +435,23 @@ const styles = StyleSheet.create({
   pendingTitle: { color: GastroColors.gold, fontWeight: '800', fontSize: 16 },
   pendingBody: { color: GastroColors.text, fontSize: 13, lineHeight: 18 },
   pendingMeta: { color: GastroColors.muted, fontSize: 12, fontWeight: '700' },
+  rejectedCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#f87171',
+    backgroundColor: 'rgba(248, 113, 113, 0.08)',
+    padding: 14,
+    gap: 8,
+  },
+  rejectedTitle: { color: '#f87171', fontWeight: '800', fontSize: 16 },
+  rejectedBody: { color: GastroColors.text, fontSize: 13, lineHeight: 18 },
+  dismissBtn: {
+    marginTop: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  dismissBtnText: { color: GastroColors.text, fontWeight: '700', fontSize: 13 },
 });

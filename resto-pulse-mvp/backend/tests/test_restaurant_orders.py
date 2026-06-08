@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.restaurant_orders import OrderError, normalize_phone, online_orders_available
+from datetime import date
+
+from app.services.restaurant_orders import OrderError, format_order_number, normalize_phone, online_orders_available
 
 
 def test_normalize_phone_turkish_mobile():
@@ -59,3 +61,9 @@ def test_online_orders_unavailable_without_menu():
 
 def test_online_orders_unavailable_without_subscription():
     assert online_orders_available(_ownership(subscription_status=None)) is False
+
+
+def test_format_order_number():
+    assert format_order_number(date(2026, 6, 8), 3) == "08.06.2026-0003"
+    assert format_order_number(None, 3) is None
+    assert format_order_number(date(2026, 6, 8), None) is None

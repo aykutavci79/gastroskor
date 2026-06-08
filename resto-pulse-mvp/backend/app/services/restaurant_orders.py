@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+import zlib
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, selectinload
+from zoneinfo import ZoneInfo
 
 from app.models.entities import (
     Restaurant,
@@ -20,8 +22,15 @@ from app.models.entities import (
     RestaurantOwnership,
     User,
 )
+from app.constants.order_reject_reasons import (
+    build_reject_customer_message,
+    reject_reason_label,
+    validate_rejection_reason,
+)
 from app.services.restaurant_menu import active_menu_items
 from app.services.restaurant_promo import subscription_allows_promo
+
+ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
 
 
 class OrderError(Exception):
@@ -33,6 +42,44 @@ class OrderError(Exception):
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def istanbul_today() -> date:
+    return datetime.now(ISTANBUL_TZ).date()
+
+
+def format_order_number(order_day: date | None, daily_no: int | None) -> str | None:
+    if order_day is None or daily_no is None:
+        return None
+    return f"{order_day.strftime('%d.%m.%Y')}-{daily_no:04d}"
+
+
+def allocate_daily_order_number(db: Session, *, restaurant_id: UUID) -> tuple[date, int]:
+    order_day = istanbul_today()
+    lock_key = zlib.crc32(f"{restaurant_id}:{order_day.isoformat()}".encode()) & 0xFFFFFFFF
+    db.execute(text("SELECT pg_advisory_xact_lock(:lock_key)"), {"lock_key": lock_key})
+    current_max = db.scalar(
+        select(func.coalesce(func.max(RestaurantOrder.daily_no), 0)).where(
+            RestaurantOrder.restaurant_id == restaurant_id,
+            RestaurantOrder.order_day == order_day,
+        )
+    )
+    return order_day, int(current_max or 0) + 1
+
+
+def count_accepted_orders(
+    db: Session,
+    *,
+    restaurant_id: UUID,
+    since: datetime | None = None,
+) -> int:
+    stmt = select(func.count(RestaurantOrder.id)).where(
+        RestaurantOrder.restaurant_id == restaurant_id,
+        RestaurantOrder.status == RestaurantOrderStatus.accepted,
+    )
+    if since is not None:
+        stmt = stmt.where(RestaurantOrder.created_at >= since)
+    return int(db.scalar(stmt) or 0)
 
 
 def normalize_phone(value: str) -> str:
@@ -90,6 +137,8 @@ def order_to_dict(order: RestaurantOrder, *, restaurant_name: str | None = None)
     total = order.total_tl
     if isinstance(total, Decimal):
         total = float(total)
+    reject_code = order.reject_reason_code
+    reject_text = order.reject_reason_text
     return {
         "id": str(order.id),
         "restaurant_id": str(order.restaurant_id),
@@ -97,11 +146,21 @@ def order_to_dict(order: RestaurantOrder, *, restaurant_name: str | None = None)
         "status": order.status.value if isinstance(order.status, RestaurantOrderStatus) else str(order.status),
         "customer_phone": order.customer_phone,
         "customer_name": order.customer_name,
+        "customer_address": order.customer_address,
+        "order_day": order.order_day.isoformat() if order.order_day else None,
+        "daily_no": order.daily_no,
+        "order_number": format_order_number(order.order_day, order.daily_no),
         "note": order.note,
         "total_tl": round(float(total), 2),
         "lines": [order_line_to_dict(line) for line in order.lines],
         "created_at": order.created_at.isoformat() if order.created_at else None,
         "decided_at": order.decided_at.isoformat() if order.decided_at else None,
+        "reject_reason_code": reject_code,
+        "reject_reason_label": reject_reason_label(reject_code),
+        "reject_reason_text": reject_text,
+        "reject_message": build_reject_customer_message(reason_code=reject_code, reason_text=reject_text)
+        if order.status == RestaurantOrderStatus.rejected
+        else None,
     }
 
 
@@ -120,12 +179,36 @@ def get_pending_order_for_user(
     )
 
 
+def get_recent_rejected_order_for_user(
+    db: Session,
+    *,
+    user_id: UUID,
+    restaurant_id: UUID,
+    within_hours: int = 72,
+) -> RestaurantOrder | None:
+    cutoff = _utcnow() - timedelta(hours=within_hours)
+    return db.scalar(
+        select(RestaurantOrder)
+        .where(
+            RestaurantOrder.user_id == user_id,
+            RestaurantOrder.restaurant_id == restaurant_id,
+            RestaurantOrder.status == RestaurantOrderStatus.rejected,
+            RestaurantOrder.decided_at.is_not(None),
+            RestaurantOrder.decided_at >= cutoff,
+        )
+        .options(selectinload(RestaurantOrder.lines))
+        .order_by(RestaurantOrder.decided_at.desc())
+        .limit(1)
+    )
+
+
 def create_restaurant_order(
     db: Session,
     *,
     restaurant_id: UUID,
     user: User,
     customer_phone: str,
+    customer_address: str,
     customer_name: str | None,
     note: str | None,
     lines: list[dict],
@@ -157,8 +240,15 @@ def create_restaurant_order(
         parsed_lines.append((menu_item, qty))
 
     phone = normalize_phone(customer_phone)
+    clean_address = customer_address.strip()
+    if len(clean_address) < 10:
+        raise OrderError("Teslimat adresini girin (en az 10 karakter).")
+    if len(clean_address) > 500:
+        raise OrderError("Adres en fazla 500 karakter olabilir.")
     display_name = (customer_name or user.nickname or user.full_name or "").strip() or None
     clean_note = (note or "").strip() or None
+
+    order_day, daily_no = allocate_daily_order_number(db, restaurant_id=restaurant_id)
 
     total = 0.0
     order = RestaurantOrder(
@@ -166,6 +256,9 @@ def create_restaurant_order(
         user_id=user.id,
         customer_phone=phone,
         customer_name=display_name,
+        customer_address=clean_address,
+        order_day=order_day,
+        daily_no=daily_no,
         note=clean_note,
         status=RestaurantOrderStatus.pending,
         total_tl=0,
@@ -205,6 +298,8 @@ def decide_restaurant_order(
     ownership: RestaurantOwnership,
     order_id: UUID,
     decision: str,
+    reject_reason_code: str | None = None,
+    reject_reason_text: str | None = None,
 ) -> RestaurantOrder:
     if decision not in {"accepted", "rejected"}:
         raise OrderError("Gecersiz karar.")
@@ -215,12 +310,32 @@ def decide_restaurant_order(
             RestaurantOrder.id == order_id,
             RestaurantOrder.restaurant_id == ownership.restaurant_id,
         )
-        .options(selectinload(RestaurantOrder.lines), selectinload(RestaurantOrder.restaurant))
+        .options(
+            selectinload(RestaurantOrder.lines),
+            selectinload(RestaurantOrder.restaurant),
+            selectinload(RestaurantOrder.user),
+        )
     )
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siparis bulunamadi.")
     if order.status != RestaurantOrderStatus.pending:
         raise OrderError("Bu siparis zaten sonuclandirildi.")
+
+    clean_code: str | None = None
+    clean_text: str | None = None
+    if decision == "rejected":
+        try:
+            clean_code, clean_text = validate_rejection_reason(
+                reason_code=reject_reason_code,
+                reason_text=reject_reason_text,
+            )
+        except ValueError as exc:
+            raise OrderError(str(exc)) from exc
+        order.reject_reason_code = clean_code
+        order.reject_reason_text = clean_text
+    else:
+        order.reject_reason_code = None
+        order.reject_reason_text = None
 
     order.status = (
         RestaurantOrderStatus.accepted if decision == "accepted" else RestaurantOrderStatus.rejected

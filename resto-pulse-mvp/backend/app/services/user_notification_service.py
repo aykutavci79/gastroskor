@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     FollowerCoupon,
     Restaurant,
+    RestaurantOrder,
     RestaurantOwnership,
     Review,
     ReviewReply,
@@ -18,6 +19,7 @@ from app.models import (
     UserNotification,
     UserPushToken,
 )
+from app.services.restaurant_orders import format_order_number
 
 logger = logging.getLogger(__name__)
 
@@ -391,6 +393,49 @@ def notify_dm_message(
         metadata=metadata,
         push_title=f"@{actor_name} mesaj gonderdi",
         push_body=snippet,
+    )
+
+
+def notify_order_rejected(
+    db: Session,
+    *,
+    order: RestaurantOrder,
+    restaurant: Restaurant,
+    reject_message: str,
+) -> UserNotification | None:
+    customer = order.user
+    if customer is None:
+        customer = db.get(User, order.user_id)
+    if customer is None:
+        return None
+
+    order_no = format_order_number(order.order_day, order.daily_no)
+    restaurant_name = (restaurant.name or "Restoran").strip()
+    title = f"{restaurant_name} siparisinizi reddetti"
+    detail = reject_message.strip() or "Siparisiniz restoran tarafindan reddedildi."
+    if order_no:
+        message = f"Siparisiniz ({order_no}) su nedenle reddedildi: {detail}"
+    else:
+        message = f"Siparisiniz su nedenle reddedildi: {detail}"
+
+    metadata = {
+        "order_id": str(order.id),
+        "restaurant_id": str(restaurant.id),
+        "restaurant_name": restaurant_name,
+        "reject_reason_code": order.reject_reason_code,
+        "reject_reason_text": order.reject_reason_text,
+        "reject_message": detail,
+        "open_path": f"/restaurant/{restaurant.id}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=customer.id,
+        notification_type="order_rejected",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=title,
+        push_body=detail,
     )
 
 

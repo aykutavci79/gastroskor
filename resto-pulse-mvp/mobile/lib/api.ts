@@ -175,6 +175,7 @@ export function submitRestaurantOrder(
   payload: {
     user_email: string;
     customer_phone: string;
+    customer_address: string;
     note?: string;
     lines: Array<{ menu_item_id: string; quantity: number }>;
   },

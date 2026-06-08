@@ -86,6 +86,7 @@ from app.services.restaurant_orders import (
     create_restaurant_order,
     get_ownership_for_restaurant,
     get_pending_order_for_user,
+    get_recent_rejected_order_for_user,
     notify_new_restaurant_order,
     online_orders_available,
     order_to_dict,
@@ -1155,9 +1156,18 @@ def get_active_restaurant_order(
     pending_payload = (
         order_to_dict(pending, restaurant_name=restaurant.name) if pending else None
     )
+    recent_rejected = get_recent_rejected_order_for_user(
+        db, user_id=user.id, restaurant_id=restaurant_id
+    )
+    recent_rejected_payload = (
+        order_to_dict(recent_rejected, restaurant_name=restaurant.name)
+        if recent_rejected
+        else None
+    )
     return RestaurantOrderActiveResponse(
         online_orders_available=online_orders_available(ownership),
         pending_order=pending_payload,
+        recent_rejected_order=recent_rejected_payload,
     )
 
 
@@ -1177,6 +1187,7 @@ async def post_restaurant_order(
             restaurant_id=restaurant_id,
             user=user,
             customer_phone=payload.customer_phone,
+            customer_address=payload.customer_address,
             customer_name=payload.customer_name,
             note=payload.note,
             lines=[line.model_dump() for line in payload.lines],

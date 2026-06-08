@@ -81,7 +81,7 @@ export function RestaurantDashboard() {
   }
   if (!data) return null;
 
-  const { summary, ratings, competitors, ai_insight, ai_quota, ai_pricing } = data;
+  const { summary, ratings, competitors, ai_insight, ai_quota, ai_pricing, restaurant } = data;
 
   function refreshQuota(next: typeof ai_quota) {
     setData((prev) => (prev ? { ...prev, ai_quota: next } : prev));
@@ -95,6 +95,15 @@ export function RestaurantDashboard() {
         <StatCard label="Google puan" value={ratings.google_rating?.toFixed(1) ?? '-'} />
         <StatCard label="Acik sikayet" value={summary.open_feedback_count} />
       </div>
+      {summary.online_orders_accepted_total > 0 ? (
+        <div className="rounded-xl border border-brand-gold/25 bg-brand-gold/5 px-4 py-3 text-sm text-content">
+          GastroSkor online siparis: toplam <strong>{summary.online_orders_accepted_total}</strong> onayli
+          {summary.online_orders_accepted_180_days !== summary.online_orders_accepted_total ? (
+            <> (son 6 ay: {summary.online_orders_accepted_180_days})</>
+          ) : null}
+          .
+        </div>
+      ) : null}
 
       <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
         <h2 className="text-lg font-semibold text-content">Puan Ozeti</h2>
@@ -122,7 +131,14 @@ export function RestaurantDashboard() {
               access?.subscription_status === 'trial' || access?.subscription_status === 'active'
             }
           />
-          <PanelOrdersSection userEmail={userEmail} />
+          <PanelOrdersSection
+            userEmail={userEmail}
+            restaurantName={restaurant.name}
+            orderStats={{
+              total: summary.online_orders_accepted_total,
+              last180Days: summary.online_orders_accepted_180_days,
+            }}
+          />
           <PanelFollowerCoupons userEmail={userEmail} canWrite={Boolean(access?.can_write_actions)} />
         </>
       ) : null}

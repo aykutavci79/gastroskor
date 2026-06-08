@@ -64,16 +64,25 @@ export type RestaurantOrderRead = {
   status: 'pending' | 'accepted' | 'rejected';
   customer_phone: string;
   customer_name?: string | null;
+  customer_address?: string | null;
+  order_day?: string | null;
+  daily_no?: number | null;
+  order_number?: string | null;
   note?: string | null;
   total_tl: number;
   lines: RestaurantOrderLineRead[];
   created_at?: string | null;
   decided_at?: string | null;
+  reject_reason_code?: string | null;
+  reject_reason_label?: string | null;
+  reject_reason_text?: string | null;
+  reject_message?: string | null;
 };
 
 export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
   pending_order: RestaurantOrderRead | null;
+  recent_rejected_order?: RestaurantOrderRead | null;
 };
 
 export type RestaurantPromoPublic = {
@@ -510,6 +519,8 @@ export type PanelDashboard = {
     search_impressions_week: number;
     maps_clicks_day: number;
     maps_clicks_month: number;
+    online_orders_accepted_total: number;
+    online_orders_accepted_180_days: number;
   };
   ratings: {
     google_rating: number | null;

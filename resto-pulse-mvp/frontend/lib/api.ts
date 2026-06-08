@@ -473,13 +473,20 @@ export function listPanelOrders(userEmail: string, limit = 100, days = 7) {
 
 export function decidePanelOrder(
   orderId: string,
-  payload: { user_email: string; decision: 'accepted' | 'rejected' },
+  payload: {
+    user_email: string;
+    decision: 'accepted' | 'rejected';
+    reject_reason_code?: string | null;
+    reject_reason_text?: string | null;
+  },
 ) {
   return request<import('@/lib/types').RestaurantOrderRead>(`/panel/orders/${encodeURIComponent(orderId)}`, {
     method: 'PATCH',
     body: JSON.stringify({
       user_email: payload.user_email.trim().toLowerCase(),
       decision: payload.decision,
+      reject_reason_code: payload.reject_reason_code ?? undefined,
+      reject_reason_text: payload.reject_reason_text?.trim() || undefined,
     }),
   });
 }

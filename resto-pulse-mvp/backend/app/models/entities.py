@@ -494,6 +494,14 @@ class RestaurantOrderStatus(str, enum.Enum):
 
 class RestaurantOrder(Base):
     __tablename__ = "restaurant_orders"
+    __table_args__ = (
+        UniqueConstraint(
+            "restaurant_id",
+            "order_day",
+            "daily_no",
+            name="uq_restaurant_orders_daily_no",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     restaurant_id: Mapped[uuid.UUID] = mapped_column(
@@ -504,6 +512,11 @@ class RestaurantOrder(Base):
     )
     customer_phone: Mapped[str] = mapped_column(String(32))
     customer_name: Mapped[str | None] = mapped_column(String(120))
+    customer_address: Mapped[str | None] = mapped_column(Text)
+    order_day: Mapped[date | None] = mapped_column(Date, index=True)
+    daily_no: Mapped[int | None] = mapped_column(Integer)
+    reject_reason_code: Mapped[str | None] = mapped_column(String(40))
+    reject_reason_text: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     status: Mapped[RestaurantOrderStatus] = mapped_column(
         Enum(RestaurantOrderStatus), default=RestaurantOrderStatus.pending, index=True

@@ -31,7 +31,13 @@ from app.schemas.panel import (
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
-from app.schemas.restaurant_order import PanelOrderListResponse, RestaurantOrderDecision, RestaurantOrderRead
+from app.constants.order_reject_reasons import ORDER_REJECT_REASONS, build_reject_customer_message
+from app.schemas.restaurant_order import (
+    PanelOrderListResponse,
+    PanelOrderRejectReasonsResponse,
+    RestaurantOrderDecision,
+    RestaurantOrderRead,
+)
 from app.services.panel_access import build_panel_access_state, get_user_ownership
 from app.services.panel_dashboard import build_dashboard_payload
 from app.services.competitor_ai_analysis import analyze_competitor_pair
@@ -90,7 +96,7 @@ from app.services.follower_promotion_service import (
     redeem_follower_coupon,
 )
 from app.services.restaurant_followers import list_panel_followers
-from app.services.user_notification_service import notify_follower_coupon_issued
+from app.services.user_notification_service import notify_follower_coupon_issued, notify_order_rejected
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
@@ -376,6 +382,18 @@ def get_panel_orders(
     return PanelOrderListResponse(items=items)
 
 
+@panel_router.get("/orders/reject-reasons", response_model=PanelOrderRejectReasonsResponse)
+def get_panel_order_reject_reasons(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return PanelOrderRejectReasonsResponse(
+        items=[{"code": code, "label": label} for code, label in ORDER_REJECT_REASONS.items()]
+    )
+
+
 @panel_router.patch("/orders/{order_id}", response_model=RestaurantOrderRead)
 def patch_panel_order(
     order_id: UUID,
@@ -393,9 +411,23 @@ def patch_panel_order(
             ownership=ownership,
             order_id=order_id,
             decision=payload.decision,
+            reject_reason_code=payload.reject_reason_code,
+            reject_reason_text=payload.reject_reason_text,
         )
     except OrderError as exc:
         raise_order_http(exc)
+    if payload.decision == "rejected" and order.restaurant:
+        reject_message = build_reject_customer_message(
+            reason_code=order.reject_reason_code,
+            reason_text=order.reject_reason_text,
+        )
+        notify_order_rejected(
+            db,
+            order=order,
+            restaurant=order.restaurant,
+            reject_message=reject_message,
+        )
+        db.commit()
     restaurant_name = order.restaurant.name if order.restaurant else None
     return order_to_dict(order, restaurant_name=restaurant_name)
 

@@ -11,6 +11,7 @@ from app.models.entities import RestaurantPlatformProfile, PlatformName
 from app.services.panel_access import PanelAccessState, build_panel_access_state
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota
 from app.services.panel_pricing import pricing_catalog_as_dict
+from app.services.restaurant_orders import count_accepted_orders
 
 
 def _utcnow() -> datetime:
@@ -35,6 +36,7 @@ def build_dashboard_payload(db: Session, ownership: RestaurantOwnership, access:
     day_ago = now - timedelta(days=1)
     week_ago = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
+    six_months_ago = now - timedelta(days=180)
 
     restaurant_id = ownership.restaurant_id
     open_feedback = (
@@ -84,6 +86,10 @@ def build_dashboard_payload(db: Session, ownership: RestaurantOwnership, access:
             "maps_clicks_day": _count_events(db, restaurant_id=restaurant_id, event_type="maps_click", since=day_ago),
             "maps_clicks_month": _count_events(
                 db, restaurant_id=restaurant_id, event_type="maps_click", since=month_ago
+            ),
+            "online_orders_accepted_total": count_accepted_orders(db, restaurant_id=restaurant_id),
+            "online_orders_accepted_180_days": count_accepted_orders(
+                db, restaurant_id=restaurant_id, since=six_months_ago
             ),
         },
         "ratings": {
