@@ -206,10 +206,11 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       <View style={styles.wrap}>
         <Text style={styles.title}>Online siparis</Text>
         <View style={styles.rejectedCard}>
-          <Text style={styles.rejectedTitle}>Siparis reddedildi</Text>
+          <Text style={styles.rejectedTitle}>Siparis iptal edildi</Text>
           <Text style={styles.rejectedBody}>
-            {rejectedOrder.reject_message ||
-              'Restoran siparisinizi kabul edemedi. Baska bir zaman tekrar deneyebilirsiniz.'}
+            {rejectedOrder.reject_message
+              ? `${restaurant.name}, ${rejectedOrder.reject_message} nedeniyle siparisinizi iptal etti.`
+              : `${restaurant.name} siparisinizi iptal etti.`}
           </Text>
           {rejectedOrder.order_number ? (
             <Text style={styles.pendingMeta}>Siparis no: {rejectedOrder.order_number}</Text>

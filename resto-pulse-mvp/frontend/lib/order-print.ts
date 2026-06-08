@@ -115,7 +115,6 @@ export function buildOrderPrintHtml(order: RestaurantOrderRead, restaurantName: 
   <div class="total">Toplam: ${order.total_tl.toFixed(0)} TL</div>
   ${order.note ? `<p style="margin-top:12px"><span class="label">Not</span> ${escapeHtml(order.note)}</p>` : ''}
   <div class="footer">Odeme kapida · GastroSkor panelinden yazdirildi</div>
-  <script>window.onload = function() { window.print(); };</script>
 </body>
 </html>`;
 }
@@ -123,12 +122,37 @@ export function buildOrderPrintHtml(order: RestaurantOrderRead, restaurantName: 
 export function printRestaurantOrder(order: RestaurantOrderRead, restaurantName: string): void {
   if (typeof window === 'undefined') return;
   const html = buildOrderPrintHtml(order, restaurantName);
-  const popup = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
-  if (!popup) {
-    window.alert('Yazdirma penceresi acilamadi. Tarayici pop-up engelini kontrol edin.');
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('title', 'Siparis formu yazdir');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+
+  const printWindow = iframe.contentWindow;
+  const printDoc = printWindow?.document;
+  if (!printWindow || !printDoc) {
+    iframe.remove();
+    window.alert('Yazdirma baslatilamadi. Sayfayi yenileyip tekrar deneyin.');
     return;
   }
-  popup.document.open();
-  popup.document.write(html);
-  popup.document.close();
+
+  printDoc.open();
+  printDoc.write(html);
+  printDoc.close();
+
+  const cleanup = () => {
+    window.setTimeout(() => iframe.remove(), 1000);
+  };
+
+  const triggerPrint = () => {
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } finally {
+      cleanup();
+    }
+  };
+
+  // Pop-up acmadan ayni sekmede yazdir — engelleyiciye takilmaz.
+  window.setTimeout(triggerPrint, 300);
 }

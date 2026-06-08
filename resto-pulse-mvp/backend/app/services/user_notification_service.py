@@ -411,12 +411,13 @@ def notify_order_rejected(
 
     order_no = format_order_number(order.order_day, order.daily_no)
     restaurant_name = (restaurant.name or "Restoran").strip()
-    title = f"{restaurant_name} siparisinizi reddetti"
-    detail = reject_message.strip() or "Siparisiniz restoran tarafindan reddedildi."
+    detail = reject_message.strip() or "Restoran su an siparis kabul edemiyor"
+    title = f"{restaurant_name} siparisinizi iptal etti"
     if order_no:
-        message = f"Siparisiniz ({order_no}) su nedenle reddedildi: {detail}"
+        message = f"{restaurant_name}, {detail} nedeniyle {order_no} numarali siparisinizi iptal etti."
     else:
-        message = f"Siparisiniz su nedenle reddedildi: {detail}"
+        message = f"{restaurant_name}, {detail} nedeniyle siparisinizi iptal etti."
+    push_body = f"{detail} nedeniyle siparisinizi iptal etti."
 
     metadata = {
         "order_id": str(order.id),
@@ -435,7 +436,7 @@ def notify_order_rejected(
         message=message,
         metadata=metadata,
         push_title=title,
-        push_body=detail,
+        push_body=push_body,
     )
 
 
