@@ -22,6 +22,7 @@ def serialize_user(user: User, db: Session) -> UserProfile:
         default_review_name_display=normalize_author_name_display(user.default_review_name_display),
         gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
         review_count=int(review_count),
+        google_sub=user.google_sub,
     )
 
 

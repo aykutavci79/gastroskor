@@ -63,7 +63,7 @@ Backend Google sertifikalari ile idToken dogrular; client'a kör güvenilmez.
 
 ## Akis
 
-1. Kullanici **Google ile giris yap**
+1. Kullanici **Google ile giris yap** (e-posta ile giris kaldirildi — guvenlik)
 2. Native SDK hesap secer / sifre+2FA Google tarafinda
 3. `idToken` → API `/auth/google/mobile`
 4. Profil oturumu acilir

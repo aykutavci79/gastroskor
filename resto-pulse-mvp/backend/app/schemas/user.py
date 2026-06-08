@@ -25,6 +25,7 @@ class UserProfile(BaseModel):
     default_review_name_display: AuthorNameDisplayMode = "full"
     gastro_score: float | None = None
     review_count: int = Field(ge=0, default=0)
+    google_sub: str | None = None
 
 
 class NicknameCheckResponse(BaseModel):

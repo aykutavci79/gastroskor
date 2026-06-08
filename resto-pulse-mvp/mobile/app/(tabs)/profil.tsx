@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { GastroBrandMark } from '@/components/GastroBrandMark';
@@ -21,10 +21,7 @@ import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
 export default function ProfilScreen() {
-  const { user, loading, signInWithEmail, signOut } = useSession();
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const { user, loading, signOut } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
 
@@ -63,18 +60,6 @@ export default function ProfilScreen() {
   const handleGoogleError = useCallback((message: string) => {
     setError(message);
   }, []);
-
-  async function onSave() {
-    setBusy(true);
-    setError(null);
-    try {
-      await signInWithEmail(email, name || null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Giris basarisiz');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <Screen>
@@ -119,35 +104,16 @@ export default function ProfilScreen() {
         </View>
       ) : (
         <View style={styles.card}>
+          <Text style={styles.muted}>
+            Guvenlik icin yalnizca Google hesabinizla giris yapabilirsiniz.
+          </Text>
           <GoogleSignInButton
-            busy={busy}
             onError={(message) => {
               setError(null);
               handleGoogleError(message);
             }}
           />
-
-          <Text style={styles.dividerLabel}>veya e-posta ile giris (Google calismazsa)</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="ornek@gmail.com"
-            placeholderTextColor={GastroColors.placeholder}
-            style={styles.input}
-          />
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Ad (opsiyonel)"
-            placeholderTextColor={GastroColors.placeholder}
-            style={styles.input}
-          />
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={styles.btn} onPress={() => void onSave()} disabled={busy}>
-            <Text style={styles.btnText}>{busy ? 'Kaydediliyor...' : 'E-posta ile devam et'}</Text>
-          </Pressable>
         </View>
       )}
 

@@ -23,7 +23,7 @@ export function useGoogleSignIn(onError: (message: string) => void) {
     try {
       const idToken = await signInWithGoogleNative();
       const { profile } = await verifyGoogleMobileAuth(idToken);
-      await signInWithGoogleProfile(profile);
+      await signInWithGoogleProfile(profile, profile.google_sub ?? null);
     } catch (err) {
       onError(readGoogleSignInError(err));
     }

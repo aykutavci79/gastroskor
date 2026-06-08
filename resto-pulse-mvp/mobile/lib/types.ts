@@ -447,6 +447,7 @@ export type UserProfile = {
   default_review_name_display?: 'full' | 'masked' | 'nickname';
   gastro_score: number | null;
   review_count: number;
+  google_sub?: string | null;
 };
 
 export type ReviewAnalyzeResult = {

@@ -1289,6 +1289,27 @@ def list_restaurant_reviews(
 
 @router.post("/users/sync", response_model=UserProfile)
 def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    if payload.record_login and not payload.google_sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="E-posta ile giris desteklenmiyor. Google ile giris yapin.",
+        )
+
+    existing = db.scalar(select(User).where(User.email == email))
+
+    if existing and payload.google_sub and existing.google_sub and existing.google_sub != payload.google_sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu e-posta baska bir Google hesabina bagli.",
+        )
+
+    if not existing and not payload.google_sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Hesap acmak icin Google ile giris yapin.",
+        )
+
     user = get_or_create_user(
         db,
         email=payload.email,
