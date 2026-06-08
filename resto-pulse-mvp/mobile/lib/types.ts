@@ -79,10 +79,18 @@ export type RestaurantOrderRead = {
   reject_message?: string | null;
 };
 
+export type OrderPhoneStatus = {
+  verified: boolean;
+  phone_e164?: string | null;
+  phone_masked?: string | null;
+  verified_at?: string | null;
+};
+
 export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
   pending_order: RestaurantOrderRead | null;
   recent_rejected_order?: RestaurantOrderRead | null;
+  order_phone?: OrderPhoneStatus | null;
 };
 
 export type RestaurantPromoPublic = {

@@ -58,6 +58,8 @@ class User(Base):
     default_review_name_display: Mapped[str] = mapped_column(String(16), default="full")
     nickname: Mapped[str | None] = mapped_column(String(32), index=True)
     avatar_preset: Mapped[str | None] = mapped_column(String(32))
+    order_phone_e164: Mapped[str | None] = mapped_column(String(32))
+    order_phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")
@@ -98,6 +100,26 @@ class User(Base):
         foreign_keys="FriendRequest.to_user_id",
     )
     restaurant_orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="user")
+    order_phone_otps: Mapped[list["UserOrderPhoneOtp"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class UserOrderPhoneOtp(Base):
+    __tablename__ = "user_order_phone_otps"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    phone_e164: Mapped[str] = mapped_column(String(32))
+    code_hash: Mapped[str] = mapped_column(String(128))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="order_phone_otps")
 
 
 class FriendRequest(Base):

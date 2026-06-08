@@ -27,6 +27,8 @@ from app.constants.order_reject_reasons import (
     reject_reason_label,
     validate_rejection_reason,
 )
+from app.services.order_phone_verification import user_has_verified_order_phone
+from app.services.phone_tr import normalize_tr_mobile
 from app.services.restaurant_menu import active_menu_items
 from app.services.restaurant_promo import subscription_allows_promo
 
@@ -239,7 +241,14 @@ def create_restaurant_order(
             raise OrderError("Menu listesi guncellendi. Sayfayi yenileyip tekrar deneyin.")
         parsed_lines.append((menu_item, qty))
 
-    phone = normalize_phone(customer_phone)
+    phone = normalize_tr_mobile(customer_phone)
+    if not phone:
+        raise OrderError("Gecerli bir cep telefonu girin (05xx xxx xx xx).", code="invalid_phone")
+    if not user_has_verified_order_phone(user, phone):
+        raise OrderError(
+            "Siparis vermek icin telefon numaranizi SMS ile dogrulayin.",
+            code="phone_not_verified",
+        )
     clean_address = customer_address.strip()
     if len(clean_address) < 10:
         raise OrderError("Teslimat adresini girin (en az 10 karakter).")

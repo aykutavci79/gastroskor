@@ -69,6 +69,9 @@ from app.schemas.restaurant import (
     RestaurantTrendingItem,
 )
 from app.schemas.restaurant_order import (
+    OrderPhoneSendOtpRequest,
+    OrderPhoneStatus,
+    OrderPhoneVerifyOtpRequest,
     RestaurantOrderActiveResponse,
     RestaurantOrderCreate,
     RestaurantOrderRead,
@@ -80,6 +83,11 @@ from app.services.restaurant_check_in import (
     get_user_check_in_status,
     merge_check_in_counts_into_rows,
     visitor_count,
+)
+from app.services.order_phone_verification import (
+    order_phone_status_for_user,
+    send_order_phone_otp,
+    verify_order_phone_otp,
 )
 from app.services.restaurant_orders import (
     OrderError,
@@ -1168,7 +1176,29 @@ def get_active_restaurant_order(
         online_orders_available=online_orders_available(ownership),
         pending_order=pending_payload,
         recent_rejected_order=recent_rejected_payload,
+        order_phone=OrderPhoneStatus.model_validate(order_phone_status_for_user(user)),
     )
+
+
+@router.get("/order-phone/status", response_model=OrderPhoneStatus)
+def get_order_phone_status(user_email: str = Query(..., min_length=3), db: Session = Depends(get_db)):
+    user = get_or_create_user(db, email=user_email)
+    return OrderPhoneStatus.model_validate(order_phone_status_for_user(user))
+
+
+@router.post("/order-phone/send-otp")
+async def post_order_phone_send_otp(payload: OrderPhoneSendOtpRequest, db: Session = Depends(get_db)):
+    user = get_or_create_user(db, email=payload.user_email)
+    return await send_order_phone_otp(db, user=user, raw_phone=payload.phone)
+
+
+@router.post("/order-phone/verify-otp", response_model=OrderPhoneStatus)
+def post_order_phone_verify_otp(payload: OrderPhoneVerifyOtpRequest, db: Session = Depends(get_db)):
+    user = get_or_create_user(db, email=payload.user_email)
+    status_payload = verify_order_phone_otp(
+        db, user=user, raw_phone=payload.phone, code=payload.code.strip()
+    )
+    return OrderPhoneStatus.model_validate(status_payload)
 
 
 @router.post("/restaurants/{restaurant_id}/orders", response_model=RestaurantOrderRead, status_code=status.HTTP_201_CREATED)

@@ -50,10 +50,29 @@ class RestaurantOrderRead(BaseModel):
     reject_message: str | None = None
 
 
+class OrderPhoneStatus(BaseModel):
+    verified: bool = False
+    phone_e164: str | None = None
+    phone_masked: str | None = None
+    verified_at: str | None = None
+
+
+class OrderPhoneSendOtpRequest(BaseModel):
+    user_email: str = Field(min_length=3)
+    phone: str = Field(min_length=10, max_length=32)
+
+
+class OrderPhoneVerifyOtpRequest(BaseModel):
+    user_email: str = Field(min_length=3)
+    phone: str = Field(min_length=10, max_length=32)
+    code: str = Field(min_length=4, max_length=8)
+
+
 class RestaurantOrderActiveResponse(BaseModel):
     online_orders_available: bool
     pending_order: RestaurantOrderRead | None = None
     recent_rejected_order: RestaurantOrderRead | None = None
+    order_phone: OrderPhoneStatus | None = None
 
 
 class RestaurantOrderDecision(BaseModel):

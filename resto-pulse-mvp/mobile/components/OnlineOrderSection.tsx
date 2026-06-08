@@ -11,7 +11,13 @@ import {
 } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
-import { getActiveRestaurantOrder, submitRestaurantOrder } from '@/lib/api';
+import {
+  getActiveRestaurantOrder,
+  sendOrderPhoneOtp,
+  submitRestaurantOrder,
+  verifyOrderPhoneOtp,
+} from '@/lib/api';
+import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
 
 const PHONE_STORAGE_KEY = 'gastroskor_order_phone';
@@ -32,6 +38,12 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
   const menuItems = restaurant.menu ?? restaurant.menu_preview ?? [];
   const [lines, setLines] = useState<Record<string, LineState>>({});
   const [phone, setPhone] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifiedPhoneE164, setVerifiedPhoneE164] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
   const [pendingOrder, setPendingOrder] = useState<RestaurantOrderRead | null>(null);
@@ -52,6 +64,12 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       setAvailable(active.online_orders_available);
       setPendingOrder(active.pending_order);
       setRejectedOrder(active.pending_order ? null : active.recent_rejected_order ?? null);
+      const orderPhone = active.order_phone;
+      if (orderPhone?.verified && orderPhone.phone_e164) {
+        setVerifiedPhoneE164(orderPhone.phone_e164);
+        setPhone(formatTrMobileDisplay(orderPhone.phone_e164));
+        setPhoneVerified(true);
+      }
       if (!active.pending_order) {
         setLines({});
       }
@@ -104,6 +122,69 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
     [lines],
   );
 
+  const normalizedPhone = useMemo(() => normalizeTrMobileInput(phone), [phone]);
+  const phoneMatchesVerified = Boolean(
+    phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164,
+  );
+
+  function onPhoneChange(value: string) {
+    setPhone(value);
+    const next = normalizeTrMobileInput(value);
+    if (!next || next !== verifiedPhoneE164) {
+      setPhoneVerified(false);
+      setOtpSent(false);
+      setOtpCode('');
+    } else {
+      setPhoneVerified(true);
+    }
+  }
+
+  async function onSendOtp() {
+    if (!userEmail) return;
+    if (!normalizedPhone) {
+      setError('Gecerli bir cep telefonu girin (05xx xxx xx xx).');
+      return;
+    }
+    setOtpSending(true);
+    setError(null);
+    try {
+      await sendOrderPhoneOtp(userEmail, phone.trim());
+      setOtpSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'SMS kodu gonderilemedi.');
+    } finally {
+      setOtpSending(false);
+    }
+  }
+
+  async function onVerifyOtp() {
+    if (!userEmail) return;
+    if (!normalizedPhone) {
+      setError('Once gecerli telefon numarasi girin.');
+      return;
+    }
+    if (otpCode.trim().length < 4) {
+      setError('SMS kodunu girin.');
+      return;
+    }
+    setOtpVerifying(true);
+    setError(null);
+    try {
+      const status = await verifyOrderPhoneOtp(userEmail, phone.trim(), otpCode.trim());
+      if (status.verified && status.phone_e164) {
+        setVerifiedPhoneE164(status.phone_e164);
+        setPhoneVerified(true);
+        setOtpSent(false);
+        setOtpCode('');
+        await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Dogrulama basarisiz.');
+    } finally {
+      setOtpVerifying(false);
+    }
+  }
+
   if (!available && !pendingOrder) return null;
 
   function toggleItem(itemId: string) {
@@ -145,8 +226,12 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       setError('En az bir urun secin.');
       return;
     }
-    if (phone.trim().length < 10) {
-      setError('Telefon numaranizi girin — restoran sizi arayacak.');
+    if (!normalizedPhone) {
+      setError('Gecerli bir cep telefonu girin (05xx xxx xx xx).');
+      return;
+    }
+    if (!phoneMatchesVerified) {
+      setError('Telefon numaranizi SMS ile dogrulayin.');
       return;
     }
     if (address.trim().length < 10) {
@@ -251,11 +336,54 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
       <TextInput
         style={styles.input}
         value={phone}
-        onChangeText={setPhone}
+        onChangeText={onPhoneChange}
         placeholder="Telefon (05xx xxx xx xx)"
         placeholderTextColor={GastroColors.muted}
         keyboardType="phone-pad"
       />
+      {phoneMatchesVerified ? (
+        <Text style={styles.verifiedHint}>Telefon dogrulandi</Text>
+      ) : normalizedPhone ? (
+        <View style={styles.otpBlock}>
+          <Text style={styles.otpHint}>
+            Sahte numaralari onlemek icin SMS ile dogrulama gerekli. Restoran sizi bu numaradan arayacak.
+          </Text>
+          {!otpSent ? (
+            <Pressable
+              style={[styles.otpBtn, otpSending && styles.submitDisabled]}
+              disabled={otpSending}
+              onPress={() => void onSendOtp()}>
+              {otpSending ? (
+                <ActivityIndicator color={GastroColors.text} />
+              ) : (
+                <Text style={styles.otpBtnText}>SMS kodu gonder</Text>
+              )}
+            </Pressable>
+          ) : (
+            <View style={styles.otpRow}>
+              <TextInput
+                style={[styles.input, styles.otpInput]}
+                value={otpCode}
+                onChangeText={setOtpCode}
+                placeholder="6 haneli kod"
+                placeholderTextColor={GastroColors.muted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <Pressable
+                style={[styles.otpVerifyBtn, otpVerifying && styles.submitDisabled]}
+                disabled={otpVerifying}
+                onPress={() => void onVerifyOtp()}>
+                {otpVerifying ? (
+                  <ActivityIndicator color="#141414" />
+                ) : (
+                  <Text style={styles.otpVerifyText}>Dogrula</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
+        </View>
+      ) : null}
       <TextInput
         style={[styles.input, styles.noteInput]}
         value={address}
@@ -282,7 +410,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
 
       <Pressable
         style={[styles.submitBtn, (submitting || selectedCount === 0) && styles.submitDisabled]}
-        disabled={submitting || selectedCount === 0}
+        disabled={submitting || selectedCount === 0 || !phoneMatchesVerified}
         onPress={() => void onSubmit()}>
         {submitting ? (
           <ActivityIndicator color="#141414" />
@@ -425,6 +553,28 @@ const styles = StyleSheet.create({
   submitDisabled: { opacity: 0.5 },
   submitText: { color: '#141414', fontWeight: '800', fontSize: 15 },
   legal: { color: GastroColors.muted, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  verifiedHint: { color: '#4ade80', fontSize: 12, fontWeight: '700' },
+  otpBlock: { gap: 8 },
+  otpHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17 },
+  otpBtn: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  otpBtnText: { color: GastroColors.text, fontWeight: '700', fontSize: 13 },
+  otpRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  otpInput: { flex: 1, marginBottom: 0 },
+  otpVerifyBtn: {
+    backgroundColor: GastroColors.accent,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minWidth: 88,
+    alignItems: 'center',
+  },
+  otpVerifyText: { color: '#141414', fontWeight: '800', fontSize: 13 },
   pendingCard: {
     borderRadius: 14,
     borderWidth: 1,

@@ -189,6 +189,35 @@ export function submitRestaurantOrder(
   });
 }
 
+export function getOrderPhoneStatus(userEmail: string) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`;
+  return request<import('@/lib/types').OrderPhoneStatus>(`/order-phone/status${query}`);
+}
+
+export function sendOrderPhoneOtp(userEmail: string, phone: string) {
+  return request<{ sent: boolean; phone_masked: string; expires_in_minutes: number }>(
+    '/order-phone/send-otp',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        user_email: userEmail.trim().toLowerCase(),
+        phone: phone.trim(),
+      }),
+    },
+  );
+}
+
+export function verifyOrderPhoneOtp(userEmail: string, phone: string, code: string) {
+  return request<import('@/lib/types').OrderPhoneStatus>('/order-phone/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      phone: phone.trim(),
+      code: code.trim(),
+    }),
+  });
+}
+
 export function listPanelOrders(userEmail: string, limit = 50) {
   const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}`;
   return request<{ items: import('@/lib/types').RestaurantOrderRead[] }>(`/panel/orders${query}`);
