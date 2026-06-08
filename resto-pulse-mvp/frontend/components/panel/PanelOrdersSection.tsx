@@ -17,6 +17,106 @@ type Props = {
 };
 
 const POLL_MS = 10_000;
+const ARCHIVE_DAYS = 7;
+
+function formatOrderWhen(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('tr-TR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function statusLabel(status: RestaurantOrderRead['status']): string {
+  if (status === 'accepted') return 'Onaylandi';
+  if (status === 'rejected') return 'Reddedildi';
+  return 'Onay bekliyor';
+}
+
+function OrderLines({ lines }: { lines: RestaurantOrderRead['lines'] }) {
+  return (
+    <ul className="mt-3 space-y-1 rounded-lg bg-surface-input/80 p-3 text-sm text-content">
+      {lines.map((line) => (
+        <li key={line.id} className="flex flex-wrap justify-between gap-2">
+          <span>
+            <strong className="text-content">{line.quantity}x</strong> {line.name}
+          </span>
+          <span className="text-content-muted">{line.line_total_tl.toFixed(0)} TL</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function OrderCard({
+  order,
+  variant,
+  busyId,
+  onDecision,
+}: {
+  order: RestaurantOrderRead;
+  variant: 'pending' | 'history';
+  busyId?: string | null;
+  onDecision?: (orderId: string, decision: 'accepted' | 'rejected') => void;
+}) {
+  const isPending = variant === 'pending';
+  return (
+    <li
+      className={
+        isPending
+          ? 'rounded-xl border border-brand-gold/30 bg-surface-card p-4 ring-1 ring-brand-gold/20'
+          : 'rounded-xl border border-border bg-surface-card p-4'
+      }>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-content">
+            {order.customer_name || 'Musteri'} · {order.total_tl.toFixed(0)} TL
+          </p>
+          <a href={`tel:${order.customer_phone}`} className="text-sm font-semibold text-brand-gold hover:underline">
+            {order.customer_phone}
+          </a>
+          <p className="mt-1 text-xs text-content-muted">Siparis: {formatOrderWhen(order.created_at)}</p>
+          {order.decided_at ? (
+            <p className="text-xs text-content-muted">Karar: {formatOrderWhen(order.decided_at)}</p>
+          ) : null}
+          {order.note ? <p className="mt-2 text-sm text-content-muted">Not: {order.note}</p> : null}
+        </div>
+        <span
+          className={
+            isPending
+              ? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-brand-gold'
+              : order.status === 'accepted'
+                ? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300'
+                : 'rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-rose-300'
+          }>
+          {statusLabel(order.status)}
+        </span>
+      </div>
+      <OrderLines lines={order.lines} />
+      {isPending && onDecision ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busyId === order.id}
+            onClick={() => onDecision(order.id, 'accepted')}
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:opacity-50">
+            Onayla ve ara
+          </button>
+          <button
+            type="button"
+            disabled={busyId === order.id}
+            onClick={() => onDecision(order.id, 'rejected')}
+            className="rounded-lg border border-border px-4 py-2 text-sm text-content-muted hover:bg-surface-input disabled:opacity-50">
+            Reddet
+          </button>
+        </div>
+      ) : null}
+    </li>
+  );
+}
 
 export function PanelOrdersSection({ userEmail }: Props) {
   const [items, setItems] = useState<RestaurantOrderRead[]>([]);
@@ -35,7 +135,7 @@ export function PanelOrdersSection({ userEmail }: Props) {
 
   const reload = useCallback(async () => {
     try {
-      const data = await listPanelOrders(userEmail);
+      const data = await listPanelOrders(userEmail, 100, ARCHIVE_DAYS);
       setItems(data.items);
       setError(null);
     } catch (err) {
@@ -52,6 +152,7 @@ export function PanelOrdersSection({ userEmail }: Props) {
   }, [reload]);
 
   const pending = items.filter((row) => row.status === 'pending');
+  const history = items.filter((row) => row.status !== 'pending');
   usePanelOrderAlerts(pending, soundEnabled);
 
   useEffect(() => {
@@ -127,8 +228,8 @@ export function PanelOrdersSection({ userEmail }: Props) {
         </div>
       </div>
       <p className="mt-1 text-sm text-content-muted">
-        Musteri telefonu ile gelir; onaylayinca musteri tekrar siparis verebilir. Odeme kapida. Sekme arka plandayken
-        zil {Math.round(POLL_MS / 1000)} sn arayla calar.
+        Musteri telefonu ile gelir; onaylayinca musteri tekrar siparis verebilir. Odeme kapida. Son {ARCHIVE_DAYS} gun
+        siparis detaylari (urun listesi) asagida kalir.
       </p>
 
       {loading ? <p className="mt-4 text-sm text-content-muted">Yukleniyor...</p> : null}
@@ -146,60 +247,30 @@ export function PanelOrdersSection({ userEmail }: Props) {
 
       <ul className="mt-4 space-y-3">
         {pending.map((order) => (
-          <li key={order.id} className="rounded-xl border border-brand-gold/30 bg-surface-card p-4 ring-1 ring-brand-gold/20">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-semibold text-content">
-                  {order.customer_name || 'Musteri'} · {order.total_tl.toFixed(0)} TL
-                </p>
-                <p className="text-sm text-brand-gold">{order.customer_phone}</p>
-                {order.note ? <p className="mt-1 text-sm text-content-muted">Not: {order.note}</p> : null}
-              </div>
-              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-brand-gold">
-                Onay bekliyor
-              </span>
-            </div>
-            <ul className="mt-3 space-y-1 text-sm text-content-muted">
-              {order.lines.map((line) => (
-                <li key={line.id}>
-                  {line.quantity}x {line.name} — {line.line_total_tl.toFixed(0)} TL
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={busyId === order.id}
-                onClick={() => void onDecision(order.id, 'accepted')}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface disabled:opacity-50">
-                Onayla ve ara
-              </button>
-              <button
-                type="button"
-                disabled={busyId === order.id}
-                onClick={() => void onDecision(order.id, 'rejected')}
-                className="rounded-lg border border-border px-4 py-2 text-sm text-content-muted hover:bg-surface-input disabled:opacity-50">
-                Reddet
-              </button>
-            </div>
-          </li>
+          <OrderCard
+            key={order.id}
+            order={order}
+            variant="pending"
+            busyId={busyId}
+            onDecision={(id, decision) => void onDecision(id, decision)}
+          />
         ))}
       </ul>
 
-      {items.some((row) => row.status !== 'pending') ? (
-        <details className="mt-6">
-          <summary className="cursor-pointer text-sm text-content-muted">Gecmis siparisler</summary>
-          <ul className="mt-3 space-y-2 text-sm text-content-muted">
-            {items
-              .filter((row) => row.status !== 'pending')
-              .map((order) => (
-                <li key={order.id}>
-                  {order.status === 'accepted' ? 'Onaylandi' : 'Reddedildi'} — {order.total_tl.toFixed(0)} TL —{' '}
-                  {order.customer_phone}
-                </li>
-              ))}
+      {history.length > 0 ? (
+        <div className="mt-8 space-y-3">
+          <h3 className="text-base font-semibold text-content">
+            Siparis arsivi (son {ARCHIVE_DAYS} gun)
+          </h3>
+          <p className="text-sm text-content-muted">
+            Onayladiktan sonra urun listesi ve telefon burada kalir; musteriyi tekrar aramadan hazirlayabilirsin.
+          </p>
+          <ul className="space-y-3">
+            {history.map((order) => (
+              <OrderCard key={order.id} order={order} variant="history" />
+            ))}
           </ul>
-        </details>
+        </div>
       ) : null}
     </section>
   );

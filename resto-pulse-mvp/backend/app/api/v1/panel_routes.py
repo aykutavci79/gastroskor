@@ -363,7 +363,8 @@ def remove_panel_menu_item(
 @panel_router.get("/orders", response_model=PanelOrderListResponse)
 def get_panel_orders(
     user_email: str = Query(...),
-    limit: int = Query(default=50, ge=1, le=100),
+    limit: int = Query(default=100, ge=1, le=200),
+    days: int = Query(default=7, ge=1, le=30),
     db: Session = Depends(get_db),
 ):
     user = resolve_user_by_email(db, user_email)
@@ -371,7 +372,7 @@ def get_panel_orders(
     state = build_panel_access_state(db, ownership)
     if not ownership or not state.can_access_panel:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
-    items = list_panel_orders(db, restaurant_id=ownership.restaurant_id, limit=limit)
+    items = list_panel_orders(db, restaurant_id=ownership.restaurant_id, limit=limit, since_days=days)
     return PanelOrderListResponse(items=items)
 
 

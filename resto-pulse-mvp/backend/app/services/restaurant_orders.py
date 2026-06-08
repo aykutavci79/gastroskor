@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -232,14 +232,24 @@ def decide_restaurant_order(
     return order
 
 
-def list_panel_orders(db: Session, *, restaurant_id: UUID, limit: int = 50) -> list[dict]:
-    rows = db.scalars(
+def list_panel_orders(
+    db: Session,
+    *,
+    restaurant_id: UUID,
+    limit: int = 100,
+    since_days: int = 7,
+) -> list[dict]:
+    stmt = (
         select(RestaurantOrder)
         .where(RestaurantOrder.restaurant_id == restaurant_id)
         .options(selectinload(RestaurantOrder.lines), selectinload(RestaurantOrder.restaurant))
         .order_by(RestaurantOrder.created_at.desc())
         .limit(limit)
-    ).all()
+    )
+    if since_days > 0:
+        cutoff = _utcnow() - timedelta(days=since_days)
+        stmt = stmt.where(RestaurantOrder.created_at >= cutoff)
+    rows = db.scalars(stmt).all()
     return [
         order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None) for row in rows
     ]

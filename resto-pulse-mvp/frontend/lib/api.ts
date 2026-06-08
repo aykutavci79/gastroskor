@@ -466,8 +466,8 @@ export function deletePanelMenuItem(userEmail: string, itemId: string) {
   );
 }
 
-export function listPanelOrders(userEmail: string, limit = 50) {
-  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}`;
+export function listPanelOrders(userEmail: string, limit = 100, days = 7) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}&days=${days}`;
   return request<{ items: import('@/lib/types').RestaurantOrderRead[] }>(`/panel/orders${query}`);
 }
 
