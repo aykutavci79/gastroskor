@@ -6,10 +6,6 @@
     {
       "path": "/api/cron/panel-notifications",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/gourmet-chat-assistant",
-      "schedule": "*/1 * * * *"
     }
   ]
 }
