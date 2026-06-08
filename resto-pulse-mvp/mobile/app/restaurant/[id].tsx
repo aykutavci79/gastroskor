@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -88,19 +88,37 @@ export default function RestaurantDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const reviewFormOffsetY = useRef(0);
   const menuOffsetY = useRef(0);
+  const focusedScrollTargetY = useRef(0);
   const pendingMenuFocus = useRef(focus === 'menu');
+
+  const scrollToY = useCallback((targetY: number) => {
+    const y = Math.max(0, targetY);
+    focusedScrollTargetY.current = y;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    });
+  }, []);
+
+  const scrollToOrderField = useCallback(
+    (offsetInSection: number) => {
+      scrollToY(menuOffsetY.current + offsetInSection - 48);
+    },
+    [scrollToY],
+  );
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSub = Keyboard.addListener(showEvent, (event) => {
       setKeyboardInset(event.endCoordinates.height);
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({
-          y: Math.max(0, reviewFormOffsetY.current - 16),
-          animated: true,
+      if (focusedScrollTargetY.current > 0) {
+        requestAnimationFrame(() => {
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, focusedScrollTargetY.current - 16),
+            animated: true,
+          });
         });
-      });
+      }
     });
     const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
     return () => {
@@ -591,6 +609,7 @@ export default function RestaurantDetailScreen() {
               <OnlineOrderSection
                 restaurant={restaurant}
                 userEmail={user?.email ?? null}
+                onFieldFocus={scrollToOrderField}
               />
             ) : null}
             {hasPublicMenu(restaurant) ? (
@@ -627,12 +646,7 @@ export default function RestaurantDetailScreen() {
               <TextInput
                 value={text}
                 onFocus={() => {
-                  requestAnimationFrame(() => {
-                    scrollRef.current?.scrollTo({
-                      y: Math.max(0, reviewFormOffsetY.current - 16),
-                      animated: true,
-                    });
-                  });
+                  scrollToY(reviewFormOffsetY.current - 16);
                 }}
                 onChangeText={(value) => {
                   setText(value);

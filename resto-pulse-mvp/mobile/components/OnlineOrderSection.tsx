@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -32,9 +32,10 @@ type Props = {
   restaurant: Restaurant;
   userEmail: string | null;
   onOrderSent?: () => void;
+  onFieldFocus?: (offsetInSection: number) => void;
 };
 
-export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props) {
+export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onFieldFocus }: Props) {
   const menuItems = restaurant.menu ?? restaurant.menu_preview ?? [];
   const [lines, setLines] = useState<Record<string, LineState>>({});
   const [phone, setPhone] = useState('');
@@ -52,6 +53,16 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const phoneOffsetY = useRef(0);
+  const addressOffsetY = useRef(0);
+  const noteOffsetY = useRef(0);
+
+  const focusField = useCallback(
+    (offsetY: number) => {
+      onFieldFocus?.(offsetY);
+    },
+    [onFieldFocus],
+  );
 
   const refreshActive = useCallback(async () => {
     if (!userEmail || !restaurant.id) {
@@ -333,14 +344,20 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
         />
       ))}
 
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={onPhoneChange}
-        placeholder="Telefon (05xx xxx xx xx)"
-        placeholderTextColor={GastroColors.muted}
-        keyboardType="phone-pad"
-      />
+      <View
+        onLayout={(event) => {
+          phoneOffsetY.current = event.nativeEvent.layout.y;
+        }}>
+        <TextInput
+          style={styles.input}
+          value={phone}
+          onChangeText={onPhoneChange}
+          onFocus={() => focusField(phoneOffsetY.current)}
+          placeholder="Telefon (05xx xxx xx xx)"
+          placeholderTextColor={GastroColors.muted}
+          keyboardType="phone-pad"
+        />
+      </View>
       {phoneMatchesVerified ? (
         <Text style={styles.verifiedHint}>Telefon dogrulandi</Text>
       ) : normalizedPhone ? (
@@ -365,6 +382,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
                 style={[styles.input, styles.otpInput]}
                 value={otpCode}
                 onChangeText={setOtpCode}
+                onFocus={() => focusField(phoneOffsetY.current)}
                 placeholder="6 haneli kod"
                 placeholderTextColor={GastroColors.muted}
                 keyboardType="number-pad"
@@ -384,22 +402,34 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent }: Props
           )}
         </View>
       ) : null}
-      <TextInput
-        style={[styles.input, styles.noteInput]}
-        value={address}
-        onChangeText={setAddress}
-        placeholder="Teslimat adresi (mahalle, sokak, bina, daire)"
-        placeholderTextColor={GastroColors.muted}
-        multiline
-      />
-      <TextInput
-        style={[styles.input, styles.noteInput]}
-        value={note}
-        onChangeText={setNote}
-        placeholder="Not (opsiyonel)"
-        placeholderTextColor={GastroColors.muted}
-        multiline
-      />
+      <View
+        onLayout={(event) => {
+          addressOffsetY.current = event.nativeEvent.layout.y;
+        }}>
+        <TextInput
+          style={[styles.input, styles.noteInput]}
+          value={address}
+          onChangeText={setAddress}
+          onFocus={() => focusField(addressOffsetY.current)}
+          placeholder="Teslimat adresi (mahalle, sokak, bina, daire)"
+          placeholderTextColor={GastroColors.muted}
+          multiline
+        />
+      </View>
+      <View
+        onLayout={(event) => {
+          noteOffsetY.current = event.nativeEvent.layout.y;
+        }}>
+        <TextInput
+          style={[styles.input, styles.noteInput]}
+          value={note}
+          onChangeText={setNote}
+          onFocus={() => focusField(noteOffsetY.current)}
+          placeholder="Not (opsiyonel)"
+          placeholderTextColor={GastroColors.muted}
+          multiline
+        />
+      </View>
 
       <View style={styles.footer}>
         <Text style={styles.totalLabel}>Toplam</Text>
