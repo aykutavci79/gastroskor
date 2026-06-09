@@ -11,6 +11,7 @@ import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { PanelOrdersSection } from '@/components/panel/PanelOrdersSection';
 import { PanelResetSection } from '@/components/panel/PanelResetSection';
+import { PanelReviewRemedySection } from '@/components/panel/PanelReviewRemedySection';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
 import type { CompetitorAiReport, PanelDashboard } from '@/lib/types';
 
@@ -120,6 +121,10 @@ export function RestaurantDashboard() {
 
       {userEmail ? (
         <>
+          <PanelReviewRemedySection
+            userEmail={userEmail}
+            canWrite={Boolean(access?.can_write_actions)}
+          />
           <RestaurantPromoSettings
             userEmail={userEmail}
             subscriptionActive={

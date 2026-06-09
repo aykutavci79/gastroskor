@@ -758,6 +758,9 @@ class Review(Base):
     published_to_google: Mapped[bool] = mapped_column(Boolean, default=False)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     author_name_display: Mapped[str] = mapped_column(String(16), default="full")
+    publication_status: Mapped[str] = mapped_column(String(32), default="published", index=True)
+    remedy_restaurant_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
@@ -780,6 +783,39 @@ class Review(Base):
         cascade="all, delete-orphan",
         order_by="ReviewReply.created_at.asc()",
     )
+    remedy_offer: Mapped["ReviewRemedyOffer | None"] = relationship(
+        back_populates="review",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class ReviewRemedyOffer(Base):
+    __tablename__ = "review_remedy_offers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    discount_percent: Mapped[int] = mapped_column(Integer)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    coupon_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    offer_message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    offered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    customer_deadline_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    review: Mapped["Review"] = relationship(back_populates="remedy_offer")
+    restaurant: Mapped["Restaurant"] = relationship()
+    user: Mapped["User"] = relationship()
 
 
 class ReviewHelpfulVote(Base):

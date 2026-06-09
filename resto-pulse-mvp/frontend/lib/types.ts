@@ -271,6 +271,29 @@ export type FeedbackStatus = 'open' | 'in_review' | 'resolved' | 'rejected';
 export type FeedbackSeverity = 'low' | 'medium' | 'high';
 export type FeedbackSenderType = 'user' | 'restaurant';
 
+export type ReviewRemedyOfferSummary = {
+  id: string;
+  discount_percent: number;
+  code: string;
+  coupon_expires_at: string;
+  customer_deadline_at: string;
+  status: string;
+  offer_message?: string | null;
+};
+
+export type ReviewRemedyPendingItem = {
+  review_id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  rating: number;
+  review_text: string;
+  publication_status: string;
+  remedy_restaurant_deadline_at?: string | null;
+  offer?: ReviewRemedyOfferSummary | null;
+  accept_disclaimer: string;
+  reject_disclaimer: string;
+};
+
 export type PrivateFeedback = {
   id: string;
   place_id: string;

@@ -33,19 +33,32 @@ async def notify_negative_gastro_review(
     review: Review,
     author_name: str | None,
 ) -> None:
-    if review.rating is None or review.rating > 2:
+    from app.services.review_remedy_service import REMEDY_MAX_RATING
+
+    if review.rating is None or review.rating > REMEDY_MAX_RATING:
         return
     name = author_name or "Bir kullanici"
     stars = review.rating
     restaurant_id = str(review.restaurant_id)
+    if review.publication_status == "pending_restaurant":
+        title = "Olumsuz geri bildirim — telafi şansı"
+        message = (
+            f"{name} {stars} yıldız verdi. 24 saat içinde telafi teklifi sunabilirsiniz; "
+            f"müşteri kabul ederse yorum kamuya yayınlanmaz."
+        )
+        cta_url = f"{panel_base_url()}/panel?tab=remedy"
+    else:
+        title = "🚨 Yeni olumsuz yorum!"
+        message = f"{name} restoranına {stars} yildiz verdi. Hemen yanitla!"
+        cta_url = f"{settings_public_site()}/restaurants/{restaurant_id}#reviews"
     await send_panel_notification(
         db,
         ownership=ownership,
         notification_type="negative_review",
-        title="🚨 Yeni olumsuz yorum!",
-        message=f"{name} restoranına {stars} yildiz verdi. Hemen yanitla!",
-        cta_label="Yorumu Gor →",
-        cta_url=f"{settings_public_site()}/restaurants/{restaurant_id}#reviews",
+        title=title,
+        message=message,
+        cta_label="Panele git →",
+        cta_url=cta_url,
         dedupe_key=f"negative_review:gastro:{review.id}",
         metadata={"review_id": str(review.id), "source": "gastroskor", "rating": stars},
     )
@@ -314,10 +327,14 @@ async def _sync_competitor_row(
 
 
 async def run_scheduled_notification_jobs(db: Session) -> dict:
+    from app.services.review_remedy_service import process_review_remedy_expirations
+
     sync_stats = await sync_competitor_and_review_alerts(db)
+    remedy_stats = process_review_remedy_expirations(db)
     return {
         "trial_ending": await process_trial_ending_notifications(db),
         "analysis_approaching": await process_analysis_approaching_notifications(db),
         "analysis_ready": await process_analysis_ready_notifications(db),
+        "review_remedy": remedy_stats,
         **sync_stats,
     }

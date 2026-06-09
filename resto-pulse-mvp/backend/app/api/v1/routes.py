@@ -134,12 +134,19 @@ from app.schemas.review import (
     ReviewCategoryRead,
     ReviewCreate,
     ReviewRead,
+    ReviewRemedyOfferSummary,
     ReviewReplyCreate,
     ReviewReplyRead,
     ReviewReplyUpdate,
     ReviewTextModerateRequest,
     ReviewTextModerateResponse,
     ReviewUpdate,
+)
+from app.schemas.review_remedy import (
+    ReviewRemedyOfferRead,
+    ReviewRemedyPendingRead,
+    ReviewRemedyRespondRequest,
+    ReviewRemedyRespondResponse,
 )
 from app.schemas.follow import RestaurantFollowListResponse, RestaurantFollowStatus
 from app.schemas.user import (
@@ -161,12 +168,26 @@ from app.services.follower_promotion_service import (
     issue_coupon_for_follower,
     list_user_coupons,
 )
+from app.services.review_remedy_service import (
+    ACCEPT_RESOLVED_MESSAGE,
+    REJECT_PUBLISH_MESSAGE,
+    accept_remedy_offer,
+    list_pending_remedy_for_user,
+    maybe_init_review_remedy,
+    public_rating_filter,
+    public_reviews_filter,
+    reject_remedy_offer,
+    serialize_pending_remedy,
+    serialize_remedy_offer,
+)
 from app.services.user_notification_service import (
     list_user_notifications,
     mark_notification_read,
     notify_follower_coupon_issued,
     notify_review_helpful,
     notify_review_reply,
+    notify_review_published_after_remedy,
+    notify_review_resolved_remedy,
     register_push_token,
 )
 from app.services.restaurant_follow import (
@@ -384,6 +405,18 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
         and review.source_platform is None
     )
     replies = getattr(review, "replies", None) or []
+    remedy_offer = getattr(review, "remedy_offer", None)
+    remedy_summary = None
+    if remedy_offer:
+        remedy_summary = ReviewRemedyOfferSummary(
+            id=str(remedy_offer.id),
+            discount_percent=remedy_offer.discount_percent,
+            code=remedy_offer.code,
+            coupon_expires_at=remedy_offer.coupon_expires_at.isoformat(),
+            customer_deadline_at=remedy_offer.customer_deadline_at.isoformat(),
+            status=remedy_offer.status,
+            offer_message=remedy_offer.offer_message,
+        )
     return ReviewRead(
         id=str(review.id),
         restaurant_id=str(review.restaurant_id),
@@ -395,6 +428,8 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
         author_name_display=display_mode,
         rating=review.rating,
         review_text=review.review_text,
+        publication_status=review.publication_status,
+        remedy_offer=remedy_summary,
         image_urls=review_image_urls(review),
         created_at=review.created_at.isoformat() if review.created_at else None,
         updated_at=review.updated_at.isoformat() if review.updated_at else None,
@@ -661,7 +696,11 @@ async def get_live_place_details(
         review_rows = (
             db.scalars(
                 select(Review)
-                .where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
+                .where(
+                    Review.restaurant_id == mapping.restaurant_id,
+                    Review.source_platform.is_(None),
+                    public_reviews_filter(None),
+                )
                 .options(
                     selectinload(Review.category_scores),
                     selectinload(Review.author),
@@ -673,7 +712,11 @@ async def get_live_place_details(
         )
         member_review_count = len(review_rows)
         member_avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(Review.restaurant_id == mapping.restaurant_id, Review.source_platform.is_(None))
+            select(func.avg(Review.rating)).where(
+                Review.restaurant_id == mapping.restaurant_id,
+                Review.source_platform.is_(None),
+                public_rating_filter(),
+            )
         )
         member_reviews = []
         for review in review_rows:
@@ -1268,8 +1311,9 @@ def list_restaurant_reviews(
 
     stmt = (
         select(Review)
-        .where(Review.restaurant_id == restaurant_id)
+        .where(Review.restaurant_id == restaurant_id, public_reviews_filter(viewer_user_id))
         .options(
+            selectinload(Review.remedy_offer),
             selectinload(Review.category_scores),
             selectinload(Review.author),
             selectinload(Review.images),
@@ -1650,29 +1694,74 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
         author_name_display=name_display,
     )
     db.add(review)
+    db.flush()
+    maybe_init_review_remedy(db, review=review)
     db.commit()
-    db.refresh(review, attribute_names=["author", "images", "category_scores"])
+    db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
     record_app_usage_event(db, event_type="review_created", user_id=author_uuid, platform="api")
 
-    if review.rating is not None and review.rating <= 2:
-        ownership = db.scalar(
-            select(RestaurantOwnership)
-            .where(RestaurantOwnership.restaurant_id == restaurant_id)
-            .options(selectinload(RestaurantOwnership.user), selectinload(RestaurantOwnership.subscription))
-            .limit(1)
-        )
-        if ownership:
-            try:
-                await notify_negative_gastro_review(
-                    db,
-                    ownership=ownership,
-                    review=review,
-                    author_name=author_user.full_name if author_user else author_name,
-                )
-            except Exception:
-                logger.exception("Negative review notification failed review=%s", review.id)
+    ownership = db.scalar(
+        select(RestaurantOwnership)
+        .where(RestaurantOwnership.restaurant_id == restaurant_id)
+        .options(selectinload(RestaurantOwnership.user), selectinload(RestaurantOwnership.subscription))
+        .limit(1)
+    )
+    if ownership and review.rating is not None and review.rating <= 3:
+        try:
+            await notify_negative_gastro_review(
+                db,
+                ownership=ownership,
+                review=review,
+                author_name=author_user.full_name if author_user else author_name,
+            )
+            db.commit()
+        except Exception:
+            logger.exception("Negative review notification failed review=%s", review.id)
 
     return serialize_review(review, viewer_user_id=author_uuid)
+
+
+@router.get("/reviews/remedy/pending", response_model=list[ReviewRemedyPendingRead])
+def list_pending_review_remedies(
+    author_email: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    rows = list_pending_remedy_for_user(db, author_email=author_email)
+    return [ReviewRemedyPendingRead(**serialize_pending_remedy(row)) for row in rows]
+
+
+@router.post("/reviews/{review_id}/remedy/accept", response_model=ReviewRemedyRespondResponse)
+def accept_review_remedy_endpoint(
+    review_id: UUID,
+    payload: ReviewRemedyRespondRequest,
+    db: Session = Depends(get_db),
+):
+    review, offer = accept_remedy_offer(db, review_id=review_id, author_email=payload.author_email)
+    notify_review_resolved_remedy(db, review=review, offer=offer)
+    db.commit()
+    return ReviewRemedyRespondResponse(
+        review_id=str(review.id),
+        publication_status=review.publication_status,
+        message=ACCEPT_RESOLVED_MESSAGE,
+        offer=ReviewRemedyOfferRead(**serialize_remedy_offer(offer)),
+    )
+
+
+@router.post("/reviews/{review_id}/remedy/reject", response_model=ReviewRemedyRespondResponse)
+def reject_review_remedy_endpoint(
+    review_id: UUID,
+    payload: ReviewRemedyRespondRequest,
+    db: Session = Depends(get_db),
+):
+    review = reject_remedy_offer(db, review_id=review_id, author_email=payload.author_email)
+    notify_review_published_after_remedy(db, review=review, reason="customer_rejected")
+    db.commit()
+    return ReviewRemedyRespondResponse(
+        review_id=str(review.id),
+        publication_status=review.publication_status,
+        message=REJECT_PUBLISH_MESSAGE,
+        offer=None,
+    )
 
 
 @router.post("/reviews/{review_id}/images", response_model=ReviewRead)

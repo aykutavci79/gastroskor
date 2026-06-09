@@ -58,8 +58,21 @@ class ReviewReplyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReviewRemedyOfferSummary(BaseModel):
+    id: str
+    discount_percent: int
+    code: str
+    coupon_expires_at: str
+    customer_deadline_at: str
+    status: str
+    offer_message: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ReviewRead(ReviewCreate):
     id: str
+    publication_status: str | None = "published"
+    remedy_offer: ReviewRemedyOfferSummary | None = None
     created_at: str | None = None
     updated_at: str | None = None
     image_urls: list[str] = []

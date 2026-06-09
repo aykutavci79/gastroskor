@@ -810,3 +810,54 @@ export function sendDmMessage(userEmail: string, threadId: string, body: string)
     },
   );
 }
+
+export function listPendingReviewRemedies(authorEmail: string) {
+  return request<import('@/lib/types').ReviewRemedyPendingItem[]>(
+    `/reviews/remedy/pending?author_email=${encodeURIComponent(authorEmail.trim().toLowerCase())}`,
+  );
+}
+
+export function acceptReviewRemedyOffer(reviewId: string, authorEmail: string) {
+  return request<{ review_id: string; publication_status: string; message: string }>(
+    `/reviews/${encodeURIComponent(reviewId)}/remedy/accept`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ author_email: authorEmail.trim().toLowerCase() }),
+    },
+  );
+}
+
+export function rejectReviewRemedyOffer(reviewId: string, authorEmail: string) {
+  return request<{ review_id: string; publication_status: string; message: string }>(
+    `/reviews/${encodeURIComponent(reviewId)}/remedy/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ author_email: authorEmail.trim().toLowerCase() }),
+    },
+  );
+}
+
+export function listPanelPendingReviewRemedies(userEmail: string) {
+  return request<import('@/lib/types').ReviewRemedyPendingItem[]>(
+    `/panel/reviews/remedy/pending?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`,
+  );
+}
+
+export function issuePanelReviewRemedyOffer(payload: {
+  user_email: string;
+  review_id: string;
+  discount_percent: number;
+  offer_message?: string;
+}) {
+  const { review_id, ...body } = payload;
+  return request<import('@/lib/types').ReviewRemedyOfferSummary>(
+    `/panel/reviews/${encodeURIComponent(review_id)}/remedy-offer`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...body,
+        user_email: body.user_email.trim().toLowerCase(),
+      }),
+    },
+  );
+}

@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
@@ -98,6 +99,11 @@ export default function ProfilScreen() {
           <Text style={styles.label}>Giris yapildi</Text>
           <Text style={styles.email}>{user.email}</Text>
           {user.fullName ? <Text style={styles.muted}>{user.fullName}</Text> : null}
+          <Link href="/remedy" asChild>
+            <Pressable style={styles.btnOutline}>
+              <Text style={styles.btnOutlineText}>Telafi teklifleri</Text>
+            </Pressable>
+          </Link>
           <Pressable style={styles.btnOutline} onPress={() => void signOut()}>
             <Text style={styles.btnOutlineText}>Cikis</Text>
           </Pressable>

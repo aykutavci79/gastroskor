@@ -12,6 +12,7 @@ from app.services.panel_access import PanelAccessState, build_panel_access_state
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.restaurant_orders import count_accepted_orders
+from app.services.review_remedy_service import public_rating_filter
 
 
 def _utcnow() -> datetime:
@@ -50,9 +51,20 @@ def build_dashboard_payload(db: Session, ownership: RestaurantOwnership, access:
     )
 
     gastro_review_count = (
-        db.scalar(select(func.count(Review.id)).where(Review.restaurant_id == restaurant_id)) or 0
+        db.scalar(
+            select(func.count(Review.id)).where(
+                Review.restaurant_id == restaurant_id,
+                public_rating_filter(),
+            )
+        )
+        or 0
     )
-    gastro_avg = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant_id))
+    gastro_avg = db.scalar(
+        select(func.avg(Review.rating)).where(
+            Review.restaurant_id == restaurant_id,
+            public_rating_filter(),
+        )
+    )
 
     google_profile = db.scalar(
         select(RestaurantPlatformProfile).where(

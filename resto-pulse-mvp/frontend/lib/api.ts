@@ -578,6 +578,46 @@ export function getPanelDashboard(userEmail: string) {
   );
 }
 
+export function listPanelPendingReviewRemedies(userEmail: string) {
+  return request<import('@/lib/types').ReviewRemedyPendingItem[]>(
+    `/panel/reviews/remedy/pending?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function issuePanelReviewRemedyOffer(payload: {
+  user_email: string;
+  review_id: string;
+  discount_percent: number;
+  coupon_valid_days?: number;
+  offer_message?: string;
+}) {
+  const { review_id, ...body } = payload;
+  return request<import('@/lib/types').ReviewRemedyOfferSummary>(
+    `/panel/reviews/${encodeURIComponent(review_id)}/remedy-offer`,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+}
+
+export function listPendingReviewRemedies(authorEmail: string) {
+  return request<import('@/lib/types').ReviewRemedyPendingItem[]>(
+    `/reviews/remedy/pending?author_email=${encodeURIComponent(authorEmail)}`,
+  );
+}
+
+export function acceptReviewRemedyOffer(reviewId: string, authorEmail: string) {
+  return request<{ review_id: string; publication_status: string; message: string }>(
+    `/reviews/${encodeURIComponent(reviewId)}/remedy/accept`,
+    { method: 'POST', body: JSON.stringify({ author_email: authorEmail }) },
+  );
+}
+
+export function rejectReviewRemedyOffer(reviewId: string, authorEmail: string) {
+  return request<{ review_id: string; publication_status: string; message: string }>(
+    `/reviews/${encodeURIComponent(reviewId)}/remedy/reject`,
+    { method: 'POST', body: JSON.stringify({ author_email: authorEmail }) },
+  );
+}
+
 export function startRestaurantClaim(payload: { user_email: string; place_id: string; city?: string }) {
   return request<{
     ownership_id: string;

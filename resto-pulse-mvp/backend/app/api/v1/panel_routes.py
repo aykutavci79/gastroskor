@@ -107,7 +107,18 @@ from app.services.follower_promotion_service import (
     redeem_follower_coupon,
 )
 from app.services.restaurant_followers import list_panel_followers
-from app.services.user_notification_service import notify_follower_coupon_issued, notify_order_rejected
+from app.services.user_notification_service import (
+    notify_follower_coupon_issued,
+    notify_order_rejected,
+    notify_remedy_offer_to_customer,
+)
+from app.schemas.review_remedy import ReviewRemedyOfferCreate, ReviewRemedyOfferRead, ReviewRemedyPendingRead
+from app.services.review_remedy_service import (
+    issue_remedy_offer,
+    list_pending_remedy_for_panel,
+    serialize_pending_remedy,
+    serialize_remedy_offer,
+)
 from app.services.panel_application import (
     approve_panel_application,
     contract_payload,
@@ -1109,6 +1120,28 @@ def redeem_panel_follower_coupon(payload: FollowerCouponRedeemRequest, db: Sessi
             **coupon_to_dict(coupon, restaurant_name=restaurant.name if restaurant else None)
         ),
     )
+
+
+@panel_router.get("/reviews/remedy/pending", response_model=list[ReviewRemedyPendingRead])
+def panel_list_pending_remedy_reviews(
+    user_email: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    rows = list_pending_remedy_for_panel(db, user_email=user_email)
+    return [ReviewRemedyPendingRead(**serialize_pending_remedy(row)) for row in rows]
+
+
+@panel_router.post("/reviews/{review_id}/remedy-offer", response_model=ReviewRemedyOfferRead, status_code=status.HTTP_201_CREATED)
+def panel_issue_remedy_offer(
+    review_id: UUID,
+    payload: ReviewRemedyOfferCreate,
+    db: Session = Depends(get_db),
+):
+    review, offer = issue_remedy_offer(db, review_id=review_id, payload=payload)
+    restaurant_name = review.restaurant.name if review.restaurant else None
+    notify_remedy_offer_to_customer(db, review=review, offer=offer, restaurant_name=restaurant_name)
+    db.commit()
+    return ReviewRemedyOfferRead(**serialize_remedy_offer(offer))
 
 
 @panel_router.delete("/admin/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)

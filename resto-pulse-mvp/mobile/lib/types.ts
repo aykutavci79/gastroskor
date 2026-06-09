@@ -408,6 +408,29 @@ export type ReviewReply = {
   updated_at?: string | null;
 };
 
+export type ReviewRemedyOfferSummary = {
+  id: string;
+  discount_percent: number;
+  code: string;
+  coupon_expires_at: string;
+  customer_deadline_at: string;
+  status: string;
+  offer_message?: string | null;
+};
+
+export type ReviewRemedyPendingItem = {
+  review_id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  rating: number;
+  review_text: string;
+  publication_status: string;
+  remedy_restaurant_deadline_at?: string | null;
+  offer?: ReviewRemedyOfferSummary | null;
+  accept_disclaimer: string;
+  reject_disclaimer: string;
+};
+
 export type Review = {
   id: string;
   restaurant_id: string;
@@ -419,6 +442,8 @@ export type Review = {
   author_name_display?: 'full' | 'masked' | 'nickname';
   rating: number;
   review_text: string;
+  publication_status?: string | null;
+  remedy_offer?: ReviewRemedyOfferSummary | null;
   sentiment_label: string | null;
   sentiment_score: number | null;
   ai_summary: string | null;

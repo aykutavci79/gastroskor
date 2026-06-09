@@ -14,6 +14,7 @@ from app.models import (
     RestaurantOrder,
     RestaurantOwnership,
     Review,
+    ReviewRemedyOffer,
     ReviewReply,
     User,
     UserNotification,
@@ -497,5 +498,91 @@ def notify_friend_request_accepted(
         metadata=metadata,
         push_title="Arkadaslik istegi kabul edildi",
         push_body=f"@{actor_name} artik arkadasin",
+    )
+
+
+def notify_remedy_offer_to_customer(
+    db: Session,
+    *,
+    review: Review,
+    offer: ReviewRemedyOffer,
+    restaurant_name: str | None,
+) -> UserNotification | None:
+    if not review.author_id:
+        return None
+    place = restaurant_name or "İşletme"
+    title = "Telafi teklifi"
+    message = (
+        f"{place} size %{offer.discount_percent} indirim teklif etti (kod: {offer.code}). "
+        f"72 saat içinde yanıt vermezseniz yorumunuz otomatik yayınlanır. "
+        f"Kabul ederseniz yorumunuz kamuya açık yayınlanmaz."
+    )
+    metadata = _review_notification_metadata(
+        review,
+        offer_id=str(offer.id),
+        open_path="/remedy",
+        coupon_code=offer.code,
+    )
+    return _persist_user_notification(
+        db,
+        recipient_id=review.author_id,
+        notification_type="review_remedy_offer",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title="Telafi teklifi geldi",
+        push_body=f"{place} — %{offer.discount_percent} indirim",
+    )
+
+
+def notify_review_published_after_remedy(
+    db: Session,
+    *,
+    review: Review,
+    reason: str,
+) -> UserNotification | None:
+    if not review.author_id:
+        return None
+    if reason == "customer_rejected":
+        message = "Kuponu kabul etmediğiniz için yorumunuz yayınlandı."
+    elif reason == "customer_deadline":
+        message = "72 saat içinde yanıt vermediğiniz için yorumunuz yayınlandı."
+    else:
+        message = "Restoran süresinde telafi sunmadığı için yorumunuz yayınlandı."
+    metadata = _review_notification_metadata(review, remedy_reason=reason)
+    return _persist_user_notification(
+        db,
+        recipient_id=review.author_id,
+        notification_type="review_published",
+        title="Yorumunuz yayınlandı",
+        message=message,
+        metadata=metadata,
+        push_title="Yorumunuz yayında",
+        push_body=message,
+    )
+
+
+def notify_review_resolved_remedy(
+    db: Session,
+    *,
+    review: Review,
+    offer: ReviewRemedyOffer,
+) -> UserNotification | None:
+    if not review.author_id:
+        return None
+    message = (
+        f"Telafi teklifini kabul ettiniz; yorumunuz kamuya açık yayınlanmayacak. "
+        f"Kupon kodunuz: {offer.code} (%{offer.discount_percent})"
+    )
+    metadata = _review_notification_metadata(review, offer_id=str(offer.id), coupon_code=offer.code)
+    return _persist_user_notification(
+        db,
+        recipient_id=review.author_id,
+        notification_type="review_remedy_accepted",
+        title="Telafi kabul edildi",
+        message=message,
+        metadata=metadata,
+        push_title="Kuponunuz hazır",
+        push_body=f"Kod: {offer.code}",
     )
 
