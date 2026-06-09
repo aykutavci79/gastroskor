@@ -8,14 +8,6 @@
       "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/cron/gourmet-chat-assistant",
-      "schedule": "*/3 * * * *"
-    },
-    {
-      "path": "/api/cron/gourmet-trivia",
-      "schedule": "*/3 * * * *"
-    },
-    {
       "path": "/api/cron/metrics-daily-report",
       "schedule": "0 5 * * *"
     }
