@@ -12,6 +12,7 @@ import {
 import { FeaturedCompactCard, FEATURED_CARD_HEIGHT } from '@/components/FeaturedCompactCard';
 import { GastroColors } from '@/constants/theme';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
+import { resolveDeviceCoords } from '@/lib/device-location';
 import { filterFeaturedByRating } from '@/lib/featured-rating-filter';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import { restaurantDetailHref } from '@/lib/uuid';
@@ -27,16 +28,36 @@ export function FeaturedHighlightsSection() {
   const loadFeatured = useCallback(async (coords: { lat: number; lng: number } | null) => {
     setLoading(true);
     try {
-      const raw = await listTrendingRestaurantsWeek({
+      let raw = await listTrendingRestaurantsWeek({
         lat: coords?.lat,
         lng: coords?.lng,
         city: 'Bursa',
         limit: 12,
         source: 'google',
       });
+      if (raw.length === 0) {
+        raw = await listTrendingRestaurantsWeek({
+          lat: coords?.lat,
+          lng: coords?.lng,
+          city: 'Bursa',
+          limit: 12,
+          source: 'gastroskor',
+        });
+      }
       setItems(filterFeaturedByRating(raw, 6));
     } catch {
-      setItems([]);
+      try {
+        const fallback = await listTrendingRestaurantsWeek({
+          lat: coords?.lat,
+          lng: coords?.lng,
+          city: 'Bursa',
+          limit: 12,
+          source: 'gastroskor',
+        });
+        setItems(filterFeaturedByRating(fallback, 6));
+      } catch {
+        setItems([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -44,27 +65,27 @@ export function FeaturedHighlightsSection() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (cancelled) return;
-        if (status !== 'granted') {
-          setLocationState('denied');
-          await loadFeatured(null);
-          return;
-        }
-        setLocationState('granted');
-        const pos = await Location.getCurrentPositionAsync({});
-        if (!cancelled) {
-          await loadFeatured({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        }
-      } catch {
-        if (!cancelled) {
-          setLocationState('denied');
-          await loadFeatured(null);
-        }
+
+    async function bootstrap() {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled) return;
+
+      if (status !== 'granted') {
+        setLocationState('denied');
+        await loadFeatured(null);
+        return;
       }
-    })();
+
+      setLocationState('granted');
+      // iOS GPS takilmasin: once konumsuz yukle, sonra hassas konumla yenile.
+      await loadFeatured(null);
+      if (cancelled) return;
+      const coords = await resolveDeviceCoords({ requestPermission: false });
+      if (cancelled || !coords) return;
+      await loadFeatured(coords);
+    }
+
+    void bootstrap();
     return () => {
       cancelled = true;
     };
@@ -72,18 +93,14 @@ export function FeaturedHighlightsSection() {
 
   async function requestLocationAgain() {
     setLocationState('loading');
+    setLoading(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationState('denied');
-        await loadFeatured(null);
-        return;
-      }
-      setLocationState('granted');
-      const pos = await Location.getCurrentPositionAsync({});
-      await loadFeatured({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      const coords = await resolveDeviceCoords({ requestPermission: true });
+      setLocationState(coords ? 'granted' : 'denied');
+      await loadFeatured(coords);
     } catch {
       setLocationState('denied');
+      await loadFeatured(null);
     }
   }
 

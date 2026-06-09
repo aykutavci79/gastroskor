@@ -1,13 +1,14 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
-function readClientId(value: string | undefined) {
-  const trimmed = value?.trim();
+function readClientId(value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
   return trimmed || undefined;
 }
 
 function readExtraClientId(key: string) {
-  const extra = Constants.expoConfig?.extra as Record<string, string | undefined> | undefined;
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
   return readClientId(extra?.[key]);
 }
 
