@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 
+import { JsonLd } from '@/components/JsonLd';
 import { RestaurantDetailView } from '@/components/RestaurantDetailView';
 import { getRestaurant, listRestaurantReviews } from '@/lib/api';
 import { getSiteUrl } from '@/lib/site-url';
+import { buildBreadcrumbJsonLd, buildRestaurantJsonLd } from '@/lib/structured-data';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -46,12 +48,30 @@ export default async function RestaurantDetailPage({ params }: Props) {
     initialError = err instanceof Error ? err.message : 'Veri yuklenemedi.';
   }
 
+  const siteUrl = getSiteUrl();
+  const jsonLd =
+    restaurant != null
+      ? [
+          buildBreadcrumbJsonLd(siteUrl, [
+            { name: 'GastroSkor', path: '/' },
+            ...(restaurant.city
+              ? [{ name: `${restaurant.city} Restoranları`, path: '/bursa' }]
+              : []),
+            { name: restaurant.name, path: `/restaurants/${id}` },
+          ]),
+          buildRestaurantJsonLd(restaurant, siteUrl, { reviewCount: reviews.length }),
+        ]
+      : null;
+
   return (
-    <RestaurantDetailView
-      restaurantId={id}
-      initialRestaurant={restaurant}
-      initialReviews={reviews}
-      initialError={initialError}
-    />
+    <>
+      {jsonLd ? <JsonLd data={jsonLd} /> : null}
+      <RestaurantDetailView
+        restaurantId={id}
+        initialRestaurant={restaurant}
+        initialReviews={reviews}
+        initialError={initialError}
+      />
+    </>
   );
 }

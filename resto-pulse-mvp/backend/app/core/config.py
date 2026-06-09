@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_use_tls: bool = True
     cron_secret: str | None = None
+    # Günlük KPI e-postası (bos ise panel_admin_emails kullanilir)
+    metrics_daily_report_emails: str = ""
 
     gourmet_assistant_enabled: bool = True
     gourmet_assistant_greeting_delay_sec: int = 180

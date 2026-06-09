@@ -3,12 +3,20 @@ import type { Metadata } from 'next';
 import { HomePageContent } from '@/components/HomePageContent';
 
 export const metadata: Metadata = {
-  title: 'Türkiye restoranlarını tek çatıda puanla',
+  title: 'GastroSkor — Türkiye ve Bursa restoran puanlama',
   description:
-    'Mekan ara, GS yorumu oku ve yaz. Restoran sahipleri için panel, takipçi kuponları ve promosyonlar.',
+    'Gastro skor ile restoran ara. Bursa kebap, iskender ve daha fazlası için GS yorumu oku ve yaz. Google puanlarıyla karşılaştır.',
   alternates: { canonical: '/' },
 };
 
 export default function HomePage() {
-  return <HomePageContent />;
+  return (
+    <>
+      <p className="sr-only">
+        GastroSkor — Türkiye ve Bursa restoranları için gastro skor, yorum ve keşif platformu.
+        gastroskor, gastro, bursa restoran araması.
+      </p>
+      <HomePageContent />
+    </>
+  );
 }

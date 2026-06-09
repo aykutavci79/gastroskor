@@ -1982,3 +1982,17 @@ def cron_gourmet_trivia(
     stats = process_trivia_tick(db)
     return {"ok": True, "stats": stats}
 
+
+@router.post("/internal/cron/metrics-daily-report")
+async def cron_metrics_daily_report(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.metrics_daily_report import run_metrics_daily_report
+
+    result = await run_metrics_daily_report(db)
+    return {"ok": result.get("ok"), "result": result}
+

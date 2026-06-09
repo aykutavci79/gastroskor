@@ -6,6 +6,9 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-content-muted">© {new Date().getFullYear()} GastroSkor</p>
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <Link href="/bursa" className="text-content-muted hover:text-accent">
+            Bursa restoranları
+          </Link>
           <Link href="/gizlilik" className="text-content-muted hover:text-accent">
             Gizlilik
           </Link>

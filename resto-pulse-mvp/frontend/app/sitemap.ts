@@ -6,7 +6,9 @@ import type { RestaurantListItem } from '@/lib/types';
 
 const STATIC_PATHS = [
   '/',
+  '/bursa',
   '/yoresel-lezzetler',
+  '/isletme-basvuru',
   '/gizlilik',
   '/kvkk',
   '/kullanim-kosullari',
@@ -47,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: path === '/' ? siteUrl : `${siteUrl}${path}`,
     lastModified: now,
     changeFrequency: path === '/' ? 'daily' : 'monthly',
-    priority: path === '/' ? 1 : 0.4,
+    priority: path === '/' ? 1 : path === '/bursa' ? 0.9 : 0.4,
   }));
 
   const restaurantIds = await fetchRestaurantIds();

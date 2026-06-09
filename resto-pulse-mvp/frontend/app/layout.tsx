@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { JsonLd } from '@/components/JsonLd';
 import { Providers } from '@/components/Providers';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { getSiteUrl } from '@/lib/site-url';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/structured-data';
 
 const siteUrl = getSiteUrl();
 const siteDescription =
-  'Türkiye restoranlarını keşfet, GastroSkor (GS) yorumu bırak, Google yorumlarıyla karşılaştır. İşletmeler için restoran paneli ve takipçi kuponları.';
+  'Türkiye restoranlarını keşfet, gastro skor oku, GastroSkor (GS) yorumu bırak. Bursa restoranları ve Google puanlarını karşılaştır. İşletmeler için panel ve kuponlar.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -19,6 +21,10 @@ export const metadata: Metadata = {
   keywords: [
     'GastroSkor',
     'gastroskor',
+    'gastro',
+    'gastro skor',
+    'bursa restoran',
+    'bursa restoranları',
     'restoran yorumları',
     'restoran puanlama',
     'Türkiye restoran',
@@ -51,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <body>
+        <JsonLd data={[buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl)]} />
         <Providers>
           <SiteHeader />
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
