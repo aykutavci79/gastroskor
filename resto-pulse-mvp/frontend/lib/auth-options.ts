@@ -1,6 +1,21 @@
 import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr';
+
+async function exchangeGoogleIdToken(idToken: string) {
+  const response = await fetch(`${API_BASE}/api/v1/auth/google/web`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_token: idToken }),
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error(`Backend oturum acilamadi (${response.status})`);
+  }
+  return response.json() as Promise<{ access_token: string; expires_in: number }>;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -13,7 +28,6 @@ export const authOptions: NextAuthOptions = {
           response_type: 'code',
         },
       },
-      // Ayni e-posta ile mobilde "E-posta ile devam" + Google birlestirilebilir.
       allowDangerousEmailAccountLinking: true,
     }),
   ],
@@ -24,6 +38,15 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, profile }) {
       if (account?.provider === 'google') {
         token.sub = profile?.sub ?? token.sub;
+      }
+      if (account?.id_token) {
+        try {
+          const backend = await exchangeGoogleIdToken(account.id_token);
+          token.backendAccessToken = backend.access_token;
+          token.backendTokenExpiresAt = Date.now() + backend.expires_in * 1000;
+        } catch (error) {
+          console.error('Backend token exchange failed', error);
+        }
       }
       return token;
     },
@@ -37,6 +60,7 @@ export const authOptions: NextAuthOptions = {
           ...session.user,
           id: token.sub,
         },
+        backendAccessToken: token.backendAccessToken,
       };
     },
   },

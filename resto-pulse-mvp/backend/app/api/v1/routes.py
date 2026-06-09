@@ -217,6 +217,12 @@ from app.api.v1.panel_routes import panel_router
 from app.api.v1.social_routes import router as social_router
 from app.services.user_accounts import get_or_create_user, serialize_user
 from app.services.app_metrics import record_app_usage_event
+from app.services.request_identity import (
+    auth_require_bearer,
+    get_request_auth,
+    resolve_authenticated_email,
+    resolve_optional_viewer_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +325,37 @@ def resolve_actor_user(
     author_id: str | None,
     author_email: str | None,
 ) -> User:
+    auth = get_request_auth()
+    if auth_require_bearer():
+        if auth is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Oturum gerekli. Google ile giris yapip tekrar deneyin.",
+            )
+        user = db.get(User, auth.user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+        if author_id and str(user.id) != author_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Oturum ile uyusmayan kullanici.",
+            )
+        if author_email and author_email.strip().lower() != auth.email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Oturum ile uyusmayan e-posta.",
+            )
+        return user
+
+    if auth is not None:
+        user = db.get(User, auth.user_id)
+        if user:
+            if author_id and str(user.id) != author_id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan kullanici.")
+            if author_email and author_email.strip().lower() != auth.email:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan e-posta.")
+            return user
+
     user_uuid = resolve_user_uuid(db, user_id=author_id, email=author_email)
     if not user_uuid:
         raise HTTPException(
@@ -326,6 +363,14 @@ def resolve_actor_user(
             detail="author_id veya author_email gerekli ve kayitli olmali.",
         )
     user = db.get(User, user_uuid)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+    return user
+
+
+def load_authenticated_user_by_email(db: Session, email: str) -> User:
+    verified_email = resolve_authenticated_email(claimed_email=email)
+    user = db.scalar(select(User).where(User.email == verified_email))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
     return user
@@ -503,6 +548,8 @@ def health():
 @router.post("/dev/seed-panel-demo")
 def seed_panel_demo(db: Session = Depends(get_db)):
     """Panel UI testi icin ornek sikayet kayitlari olusturur."""
+    if settings.environment.lower() == "production":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     actor = get_or_create_user(
         db,
         email="restaurant-actor@example.com",
@@ -1016,14 +1063,14 @@ def list_my_restaurant_follows(
     limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     items = list_followed_restaurants(db, user_id=user.id, limit=limit)
     return RestaurantFollowListResponse(items=items, total=len(items))
 
 
 @router.post("/me/push-token")
 def register_my_push_token(payload: PushTokenRegister, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, email=payload.user_email)
+    user = load_authenticated_user_by_email(db, payload.user_email)
     register_push_token(
         db,
         user_id=user.id,
@@ -1039,7 +1086,7 @@ def list_my_notifications(
     limit: int = Query(default=40, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     return list_user_notifications(db, user_id=user.id, limit=limit)
 
 
@@ -1049,7 +1096,7 @@ def read_my_notification(
     user_email: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     ok = mark_notification_read(db, user_id=user.id, notification_id=notification_id)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bildirim bulunamadi.")
@@ -1062,7 +1109,7 @@ def list_my_follower_coupons(
     limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     rows = list_user_coupons(db, user_id=user.id, limit=limit)
     return [FollowerCouponRead(**row) for row in rows]
 
@@ -1073,7 +1120,10 @@ def restaurant_follower_coupon(
     user_email: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
 ):
-    user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
+    user = None
+    verified = resolve_optional_viewer_email(viewer_email=user_email)
+    if verified:
+        user = db.scalar(select(User).where(User.email == verified))
     if not user:
         return None
     row = get_user_coupon_at_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
@@ -1089,9 +1139,11 @@ def restaurant_follow_status(
     _require_restaurant_exists(db, restaurant_id)
     following = False
     if user_email and user_email.strip():
-        user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
-        if user:
-            following = is_following(db, user_id=user.id, restaurant_id=restaurant_id)
+        verified = resolve_optional_viewer_email(viewer_email=user_email)
+        if verified:
+            user = db.scalar(select(User).where(User.email == verified))
+            if user:
+                following = is_following(db, user_id=user.id, restaurant_id=restaurant_id)
     return RestaurantFollowStatus(
         following=following,
         follower_count=follower_count(db, restaurant_id=restaurant_id),
@@ -1104,7 +1156,7 @@ async def follow_restaurant_endpoint(
     user_email: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     created = follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
     if created:
         coupon = issue_coupon_for_follower(db, restaurant_id=restaurant_id, user_id=user.id)
@@ -1127,7 +1179,7 @@ def unfollow_restaurant_endpoint(
     user_email: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     unfollow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
     return RestaurantFollowStatus(
         following=False,
@@ -1160,7 +1212,9 @@ def get_restaurant_check_in_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     viewer_id = None
     if user_email:
-        viewer_id = resolve_user_uuid(db, email=user_email)
+        verified = resolve_optional_viewer_email(viewer_email=user_email)
+        if verified:
+            viewer_id = resolve_user_uuid(db, email=verified)
     return CheckInStatus(**get_user_check_in_status(db, user_id=viewer_id, restaurant_id=restaurant_id))
 
 
@@ -1170,7 +1224,7 @@ async def post_restaurant_check_in(
     payload: CheckInPayload,
     db: Session = Depends(get_db),
 ):
-    user = get_or_create_user(db, email=payload.user_email)
+    user = load_authenticated_user_by_email(db, payload.user_email)
     restaurant = db.get(Restaurant, restaurant_id)
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
@@ -1202,7 +1256,7 @@ def get_active_restaurant_order(
     restaurant = db.get(Restaurant, restaurant_id)
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     ownership = get_ownership_for_restaurant(db, restaurant_id)
     pending = get_pending_order_for_user(db, user_id=user.id, restaurant_id=restaurant_id)
     pending_payload = (
@@ -1226,19 +1280,19 @@ def get_active_restaurant_order(
 
 @router.get("/order-phone/status", response_model=OrderPhoneStatus)
 def get_order_phone_status(user_email: str = Query(..., min_length=3), db: Session = Depends(get_db)):
-    user = get_or_create_user(db, email=user_email)
+    user = load_authenticated_user_by_email(db, user_email)
     return OrderPhoneStatus.model_validate(order_phone_status_for_user(user))
 
 
 @router.post("/order-phone/send-otp", response_model=OrderPhoneSendOtpResponse)
 async def post_order_phone_send_otp(payload: OrderPhoneSendOtpRequest, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, email=payload.user_email)
+    user = load_authenticated_user_by_email(db, payload.user_email)
     return await send_order_phone_otp(db, user=user, raw_phone=payload.phone)
 
 
 @router.post("/order-phone/verify-otp", response_model=OrderPhoneStatus)
 def post_order_phone_verify_otp(payload: OrderPhoneVerifyOtpRequest, db: Session = Depends(get_db)):
-    user = get_or_create_user(db, email=payload.user_email)
+    user = load_authenticated_user_by_email(db, payload.user_email)
     status_payload = verify_order_phone_otp(
         db, user=user, raw_phone=payload.phone, code=payload.code.strip()
     )
@@ -1254,7 +1308,7 @@ async def post_restaurant_order(
     restaurant = db.get(Restaurant, restaurant_id)
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    user = get_or_create_user(db, email=payload.user_email)
+    user = load_authenticated_user_by_email(db, payload.user_email)
     try:
         order = create_restaurant_order(
             db,
@@ -1307,7 +1361,10 @@ def list_restaurant_reviews(
     if not db.get(Restaurant, restaurant_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-    viewer_user_id = resolve_user_uuid(db, user_id=viewer_id, email=viewer_email)
+    viewer_user_id = None
+    if viewer_id or viewer_email:
+        verified_email = resolve_optional_viewer_email(viewer_email=viewer_email)
+        viewer_user_id = resolve_user_uuid(db, user_id=viewer_id, email=verified_email)
 
     stmt = (
         select(Review)
@@ -1333,7 +1390,21 @@ def list_restaurant_reviews(
 
 @router.post("/users/sync", response_model=UserProfile)
 def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
-    email = payload.email.strip().lower()
+    auth = get_request_auth()
+    if auth_require_bearer():
+        if auth is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Oturum gerekli. Google ile giris yapip tekrar deneyin.",
+            )
+        email = auth.email
+        if payload.email.strip().lower() != email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Oturum ile uyusmayan e-posta.",
+            )
+    else:
+        email = payload.email.strip().lower()
     if payload.record_login and not payload.google_sub:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1356,7 +1427,7 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
 
     user = get_or_create_user(
         db,
-        email=payload.email,
+        email=email,
         full_name=payload.full_name,
         avatar_url=payload.avatar_url,
         google_sub=payload.google_sub,
@@ -1390,9 +1461,11 @@ def check_nickname(
 ):
     exclude_id = None
     if user_email:
-        user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
-        if user:
-            exclude_id = user.id
+        verified = resolve_optional_viewer_email(viewer_email=user_email)
+        if verified:
+            user = db.scalar(select(User).where(User.email == verified))
+            if user:
+                exclude_id = user.id
     error = check_nickname_available(db, nickname, exclude_user_id=exclude_id)
     if error:
         return NicknameCheckResponse(available=False, message=error.message, highlights=error.highlights)
@@ -1401,9 +1474,7 @@ def check_nickname(
 
 @router.patch("/users/gourmet-profile", response_model=UserProfile)
 def update_gourmet_profile(payload: GourmetProfileUpdate, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.email == payload.user_email.strip().lower()))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+    user = load_authenticated_user_by_email(db, payload.user_email)
 
     updated = False
 
@@ -1469,11 +1540,7 @@ async def upload_user_avatar(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    user = db.scalar(select(User).where(User.email == user_email.strip().lower()))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-
-    url = await save_user_avatar(file)
+    user = load_authenticated_user_by_email(db, user_email)
     user.avatar_url = url
     user.avatar_preset = None
     db.add(user)
@@ -1491,12 +1558,10 @@ def create_private_feedback_endpoint(payload: PrivateFeedbackCreate, db: Session
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
     elif payload.author_email:
-        author = get_or_create_user(
+        author = resolve_actor_user(
             db,
-            email=payload.author_email,
-            full_name=payload.author_name,
-            avatar_url=payload.author_avatar_url,
-            google_sub=None,
+            author_id=payload.author_id,
+            author_email=payload.author_email,
         )
         author_uuid = author.id
 
@@ -1651,12 +1716,10 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
         author_user = db.get(User, author_uuid)
     elif payload.author_email:
-        author = get_or_create_user(
+        author = resolve_actor_user(
             db,
-            email=payload.author_email,
-            full_name=payload.author_name,
-            avatar_url=payload.author_avatar_url,
-            google_sub=None,
+            author_id=payload.author_id,
+            author_email=payload.author_email,
         )
         author_uuid = author.id
         author_user = author

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 
 import { authOptions } from '@/lib/auth-options';
+import { backendAuthHeadersFromSession } from '@/lib/server-backend-auth';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr').replace(/\/$/, '');
 const ADMIN_EMAILS = (process.env.PANEL_ADMIN_EMAILS ?? '')
@@ -37,7 +38,11 @@ export async function POST(
   }
 
   const secret = process.env.PANEL_ADMIN_SECRET?.trim();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...adminHeaders(secret) };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...adminHeaders(secret),
+    ...(await backendAuthHeadersFromSession()),
+  };
 
   const response = await fetch(`${API_BASE}/api/v1/panel/admin/applications/${id}/${action}`, {
     method: 'POST',

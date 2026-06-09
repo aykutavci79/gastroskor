@@ -29,6 +29,9 @@ class Settings(BaseSettings):
 
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_hours: int = 720
+    # production'da varsayilan true; lokal test icin AUTH_REQUIRE_BEARER=false
+    auth_require_bearer: bool | None = None
 
     google_places_api_key: str | None = None
     google_oauth_web_client_id: str | None = None

@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr';
 
 export async function POST() {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   try {
     const response = await fetch(`${API_BASE}/api/v1/dev/seed-panel-demo`, {
       method: 'POST',

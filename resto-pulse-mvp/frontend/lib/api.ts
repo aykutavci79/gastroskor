@@ -22,6 +22,7 @@ import type {
 } from '@/lib/types';
 
 import { getApiBase, getApiV1Base } from '@/lib/api-base';
+import { backendAuthHeaders } from '@/lib/backend-auth-token';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 
 export { ReviewModerationApiError };
@@ -42,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...backendAuthHeaders(),
         ...(init?.headers ?? {}),
       },
       cache: 'no-store',

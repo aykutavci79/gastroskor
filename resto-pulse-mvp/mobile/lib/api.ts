@@ -40,6 +40,7 @@ import type {
 } from '@/lib/types';
 
 import { getApiV1Base } from '@/lib/api-base';
+import { authHeaders } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 import { formatApiError } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
@@ -55,6 +56,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...authHeaders(),
         ...(init?.headers ?? {}),
       },
       signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
@@ -360,7 +362,7 @@ export function syncUser(payload: {
 }
 
 export function verifyGoogleMobileAuth(idToken: string) {
-  return request<{ profile: UserProfile }>('/auth/google/mobile', {
+  return request<{ profile: UserProfile; access_token: string; expires_in: number }>('/auth/google/mobile', {
     method: 'POST',
     body: JSON.stringify({ id_token: idToken }),
   });
@@ -401,6 +403,7 @@ export async function uploadUserAvatar(
     response = await fetch(`${getApiV1Base()}/users/avatar`, {
       method: 'POST',
       body: form,
+      headers: authHeaders(),
       signal: createFetchTimeoutSignal(60_000),
     });
   } catch (err) {

@@ -9,3 +9,6 @@ class GoogleMobileAuthPayload(BaseModel):
 
 class GoogleMobileAuthResponse(BaseModel):
     profile: UserProfile
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int

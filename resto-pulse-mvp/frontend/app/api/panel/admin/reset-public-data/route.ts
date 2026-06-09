@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 
 import { authOptions } from '@/lib/auth-options';
+import { backendAuthHeadersFromSession } from '@/lib/server-backend-auth';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr').replace(/\/$/, '');
 const ADMIN_EMAILS = (process.env.PANEL_ADMIN_EMAILS ?? '')
@@ -36,7 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ detail: 'place_id veya ownership_id gerekli.' }, { status: 400 });
   }
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(await backendAuthHeadersFromSession()),
+  };
   if (secret) {
     headers['X-Panel-Admin-Secret'] = secret;
   }

@@ -129,13 +129,15 @@ from app.services.panel_application import (
     submit_panel_application,
     application_to_dict,
 )
+from app.services.request_identity import resolve_authenticated_email
 
 panel_router = APIRouter(prefix="/panel", tags=["panel"])
 google_client = GooglePlacesLiveClient()
 
 
 def resolve_user_by_email(db: Session, email: str) -> User:
-    user = db.scalar(select(User).where(User.email == email))
+    verified_email = resolve_authenticated_email(claimed_email=email)
+    user = db.scalar(select(User).where(User.email == verified_email))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found. Once Google ile giris yapin.")
     return user

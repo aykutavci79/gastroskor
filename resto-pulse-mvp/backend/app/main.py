@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routes import router as v1_router
 from app.core.config import settings
+from app.core.security_middleware import SecurityMiddleware
 from app.services.menu_image_storage import menu_images_dir
 from app.services.review_image_storage import review_images_dir
 from app.services.user_avatar_storage import user_avatars_dir
@@ -13,6 +14,9 @@ from app.services.user_avatar_storage import user_avatars_dir
 logger = logging.getLogger(__name__)
 
 is_production = settings.environment.lower() == "production"
+if is_production and settings.jwt_secret.strip() in {"", "change-me"}:
+    raise RuntimeError("JWT_SECRET production ortaminda ayarlanmali (change-me kullanilamaz).")
+
 app = FastAPI(
     title=settings.app_name,
     docs_url=None if is_production else "/docs",
@@ -20,6 +24,7 @@ app = FastAPI(
     openapi_url=None if is_production else "/openapi.json",
 )
 
+app.add_middleware(SecurityMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

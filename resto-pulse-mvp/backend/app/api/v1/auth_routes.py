@@ -5,14 +5,24 @@ from app.services.user_accounts import get_or_create_user, serialize_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.auth import GoogleMobileAuthPayload, GoogleMobileAuthResponse
+from app.services.access_token import create_access_token
 from app.services.app_metrics import record_app_usage_event
 from app.services.google_id_token import GoogleIdTokenError, verify_google_id_token
 
 router = APIRouter(prefix="/auth/google", tags=["auth"])
 
 
-@router.post("/mobile", response_model=GoogleMobileAuthResponse)
-def google_mobile_auth(payload: GoogleMobileAuthPayload, db: Session = Depends(get_db)):
+def _google_auth_response(user, db: Session, *, platform: str) -> GoogleMobileAuthResponse:
+    access_token, expires_in = create_access_token(user_id=user.id, email=user.email)
+    record_app_usage_event(db, event_type="user_login", user_id=user.id, platform=platform)
+    return GoogleMobileAuthResponse(
+        profile=serialize_user(user, db),
+        access_token=access_token,
+        expires_in=expires_in,
+    )
+
+
+def _authenticate_google_id_token(payload: GoogleMobileAuthPayload, db: Session, *, platform: str):
     audiences = [
         settings.google_oauth_web_client_id,
         settings.google_oauth_android_client_id,
@@ -43,5 +53,14 @@ def google_mobile_auth(payload: GoogleMobileAuthPayload, db: Session = Depends(g
         avatar_url=claims.get("picture"),
         google_sub=google_sub,
     )
-    record_app_usage_event(db, event_type="user_login", user_id=user.id, platform="mobile-google")
-    return GoogleMobileAuthResponse(profile=serialize_user(user, db))
+    return _google_auth_response(user, db, platform=platform)
+
+
+@router.post("/mobile", response_model=GoogleMobileAuthResponse)
+def google_mobile_auth(payload: GoogleMobileAuthPayload, db: Session = Depends(get_db)):
+    return _authenticate_google_id_token(payload, db, platform="mobile-google")
+
+
+@router.post("/web", response_model=GoogleMobileAuthResponse)
+def google_web_auth(payload: GoogleMobileAuthPayload, db: Session = Depends(get_db)):
+    return _authenticate_google_id_token(payload, db, platform="web-google")

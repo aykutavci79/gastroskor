@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
+import { setAccessToken } from '@/lib/auth-token';
 import { signOutGoogleNative } from '@/lib/google-signin-native';
 import { registerUserPushToken } from '@/lib/push-notifications';
 import type { UserProfile } from '@/lib/types';
@@ -17,13 +18,14 @@ export type SessionUser = {
   nickname?: string | null;
   needsNicknameSetup?: boolean;
   googleSub?: string | null;
+  accessToken?: string | null;
   authMethod: 'google';
 };
 
 type SessionContextValue = {
   user: SessionUser | null;
   loading: boolean;
-  signInWithGoogleProfile: (profile: UserProfile, googleSub?: string | null) => Promise<void>;
+  signInWithGoogleProfile: (profile: UserProfile, googleSub?: string | null, accessToken?: string | null) => Promise<void>;
   applyProfile: (profile: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -35,6 +37,7 @@ function profileToSession(
   email: string,
   profile: UserProfile,
   googleSub?: string | null,
+  accessToken?: string | null,
 ): SessionUser {
   return {
     id: profile.id,
@@ -45,11 +48,13 @@ function profileToSession(
     nickname: profile.nickname ?? null,
     needsNicknameSetup: profile.needs_nickname_setup ?? !profile.nickname,
     googleSub: googleSub ?? null,
+    accessToken: accessToken ?? null,
     authMethod: 'google',
   };
 }
 
 async function persistUser(user: SessionUser) {
+  setAccessToken(user.accessToken ?? null);
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
@@ -60,10 +65,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const applyProfile = useCallback(async (profile: UserProfile) => {
     const email = profile.email.trim().toLowerCase();
     if (!user?.googleSub) return;
-    const next = profileToSession(email, profile, user.googleSub);
+    const next = profileToSession(email, profile, user.googleSub, user.accessToken);
     await persistUser(next);
     setUser(next);
-  }, [user?.googleSub]);
+  }, [user?.googleSub, user?.accessToken]);
 
   const refreshProfile = useCallback(async () => {
     if (!user?.email || !user.googleSub) return;
@@ -72,7 +77,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       full_name: user.fullName ?? null,
       google_sub: user.googleSub,
     });
-    const next = profileToSession(user.email, profile, user.googleSub);
+    const next = profileToSession(user.email, profile, user.googleSub, user.accessToken);
     await persistUser(next);
     setUser(next);
   }, [user]);
@@ -88,17 +93,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           await AsyncStorage.removeItem(STORAGE_KEY);
           return;
         }
-        if (!parsed?.email || parsed.authMethod !== 'google' || !parsed.googleSub) {
+        if (!parsed?.email || parsed.authMethod !== 'google' || !parsed.googleSub || !parsed.accessToken) {
           await AsyncStorage.removeItem(STORAGE_KEY);
+          setAccessToken(null);
           return;
         }
+        setAccessToken(parsed.accessToken ?? null);
         try {
           const profile = await syncUser({
             email: parsed.email,
             full_name: parsed.fullName ?? null,
             google_sub: parsed.googleSub,
           });
-          const next = profileToSession(parsed.email, profile, parsed.googleSub);
+          const next = profileToSession(parsed.email, profile, parsed.googleSub, parsed.accessToken);
           await persistUser(next);
           setUser(next);
           void registerUserPushToken(next.email);
@@ -113,9 +120,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signInWithGoogleProfile = useCallback(async (profile: UserProfile, googleSub?: string | null) => {
+  const signInWithGoogleProfile = useCallback(async (
+    profile: UserProfile,
+    googleSub?: string | null,
+    accessToken?: string | null,
+  ) => {
     const email = profile.email.trim().toLowerCase();
-    const next = profileToSession(email, profile, googleSub ?? 'google');
+    const next = profileToSession(email, profile, googleSub ?? 'google', accessToken ?? null);
     await persistUser(next);
     setUser(next);
     void registerUserPushToken(email);
@@ -123,6 +134,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await signOutGoogleNative();
+    setAccessToken(null);
     await AsyncStorage.removeItem(STORAGE_KEY);
     setUser(null);
   }, []);

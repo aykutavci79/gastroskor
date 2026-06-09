@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -35,14 +36,17 @@ from app.services.user_social import (
     serialize_public_user,
     start_dm_thread,
 )
+from app.services.request_identity import resolve_authenticated_email, resolve_optional_viewer_email
 
 router = APIRouter(prefix="/social", tags=["social"])
 
 
 def _resolve_user(db, email: str) -> User:
-    from app.services.user_accounts import get_or_create_user
-
-    return get_or_create_user(db, email=email)
+    verified_email = resolve_authenticated_email(claimed_email=email)
+    user = db.scalar(select(User).where(User.email == verified_email))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+    return user
 
 
 def _raise_social_error(exc: UserSocialError) -> None:
@@ -67,8 +71,11 @@ def get_public_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
     viewer_id = None
     if viewer_email:
-        viewer = _resolve_user(db, viewer_email)
-        viewer_id = viewer.id
+        verified = resolve_optional_viewer_email(viewer_email=viewer_email)
+        if verified:
+            viewer = db.scalar(select(User).where(User.email == verified))
+            if viewer:
+                viewer_id = viewer.id
     return PublicUserCard(**serialize_public_user(db, user, viewer_id=viewer_id))
 
 
