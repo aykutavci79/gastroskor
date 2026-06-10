@@ -464,6 +464,9 @@ class RestaurantOwnership(Base):
     ai_analysis_reports: Mapped[list["RestaurantAiAnalysisReport"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
+    google_business_connection: Mapped["RestaurantGoogleBusinessConnection | None"] = relationship(
+        back_populates="ownership", uselist=False, cascade="all, delete-orphan"
+    )
     otp_challenges: Mapped[list["RestaurantOtpChallenge"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
@@ -683,6 +686,34 @@ class RestaurantCompetitor(Base):
     )
 
 
+class RestaurantGoogleBusinessConnection(Base):
+    """Isletme sahibinin Google Business Profile OAuth baglantisi."""
+
+    __tablename__ = "restaurant_google_business_connections"
+    __table_args__ = (UniqueConstraint("ownership_id", name="uq_google_business_connection_ownership"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    google_email: Mapped[str | None] = mapped_column(String(255))
+    gbp_account_name: Mapped[str | None] = mapped_column(String(120))
+    gbp_location_name: Mapped[str | None] = mapped_column(String(160))
+    gbp_location_title: Mapped[str | None] = mapped_column(String(255))
+    matched_place_id: Mapped[str | None] = mapped_column(String(255))
+    refresh_token_enc: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="connected")
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_review_count: Mapped[int | None] = mapped_column(Integer)
+    connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="google_business_connection")
+
+
 class RestaurantAiAnalysisReport(Base):
     """Panel AI ozet raporu — ham yorum veya alinti saklanmaz."""
 
@@ -692,6 +723,7 @@ class RestaurantAiAnalysisReport(Base):
     ownership_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
     )
+    report_source: Mapped[str] = mapped_column(String(30), default="competitor", index=True)
     competitor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("restaurant_competitors.id", ondelete="SET NULL"), nullable=True
     )
@@ -701,6 +733,7 @@ class RestaurantAiAnalysisReport(Base):
     your_gaps_json: Mapped[list] = mapped_column(JSONB, default=list)
     competitor_strengths_json: Mapped[list] = mapped_column(JSONB, default=list)
     reviews_used_json: Mapped[dict | None] = mapped_column(JSONB)
+    reviews_total: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
 
     ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="ai_analysis_reports")

@@ -628,10 +628,11 @@ export function startRestaurantClaim(payload: { user_email: string; place_id: st
     verification_status: string;
     panel_tier: string;
     phone_info: {
-      phone_raw: string | null;
+      phone_raw?: string | null;
       is_mobile: boolean;
       phone_masked: string | null;
       requires_tax_document: boolean;
+      requires_admin_approval?: boolean;
     };
   }>('/panel/claim/start', {
     method: 'POST',
@@ -675,6 +676,26 @@ export function purchasePanelAiAddon(userEmail: string, sku: string) {
 export function analyzePanelCompetitor(userEmail: string, competitorId: string) {
   return request<import('@/lib/types').CompetitorAiReport>(
     `/panel/competitors/${encodeURIComponent(competitorId)}/analyze?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function getGoogleBusinessConnectUrl(userEmail: string) {
+  return request<{ auth_url: string; redirect_uri: string; scope: string }>(
+    `/panel/google-business/connect-url?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function disconnectGoogleBusiness(userEmail: string) {
+  return request<{ ok: boolean }>(
+    `/panel/google-business/disconnect?user_email=${encodeURIComponent(userEmail)}`,
+    { method: 'POST' },
+  );
+}
+
+export function analyzeGoogleBusiness(userEmail: string) {
+  return request<import('@/lib/types').CompetitorAiReport & { reviews_total?: number; report_source?: string }>(
+    `/panel/google-business/analyze?user_email=${encodeURIComponent(userEmail)}`,
     { method: 'POST' },
   );
 }

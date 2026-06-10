@@ -613,6 +613,17 @@ export type PanelDashboard = {
   ai_quota: AiAnalysisQuota;
   ai_pricing: AiPricingCatalog;
   ai_reports: StoredAiReport[];
+  google_business: GoogleBusinessStatus;
+};
+
+export type GoogleBusinessStatus = {
+  connected: boolean;
+  google_email: string | null;
+  location_title: string | null;
+  matched_place_id: string | null;
+  last_sync_at: string | null;
+  last_review_count: number | null;
+  last_error: string | null;
 };
 
 export type CompetitorInsight = {
@@ -645,6 +656,7 @@ export type StoredAiInsight = {
 
 export type StoredAiReport = {
   id: string;
+  report_source: 'competitor' | 'google_business' | string;
   competitor_id: string | null;
   competitor_name: string;
   comparison_summary: string;
@@ -652,6 +664,7 @@ export type StoredAiReport = {
   your_gaps: StoredAiInsight[];
   competitor_strengths: StoredAiInsight[];
   reviews_used: { own: number; competitor: number } | null;
+  reviews_total: number | null;
   created_at: string | null;
 };
 

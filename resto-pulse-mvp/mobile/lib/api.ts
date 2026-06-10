@@ -606,7 +606,11 @@ export function startRestaurantClaim(payload: { user_email: string; place_id: st
   return request<{
     ownership_id: string;
     restaurant_name: string;
-    phone_info: { phone_masked: string | null };
+    verification_status: string;
+    phone_info: {
+      phone_masked: string | null;
+      requires_admin_approval?: boolean;
+    };
   }>('/panel/claim/start', { method: 'POST', body: JSON.stringify(payload) });
 }
 

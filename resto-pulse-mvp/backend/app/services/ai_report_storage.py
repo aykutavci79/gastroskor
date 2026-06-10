@@ -41,6 +41,7 @@ def save_analysis_report(
 ) -> RestaurantAiAnalysisReport:
     row = RestaurantAiAnalysisReport(
         ownership_id=ownership_id,
+        report_source="competitor",
         competitor_id=competitor_id,
         competitor_name=competitor_name.strip() or "Rakip",
         comparison_summary=(report.get("comparison_summary") or "").strip(),
@@ -48,6 +49,31 @@ def save_analysis_report(
         your_gaps_json=sanitize_insights(report.get("your_gaps")),
         competitor_strengths_json=sanitize_insights(report.get("competitor_strengths")),
         reviews_used_json=report.get("reviews_used") if isinstance(report.get("reviews_used"), dict) else None,
+        reviews_total=None,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def save_google_business_report(
+    db: Session,
+    *,
+    ownership_id: uuid.UUID,
+    place_name: str,
+    report: dict,
+) -> RestaurantAiAnalysisReport:
+    row = RestaurantAiAnalysisReport(
+        ownership_id=ownership_id,
+        report_source="google_business",
+        competitor_id=None,
+        competitor_name=place_name.strip() or "Isletmeniz",
+        comparison_summary=(report.get("comparison_summary") or "").strip(),
+        your_strengths_json=sanitize_insights(report.get("your_strengths")),
+        your_gaps_json=sanitize_insights(report.get("your_gaps")),
+        competitor_strengths_json=[],
+        reviews_used_json=report.get("reviews_used") if isinstance(report.get("reviews_used"), dict) else None,
+        reviews_total=int(report.get("reviews_total") or 0) or None,
     )
     db.add(row)
     db.flush()
@@ -64,6 +90,8 @@ def report_row_to_dict(row: RestaurantAiAnalysisReport) -> dict:
         "your_gaps": row.your_gaps_json or [],
         "competitor_strengths": row.competitor_strengths_json or [],
         "reviews_used": row.reviews_used_json,
+        "reviews_total": row.reviews_total,
+        "report_source": row.report_source or "competitor",
         "created_at": row.created_at.isoformat() if row.created_at else None,
     }
 

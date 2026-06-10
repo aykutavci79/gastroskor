@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     google_places_api_key: str | None = None
     google_oauth_web_client_id: str | None = None
+    google_oauth_web_client_secret: str | None = None
     google_oauth_android_client_id: str | None = None
     google_oauth_ios_client_id: str | None = None
     gemini_api_key: str | None = None
@@ -53,6 +54,8 @@ class Settings(BaseSettings):
     otp_expiry_minutes: int = 10
     panel_admin_secret: str | None = None
     panel_admin_emails: str = ""
+    # Mekan claim: SMS yerine admin onayi (pilot icin varsayilan acik)
+    claim_admin_approval_only: bool = True
     trial_days: int = 30
     default_ai_analysis_interval_days: int = 33
 

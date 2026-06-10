@@ -11,6 +11,7 @@ from app.models.entities import RestaurantPlatformProfile, PlatformName
 from app.services.panel_access import PanelAccessState, build_panel_access_state
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota
 from app.services.ai_report_storage import list_analysis_reports
+from app.services.google_business_service import connection_status_dict, get_connection
 from app.services.panel_pricing import pricing_catalog_as_dict
 from app.services.restaurant_orders import count_accepted_orders
 from app.services.review_remedy_service import public_rating_filter
@@ -125,6 +126,7 @@ def build_dashboard_payload(db: Session, ownership: RestaurantOwnership, access:
         "ai_quota": ai_quota_as_dict(build_ai_quota(ownership)),
         "ai_pricing": pricing_catalog_as_dict(),
         "ai_reports": list_analysis_reports(db, ownership.id, limit=12),
+        "google_business": connection_status_dict(get_connection(db, ownership.id)),
     }
 
 

@@ -162,8 +162,23 @@ export function PanelAiReportHistory({ userEmail, reports, onRefresh }: Props) {
             key={row.id}
             className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/70 px-3 py-2 text-sm">
             <div>
-              <p className="font-medium text-content">{formatReportDate(row.created_at)} raporu</p>
-              <p className="text-xs text-content-muted">Rakip: {row.competitor_name}</p>
+              <p className="font-medium text-content">
+                {formatReportDate(row.created_at)} raporu
+                {row.report_source === 'google_business' ? (
+                  <span className="ml-2 rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] uppercase text-emerald-200">
+                    Google tam
+                  </span>
+                ) : (
+                  <span className="ml-2 rounded bg-violet-500/20 px-2 py-0.5 text-[10px] uppercase text-violet-200">
+                    Rakip
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-content-muted">
+                {row.report_source === 'google_business'
+                  ? `Isletme · ${row.reviews_total ?? '?'} yorum havuzu`
+                  : `Rakip: ${row.competitor_name}`}
+              </p>
             </div>
             <button
               type="button"

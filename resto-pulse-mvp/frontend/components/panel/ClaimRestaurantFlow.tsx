@@ -23,10 +23,11 @@ export function ClaimRestaurantFlow() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LivePlaceSearchItem[]>([]);
   const [selected, setSelected] = useState<LivePlaceSearchItem | null>(null);
-  const [step, setStep] = useState<'search' | 'verify'>('search');
+  const [step, setStep] = useState<'search' | 'verify' | 'pending_admin'>('search');
   const [phoneInfo, setPhoneInfo] = useState<{
     is_mobile: boolean;
     requires_tax_document: boolean;
+    requires_admin_approval?: boolean;
     phone_masked: string | null;
   } | null>(null);
   const [otpCode, setOtpCode] = useState('');
@@ -41,6 +42,12 @@ export function ClaimRestaurantFlow() {
       .then((data: { is_panel_admin?: boolean }) => setIsPanelAdmin(Boolean(data.is_panel_admin)))
       .catch(() => setIsPanelAdmin(false));
   }, []);
+
+  useEffect(() => {
+    if (access?.verification_status === 'pending_admin') {
+      setStep('pending_admin');
+    }
+  }, [access?.verification_status]);
 
   async function adminGrantPlace(place: LivePlaceSearchItem) {
     if (!userEmail) return;
@@ -104,8 +111,13 @@ export function ClaimRestaurantFlow() {
         city: 'Bursa',
       });
       setPhoneInfo(claim.phone_info);
-      setStep('verify');
-      setMessage(`${claim.restaurant_name} secildi.`);
+      if (claim.phone_info.requires_admin_approval || claim.verification_status === 'pending_admin') {
+        setStep('pending_admin');
+        setMessage(`${claim.restaurant_name} icin admin onayi bekleniyor.`);
+      } else {
+        setStep('verify');
+        setMessage(`${claim.restaurant_name} secildi.`);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Mekan baglanamadi';
       setError(msg);
@@ -182,6 +194,29 @@ export function ClaimRestaurantFlow() {
     );
   }
 
+  if (access?.verification_status === 'pending_admin' || step === 'pending_admin') {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 text-amber-50">
+          <p className="font-semibold">Admin onayi bekleniyor</p>
+          <p className="mt-2 text-sm text-amber-50/90">
+            {access?.restaurant_name ?? selected?.name ?? 'Mekaniniz'} talebi alindi. GastroSkor ekibi onayladiginda
+            panel acilacak ve size bildirim gidecek.
+          </p>
+          <p className="mt-2 text-xs text-amber-50/80">
+            Bu sayfayi kapatabilirsiniz; onay sonrasi tekrar giris yapmaniz yeterli.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="rounded-lg border border-border px-4 py-2 text-sm text-content-muted hover:bg-surface-input">
+          Durumu yenile
+        </button>
+      </div>
+    );
+  }
+
   if (access?.can_access_panel && access.verification_status !== 'pending_sms' && !isPanelAdmin) {
     return (
       <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-success">
@@ -199,8 +234,8 @@ export function ClaimRestaurantFlow() {
       <section className="rounded-2xl border border-border/70 bg-surface-input p-6">
         <h2 className="text-xl font-semibold text-content">Mekanini Bagla</h2>
         <p className="mt-1 text-sm text-content-muted">
-          Giris tamam. Simdi Google Maps&apos;teki isletme adinizi yazin, listeden secin. Cep telefonu
-          varsa SMS, sabit hat ise vergi levhasi notu ile devam edilir.
+          Giris tamam. Google Maps&apos;teki isletme adinizi yazin, listeden secin. Talep admin onayina gider;
+          onaylandiginda panel acilir.
         </p>
         <p className="mt-2 text-xs text-content-muted">
           Ornek arama: <span className="text-content-muted">Urfali Kebap Bursa</span> veya isletme adiniz + sehir

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, Suspense, useCallback, useEffect, useState } from 'react';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
@@ -8,6 +8,7 @@ import { RestaurantMenuEditor } from '@/components/panel/RestaurantMenuEditor';
 import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
 import { PanelAiReportHistory } from '@/components/panel/PanelAiReportHistory';
+import { PanelGoogleBusinessSection } from '@/components/panel/PanelGoogleBusinessSection';
 import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { PanelOrdersSection } from '@/components/panel/PanelOrdersSection';
@@ -84,7 +85,22 @@ export function RestaurantDashboard() {
   }
   if (!data) return null;
 
-  const { summary, ratings, competitors, ai_insight, ai_quota, ai_pricing, ai_reports, restaurant } = data;
+  const {
+    summary,
+    ratings,
+    competitors,
+    ai_insight,
+    ai_quota,
+    ai_pricing,
+    ai_reports,
+    google_business,
+    restaurant,
+  } = data;
+
+  const refreshDashboard = useCallback(() => {
+    if (!userEmail) return;
+    void getPanelDashboard(userEmail).then(setData);
+  }, [userEmail]);
 
   function refreshQuota(next: typeof ai_quota) {
     setData((prev) => (prev ? { ...prev, ai_quota: next } : prev));
@@ -237,15 +253,14 @@ export function RestaurantDashboard() {
         ) : null}
       </section>
 
+      {userEmail && google_business ? (
+        <Suspense fallback={null}>
+          <PanelGoogleBusinessSection status={google_business} onUpdated={refreshDashboard} />
+        </Suspense>
+      ) : null}
+
       {userEmail ? (
-        <PanelAiReportHistory
-          userEmail={userEmail}
-          reports={ai_reports ?? []}
-          onRefresh={() => {
-            if (!userEmail) return;
-            void getPanelDashboard(userEmail).then(setData);
-          }}
-        />
+        <PanelAiReportHistory userEmail={userEmail} reports={ai_reports ?? []} onRefresh={refreshDashboard} />
       ) : null}
 
       {!access?.can_write_actions ? (

@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.integrations.google_places_live import GooglePlacesLiveClient
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantOtpChallenge, RestaurantPlatformProfile, User
 from app.services.platform_profile_photo import photo_reference_from_place_details, sync_profile_photo_from_details
@@ -15,6 +16,13 @@ from app.services.phone_tr import is_tr_mobile, normalize_tr_mobile
 from app.services.sms_otp import generate_otp_code, hash_otp_code, send_sms_otp, verify_otp_code
 
 google_client = GooglePlacesLiveClient()
+
+CLAIM_ADMIN_APPROVAL_PHONE_INFO = {
+    "requires_admin_approval": True,
+    "is_mobile": False,
+    "phone_masked": None,
+    "requires_tax_document": False,
+}
 
 
 def _utcnow() -> datetime:
@@ -132,8 +140,6 @@ async def start_claim(
         )
 
     restaurant = await ensure_restaurant_for_place(db, place_id=place_id, city=city)
-    details = await google_client.get_place_details(place_id)
-    phone_raw = details.get("phone_number")
 
     ownership = existing_user_owner
     if ownership is None:
@@ -141,7 +147,7 @@ async def start_claim(
             user_id=user.id,
             restaurant_id=restaurant.id,
             google_place_id=place_id,
-            verification_status="pending_sms",
+            verification_status="pending_admin" if settings.claim_admin_approval_only else "pending_sms",
             panel_tier="limited",
         )
         db.add(ownership)
@@ -150,25 +156,35 @@ async def start_claim(
         ownership.restaurant_id = restaurant.id
         ownership.google_place_id = place_id
 
-    mobile = normalize_tr_mobile(phone_raw)
-    phone_info = {
-        "phone_raw": phone_raw,
-        "is_mobile": mobile is not None,
-        "phone_masked": f"*** *** ** {mobile[-2:]}" if mobile else None,
-        "requires_tax_document": mobile is None,
-    }
-
-    if mobile:
-        ownership.phone_e164 = mobile
-        ownership.phone_last_four = mobile[-4:]
-        ownership.verification_method = "sms"
-        ownership.verification_status = "pending_sms"
-    else:
+    if settings.claim_admin_approval_only:
         ownership.phone_e164 = None
         ownership.phone_last_four = None
-        ownership.verification_method = "tax_document"
-        ownership.verification_status = "pending_document"
+        ownership.verification_method = "admin_approval"
+        ownership.verification_status = "pending_admin"
         ownership.panel_tier = "limited"
+        phone_info = dict(CLAIM_ADMIN_APPROVAL_PHONE_INFO)
+    else:
+        details = await google_client.get_place_details(place_id)
+        phone_raw = details.get("phone_number")
+        mobile = normalize_tr_mobile(phone_raw)
+        phone_info = {
+            "phone_raw": phone_raw,
+            "is_mobile": mobile is not None,
+            "phone_masked": f"*** *** ** {mobile[-2:]}" if mobile else None,
+            "requires_tax_document": mobile is None,
+            "requires_admin_approval": False,
+        }
+        if mobile:
+            ownership.phone_e164 = mobile
+            ownership.phone_last_four = mobile[-4:]
+            ownership.verification_method = "sms"
+            ownership.verification_status = "pending_sms"
+        else:
+            ownership.phone_e164 = None
+            ownership.phone_last_four = None
+            ownership.verification_method = "tax_document"
+            ownership.verification_status = "pending_document"
+            ownership.panel_tier = "limited"
 
     db.add(ownership)
     db.commit()

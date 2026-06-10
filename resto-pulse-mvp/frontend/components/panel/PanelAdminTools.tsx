@@ -19,6 +19,17 @@ export function PanelAdminTools() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applications, setApplications] = useState<PanelApplication[]>([]);
+  const [claimRequests, setClaimRequests] = useState<
+    Array<{
+      ownership_id: string;
+      user_email: string | null;
+      user_name: string | null;
+      restaurant_name: string | null;
+      google_place_id: string | null;
+      created_at: string | null;
+    }>
+  >([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
   const [appsLoading, setAppsLoading] = useState(false);
   const [appFilter, setAppFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('pending');
   const [forceTakeoverApps, setForceTakeoverApps] = useState(true);
@@ -29,6 +40,44 @@ export function PanelAdminTools() {
       .then((data: { is_panel_admin?: boolean }) => setAllowed(Boolean(data.is_panel_admin)))
       .catch(() => setAllowed(false));
   }, []);
+
+  async function loadClaimRequests() {
+    setClaimsLoading(true);
+    try {
+      const res = await fetch('/api/panel/admin/claim-requests');
+      const data = (await res.json()) as {
+        items?: typeof claimRequests;
+        detail?: string;
+      };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Claim talepleri yuklenemedi');
+      setClaimRequests(data.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Claim talepleri yuklenemedi');
+    } finally {
+      setClaimsLoading(false);
+    }
+  }
+
+  async function onClaimAction(ownershipId: string, action: 'approve' | 'reject') {
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/panel/admin/claim-requests/${ownershipId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as { detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Islem basarisiz');
+      setMessage(action === 'approve' ? 'Mekan onaylandi, panel acildi.' : 'Talep reddedildi.');
+      await loadClaimRequests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Islem basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadApplications(filter = appFilter) {
     setAppsLoading(true);
@@ -46,7 +95,10 @@ export function PanelAdminTools() {
   }
 
   useEffect(() => {
-    if (allowed) void loadApplications();
+    if (allowed) {
+      void loadClaimRequests();
+      void loadApplications();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed, appFilter]);
 
@@ -172,6 +224,51 @@ export function PanelAdminTools() {
           /panel/admin/kpi
         </a>
       </p>
+      <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6">
+        <h2 className="text-xl font-semibold text-emerald-100">Mekan claim talepleri</h2>
+        <p className="mt-1 text-sm text-content-muted">
+          Panelde &quot;Mekanini bagla&quot; ile gelen talepler. Onaylayinca mekan kullaniciya gecer, deneme baslar.
+        </p>
+        {claimsLoading ? <p className="mt-3 text-sm text-content-muted">Yukleniyor...</p> : null}
+        <ul className="mt-4 space-y-3">
+          {claimRequests.map((item) => (
+            <li key={item.ownership_id} className="rounded-xl border border-border bg-surface/80 p-4 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-content">{item.restaurant_name ?? 'Mekan'}</p>
+                  <p className="text-xs text-content-muted">
+                    {item.user_name ?? '—'} · {item.user_email ?? '—'}
+                  </p>
+                  <p className="text-xs text-content-muted">Place: {item.google_place_id ?? '—'}</p>
+                  <p className="mt-1 text-xs text-content-muted">
+                    {item.created_at ? new Date(item.created_at).toLocaleString('tr-TR') : '—'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void onClaimAction(item.ownership_id, 'approve')}
+                    className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white">
+                    Onayla
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void onClaimAction(item.ownership_id, 'reject')}
+                    className="rounded-lg bg-rose-600/80 px-2 py-1 text-xs text-white">
+                    Reddet
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {!claimsLoading && claimRequests.length === 0 ? (
+          <p className="mt-3 text-sm text-content-muted">Bekleyen claim yok.</p>
+        ) : null}
+      </section>
+
       <section className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-6">
         <h2 className="text-xl font-semibold text-sky-100">Isletme basvurulari</h2>
         <p className="mt-1 text-sm text-content-muted">

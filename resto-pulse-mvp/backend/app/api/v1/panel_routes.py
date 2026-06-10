@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -49,6 +49,19 @@ from app.services.panel_dashboard import build_dashboard_payload
 from app.services.ai_analysis_trend import build_analysis_trend
 from app.services.ai_report_storage import get_analysis_report, list_analysis_reports, save_analysis_report
 from app.services.competitor_ai_analysis import analyze_competitor_pair
+from app.services.google_business_oauth import (
+    GoogleBusinessOAuthError,
+    build_authorization_url,
+    verify_oauth_state,
+)
+from app.services.google_business_service import (
+    complete_oauth_connection,
+    connection_status_dict,
+    disconnect_google_business,
+    get_connection,
+    oauth_redirect_uri_public,
+    run_google_business_full_analysis,
+)
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
@@ -76,6 +89,12 @@ from app.services.restaurant_orders import (
     raise_order_http,
 )
 from app.services.restaurant_promo import ownership_promo_as_dict, subscription_allows_promo
+from app.services.claim_admin_approval import (
+    approve_claim_request,
+    list_pending_claim_requests,
+    notify_admins_claim_pending,
+    reject_claim_request,
+)
 from app.services.restaurant_claim import (
     admin_activate_subscription,
     admin_complete_visit,
@@ -274,6 +293,41 @@ def admin_mark_contract_received(
         application_id=application_id,
         admin_email=payload.user_email,
     )
+
+
+@panel_router.get("/admin/claim-requests", response_model=PanelApplicationListResponse)
+def admin_list_claim_requests(
+    user_email: str = Query(...),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=user_email, secret_header=x_panel_admin_secret)
+    return {"items": list_pending_claim_requests(db)}
+
+
+@panel_router.post("/admin/claim-requests/{ownership_id}/approve", response_model=PanelAccessRead)
+def admin_approve_claim_request(
+    ownership_id: UUID,
+    payload: PanelApplicationActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    ownership = approve_claim_request(db, ownership_id=ownership_id)
+    state = build_panel_access_state(db, ownership)
+    return serialize_access(state)
+
+
+@panel_router.post("/admin/claim-requests/{ownership_id}/reject")
+def admin_reject_claim_request(
+    ownership_id: UUID,
+    payload: PanelApplicationActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    reject_claim_request(db, ownership_id=ownership_id, admin_note=payload.admin_note)
+    return {"ok": True}
 
 
 @panel_router.get("/admin/applications/{application_id}/tax-document")
@@ -632,6 +686,13 @@ async def claim_start(payload: ClaimStartRequest, db: Session = Depends(get_db))
         db, user=user, place_id=payload.place_id.strip(), city=payload.city
     )
     restaurant = ownership.restaurant
+    if phone_info.get("requires_admin_approval"):
+        await notify_admins_claim_pending(
+            db,
+            ownership=ownership,
+            claimant=user,
+            restaurant_name=restaurant.name if restaurant else "Restoran",
+        )
     return ClaimStartResponse(
         ownership_id=str(ownership.id),
         restaurant_id=str(ownership.restaurant_id),
@@ -853,6 +914,112 @@ def get_ai_report_detail(
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rapor bulunamadi.")
     return detail
+
+
+@panel_router.get("/google-business/connect-url")
+def google_business_connect_url(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    try:
+        auth_url = build_authorization_url(ownership_id=ownership.id, user_id=user.id)
+    except GoogleBusinessOAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    return {
+        "auth_url": auth_url,
+        "redirect_uri": oauth_redirect_uri_public(),
+        "scope": "business.manage",
+    }
+
+
+@panel_router.get("/google-business/callback")
+async def google_business_oauth_callback(
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    panel_base = (settings.public_panel_base_url or "https://www.gastroskor.com.tr/panel").rstrip("/")
+    if error:
+        return RedirectResponse(f"{panel_base}?google_business=denied")
+    if not code or not state:
+        return RedirectResponse(f"{panel_base}?google_business=error")
+
+    try:
+        ownership_id, user_id = verify_oauth_state(state)
+        ownership = db.get(RestaurantOwnership, ownership_id)
+        user = db.get(User, user_id)
+        if ownership is None or user is None or ownership.user_id != user.id:
+            raise GoogleBusinessOAuthError("Panel kaydi eslesmedi.")
+        await complete_oauth_connection(db, ownership=ownership, user_email=user.email, code=code)
+        db.commit()
+        return RedirectResponse(f"{panel_base}?google_business=connected")
+    except GoogleBusinessOAuthError as exc:
+        db.rollback()
+        from urllib.parse import quote
+
+        return RedirectResponse(f"{panel_base}?google_business=error&msg={quote(str(exc)[:200])}")
+
+
+@panel_router.get("/google-business/status")
+def google_business_status(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return connection_status_dict(get_connection(db, ownership.id))
+
+
+@panel_router.post("/google-business/disconnect")
+def google_business_disconnect(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    disconnect_google_business(db, ownership.id)
+    db.commit()
+    return {"ok": True}
+
+
+@panel_router.post("/google-business/analyze")
+async def google_business_analyze(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+
+    quota = build_ai_quota(ownership)
+    if not quota.can_run:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=quota.message,
+        )
+    use_extra = quota.will_use_extra_credit
+
+    try:
+        report = await run_google_business_full_analysis(db, ownership)
+    except GoogleBusinessOAuthError as exc:
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    try:
+        record_ai_analysis(ownership, use_extra_credit=use_extra)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    db.add(ownership)
+    if ownership.subscription:
+        db.add(ownership.subscription)
+    db.commit()
+
+    report["ai_quota"] = ai_quota_as_dict(build_ai_quota(ownership))
+    report["used_extra_credit"] = use_extra
+    return report
 
 
 @panel_router.post("/ai-purchase")
