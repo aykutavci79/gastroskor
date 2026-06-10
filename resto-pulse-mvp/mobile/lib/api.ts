@@ -1,4 +1,5 @@
 import type {
+  AiReportTrend,
   CompetitorAiReport,
   GoogleReviewLink,
   GourmetChatAnswer,
@@ -621,6 +622,10 @@ export function verifyRestaurantClaimOtp(payload: { user_email: string; code: st
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function getPanelAiReportTrend(userEmail: string) {
+  return request<AiReportTrend>(`/panel/ai-reports/trend?user_email=${encodeURIComponent(userEmail)}`);
 }
 
 export function analyzePanelCompetitor(userEmail: string, competitorId: string) {

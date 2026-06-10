@@ -106,6 +106,12 @@ export function CompetitorAiReportView({ report, onClose }: Props) {
           <InsightList title="Sizin icin firsat / iyilestirme" items={report.your_gaps} accent="text-sky-200" />
         </div>
 
+        {report.saved_report_id ? (
+          <p className="mt-3 text-xs text-emerald-200">
+            Ozet rapor panel gecmisine kaydedildi (ham yorum saklanmaz).
+          </p>
+        ) : null}
+
         <p className="mt-4 text-xs text-content-muted">{report.disclaimer}</p>
       </div>
     </div>

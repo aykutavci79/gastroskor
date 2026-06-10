@@ -7,6 +7,7 @@ import { AiPricingOffers } from '@/components/panel/AiPricingOffers';
 import { RestaurantMenuEditor } from '@/components/panel/RestaurantMenuEditor';
 import { RestaurantPromoSettings } from '@/components/panel/RestaurantPromoSettings';
 import { CompetitorAiReportView } from '@/components/panel/CompetitorAiReport';
+import { PanelAiReportHistory } from '@/components/panel/PanelAiReportHistory';
 import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { PanelOrdersSection } from '@/components/panel/PanelOrdersSection';
@@ -83,7 +84,7 @@ export function RestaurantDashboard() {
   }
   if (!data) return null;
 
-  const { summary, ratings, competitors, ai_insight, ai_quota, ai_pricing, restaurant } = data;
+  const { summary, ratings, competitors, ai_insight, ai_quota, ai_pricing, ai_reports, restaurant } = data;
 
   function refreshQuota(next: typeof ai_quota) {
     setData((prev) => (prev ? { ...prev, ai_quota: next } : prev));
@@ -235,6 +236,17 @@ export function RestaurantDashboard() {
           </form>
         ) : null}
       </section>
+
+      {userEmail ? (
+        <PanelAiReportHistory
+          userEmail={userEmail}
+          reports={ai_reports ?? []}
+          onRefresh={() => {
+            if (!userEmail) return;
+            void getPanelDashboard(userEmail).then(setData);
+          }}
+        />
+      ) : null}
 
       {!access?.can_write_actions ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-brand-gold">

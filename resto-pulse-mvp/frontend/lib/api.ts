@@ -679,6 +679,18 @@ export function analyzePanelCompetitor(userEmail: string, competitorId: string) 
   );
 }
 
+export function getPanelAiReportTrend(userEmail: string) {
+  return request<import('@/lib/types').AiReportTrend>(
+    `/panel/ai-reports/trend?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function getPanelAiReportDetail(userEmail: string, reportId: string) {
+  return request<import('@/lib/types').StoredAiReport>(
+    `/panel/ai-reports/${encodeURIComponent(reportId)}?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
 export function addPanelCompetitor(payload: { user_email: string; place_id: string; name: string }) {
   return request<{ id: string; google_place_id: string; name: string; rating: number | null; review_count: number | null }>(
     '/panel/competitors',

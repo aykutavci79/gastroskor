@@ -580,6 +580,30 @@ export type PanelDashboard = {
   ai_insight: string;
   ai_quota: AiAnalysisQuota;
   ai_pricing: AiPricingCatalog;
+  ai_reports?: StoredAiReport[];
+};
+
+export type StoredAiReport = {
+  id: string;
+  competitor_id: string | null;
+  competitor_name: string;
+  comparison_summary: string;
+  your_strengths: Array<{ category: string; summary: string; praised_products?: string[] }>;
+  your_gaps: Array<{ category: string; summary: string; praised_products?: string[] }>;
+  competitor_strengths: Array<{ category: string; summary: string; praised_products?: string[] }>;
+  reviews_used: { own: number; competitor: number } | null;
+  created_at: string | null;
+};
+
+export type AiReportTrend = {
+  available: boolean;
+  report_count: number;
+  period_from?: string;
+  period_to?: string;
+  summary?: string;
+  improvements?: Array<{ category: string; summary: string }>;
+  new_concerns?: Array<{ category: string; summary: string }>;
+  message?: string;
 };
 
 export type CompetitorInsight = {
@@ -601,6 +625,7 @@ export type CompetitorAiReport = {
   models_used: string[];
   warnings: string[];
   disclaimer: string;
+  saved_report_id?: string;
 };
 
 export type GourmetChatAuthor = {

@@ -612,6 +612,7 @@ export type PanelDashboard = {
   ai_insight: string;
   ai_quota: AiAnalysisQuota;
   ai_pricing: AiPricingCatalog;
+  ai_reports: StoredAiReport[];
 };
 
 export type CompetitorInsight = {
@@ -633,4 +634,36 @@ export type CompetitorAiReport = {
   models_used: string[];
   warnings: string[];
   disclaimer: string;
+  saved_report_id?: string;
+};
+
+export type StoredAiInsight = {
+  category: string;
+  summary: string;
+  praised_products?: string[];
+};
+
+export type StoredAiReport = {
+  id: string;
+  competitor_id: string | null;
+  competitor_name: string;
+  comparison_summary: string;
+  your_strengths: StoredAiInsight[];
+  your_gaps: StoredAiInsight[];
+  competitor_strengths: StoredAiInsight[];
+  reviews_used: { own: number; competitor: number } | null;
+  created_at: string | null;
+};
+
+export type AiReportTrend = {
+  available: boolean;
+  report_count: number;
+  period_from?: string;
+  period_to?: string;
+  summary?: string;
+  improvements?: StoredAiInsight[];
+  new_concerns?: StoredAiInsight[];
+  model?: string;
+  message?: string;
+  disclaimer?: string;
 };

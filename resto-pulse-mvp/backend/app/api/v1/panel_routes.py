@@ -46,6 +46,8 @@ from app.schemas.restaurant_order import (
 )
 from app.services.panel_access import build_panel_access_state, get_user_ownership
 from app.services.panel_dashboard import build_dashboard_payload
+from app.services.ai_analysis_trend import build_analysis_trend
+from app.services.ai_report_storage import get_analysis_report, list_analysis_reports, save_analysis_report
 from app.services.competitor_ai_analysis import analyze_competitor_pair
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
@@ -789,14 +791,68 @@ async def analyze_competitor(
         record_ai_analysis(ownership, use_extra_credit=use_extra)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    saved = save_analysis_report(
+        db,
+        ownership_id=ownership.id,
+        competitor_id=row.id,
+        competitor_name=row.competitor_name,
+        report=report,
+    )
+
     db.add(row)
     db.add(ownership)
+    db.add(saved)
     if ownership.subscription:
         db.add(ownership.subscription)
     db.commit()
+    report["saved_report_id"] = str(saved.id)
     report["ai_quota"] = ai_quota_as_dict(build_ai_quota(ownership))
     report["used_extra_credit"] = use_extra
     return report
+
+
+@panel_router.get("/ai-reports")
+def list_ai_reports(
+    user_email: str = Query(...),
+    limit: int = Query(default=24, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    return {"items": list_analysis_reports(db, ownership.id, limit=limit)}
+
+
+@panel_router.get("/ai-reports/trend")
+async def get_ai_reports_trend(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    reports = list_analysis_reports(db, ownership.id, limit=3)
+    trend = await build_analysis_trend(reports)
+    return trend
+
+
+@panel_router.get("/ai-reports/{report_id}")
+def get_ai_report_detail(
+    report_id: UUID,
+    user_email: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    detail = get_analysis_report(db, ownership.id, report_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rapor bulunamadi.")
+    return detail
 
 
 @panel_router.post("/ai-purchase")

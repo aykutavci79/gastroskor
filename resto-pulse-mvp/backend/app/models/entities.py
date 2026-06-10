@@ -461,6 +461,9 @@ class RestaurantOwnership(Base):
     competitors: Mapped[list["RestaurantCompetitor"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
+    ai_analysis_reports: Mapped[list["RestaurantAiAnalysisReport"]] = relationship(
+        back_populates="ownership", cascade="all, delete-orphan"
+    )
     otp_challenges: Mapped[list["RestaurantOtpChallenge"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"
     )
@@ -675,6 +678,33 @@ class RestaurantCompetitor(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="competitors")
+    ai_analysis_reports: Mapped[list["RestaurantAiAnalysisReport"]] = relationship(
+        back_populates="competitor"
+    )
+
+
+class RestaurantAiAnalysisReport(Base):
+    """Panel AI ozet raporu — ham yorum veya alinti saklanmaz."""
+
+    __tablename__ = "restaurant_ai_analysis_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ownership_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_ownerships.id", ondelete="CASCADE"), index=True
+    )
+    competitor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurant_competitors.id", ondelete="SET NULL"), nullable=True
+    )
+    competitor_name: Mapped[str] = mapped_column(String(255))
+    comparison_summary: Mapped[str] = mapped_column(Text)
+    your_strengths_json: Mapped[list] = mapped_column(JSONB, default=list)
+    your_gaps_json: Mapped[list] = mapped_column(JSONB, default=list)
+    competitor_strengths_json: Mapped[list] = mapped_column(JSONB, default=list)
+    reviews_used_json: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    ownership: Mapped["RestaurantOwnership"] = relationship(back_populates="ai_analysis_reports")
+    competitor: Mapped["RestaurantCompetitor | None"] = relationship(back_populates="ai_analysis_reports")
 
 
 class RestaurantAnalyticsEvent(Base):

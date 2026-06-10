@@ -7,8 +7,13 @@ import { PanelPromoSection } from '@/components/panel/PanelPromoSection';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
-import { analyzePanelCompetitor, getPanelAccess, getPanelDashboard } from '@/lib/api';
-import type { CompetitorAiReport, PanelAccess, PanelDashboard } from '@/lib/types';
+import {
+  analyzePanelCompetitor,
+  getPanelAccess,
+  getPanelAiReportTrend,
+  getPanelDashboard,
+} from '@/lib/api';
+import type { AiReportTrend, CompetitorAiReport, PanelAccess, PanelDashboard } from '@/lib/types';
 
 export default function PanelScreen() {
   const { user, loading: sessionLoading } = useSession();
@@ -18,6 +23,7 @@ export default function PanelScreen() {
   const [aiReport, setAiReport] = useState<CompetitorAiReport | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiTrend, setAiTrend] = useState<AiReportTrend | null>(null);
 
   useEffect(() => {
     if (!user?.email) {
@@ -31,6 +37,11 @@ export default function PanelScreen() {
         if (acc.can_access_panel) {
           const dash = await getPanelDashboard(user.email);
           setDashboard(dash);
+          if ((dash.ai_reports?.length ?? 0) >= 2) {
+            getPanelAiReportTrend(user.email).then(setAiTrend).catch(() => setAiTrend(null));
+          } else {
+            setAiTrend(null);
+          }
         } else {
           setDashboard(null);
         }
@@ -118,6 +129,11 @@ export default function PanelScreen() {
                   try {
                     const report = await analyzePanelCompetitor(user.email, c.id);
                     setAiReport(report);
+                    const dash = await getPanelDashboard(user.email);
+                    setDashboard(dash);
+                    if ((dash.ai_reports?.length ?? 0) >= 2) {
+                      getPanelAiReportTrend(user.email).then(setAiTrend).catch(() => setAiTrend(null));
+                    }
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'AI hatasi');
                   } finally {
@@ -133,8 +149,31 @@ export default function PanelScreen() {
           {aiReport ? (
             <Text style={styles.aiSummary} numberOfLines={8}>
               {aiReport.comparison_summary}
+              {aiReport.saved_report_id ? '\n\n(Ozet rapor kaydedildi.)' : ''}
             </Text>
           ) : null}
+        </View>
+      ) : null}
+
+      {dashboard?.ai_reports && dashboard.ai_reports.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>AI rapor gecmisi</Text>
+          {aiTrend?.available && aiTrend.summary ? (
+            <Text style={styles.trendText} numberOfLines={6}>
+              {aiTrend.period_from && aiTrend.period_to
+                ? `${aiTrend.period_from} — ${aiTrend.period_to}: `
+                : ''}
+              {aiTrend.summary}
+            </Text>
+          ) : null}
+          {dashboard.ai_reports.slice(0, 6).map((row) => (
+            <Text key={row.id} style={styles.reportLine} numberOfLines={2}>
+              {row.created_at
+                ? new Date(row.created_at).toLocaleDateString('tr-TR')
+                : '—'}{' '}
+              · {row.competitor_name}
+            </Text>
+          ))}
         </View>
       ) : null}
     </Screen>
@@ -181,5 +220,7 @@ const styles = StyleSheet.create({
   competitorName: { ...GastroStyles.bodyText, flex: 1 },
   link: { ...GastroStyles.linkText, fontSize: 12 },
   aiSummary: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
+  trendText: { color: GastroColors.accent, fontSize: 12, lineHeight: 18 },
+  reportLine: { color: GastroColors.muted, fontSize: 12 },
   error: GastroStyles.errorText,
 });
