@@ -130,8 +130,8 @@ export default function OnlineOrdersOpenScreen() {
         limit: 50,
         min_rating: minRating,
       });
-      setAllItems(res.items);
-      if (res.categories.length) setCategories(res.categories);
+      setAllItems(Array.isArray(res.items) ? res.items : []);
+      if (Array.isArray(res.categories) && res.categories.length) setCategories(res.categories);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Liste yuklenemedi');
       setAllItems([]);
@@ -212,8 +212,8 @@ export default function OnlineOrdersOpenScreen() {
           price_max: query.priceMax,
           max_distance_km: query.maxDistanceKm ?? undefined,
         });
-        setAllItems(res.items);
-        if (res.categories.length) setCategories(res.categories);
+        setAllItems(Array.isArray(res.items) ? res.items : []);
+        if (Array.isArray(res.categories) && res.categories.length) setCategories(res.categories);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sesli arama basarisiz');
         setAllItems([]);

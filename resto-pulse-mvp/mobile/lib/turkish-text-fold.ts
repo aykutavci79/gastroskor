@@ -1,7 +1,8 @@
 /** Turkce metin — konusma/yazim farklari icin ASCII yakinlastirma. */
 
 export function normalizeTrSpeechText(value: string): string {
-  return value
+  const input = typeof value === 'string' ? value : '';
+  return input
     .toLocaleLowerCase('tr-TR')
     .replace(/[’']/g, '')
     .replace(/[^\p{L}\p{N}\s.,]/gu, ' ')

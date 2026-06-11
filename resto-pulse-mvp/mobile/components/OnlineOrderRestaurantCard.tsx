@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GastroColors, GastroShadow } from '@/constants/theme';
 import { categoryLabel } from '@/constants/online-order-categories';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
+import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { restaurantMenuItemCount } from '@/lib/restaurant-menu';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
@@ -33,15 +34,20 @@ export function OnlineOrderRestaurantCard({
     name: restaurant.name,
     menuItems: restaurant.menu_preview,
   });
-  const rating = googleRating ?? restaurant.google_rating ?? restaurant.avg_rating;
+  const rating = coercePriceTl(googleRating ?? restaurant.google_rating ?? restaurant.avg_rating);
   const menuCount = restaurantMenuItemCount(restaurant);
   const kitchens = (restaurant.online_order_categories ?? []).slice(0, 3);
-  const previewPrice = voiceMatches?.[0]?.price_tl ?? restaurant.menu_preview?.[0]?.price_tl;
+  const previewPrice =
+    coercePriceTl(voiceMatches?.[0]?.price_tl) ??
+    coercePriceTl(restaurant.menu_preview?.[0]?.price_tl);
   const voiceMatchLabel =
     voiceMatches && voiceMatches.length
       ? voiceMatches
           .slice(0, 2)
-          .map((match) => `${match.label} ${match.price_tl.toFixed(0)} ₺`)
+          .map((match) => {
+            const price = formatPriceTl(match.price_tl, 0);
+            return price ? `${match.label} ${price} ₺` : match.label;
+          })
           .join(' · ')
       : null;
 
@@ -96,7 +102,7 @@ export function OnlineOrderRestaurantCard({
         <View style={styles.footer}>
           <View style={styles.priceBlock}>
             {previewPrice != null ? (
-              <Text style={styles.priceFrom}>{previewPrice.toFixed(0)} ₺’den</Text>
+              <Text style={styles.priceFrom}>{formatPriceTl(previewPrice, 0)} ₺’den</Text>
             ) : menuCount > 0 ? (
               <Text style={styles.priceFrom}>{menuCount} ürün</Text>
             ) : (

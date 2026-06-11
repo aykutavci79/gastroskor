@@ -52,6 +52,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
       transparent
       onRequestClose={onClose}
       statusBarTranslucent={false}>
+      {visible ? (
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} />
         <KeyboardAvoidingView
@@ -92,7 +93,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
               <View style={styles.preview}>
                 <Text style={styles.previewLabel}>Anladığım</Text>
                 <Text style={styles.previewText}>{formatVoiceOrderSummary(parsed)}</Text>
-                {parsed.issues.length && parsed.confidence !== 'high' ? (
+                {parsed.issues.length > 0 && parsed.confidence !== 'high' ? (
                   <Text style={styles.previewIssues}>{parsed.issues.join(' ')}</Text>
                 ) : null}
               </View>
@@ -127,6 +128,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+      ) : null}
     </Modal>
   );
 }

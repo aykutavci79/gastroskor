@@ -22,6 +22,7 @@ import {
   submitRestaurantOrder,
   verifyOrderPhoneOtp,
 } from '@/lib/api';
+import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
@@ -107,7 +108,8 @@ export function VoiceOrderConfirmSheet({
     setSelectedMatch(null);
   }, [command?.rawText, restaurant?.id]);
 
-  const lineTotal = activeLine && command ? activeLine.price_tl * command.quantity : 0;
+  const unitPrice = activeLine ? coercePriceTl(activeLine.price_tl) : null;
+  const lineTotal = unitPrice != null && command ? unitPrice * command.quantity : 0;
   const normalizedPhone = normalizeTrMobileInput(phone);
   const phoneOk = Boolean(phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164);
 
@@ -252,7 +254,7 @@ export function VoiceOrderConfirmSheet({
                         style={[styles.choiceRow, on && styles.choiceRowOn]}
                         onPress={() => setSelectedMatch(row)}>
                         <Text style={[styles.choiceText, on && styles.choiceTextOn]}>
-                          {row.label} · {row.price_tl.toFixed(0)} TL
+                          {row.label} · {formatPriceTl(row.price_tl, 0) ?? '—'} TL
                         </Text>
                       </Pressable>
                     );
