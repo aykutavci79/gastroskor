@@ -458,14 +458,16 @@ export default function OnlineOrdersOpenScreen() {
         <View style={styles.commandModal}>
           <Pressable style={styles.commandBackdrop} onPress={() => setVoiceCommandOpen(false)} />
           <View style={styles.commandSheet}>
-            <VoiceOrderCommandBar
-              restaurants={voiceRestaurantOptions}
-              defaultProductSearchGroup={voiceQuery?.voiceProduct}
-              onSubmit={(command) => {
-                setVoiceCommandOpen(false);
-                onVoiceOrderCommand(command);
-              }}
-            />
+            {voiceCommandOpen ? (
+              <VoiceOrderCommandBar
+                restaurants={voiceRestaurantOptions}
+                defaultProductSearchGroup={voiceQuery?.voiceProduct}
+                onSubmit={(command) => {
+                  setVoiceCommandOpen(false);
+                  onVoiceOrderCommand(command);
+                }}
+              />
+            ) : null}
           </View>
         </View>
       </Modal>

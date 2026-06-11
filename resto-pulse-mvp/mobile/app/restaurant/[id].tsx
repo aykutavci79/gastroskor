@@ -49,6 +49,7 @@ import { hasPublicMenu } from '@/lib/restaurant-menu';
 import { averageGsRating, isOwnReview, renderStarRow, sortReviewsWithViewerFirst } from '@/lib/review-display';
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
+import { coerceNumber, formatNumber } from '@/lib/coerce-number';
 import { formatApiError } from '@/lib/format-api-error';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
@@ -144,8 +145,8 @@ export default function RestaurantDetailScreen() {
 
     function applyLiveSnapshot(live: LivePlaceDetails) {
       setLiveDetails(live);
-      setGoogleRating(live.rating ?? null);
-      setGoogleReviewCount(live.user_ratings_total ?? null);
+      setGoogleRating(coerceNumber(live.rating));
+      setGoogleReviewCount(coerceNumber(live.user_ratings_total));
       setGoogleReviews(live.reviews ?? []);
     }
 
@@ -209,7 +210,7 @@ export default function RestaurantDetailScreen() {
           });
           setReviews(sortReviewsWithViewerFirst(reviewData, user?.email, user?.id));
           setPhotoUrls(gallery);
-          setGoogleRating(live.rating ?? restaurantData.google_rating ?? null);
+          setGoogleRating(coerceNumber(live.rating) ?? coerceNumber(restaurantData.google_rating));
           setGoogleReviewCount(live.user_ratings_total ?? null);
           await applyDistance(restaurantData);
           return;
@@ -230,7 +231,7 @@ export default function RestaurantDetailScreen() {
           restaurantData.promo?.menu_image_url?.trim();
         if (cover) gallery.push(cover);
 
-        let googleScore = restaurantData.google_rating ?? null;
+        let googleScore = coerceNumber(restaurantData.google_rating);
         let googleCount: number | null = null;
         googlePlaceId = restaurantData.google_place_id ?? googlePlaceId;
 
@@ -242,8 +243,8 @@ export default function RestaurantDetailScreen() {
               for (const url of live.photo_urls ?? []) {
                 if (!gallery.includes(url)) gallery.push(url);
               }
-              googleScore = live.rating ?? googleScore;
-              googleCount = live.user_ratings_total ?? null;
+              googleScore = coerceNumber(live.rating) ?? googleScore;
+              googleCount = coerceNumber(live.user_ratings_total);
             }
           } catch {
             // Google detay opsiyonel
@@ -303,7 +304,12 @@ export default function RestaurantDetailScreen() {
     });
   }, [loading, restaurant, focus]);
 
-  const gsRating = useMemo(() => averageGsRating(reviews), [reviews]);
+  const gsRating = useMemo(() => {
+    const avg = averageGsRating(reviews);
+    return avg != null ? coerceNumber(avg) : null;
+  }, [reviews]);
+  const googleRatingLabel = formatNumber(googleRating);
+  const gsRatingLabel = formatNumber(gsRating);
   const hasOwnReview = useMemo(
     () => reviews.some((row) => isOwnReview(row, user?.email, user?.id)),
     [reviews, user?.email, user?.id],
@@ -482,19 +488,19 @@ export default function RestaurantDetailScreen() {
           />
 
           <View style={styles.scoreRow}>
-            {googleRating != null ? (
+            {googleRatingLabel != null ? (
               <Text style={styles.googleScore}>
                 <Text style={styles.star}>★ </Text>
-                Google {googleRating.toFixed(1)}
+                Google {googleRatingLabel}
                 {googleReviewCount != null && googleReviewCount > 0
-                  ? ` · ${googleReviewCount.toLocaleString('tr-TR')}`
+                  ? ` · ${Math.round(googleReviewCount).toLocaleString('tr-TR')}`
                   : ''}
               </Text>
             ) : null}
-            {gsRating != null ? (
+            {gsRatingLabel != null ? (
               <Text style={styles.gsScore}>
                 <Text style={styles.star}>★ </Text>
-                GS {gsRating.toFixed(1)}
+                GS {gsRatingLabel}
               </Text>
             ) : null}
           </View>

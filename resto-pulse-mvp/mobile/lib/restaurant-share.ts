@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/coerce-number';
 import type { RestaurantListItem } from '@/lib/types';
 import { isUuid, resolveRestaurantDetailId } from '@/lib/uuid';
 
@@ -25,10 +26,10 @@ export function buildRestaurantShareText(
   const lines = [`🍽️ ${restaurant.name.trim()} — GastroSkor`];
   const location = [restaurant.district, restaurant.city].filter(Boolean).join(' · ');
   if (location) lines.push(`📍 ${location}`);
-  const google = options?.googleRating ?? restaurant.google_rating;
-  const gastro = options?.gastroRating ?? restaurant.avg_rating;
-  if (google != null) lines.push(`⭐ Google ${google.toFixed(1)}`);
-  if (gastro != null) lines.push(`★ GS ${gastro.toFixed(1)}`);
+  const google = formatNumber(options?.googleRating ?? restaurant.google_rating);
+  const gastro = formatNumber(options?.gastroRating ?? restaurant.avg_rating);
+  if (google != null) lines.push(`⭐ Google ${google}`);
+  if (gastro != null) lines.push(`★ GS ${gastro}`);
   lines.push(buildRestaurantPublicUrl(restaurant));
   return lines.join('\n');
 }

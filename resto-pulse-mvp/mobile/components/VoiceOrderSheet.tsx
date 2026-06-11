@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
+import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import {
   formatVoiceOrderSummary,
@@ -56,6 +57,16 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
     onSearch(parsed);
   }
 
+  function handleVoiceTranscript(text: string, isFinal: boolean) {
+    setDraft(text);
+    if (!isFinal || searching) return;
+    const query = parseVoiceOrderQuery(text);
+    if (query.voiceProduct && query.priceMax != null) {
+      setMicActive(false);
+      onSearch(query);
+    }
+  }
+
   return (
     <Modal
       visible={visible}
@@ -81,7 +92,8 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
               <Text style={styles.kicker}>Gastro Sipariş</Text>
               <Text style={styles.title}>Ne arıyorsun?</Text>
               <Text style={styles.sub}>
-                Komutunu yazın veya mikrofonla söyleyin — örn: 150 TL lahmacun.
+                Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun veya
+                2–3 sn sus — sonra otomatik arar.
               </Text>
 
               <View style={styles.inputRow}>
@@ -94,12 +106,14 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                   style={[styles.input, styles.inputFlex]}
                   editable={!searching}
                 />
-                <GastroVoiceMicButton
-                  compact
-                  active={micActive}
-                  disabled={searching}
-                  onTranscript={(text) => setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))}
-                />
+                <SpeechMicErrorBoundary compact>
+                  <GastroVoiceMicButton
+                    compact
+                    active={micActive}
+                    disabled={searching}
+                    onTranscript={handleVoiceTranscript}
+                  />
+                </SpeechMicErrorBoundary>
               </View>
 
               <View style={styles.preview}>

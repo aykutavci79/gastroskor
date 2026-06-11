@@ -1,6 +1,13 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+# Yalnizca API / Docker degisince deploy (mobil commit Railway'i tetiklemesin)
+watchPatterns = [
+  "resto-pulse-mvp/backend/**",
+  "Dockerfile",
+  "railway.toml",
+  ".dockerignore",
+]
 
 [deploy]
 restartPolicyType = "ON_FAILURE"

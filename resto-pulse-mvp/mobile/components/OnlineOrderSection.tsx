@@ -17,6 +17,8 @@ import {
   submitRestaurantOrder,
   verifyOrderPhoneOtp,
 } from '@/lib/api';
+import { ensureArray } from '@/lib/ensure-array';
+import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
@@ -37,7 +39,13 @@ type Props = {
 };
 
 export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onFieldFocus }: Props) {
-  const menuItems = restaurant.menu ?? restaurant.menu_preview ?? [];
+  const menuItems = useMemo(
+    () =>
+      ensureArray<RestaurantMenuItem>(restaurant.menu ?? restaurant.menu_preview).filter(
+        (item) => Boolean(item?.id && item?.name),
+      ),
+    [restaurant.menu, restaurant.menu_preview],
+  );
   const [lines, setLines] = useState<Record<string, LineState>>({});
   const [phone, setPhone] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
@@ -126,7 +134,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     return menuItems.reduce((sum, item) => {
       const row = lines[item.id];
       if (!row?.selected || row.quantity < 1) return sum;
-      return sum + item.price_tl * row.quantity;
+      const unit = coercePriceTl(item.price_tl) ?? 0;
+      return sum + unit * row.quantity;
     }, 0);
   }, [lines, menuItems]);
 
@@ -307,7 +316,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
           </Text>
           <Text style={styles.pendingMeta}>
             {pendingOrder.order_number ? `${pendingOrder.order_number} · ` : ''}
-            {pendingOrder.total_tl.toFixed(0)} TL · {pendingOrder.lines.length} kalem
+            {formatPriceTl(pendingOrder.total_tl, 0) ?? '—'} TL ·{' '}
+            {ensureArray(pendingOrder.lines).length} kalem
           </Text>
         </View>
       </View>
@@ -451,7 +461,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
 
       <View style={styles.footer}>
         <Text style={styles.totalLabel}>Toplam</Text>
-        <Text style={styles.totalValue}>{selectedTotal.toFixed(0)} TL</Text>
+        <Text style={styles.totalValue}>{formatPriceTl(selectedTotal, 0) ?? '0'} TL</Text>
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -486,7 +496,8 @@ function OrderRow({
 }) {
   const selected = Boolean(state?.selected);
   const qty = state?.quantity ?? 1;
-  const lineTotal = selected ? item.price_tl * qty : 0;
+  const unitPrice = coercePriceTl(item.price_tl) ?? 0;
+  const lineTotal = selected ? unitPrice * qty : 0;
 
   return (
     <View style={styles.row}>
@@ -499,7 +510,7 @@ function OrderRow({
         <Text style={styles.itemName} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={styles.unitPrice}>{item.price_tl.toFixed(0)} TL</Text>
+        <Text style={styles.unitPrice}>{formatPriceTl(item.price_tl, 0) ?? '—'} TL</Text>
       </Pressable>
       <View style={styles.colQty}>
         {selected ? (
@@ -516,7 +527,9 @@ function OrderRow({
           <Text style={styles.dash}>—</Text>
         )}
       </View>
-      <Text style={styles.colPrice}>{selected ? `${lineTotal.toFixed(0)} TL` : '—'}</Text>
+      <Text style={styles.colPrice}>
+        {selected ? `${formatPriceTl(lineTotal, 0) ?? '—'} TL` : '—'}
+      </Text>
     </View>
   );
 }

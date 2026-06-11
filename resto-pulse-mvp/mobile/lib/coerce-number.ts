@@ -6,3 +6,9 @@ export function coerceNumber(value: unknown): number | null {
   }
   return null;
 }
+
+export function formatNumber(value: unknown, decimals = 1): string | null {
+  const n = coerceNumber(value);
+  if (n == null) return null;
+  return n.toFixed(decimals);
+}

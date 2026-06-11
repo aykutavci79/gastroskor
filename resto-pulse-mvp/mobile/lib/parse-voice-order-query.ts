@@ -80,8 +80,22 @@ function parseSpokenNumber(chunk: string): number | null {
   return null;
 }
 
+const SPOKEN_PRICE_PHRASES: Array<{ pattern: RegExp; value: number }> = [
+  { pattern: /\biki\s*yuz\b/, value: 200 },
+  { pattern: /\buc\s*yuz\b/, value: 300 },
+  { pattern: /\bdort\s*yuz\b/, value: 400 },
+  { pattern: /\bbes\s*yuz\b/, value: 500 },
+  { pattern: /\byuz\s*elli\b/, value: 150 },
+  { pattern: /\byuz\s*yirmi\b/, value: 120 },
+];
+
 function extractPriceMax(text: string): number | null {
   const folded = foldTrAscii(text);
+
+  for (const row of SPOKEN_PRICE_PHRASES) {
+    if (row.pattern.test(folded)) return row.value;
+  }
+
   const patterns = [
     /(\d+(?:[.,]\d+)?)\s*(?:tl|lira)(?:\s*(?:ye|ya)\s*kadar)?/,
     /(?:en fazla|maksimum|azami)\s*(\d+(?:[.,]\d+)?)\s*(?:tl|lira)?/,
@@ -94,6 +108,14 @@ function extractPriceMax(text: string): number | null {
     const parsed = parseSpokenNumber(match[1]);
     if (parsed != null && parsed > 0) return parsed;
   }
+
+  // STT cogu zaman "lira" yazmadan sadece rakam dondurur: "iki 200 lahmacun"
+  const bareNumber = folded.match(/\b(\d{2,4})\b/);
+  if (bareNumber) {
+    const n = Number(bareNumber[1]);
+    if (Number.isFinite(n) && n >= 30 && n <= 10_000) return n;
+  }
+
   return null;
 }
 

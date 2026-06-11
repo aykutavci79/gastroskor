@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { ensureArray } from '@/lib/ensure-array';
+import { formatPriceTl } from '@/lib/format-price-tl';
 import type { RestaurantMenuItem } from '@/lib/types';
 
 type Props = {
@@ -9,9 +11,10 @@ type Props = {
 };
 
 export function RestaurantPublicMenu({ items, restaurantName }: Props) {
-  if (!items.length) return null;
+  const rows = ensureArray<RestaurantMenuItem>(items);
+  if (!rows.length) return null;
 
-  const byCategory = items.reduce<Record<string, RestaurantMenuItem[]>>((acc, item) => {
+  const byCategory = rows.reduce<Record<string, RestaurantMenuItem[]>>((acc, item) => {
     const key = item.category?.trim() || 'Menü';
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
@@ -36,7 +39,7 @@ export function RestaurantPublicMenu({ items, restaurantName }: Props) {
                     <Text style={styles.itemDesc}>{item.description}</Text>
                   ) : null}
                 </View>
-                <Text style={styles.itemPrice}>{item.price_tl.toFixed(2)} TL</Text>
+                <Text style={styles.itemPrice}>{formatPriceTl(item.price_tl, 2) ?? '—'} TL</Text>
               </View>
             ))}
           </View>

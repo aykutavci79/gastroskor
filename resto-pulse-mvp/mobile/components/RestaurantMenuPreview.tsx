@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { ensureArray } from '@/lib/ensure-array';
+import { formatPriceTl } from '@/lib/format-price-tl';
 import type { RestaurantMenuItem } from '@/lib/types';
 
 type Props = {
@@ -9,12 +11,13 @@ type Props = {
 };
 
 export function RestaurantMenuPreview({ items, totalCount }: Props) {
-  if (!items.length) return null;
+  const safeItems = ensureArray<RestaurantMenuItem>(items);
+  if (!safeItems.length) return null;
 
-  const preview = items.slice(0, 2);
+  const preview = safeItems.slice(0, 2);
   const more =
-    (totalCount ?? items.length) > preview.length
-      ? (totalCount ?? items.length) - preview.length
+    (totalCount ?? safeItems.length) > preview.length
+      ? (totalCount ?? safeItems.length) - preview.length
       : 0;
 
   return (
@@ -24,7 +27,7 @@ export function RestaurantMenuPreview({ items, totalCount }: Props) {
           <Text style={styles.name} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={styles.price}>{item.price_tl.toFixed(0)} TL</Text>
+          <Text style={styles.price}>{formatPriceTl(item.price_tl, 0) ?? '—'} TL</Text>
         </View>
       ))}
       {more > 0 ? <Text style={styles.more}>+{more} ürün daha</Text> : null}

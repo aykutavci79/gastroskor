@@ -1,19 +1,20 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
 
-import { VOICE_CONTEXT_PHRASES } from '@/constants/voice-product-catalog';
 import { GastroColors } from '@/constants/theme';
+import { buildGastroSpeechStartOptions } from '@/lib/gastro-speech-options';
+import {
+  getSpeechRecognitionNative,
+  readRecognitionAvailable,
+} from '@/lib/speech-recognition-native';
 
 type Props = {
-  onTranscript: (text: string) => void;
+  /** isFinal=true yalnizca dinleme oturumu bittiginde (sessizlik veya tekrar dokunma). */
+  onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
-  /** false iken native STT hook'lari mount edilmez (sheet kapanirken crash onlemi). */
+  /** false iken native STT dinleyicileri mount edilmez (sheet kapanirken crash onlemi). */
   active?: boolean;
 };
 
@@ -25,42 +26,68 @@ function GastroVoiceMicButtonImpl({
   compact = false,
 }: Omit<Props, 'active'>) {
   const [listening, setListening] = useState(false);
-  const [available, setAvailable] = useState(!isExpoGo);
+  const [available, setAvailable] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const lastTranscriptRef = useRef('');
+  const speech = getSpeechRecognitionNative();
 
   useEffect(() => {
-    if (isExpoGo) return;
-    void ExpoSpeechRecognitionModule.isRecognitionAvailable().then(setAvailable);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      try {
-        ExpoSpeechRecognitionModule.stop();
-      } catch {
-        /* native modul yok */
-      }
-    };
-  }, []);
-
-  useSpeechRecognitionEvent('start', () => setListening(true));
-  useSpeechRecognitionEvent('end', () => setListening(false));
-  useSpeechRecognitionEvent('result', (event) => {
-    const text = event.results[0]?.transcript?.trim();
-    if (text) onTranscript(text);
-    if (event.isFinal) setListening(false);
-  });
-  useSpeechRecognitionEvent('error', (event) => {
-    setListening(false);
-    if (event.error === 'not-allowed') {
-      setHint('Mikrofon izni gerekli.');
+    if (isExpoGo || !speech) {
+      setAvailable(false);
       return;
     }
-    setHint('Ses tanima basarisiz. Metin ile deneyin.');
-  });
+    setAvailable(readRecognitionAvailable(speech));
+  }, [speech]);
+
+  useEffect(() => {
+    if (!speech) return;
+
+    const finishSession = () => {
+      setListening(false);
+      const text = lastTranscriptRef.current.trim();
+      if (text) onTranscript(text, true);
+    };
+
+    const subs = [
+      speech.addListener('start', () => {
+        lastTranscriptRef.current = '';
+        setListening(true);
+        setHint(null);
+      }),
+      speech.addListener('end', finishSession),
+      speech.addListener('result', (event) => {
+        const text = event.results[0]?.transcript?.trim();
+        if (!text) return;
+        lastTranscriptRef.current = text;
+        onTranscript(text, false);
+      }),
+      speech.addListener('error', (event) => {
+        setListening(false);
+        if (event.error === 'not-allowed') {
+          setHint('Mikrofon izni gerekli.');
+          return;
+        }
+        if (event.error === 'no-speech') {
+          setHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+          return;
+        }
+        if (event.error === 'aborted') return;
+        setHint('Ses tanima basarisiz. Metin ile deneyin.');
+      }),
+    ];
+
+    return () => {
+      subs.forEach((sub) => sub.remove());
+      try {
+        speech.stop();
+      } catch {
+        /* native modul */
+      }
+    };
+  }, [onTranscript, speech]);
 
   const startListening = useCallback(async () => {
-    if (disabled || isExpoGo) {
+    if (disabled || isExpoGo || !speech) {
       setHint('Mikrofon TestFlight / Play build gerektirir.');
       return;
     }
@@ -68,24 +95,29 @@ function GastroVoiceMicButtonImpl({
       setHint('Bu cihazda ses tanima kullanilamiyor.');
       return;
     }
-    setHint(null);
-    const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (!permission.granted) {
-      setHint('Mikrofon ve konusma tanima izni gerekli.');
-      return;
-    }
     if (listening) {
-      ExpoSpeechRecognitionModule.stop();
+      try {
+        speech.stop();
+      } catch {
+        setListening(false);
+      }
       return;
     }
-    ExpoSpeechRecognitionModule.start({
-      lang: 'tr-TR',
-      interimResults: true,
-      continuous: false,
-      maxAlternatives: 1,
-      contextualStrings: VOICE_CONTEXT_PHRASES.slice(0, 40),
-    });
-  }, [available, disabled, listening]);
+
+    setHint(null);
+    lastTranscriptRef.current = '';
+    try {
+      const permission = await speech.requestPermissionsAsync();
+      if (!permission.granted) {
+        setHint('Mikrofon ve konusma tanima izni gerekli.');
+        return;
+      }
+      speech.start(buildGastroSpeechStartOptions());
+    } catch {
+      setHint('Ses tanima baslatilamadi. Metin ile deneyin.');
+      setListening(false);
+    }
+  }, [available, disabled, listening, speech]);
 
   return (
     <>
@@ -104,10 +136,15 @@ function GastroVoiceMicButtonImpl({
           <Text style={styles.emoji}>🎙️</Text>
         )}
         {!compact ? (
-          <Text style={styles.label}>{listening ? 'Dinleniyor…' : 'Konus'}</Text>
+          <Text style={styles.label}>
+            {listening ? 'Dinleniyor… (bitir: tekrar dokun)' : 'Konus'}
+          </Text>
         ) : null}
       </Pressable>
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {listening && compact ? (
+        <Text style={styles.hintCompact}>Bitirmek icin tekrar dokun</Text>
+      ) : null}
     </>
   );
 }
@@ -164,4 +201,11 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 18 },
   label: { color: GastroColors.text, fontWeight: '800', fontSize: 14 },
   hint: { color: GastroColors.gold, fontSize: 11, lineHeight: 15, marginTop: 4 },
+  hintCompact: {
+    color: GastroColors.muted,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 2,
+    textAlign: 'center',
+  },
 });

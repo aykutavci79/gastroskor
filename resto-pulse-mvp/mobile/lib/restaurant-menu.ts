@@ -1,3 +1,4 @@
+import { ensureArray } from '@/lib/ensure-array';
 import type { RestaurantListItem, RestaurantMenuItem, RestaurantPromoPublic } from '@/lib/types';
 
 type MenuCarrier = {
@@ -8,8 +9,9 @@ type MenuCarrier = {
 };
 
 export function restaurantMenuItems(restaurant: MenuCarrier): RestaurantMenuItem[] {
-  if (restaurant.menu?.length) return restaurant.menu;
-  return restaurant.menu_preview ?? [];
+  const menu = ensureArray<RestaurantMenuItem>(restaurant.menu);
+  if (menu.length) return menu;
+  return ensureArray<RestaurantMenuItem>(restaurant.menu_preview);
 }
 
 export function restaurantMenuItemCount(restaurant: MenuCarrier): number {

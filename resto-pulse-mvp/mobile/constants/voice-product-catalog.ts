@@ -58,6 +58,10 @@ export const VOICE_CONTEXT_PHRASES: string[] = [
   ...VOICE_CATALOG_PRODUCTS.flatMap((p) => [p.label, ...p.aliases]),
   'kilometre',
   'lira',
+  'iki yüz lira',
+  'yüz elli lira',
   'mesafede',
   'yakınımda',
+  'lahmacun arar mısın',
+  'arar mısın',
 ];

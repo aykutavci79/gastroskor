@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
+import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import {
   formatVoiceOrderCommandSummary,
@@ -25,6 +26,12 @@ const EXAMPLES = [
 export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, onSubmit }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
+  const [micActive, setMicActive] = useState(true);
+
+  useEffect(() => {
+    setMicActive(true);
+    return () => setMicActive(false);
+  }, []);
 
   const parsed = useMemo(
     () => parseVoiceOrderCommand(draft, restaurants, defaultProductSearchGroup),
@@ -47,10 +54,13 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
           multiline
           textAlignVertical="top"
         />
-        <GastroVoiceMicButton
-          compact
-          onTranscript={(text) => setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))}
-        />
+        <SpeechMicErrorBoundary compact>
+          <GastroVoiceMicButton
+            compact
+            active={micActive}
+            onTranscript={(text) => setDraft(text)}
+          />
+        </SpeechMicErrorBoundary>
       </View>
       <Text style={styles.preview}>{formatVoiceOrderCommandSummary(parsed)}</Text>
       {parsed.issues.length && parsed.confidence !== 'high' ? (
@@ -66,7 +76,10 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       <Pressable
         style={[styles.btn, !canSubmit && styles.btnDisabled]}
         disabled={!canSubmit}
-        onPress={() => onSubmit(parsed)}>
+        onPress={() => {
+          setMicActive(false);
+          onSubmit(parsed);
+        }}>
         <Text style={styles.btnText}>Siparişi hazırla</Text>
       </Pressable>
     </View>

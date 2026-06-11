@@ -238,7 +238,7 @@ export function VoiceOrderConfirmSheet({
                   <Text style={styles.lineName}>
                     {command.quantity}× {activeLine.label}
                   </Text>
-                  <Text style={styles.linePrice}>{lineTotal.toFixed(0)} TL</Text>
+                  <Text style={styles.linePrice}>{formatPriceTl(lineTotal, 0) ?? '—'} TL</Text>
                   <Text style={styles.linePay}>{command.paymentNote}</Text>
                 </View>
               ) : null}

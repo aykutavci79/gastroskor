@@ -10,6 +10,10 @@ node_modules
 aile-finans
 bahce-ustasi
 kelime-bulmaca
+subsnap
+resto-pulse-mvp/mobile/.expo-export-test
+resto-pulse-mvp/mobile/node_modules
+resto-pulse-mvp/mobile/dist
 prisma
 public
 app
