@@ -85,6 +85,14 @@ module.exports = ({ config }) => ({
     favicon: './assets/logo.png',
   },
   plugins: [
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          useFrameworks: 'static',
+        },
+      },
+    ],
     googleSignInPlugin,
     'expo-web-browser',
     'expo-router',
