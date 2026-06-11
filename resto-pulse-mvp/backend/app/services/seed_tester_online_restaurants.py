@@ -128,10 +128,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
         profile.review_count = seed.review_count
         profile.external_id = place_id
 
-    for item in list(ownership.menu_items):
-        db.delete(item)
-    db.flush()
-
+    existing_items = list(ownership.menu_items)
     for sort_order, row in enumerate(seed.menu):
         voice_slug = row.voice_slug
         label = row.name
@@ -139,17 +136,41 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
             product = get_voice_product(voice_slug)
             if product:
                 label = product.label
-        db.add(
-            RestaurantMenuItem(
-                ownership_id=ownership.id,
-                name=label,
-                price_tl=row.price_tl,
-                category=row.category,
-                voice_product_slug=voice_slug,
-                sort_order=sort_order,
-                is_active=True,
-            )
+        match = next(
+            (
+                item
+                for item in existing_items
+                if item.voice_product_slug == voice_slug
+                or (voice_slug is None and item.name == label)
+            ),
+            None,
         )
+        if match:
+            match.name = label
+            match.price_tl = row.price_tl
+            match.category = row.category
+            match.voice_product_slug = voice_slug
+            match.sort_order = sort_order
+            match.is_active = True
+            db.add(match)
+        else:
+            db.add(
+                RestaurantMenuItem(
+                    ownership_id=ownership.id,
+                    name=label,
+                    price_tl=row.price_tl,
+                    category=row.category,
+                    voice_product_slug=voice_slug,
+                    sort_order=sort_order,
+                    is_active=True,
+                )
+            )
+    seed_keys = {(row.voice_slug, row.name if not row.voice_slug else None) for row in seed.menu}
+    for item in existing_items:
+        key = (item.voice_product_slug, item.name if not item.voice_product_slug else None)
+        if key not in seed_keys and item.is_active:
+            item.is_active = False
+            db.add(item)
 
     db.add(restaurant)
     db.add(ownership)

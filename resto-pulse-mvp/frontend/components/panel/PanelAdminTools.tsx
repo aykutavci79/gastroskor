@@ -232,6 +232,23 @@ export function PanelAdminTools() {
     );
   }
 
+  async function verifyDenemeRestaurantsOnline(): Promise<string[] | null> {
+    try {
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr').replace(/\/$/, '');
+      const res = await fetch(
+        `${apiBase}/api/v1/restaurants/online-orders-open?city=Bursa&limit=50&min_rating=3`,
+        { cache: 'no-store' },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { items?: Array<{ name?: string }> };
+      return (data.items ?? [])
+        .map((row) => row.name ?? '')
+        .filter((name) => name.includes('Deneme'));
+    } catch {
+      return null;
+    }
+  }
+
   async function onSeedTesterRestaurants() {
     setLoading(true);
     setError(null);
@@ -242,12 +259,34 @@ export function PanelAdminTools() {
         detail?: string;
         count?: number;
         restaurants?: Array<{ name?: string }>;
+        railway_status?: number;
       };
-      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Seed basarisiz');
+      if (!res.ok) {
+        const online = await verifyDenemeRestaurantsOnline();
+        if (online && online.length >= 5) {
+          setMessage(
+            `Panel hata verdi ama API'de ${online.length} Deneme restorani zaten yayinda: ${online.join(', ')}`,
+          );
+          return;
+        }
+        const detail =
+          typeof data.detail === 'string'
+            ? data.detail
+            : `Seed basarisiz (HTTP ${data.railway_status ?? res.status})`;
+        throw new Error(detail);
+      }
       const names = (data.restaurants ?? []).map((row) => row.name).filter(Boolean).join(', ');
       setMessage(`Deneme restoranlari hazir (${data.count ?? 0}): ${names || '—'}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Seed basarisiz');
+      const online = await verifyDenemeRestaurantsOnline();
+      if (online && online.length >= 5) {
+        setMessage(
+          `Baglanti hatasi olabilir ama API'de ${online.length} Deneme restorani yayinda: ${online.join(', ')}`,
+        );
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Seed basarisiz');
+      }
     } finally {
       setLoading(false);
     }

@@ -393,7 +393,14 @@ def admin_seed_tester_restaurants(
     assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
     from app.services.seed_tester_online_restaurants import seed_tester_online_restaurants
 
-    return seed_tester_online_restaurants(db)
+    try:
+        return seed_tester_online_restaurants(db)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Seed hatasi: {exc.__class__.__name__}: {exc}",
+        ) from exc
 
 
 @panel_router.post("/admin/grant-access", response_model=PanelAccessRead)
