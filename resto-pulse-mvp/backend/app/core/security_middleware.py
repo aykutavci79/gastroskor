@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 PUBLIC_PREFIXES = (
     "/api/v1/health",
+    "/api/v1/auth/refresh",
     "/api/v1/auth/google/",
     "/api/v1/users/avatar-presets",
     "/api/v1/panel/applications",
@@ -73,7 +74,7 @@ def _path_requires_auth(path: str, method: str) -> bool:
 
 
 def _rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitRule, str] | None:
-    if path.startswith("/api/v1/auth/google/"):
+    if path.startswith("/api/v1/auth/google/") or path == "/api/v1/auth/refresh":
         return RateLimitRule(limit=20, window_sec=60), rate_limit_key("auth", client_ip)
     if path == "/api/v1/users/sync":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("sync", client_ip)

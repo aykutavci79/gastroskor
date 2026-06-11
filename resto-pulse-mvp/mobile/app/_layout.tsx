@@ -14,6 +14,7 @@ import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
+import { setupSslPinning } from '@/lib/ssl-pinning';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
 
@@ -43,6 +44,10 @@ function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+
+  useEffect(() => {
+    void setupSslPinning();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

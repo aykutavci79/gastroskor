@@ -43,27 +43,44 @@ import type {
 
 import { getApiV1Base } from '@/lib/api-base';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
-import { authHeaders } from '@/lib/auth-token';
+import { notifyAuthFailure } from '@/lib/auth-session-events';
+import { authHeaders, refreshAuthTokens } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 import { formatApiError } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 
 export { ReviewModerationApiError };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+function shouldAttemptAuthRefresh(path: string, status: number) {
+  return status === 401 && !path.startsWith('/auth/');
+}
+
+async function performRequest(path: string, init?: RequestInit): Promise<Response> {
   const hasBody = init?.body != null;
   const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+  return fetch(`${getApiV1Base()}${path}`, {
+    ...init,
+    headers: {
+      ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+      ...authHeaders(),
+      ...(init?.headers ?? {}),
+    },
+    signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
+  });
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${getApiV1Base()}${path}`, {
-      ...init,
-      headers: {
-        ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...authHeaders(),
-        ...(init?.headers ?? {}),
-      },
-      signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
-    });
+    response = await performRequest(path, init);
+    if (shouldAttemptAuthRefresh(path, response.status)) {
+      const refreshed = await refreshAuthTokens();
+      if (refreshed) {
+        response = await performRequest(path, init);
+      } else {
+        await notifyAuthFailure();
+      }
+    }
   } catch (err) {
     throw new Error(formatApiError(err));
   }
@@ -431,9 +448,27 @@ export function syncUser(payload: {
 }
 
 export function verifyGoogleMobileAuth(idToken: string) {
-  return request<{ profile: UserProfile; access_token: string; expires_in: number }>('/auth/google/mobile', {
+  return request<{
+    profile: UserProfile;
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    refresh_expires_in: number;
+  }>('/auth/google/mobile', {
     method: 'POST',
     body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
+export function refreshAuthSession(refreshToken: string) {
+  return request<{
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    refresh_expires_in: number;
+  }>('/auth/refresh', {
+    method: 'POST',
+    body: JSON.stringify({ refresh_token: refreshToken }),
   });
 }
 

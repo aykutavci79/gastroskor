@@ -5,7 +5,7 @@ from app.services.user_accounts import get_or_create_user, serialize_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.auth import GoogleMobileAuthPayload, GoogleMobileAuthResponse
-from app.services.access_token import create_access_token
+from app.services.access_token import create_token_pair
 from app.services.app_metrics import record_app_usage_event
 from app.services.google_id_token import GoogleIdTokenError, verify_google_id_token
 
@@ -13,12 +13,11 @@ router = APIRouter(prefix="/auth/google", tags=["auth"])
 
 
 def _google_auth_response(user, db: Session, *, platform: str) -> GoogleMobileAuthResponse:
-    access_token, expires_in = create_access_token(user_id=user.id, email=user.email)
+    tokens = create_token_pair(user_id=user.id, email=user.email)
     record_app_usage_event(db, event_type="user_login", user_id=user.id, platform=platform)
     return GoogleMobileAuthResponse(
         profile=serialize_user(user, db),
-        access_token=access_token,
-        expires_in=expires_in,
+        **tokens,
     )
 
 

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -31,6 +33,10 @@ def _is_uploaded_avatar_url(url: str | None) -> bool:
         return False
     lowered = url.lower()
     return "/avatars/" in lowered or "/media/avatars/" in lowered or "user_avatars/" in lowered
+
+
+def get_user_by_id(db: Session, user_id: UUID) -> User | None:
+    return db.get(User, user_id)
 
 
 def get_or_create_user(

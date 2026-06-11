@@ -22,8 +22,13 @@ export function useGoogleSignIn(onError: (message: string) => void) {
   const signIn = useCallback(async () => {
     try {
       const idToken = await signInWithGoogleNative();
-      const { profile, access_token } = await verifyGoogleMobileAuth(idToken);
-      await signInWithGoogleProfile(profile, profile.google_sub ?? null, access_token);
+      const { profile, access_token, refresh_token } = await verifyGoogleMobileAuth(idToken);
+      await signInWithGoogleProfile(
+        profile,
+        profile.google_sub ?? null,
+        access_token,
+        refresh_token,
+      );
     } catch (err) {
       onError(readGoogleSignInError(err));
     }

@@ -29,7 +29,8 @@ class Settings(BaseSettings):
 
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_hours: int = 720
+    jwt_access_token_expire_hours: int = 2
+    jwt_refresh_token_expire_days: int = 30
     # production'da varsayilan true; lokal test icin AUTH_REQUIRE_BEARER=false
     auth_require_bearer: bool | None = None
 
