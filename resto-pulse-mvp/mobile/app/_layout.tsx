@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
@@ -13,6 +14,16 @@ import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
+
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
+
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    enabled: !__DEV__,
+    tracesSampleRate: 0.2,
+  });
+}
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -28,7 +39,7 @@ const theme = {
   },
 };
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
@@ -82,3 +93,5 @@ export default function RootLayout() {
     </AppErrorBoundary>
   );
 }
+
+export default sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;

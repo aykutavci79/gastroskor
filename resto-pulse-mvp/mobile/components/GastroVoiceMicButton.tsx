@@ -9,12 +9,14 @@ import {
   readRecognitionAvailable,
 } from '@/lib/speech-recognition-native';
 
+const RESTART_DELAY_MS = 300;
+
 type Props = {
-  /** isFinal=true yalnizca dinleme oturumu bittiginde (sessizlik veya tekrar dokunma). */
+  /** isFinal=true yalnizca kullanici durdurunca veya active=false olunca. */
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
-  /** false iken native STT dinleyicileri mount edilmez (sheet kapanirken crash onlemi). */
+  /** false olunca dinleme durdurulur (arama tamamlandi vb.). */
   active?: boolean;
 };
 
@@ -24,12 +26,40 @@ function GastroVoiceMicButtonImpl({
   onTranscript,
   disabled = false,
   compact = false,
-}: Omit<Props, 'active'>) {
+  active = true,
+}: Props) {
   const [listening, setListening] = useState(false);
   const [available, setAvailable] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const lastTranscriptRef = useRef('');
+  const userStoppedRef = useRef(true);
+  const isAutoRestartRef = useRef(false);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speech = getSpeechRecognitionNative();
+
+  const clearRestartTimer = useCallback(() => {
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+  }, []);
+
+  const finishSession = useCallback(() => {
+    clearRestartTimer();
+    setListening(false);
+    const text = lastTranscriptRef.current.trim();
+    if (text) onTranscript(text, true);
+  }, [clearRestartTimer, onTranscript]);
+
+  const restartListening = useCallback(() => {
+    if (!speech || userStoppedRef.current) return;
+    try {
+      isAutoRestartRef.current = true;
+      speech.start(buildGastroSpeechStartOptions());
+    } catch {
+      finishSession();
+    }
+  }, [finishSession, speech]);
 
   useEffect(() => {
     if (isExpoGo || !speech) {
@@ -40,21 +70,47 @@ function GastroVoiceMicButtonImpl({
   }, [speech]);
 
   useEffect(() => {
-    if (!speech) return;
-
-    const finishSession = () => {
+    if (active) return;
+    userStoppedRef.current = true;
+    clearRestartTimer();
+    if (!speech) {
       setListening(false);
-      const text = lastTranscriptRef.current.trim();
-      if (text) onTranscript(text, true);
-    };
+      return;
+    }
+    try {
+      speech.stop();
+    } catch {
+      finishSession();
+    }
+  }, [active, clearRestartTimer, finishSession, speech]);
+
+  useEffect(() => {
+    if (!speech) return;
 
     const subs = [
       speech.addListener('start', () => {
-        lastTranscriptRef.current = '';
+        if (!isAutoRestartRef.current) {
+          lastTranscriptRef.current = '';
+        }
+        isAutoRestartRef.current = false;
         setListening(true);
         setHint(null);
       }),
-      speech.addListener('end', finishSession),
+      speech.addListener('end', () => {
+        if (userStoppedRef.current) {
+          finishSession();
+          return;
+        }
+        clearRestartTimer();
+        restartTimerRef.current = setTimeout(() => {
+          restartTimerRef.current = null;
+          if (userStoppedRef.current) {
+            finishSession();
+            return;
+          }
+          restartListening();
+        }, RESTART_DELAY_MS);
+      }),
       speech.addListener('result', (event) => {
         const text = event.results[0]?.transcript?.trim();
         if (!text) return;
@@ -62,6 +118,14 @@ function GastroVoiceMicButtonImpl({
         onTranscript(text, false);
       }),
       speech.addListener('error', (event) => {
+        clearRestartTimer();
+        if (!userStoppedRef.current && event.error === 'no-speech') {
+          restartTimerRef.current = setTimeout(() => {
+            restartTimerRef.current = null;
+            restartListening();
+          }, RESTART_DELAY_MS);
+          return;
+        }
         setListening(false);
         if (event.error === 'not-allowed') {
           setHint('Mikrofon izni gerekli.');
@@ -77,6 +141,8 @@ function GastroVoiceMicButtonImpl({
     ];
 
     return () => {
+      userStoppedRef.current = true;
+      clearRestartTimer();
       subs.forEach((sub) => sub.remove());
       try {
         speech.stop();
@@ -84,7 +150,13 @@ function GastroVoiceMicButtonImpl({
         /* native modul */
       }
     };
-  }, [onTranscript, speech]);
+  }, [
+    clearRestartTimer,
+    finishSession,
+    onTranscript,
+    restartListening,
+    speech,
+  ]);
 
   const startListening = useCallback(async () => {
     if (disabled || isExpoGo || !speech) {
@@ -96,15 +168,18 @@ function GastroVoiceMicButtonImpl({
       return;
     }
     if (listening) {
+      userStoppedRef.current = true;
+      clearRestartTimer();
       try {
         speech.stop();
       } catch {
-        setListening(false);
+        finishSession();
       }
       return;
     }
 
     setHint(null);
+    userStoppedRef.current = false;
     lastTranscriptRef.current = '';
     try {
       const permission = await speech.requestPermissionsAsync();
@@ -114,10 +189,18 @@ function GastroVoiceMicButtonImpl({
       }
       speech.start(buildGastroSpeechStartOptions());
     } catch {
+      userStoppedRef.current = true;
       setHint('Ses tanima baslatilamadi. Metin ile deneyin.');
       setListening(false);
     }
-  }, [available, disabled, listening, speech]);
+  }, [
+    available,
+    clearRestartTimer,
+    disabled,
+    finishSession,
+    listening,
+    speech,
+  ]);
 
   return (
     <>
@@ -155,20 +238,11 @@ export function GastroVoiceMicButton({
   disabled = false,
   compact = false,
 }: Props) {
-  if (!active) {
-    return (
-      <Pressable
-        style={[styles.btn, compact && styles.btnCompact, styles.btnDisabled]}
-        disabled>
-        <Text style={styles.emoji}>🎙️</Text>
-      </Pressable>
-    );
-  }
-
   return (
     <GastroVoiceMicButtonImpl
+      active={active}
       onTranscript={onTranscript}
-      disabled={disabled}
+      disabled={disabled || !active}
       compact={compact}
     />
   );

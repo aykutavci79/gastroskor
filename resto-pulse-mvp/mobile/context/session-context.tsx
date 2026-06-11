@@ -1,25 +1,19 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
-import { setAccessToken } from '@/lib/auth-token';
+import { clearAccessToken, setAccessToken } from '@/lib/auth-token';
 import { signOutGoogleNative } from '@/lib/google-signin-native';
 import { registerUserPushToken } from '@/lib/push-notifications';
+import {
+  clearStoredSession,
+  readStoredSession,
+  type StoredSessionUser,
+  writeStoredSession,
+} from '@/lib/session-secure-storage';
 import type { UserProfile } from '@/lib/types';
 
-const STORAGE_KEY = 'gastroskor.session.v1';
-
-export type SessionUser = {
-  id?: string | null;
-  email: string;
-  fullName: string | null;
-  avatarUrl?: string | null;
-  avatarPreset?: string | null;
-  nickname?: string | null;
-  needsNicknameSetup?: boolean;
-  googleSub?: string | null;
+export type SessionUser = StoredSessionUser & {
   accessToken?: string | null;
-  authMethod: 'google';
 };
 
 type SessionContextValue = {
@@ -54,8 +48,9 @@ function profileToSession(
 }
 
 async function persistUser(user: SessionUser) {
-  setAccessToken(user.accessToken ?? null);
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  await setAccessToken(user.accessToken ?? null);
+  const { accessToken: _token, ...stored } = user;
+  await writeStoredSession(stored);
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
@@ -83,27 +78,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   React.useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(async (raw) => {
-        if (!raw) return;
-        let parsed: SessionUser;
-        try {
-          parsed = JSON.parse(raw) as SessionUser;
-        } catch {
-          await AsyncStorage.removeItem(STORAGE_KEY);
+    readStoredSession()
+      .then(async (stored) => {
+        if (!stored) return;
+        const { user: storedUser, accessToken } = stored;
+        if (!accessToken) {
+          await clearStoredSession();
+          await clearAccessToken();
           return;
         }
-        if (!parsed?.email || parsed.authMethod !== 'google' || !parsed.googleSub || !parsed.accessToken) {
-          await AsyncStorage.removeItem(STORAGE_KEY);
-          setAccessToken(null);
-          return;
-        }
-        setAccessToken(parsed.accessToken ?? null);
+        await setAccessToken(accessToken);
+        const parsed: SessionUser = { ...storedUser, accessToken };
         try {
           const profile = await syncUser({
             email: parsed.email,
             full_name: parsed.fullName ?? null,
-            google_sub: parsed.googleSub,
+            google_sub: parsed.googleSub!,
           });
           const next = profileToSession(parsed.email, profile, parsed.googleSub, parsed.accessToken);
           await persistUser(next);
@@ -115,7 +105,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        /* AsyncStorage veya ag hatasi — uygulama acilsin */
+        /* SecureStore veya ag hatasi — uygulama acilsin */
       })
       .finally(() => setLoading(false));
   }, []);
@@ -134,8 +124,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await signOutGoogleNative();
-    setAccessToken(null);
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await clearAccessToken();
+    await clearStoredSession();
     setUser(null);
   }, []);
 
