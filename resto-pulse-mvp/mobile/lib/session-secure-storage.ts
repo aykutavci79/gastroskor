@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
+import { loadAccessToken } from '@/lib/auth-token';
+
 const SESSION_KEY = 'gastroskor.session.v1';
 const LEGACY_ASYNC_KEY = 'gastroskor.session.v1';
 
@@ -46,9 +48,11 @@ export async function readStoredSession(): Promise<{
 } | null> {
   const migrated = await migrateFromAsyncStorage();
   if (migrated?.email && migrated.authMethod === 'google' && migrated.googleSub) {
+    const accessToken =
+      migrated.accessToken?.trim() ? migrated.accessToken.trim() : await loadAccessToken();
     return {
       user: stripToken(migrated),
-      accessToken: migrated.accessToken?.trim() ? migrated.accessToken.trim() : null,
+      accessToken,
     };
   }
 
@@ -61,9 +65,11 @@ export async function readStoredSession(): Promise<{
       await SecureStore.deleteItemAsync(SESSION_KEY);
       return null;
     }
+    const accessToken =
+      parsed.accessToken?.trim() ? parsed.accessToken.trim() : await loadAccessToken();
     return {
       user: stripToken(parsed),
-      accessToken: parsed.accessToken?.trim() ? parsed.accessToken.trim() : null,
+      accessToken,
     };
   } catch {
     await SecureStore.deleteItemAsync(SESSION_KEY);
