@@ -1,4 +1,6 @@
 # Monorepo — EAS sadece gastroskor mobil icin arsivler
+.next/
+**/.next/
 bahce-ustasi/
 aile-finans/
 kelime-bulmaca/
