@@ -42,9 +42,9 @@ TESTER_RESTAURANTS: tuple[TesterRestaurantSeed, ...] = (
         google_rating=4.3,
         review_count=128,
         menu=(
-            TesterMenuItem(None, "Baklava", 120.0, "tatli"),
-            TesterMenuItem(None, "Sütlaç", 85.0, "tatli"),
-            TesterMenuItem(None, "Künefe", 145.0, "tatli"),
+            TesterMenuItem("baklava", "Baklava", 120.0, "tatli"),
+            TesterMenuItem("sutlac", "Sutlac", 85.0, "tatli"),
+            TesterMenuItem("kunefe", "Kunefe", 145.0, "tatli"),
             TesterMenuItem(None, "Börek", 75.0, "tuzlu"),
             TesterMenuItem("su", "Su", 15.0, "icecek"),
             TesterMenuItem("kola", "Kola", 45.0, "icecek"),
@@ -85,8 +85,8 @@ TESTER_RESTAURANTS: tuple[TesterRestaurantSeed, ...] = (
         google_rating=4.1,
         review_count=96,
         menu=(
-            TesterMenuItem("cantik-kiymali", "Kiymali Canti", 135.0),
-            TesterMenuItem("cantik-kusbasili", "Kusbasili Canti", 150.0),
+            TesterMenuItem("cantik-kiymali", "Kiymali Cantik", 135.0),
+            TesterMenuItem("cantik-kusbasili", "Kusbasili Cantik", 150.0),
             TesterMenuItem("iskender", "Iskender", 310.0),
             TesterMenuItem("lahmacun", "Lahmacun", 100.0),
             TesterMenuItem("doner-durum", "Doner Durum", 185.0),

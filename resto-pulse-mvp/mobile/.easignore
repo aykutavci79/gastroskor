@@ -2,3 +2,4 @@
 docs/
 .expo/
 node_modules/.cache/
+.eas-inspect-test/

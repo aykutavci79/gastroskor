@@ -2,6 +2,11 @@ import {
   VOICE_CATALOG_PRODUCTS,
   voiceSearchGroupLabel,
 } from '@/constants/voice-product-catalog';
+import {
+  foldTrAscii,
+  normalizeTrSpeechText,
+  textIncludesTrFolded,
+} from '@/lib/turkish-text-fold';
 
 export type VoiceOrderQuery = {
   rawText: string;
@@ -41,17 +46,8 @@ const WORD_ONES: Record<string, number> = {
   doksan: 90,
 };
 
-function normalizeSpeechText(value: string): string {
-  return value
-    .toLocaleLowerCase('tr-TR')
-    .replace(/[’']/g, '')
-    .replace(/[^\p{L}\p{N}\s.,]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function parseSpokenNumber(chunk: string): number | null {
-  const cleaned = normalizeSpeechText(chunk);
+  const cleaned = normalizeTrSpeechText(chunk);
   if (!cleaned) return null;
 
   const digit = cleaned.match(/(\d+(?:[.,]\d+)?)/);
@@ -85,14 +81,15 @@ function parseSpokenNumber(chunk: string): number | null {
 }
 
 function extractPriceMax(text: string): number | null {
+  const folded = foldTrAscii(text);
   const patterns = [
     /(\d+(?:[.,]\d+)?)\s*(?:tl|lira)(?:\s*(?:ye|ya)\s*kadar)?/,
     /(?:en fazla|maksimum|azami)\s*(\d+(?:[.,]\d+)?)\s*(?:tl|lira)?/,
     /(\d+(?:[.,]\d+)?)\s*liraya\s*kadar/,
-    /(yuz\s+elli|yüz\s+elli|iki\s+yuz|üç\s+yüz|uc\s+yuz)\s*(?:tl|lira)?/,
+    /(yuz\s+elli|iki\s+yuz|uc\s+yuz)\s*(?:tl|lira)?/,
   ];
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    const match = folded.match(pattern);
     if (!match) continue;
     const parsed = parseSpokenNumber(match[1]);
     if (parsed != null && parsed > 0) return parsed;
@@ -100,15 +97,15 @@ function extractPriceMax(text: string): number | null {
   return null;
 }
 
-function extractDistanceKm(text: string): number | null {
-  const kmMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:km|kilometre|kilometrede|kilometrelik)/);
+function extractDistanceKm(foldedText: string): number | null {
+  const kmMatch = foldedText.match(/(\d+(?:[.,]\d+)?)\s*(?:km|kilometre|kilometrede|kilometrelik)/);
   if (kmMatch) {
     const n = Number(kmMatch[1].replace(',', '.'));
     return Number.isFinite(n) && n > 0 ? n : null;
   }
-  if (/\b1\s*km\b|\bbir\s*km\b|\bbir\s*kilometre\b/.test(text)) return 1;
-  if (/\b2\s*km\b|\biki\s*km\b|\biki\s*kilometre\b/.test(text)) return 2;
-  if (/\byakınımda\b|\byakinimda\b|\byakın\b|\byakin\b/.test(text)) return 2;
+  if (/\b1\s*km\b|\bbir\s*km\b|\bbir\s*kilometre\b/.test(foldedText)) return 1;
+  if (/\b2\s*km\b|\biki\s*km\b|\biki\s*kilometre\b/.test(foldedText)) return 2;
+  if (/\byakinimda\b|\byakin\b/.test(foldedText)) return 2;
   return null;
 }
 
@@ -149,16 +146,14 @@ function buildAliasMatches(): AliasMatch[] {
 const ALIAS_MATCHES = buildAliasMatches();
 
 export function normalizeVoiceText(value: string): string {
-  return normalizeSpeechText(value);
+  return normalizeTrSpeechText(value);
 }
 
 export function matchVoiceProductDetail(
   text: string,
 ): { searchGroup: string; slug: string | null; label: string } | null {
-  const normalized = normalizeSpeechText(text);
   for (const row of ALIAS_MATCHES) {
-    const alias = normalizeSpeechText(row.alias);
-    if (alias && normalized.includes(alias)) {
+    if (textIncludesTrFolded(text, row.alias)) {
       return {
         searchGroup: row.searchGroup,
         slug: row.slug,
@@ -176,13 +171,13 @@ function extractProduct(text: string): { searchGroup: string; label: string } | 
 }
 
 export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
-  const text = normalizeSpeechText(rawText);
+  const text = normalizeTrSpeechText(rawText);
   const issues: string[] = [];
   const product = extractProduct(text);
   const priceMax = extractPriceMax(text);
-  const maxDistanceKm = extractDistanceKm(text);
+  const maxDistanceKm = extractDistanceKm(foldTrAscii(text));
 
-  if (!product) issues.push('Ürün anlaşılamadı (ör. lahmacun, cantık, adana).');
+  if (!product) issues.push('Ürün anlaşılamadı (ör. lahmacun, sütlaç, cantık).');
   if (priceMax == null) issues.push('Bütçe tavanı anlaşılamadı (ör. 150 TL).');
 
   let confidence: VoiceOrderQuery['confidence'] = 'low';

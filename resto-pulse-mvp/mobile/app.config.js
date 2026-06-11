@@ -41,7 +41,7 @@ module.exports = ({ config }) => ({
   name: 'GastroSkor',
   owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.23',
+  version: '1.0.25',
   orientation: 'portrait',
   icon: './assets/logo.png',
   scheme: 'gastroskor',
@@ -54,7 +54,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '27',
+    buildNumber: '29',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -75,7 +75,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/logo.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 35,
+    versionCode: 37,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [appLinkIntentFilter],
   },
@@ -115,6 +115,16 @@ module.exports = ({ config }) => ({
       {
         icon: './assets/logo.png',
         color: '#FF6B00',
+      },
+    ],
+    [
+      'expo-speech-recognition',
+      {
+        microphonePermission:
+          'Gastro Siparis komutlarini konusarak yazmak icin mikrofon kullanilir.',
+        speechRecognitionPermission:
+          'Gastro Siparis sesli arama icin konusma tanima izni gerekir.',
+        androidSpeechServicePackages: ['com.google.android.googlequicksearchbox'],
       },
     ],
   ],

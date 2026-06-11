@@ -7,8 +7,12 @@ kelime-bulmaca/
 subsnap/
 resto-pulse-mvp/backend/
 resto-pulse-mvp/frontend/
-app/
-components/
+# Yalnizca repo kokundeki Next.js klasorleri (/ ile sabitle; app/ yazarsan mobile/app de silinir — acilis crash)
+/app/
+/components/
+# Mobil expo-router ve bilesenler her zaman dahil
+!resto-pulse-mvp/mobile/app/**
+!resto-pulse-mvp/mobile/components/**
 .cursor/
 *.docx
 **/.git

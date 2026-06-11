@@ -59,10 +59,12 @@ class OrderPhoneStatus(BaseModel):
 
 class OrderPhoneSendOtpResponse(BaseModel):
     sent: bool = True
+    auto_verified: bool = False
     phone_masked: str
     expires_in_minutes: int
     delivery_mode: str = "live"
     info_message: str | None = None
+    order_phone: OrderPhoneStatus | None = None
 
 
 class OrderPhoneSendOtpRequest(BaseModel):

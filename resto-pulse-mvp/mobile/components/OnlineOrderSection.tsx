@@ -17,6 +17,7 @@ import {
   submitRestaurantOrder,
   verifyOrderPhoneOtp,
 } from '@/lib/api';
+import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
 
@@ -163,12 +164,16 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     setOtpInfo(null);
     try {
       const result = await sendOrderPhoneOtp(userEmail, phone.trim());
-      setOtpSent(true);
-      if (result.info_message) {
-        setOtpInfo(result.info_message);
-      } else if (result.delivery_mode === 'live') {
-        setOtpInfo(`${result.phone_masked} numarasina SMS gonderildi. Kod ${result.expires_in_minutes} dk gecerli.`);
-      }
+      await applyOrderPhoneSendOtpResult({
+        result,
+        phoneInput: phone,
+        storageKey: PHONE_STORAGE_KEY,
+        setVerifiedPhoneE164,
+        setPhoneVerified,
+        setOtpSent,
+        setOtpCode,
+        setOtpInfo,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SMS kodu gonderilemedi.');
     } finally {

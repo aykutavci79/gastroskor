@@ -37,18 +37,39 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         sort_order=11,
     ),
     VoiceProduct(
+        slug="sutlac",
+        label="Sutlac",
+        search_group="sutlac",
+        aliases=("sutlac", "sütlaç", "firin sutlac", "sutlac tatlisi"),
+        sort_order=15,
+    ),
+    VoiceProduct(
+        slug="baklava",
+        label="Baklava",
+        search_group="baklava",
+        aliases=("baklava", "cevizli baklava", "fistikli baklava"),
+        sort_order=16,
+    ),
+    VoiceProduct(
+        slug="kunefe",
+        label="Kunefe",
+        search_group="kunefe",
+        aliases=("kunefe", "künefe", "kaymakli kunefe"),
+        sort_order=17,
+    ),
+    VoiceProduct(
         slug="cantik-kiymali",
-        label="Kiymali Canti",
+        label="Kiymali Cantik",
         search_group="cantik",
-        aliases=("kiymali cantik", "kiymali canti", "kiymali"),
+        aliases=("kiymali cantik", "kiymali cantık", "kiymali", "kiyma cantik"),
         sort_order=20,
         hint="Genel arama: cantik",
     ),
     VoiceProduct(
         slug="cantik-kusbasili",
-        label="Kusbasili Canti",
+        label="Kusbasili Cantik",
         search_group="cantik",
-        aliases=("kusbasili cantik", "kusbasili canti", "kusbasi cantik"),
+        aliases=("kusbasili cantik", "kusbasili cantık", "kusbasi cantik"),
         sort_order=21,
         hint="Genel arama: cantik",
     ),
@@ -125,7 +146,9 @@ _ALIAS_INDEX: dict[str, str] = {}
 
 
 def _normalize_query(value: str) -> str:
-    return " ".join((value or "").strip().lower().split())
+    from app.services.turkish_text_fold import fold_tr_ascii
+
+    return fold_tr_ascii(value)
 
 
 for _product in VOICE_PRODUCTS:

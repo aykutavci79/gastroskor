@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { GastroColors } from '@/constants/theme';
 import {
   formatVoiceOrderCommandSummary,
@@ -35,16 +36,22 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <Text style={styles.label}>Gastro Sipariş komutu</Text>
-      <Text style={styles.hint}>Listede A/B/C harflerine göre yaz — mikrofon gerekmez.</Text>
-      <TextInput
-        value={draft}
-        onChangeText={setDraft}
-        placeholder="B'den 3 lahmacun, kapıda kredi kartı"
-        placeholderTextColor={GastroColors.muted}
-        style={styles.input}
-        multiline
-        textAlignVertical="top"
-      />
+      <Text style={styles.hint}>Listede A/B/C harflerine göre yaz veya konuş.</Text>
+      <View style={styles.inputRow}>
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="B'den 3 lahmacun, kapıda kredi kartı"
+          placeholderTextColor={GastroColors.muted}
+          style={[styles.input, styles.inputFlex]}
+          multiline
+          textAlignVertical="top"
+        />
+        <GastroVoiceMicButton
+          compact
+          onTranscript={(text) => setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))}
+        />
+      </View>
       <Text style={styles.preview}>{formatVoiceOrderCommandSummary(parsed)}</Text>
       {parsed.issues.length && parsed.confidence !== 'high' ? (
         <Text style={styles.issues}>{parsed.issues.join(' ')}</Text>
@@ -78,6 +85,8 @@ const styles = StyleSheet.create({
   },
   label: { color: GastroColors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.8 },
   hint: { color: GastroColors.muted, fontSize: 12, lineHeight: 16 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  inputFlex: { flex: 1 },
   input: {
     minHeight: 52,
     borderRadius: 12,

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.entities import User, UserOrderPhoneOtp
+from app.services.order_phone_test_bypass import is_order_phone_test_bypass
 from app.services.phone_tr import normalize_tr_mobile
 from app.services.sms_otp import generate_otp_code, hash_otp_code, send_sms_otp, verify_otp_code
 
@@ -63,8 +64,29 @@ def order_phone_status_for_user(user: User) -> dict:
     }
 
 
+def _mark_order_phone_verified(db: Session, *, user: User, phone_e164: str) -> dict:
+    user.order_phone_e164 = phone_e164
+    user.order_phone_verified_at = _utcnow()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return order_phone_status_for_user(user)
+
+
 async def send_order_phone_otp(db: Session, *, user: User, raw_phone: str) -> dict:
     phone_e164 = require_tr_mobile_phone(raw_phone)
+
+    if is_order_phone_test_bypass(phone_e164):
+        status = _mark_order_phone_verified(db, user=user, phone_e164=phone_e164)
+        return {
+            "sent": True,
+            "auto_verified": True,
+            "phone_masked": mask_order_phone(phone_e164),
+            "expires_in_minutes": 0,
+            "delivery_mode": "test_bypass",
+            "info_message": "Test numarasi — SMS atlandi, telefon dogrulandi.",
+            "order_phone": status,
+        }
 
     recent = db.scalar(
         select(UserOrderPhoneOtp)
@@ -120,6 +142,10 @@ async def send_order_phone_otp(db: Session, *, user: User, raw_phone: str) -> di
 
 def verify_order_phone_otp(db: Session, *, user: User, raw_phone: str, code: str) -> dict:
     phone_e164 = require_tr_mobile_phone(raw_phone)
+
+    if is_order_phone_test_bypass(phone_e164):
+        return _mark_order_phone_verified(db, user=user, phone_e164=phone_e164)
+
     challenge = db.scalar(
         select(UserOrderPhoneOtp)
         .where(

@@ -18,7 +18,7 @@ import {
 } from '@/components/FeaturedCompactCard';
 import { GastroColors } from '@/constants/theme';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
-import { resolveDeviceCoords } from '@/lib/device-location';
+import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
 import { filterFeaturedByRating } from '@/lib/featured-rating-filter';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import { restaurantDetailHref } from '@/lib/uuid';
@@ -83,17 +83,17 @@ export function FeaturedHighlightsSection() {
 
       if (status !== 'granted') {
         setLocationState('denied');
-        await loadFeatured(null);
+        await loadFeatured(BURSA_CENTER_COORDS);
         return;
       }
 
       setLocationState('granted');
-      // iOS GPS takilmasin: once konumsuz yukle, sonra hassas konumla yenile.
-      await loadFeatured(null);
+      // iOS GPS takilmasin: once Bursa, sonra hassas konumla yenile.
+      await loadFeatured(BURSA_CENTER_COORDS);
       if (cancelled) return;
-      const coords = await resolveDeviceCoords({ requestPermission: false });
-      if (cancelled || !coords) return;
-      await loadFeatured(coords);
+      const coords = await resolveDeviceCoords({ requestPermission: false, timeoutMs: 12_000 });
+      if (cancelled) return;
+      await loadFeatured(coords ?? BURSA_CENTER_COORDS);
     }
 
     void bootstrap();
@@ -132,10 +132,10 @@ export function FeaturedHighlightsSection() {
     try {
       const coords = await resolveDeviceCoords({ requestPermission: true });
       setLocationState(coords ? 'granted' : 'denied');
-      await loadFeatured(coords);
+      await loadFeatured(coords ?? BURSA_CENTER_COORDS);
     } catch {
       setLocationState('denied');
-      await loadFeatured(null);
+      await loadFeatured(BURSA_CENTER_COORDS);
     }
   }
 
@@ -146,11 +146,11 @@ export function FeaturedHighlightsSection() {
         <Text style={styles.sub}>Konumuna yakın, 4.5+ yıldızlı restoranlar</Text>
       </View>
 
-      {locationState === 'denied' && !loading && items.length === 0 ? (
+      {locationState === 'denied' && !loading ? (
         <View style={styles.locationBox}>
           <Text style={styles.locationTitle}>Konumunuzu paylaşın</Text>
           <Text style={styles.locationSub}>
-            Yakınındaki öne çıkan restoranları göstermek için konum izni gerekli.
+            Konum kapalıyken Bursa önerileri gösterilir. Yakınındakiler için konumu açın.
           </Text>
           <Pressable style={styles.locationBtn} onPress={() => void requestLocationAgain()}>
             <Text style={styles.locationBtnText}>Konumu aç</Text>

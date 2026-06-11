@@ -1,8 +1,8 @@
-import * as Location from 'expo-location';
-import { Stack } from 'expo-router';
+import { Stack, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -37,8 +37,8 @@ import {
 import {
   buildVoiceOrderRestaurantOptions,
 } from '@/lib/voice-order-letters';
-import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
 import { useSession } from '@/context/session-context';
+import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
 import {
   formatVoiceOrderSummary,
   type VoiceOrderQuery,
@@ -58,8 +58,8 @@ type AppliedFilters = {
 };
 
 export default function OnlineOrdersOpenScreen() {
+  const navigation = useNavigation();
   const { user } = useSession();
-  const keyboardInset = useKeyboardBottomInset();
   const [allItems, setAllItems] = useState<RestaurantListItem[]>([]);
   const [categories, setCategories] = useState<OnlineOrderCategoryOption[]>(ONLINE_ORDER_CATEGORIES);
   const [draftSlugs, setDraftSlugs] = useState<string[]>([]);
@@ -77,24 +77,45 @@ export default function OnlineOrdersOpenScreen() {
   const [voiceOrderCommand, setVoiceOrderCommand] = useState<VoiceOrderCommand | null>(null);
   const [voiceConfirmOpen, setVoiceConfirmOpen] = useState(false);
   const [voiceConfirmRestaurant, setVoiceConfirmRestaurant] = useState<RestaurantListItem | null>(null);
+  const [voiceCommandOpen, setVoiceCommandOpen] = useState(false);
+  const [usingFallbackCoords, setUsingFallbackCoords] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted' || cancelled) return;
-        const pos = await Location.getCurrentPositionAsync({});
-        if (!cancelled) {
-          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        }
-      } catch {
-        /* konum opsiyonel */
+    void (async () => {
+      const resolved = await resolveDeviceCoords({ requestPermission: true, timeoutMs: 12_000 });
+      if (cancelled) return;
+      if (resolved) {
+        setCoords(resolved);
+        setUsingFallbackCoords(false);
+      } else {
+        setCoords(BURSA_CENTER_COORDS);
+        setUsingFallbackCoords(true);
       }
     })();
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      if (!voiceSheetOpen && !voiceConfirmOpen && !voiceCommandOpen) return;
+      event.preventDefault();
+      if (voiceConfirmOpen) setVoiceConfirmOpen(false);
+      else if (voiceCommandOpen) setVoiceCommandOpen(false);
+      else if (voiceSheetOpen) setVoiceSheetOpen(false);
+    });
+    return unsubscribe;
+  }, [navigation, voiceSheetOpen, voiceConfirmOpen, voiceCommandOpen]);
+
+  const clearVoiceSearch = useCallback(() => {
+    setVoiceQuery(null);
+    setVoiceSheetOpen(false);
+    setVoiceCommandOpen(false);
+    setHasListed(false);
+    setApplied(null);
+    setAllItems([]);
   }, []);
 
   const loadCatalog = useCallback(async (minRating: number) => {
@@ -228,13 +249,7 @@ export default function OnlineOrdersOpenScreen() {
           headerTintColor: GastroColors.text,
         }}
       />
-      <Screen
-        scroll
-        style={
-          voiceQuery && items.length > 0
-            ? { ...styles.page, paddingBottom: 240 + keyboardInset }
-            : styles.page
-        }>
+      <Screen scroll style={styles.page}>
         {!voiceQuery ? (
           <>
             <View style={styles.hero}>
@@ -247,7 +262,7 @@ export default function OnlineOrdersOpenScreen() {
                 <Text style={styles.voiceHeroEmoji}>🎙️</Text>
                 <View style={styles.voiceHeroTextWrap}>
                   <Text style={styles.voiceHeroTitle}>Gastro Sipariş</Text>
-                  <Text style={styles.voiceHeroSub}>“150 TL lahmacun” ara, sonra “B’den 3 tane” yaz</Text>
+                  <Text style={styles.voiceHeroSub}>Yaz veya konuş: “150 TL lahmacun”</Text>
                 </View>
               </Pressable>
             </View>
@@ -284,8 +299,10 @@ export default function OnlineOrdersOpenScreen() {
               />
               <Text style={styles.ratingHint}>3.0 altı restoranlar online siparişte listelenmez.</Text>
 
-              {!coords ? (
-                <Text style={styles.coordsHint}>Mesafe filtresi için konum izni gerekir.</Text>
+              {usingFallbackCoords ? (
+                <Text style={styles.coordsHint}>
+                  Konum alınamadı — mesafe Bursa merkezine göre hesaplanır.
+                </Text>
               ) : null}
 
               <Pressable
@@ -331,6 +348,13 @@ export default function OnlineOrdersOpenScreen() {
               </Pressable>
             </View>
             <Text style={styles.voiceResultText}>{formatVoiceOrderSummary(voiceQuery)}</Text>
+            {items.length > 0 ? (
+              <Pressable
+                style={styles.voiceOrderLink}
+                onPress={() => setVoiceCommandOpen(true)}>
+                <Text style={styles.voiceOrderLinkText}>Sipariş komutu yaz (A/B/C harfi)</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -355,6 +379,27 @@ export default function OnlineOrdersOpenScreen() {
                 ? 'Pilot restoranlar panelde sesli ürünleri işaretlemeli. Mesafeyi artır veya bütçeyi yükselt.'
                 : 'Mutfak seçimini genişlet, mesafeyi artır veya puanı düşür. Pilot işletmeler panelden siparişi açmalı.'}
             </Text>
+            <View style={styles.emptyActions}>
+              {voiceQuery ? (
+                <>
+                  <Pressable style={styles.emptyBtn} onPress={() => setVoiceSheetOpen(true)}>
+                    <Text style={styles.emptyBtnText}>Aramayı düzenle</Text>
+                  </Pressable>
+                  <Pressable style={styles.emptyBtnGhost} onPress={clearVoiceSearch}>
+                    <Text style={styles.emptyBtnGhostText}>Mutfak filtresine dön</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  style={styles.emptyBtn}
+                  onPress={() => {
+                    setApplied(null);
+                    setHasListed(false);
+                  }}>
+                  <Text style={styles.emptyBtnText}>Filtreleri düzenle</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         ) : null}
 
@@ -386,16 +431,6 @@ export default function OnlineOrdersOpenScreen() {
         ) : null}
       </Screen>
 
-      {voiceQuery && hasListed && items.length > 0 ? (
-        <View style={[styles.commandBarDock, { bottom: keyboardInset }]}>
-          <VoiceOrderCommandBar
-            restaurants={voiceRestaurantOptions}
-            defaultProductSearchGroup={voiceQuery.voiceProduct}
-            onSubmit={onVoiceOrderCommand}
-          />
-        </View>
-      ) : null}
-
       <VoiceOrderSheet
         visible={voiceSheetOpen}
         searching={voiceSearching}
@@ -414,6 +449,26 @@ export default function OnlineOrdersOpenScreen() {
           setVoiceConfirmRestaurant(null);
         }}
       />
+
+      <Modal
+        visible={voiceCommandOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setVoiceCommandOpen(false)}>
+        <View style={styles.commandModal}>
+          <Pressable style={styles.commandBackdrop} onPress={() => setVoiceCommandOpen(false)} />
+          <View style={styles.commandSheet}>
+            <VoiceOrderCommandBar
+              restaurants={voiceRestaurantOptions}
+              defaultProductSearchGroup={voiceQuery?.voiceProduct}
+              onSubmit={(command) => {
+                setVoiceCommandOpen(false);
+                onVoiceOrderCommand(command);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -421,11 +476,15 @@ export default function OnlineOrdersOpenScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: GastroColors.bg },
   page: { gap: 16 },
-  commandBarDock: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+  commandModal: { flex: 1, justifyContent: 'flex-end' },
+  commandBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  commandSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    overflow: 'hidden',
   },
   hero: {
     borderRadius: 18,
@@ -492,6 +551,12 @@ const styles = StyleSheet.create({
   },
   voiceResultText: { color: GastroColors.text, fontSize: 15, fontWeight: '700' },
   voiceResultEdit: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
+  voiceOrderLink: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  voiceOrderLinkText: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
   voiceLegend: {
     borderRadius: 12,
     borderWidth: 1,
@@ -565,4 +630,20 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '700' },
   emptySub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
+  emptyActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  emptyBtn: {
+    borderRadius: 12,
+    backgroundColor: GastroColors.gold,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  emptyBtnText: { color: '#141414', fontWeight: '800', fontSize: 13 },
+  emptyBtnGhost: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  emptyBtnGhostText: { color: GastroColors.muted, fontWeight: '700', fontSize: 13 },
 });

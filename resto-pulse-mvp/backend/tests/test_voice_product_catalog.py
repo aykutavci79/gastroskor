@@ -20,6 +20,24 @@ def test_resolve_cantik_group_includes_both_variants():
     assert set(slugs) == {"cantik-kiymali", "cantik-kusbasili"}
 
 
+def test_resolve_cantik_with_turkish_dotless_i():
+    token, slugs = resolve_voice_search_token("cantık")
+    assert token == "cantik"
+    assert set(slugs) == {"cantik-kiymali", "cantik-kusbasili"}
+
+
+def test_resolve_sutlac_with_turkish_chars():
+    token, slugs = resolve_voice_search_token("sütlaç")
+    assert token == "sutlac"
+    assert slugs == ["sutlac"]
+
+
+def test_resolve_sutlac_ascii():
+    token, slugs = resolve_voice_search_token("sutlac")
+    assert token == "sutlac"
+    assert slugs == ["sutlac"]
+
+
 def test_resolve_specific_product_alias():
     token, slugs = resolve_voice_search_token("kusbasili cantik")
     assert token == "cantik"

@@ -601,92 +601,94 @@ export default function RestaurantDetailScreen() {
           <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />
         </View>
 
-        <View
-          style={styles.section}
-          onLayout={(event) => {
-            reviewFormOffsetY.current = event.nativeEvent.layout.y;
-          }}>
-          <Text style={styles.sectionTitle}>Yorum yap</Text>
-          {!user ? (
-            <Pressable onPress={() => router.push('/(tabs)/profil')}>
-              <Text style={styles.loginHint}>Yorum ve isim gizleme için giriş yap →</Text>
-            </Pressable>
-          ) : (
-            <>
-              <ReviewNameDisplayPicker
-                fullName={user.fullName ?? user.email}
-                value={nameDisplay}
-                onChange={setNameDisplay}
-              />
-              <Text style={styles.communityHint}>
-                Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
-              </Text>
-              <StarRatingPicker value={rating} onChange={setRating} />
-              <TextInput
-                value={text}
-                onFocus={() => {
-                  scrollToY(reviewFormOffsetY.current + 120);
-                }}
-                onChangeText={(value) => {
-                  setText(value);
-                  if (moderationHighlights.length) setModerationHighlights([]);
-                  if (submitError) setSubmitError(null);
-                }}
-                placeholder="Bu restoran hakkında ne düşünüyorsun?"
-                placeholderTextColor={GastroColors.placeholder}
-                style={[
-                  styles.textArea,
-                  moderationHighlights.length > 0 && styles.textAreaFlagged,
-                ]}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-              {moderationHighlights.length > 0 ? (
-                <View style={styles.moderationBox}>
-                  <Text style={styles.moderationTitle}>
-                    İşaretli ifadeler yayınlanamaz — düzeltip tekrar dene.
+        {!restaurant?.online_orders_available ? (
+          <>
+            <View
+              style={styles.section}
+              onLayout={(event) => {
+                reviewFormOffsetY.current = event.nativeEvent.layout.y;
+              }}>
+              <Text style={styles.sectionTitle}>Yorum yap</Text>
+              {!user ? (
+                <Pressable onPress={() => router.push('/(tabs)/profil')}>
+                  <Text style={styles.loginHint}>Yorum ve isim gizleme için giriş yap →</Text>
+                </Pressable>
+              ) : (
+                <>
+                  <ReviewNameDisplayPicker
+                    fullName={user.fullName ?? user.email}
+                    value={nameDisplay}
+                    onChange={setNameDisplay}
+                  />
+                  <Text style={styles.communityHint}>
+                    Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
                   </Text>
-                  <ReviewTextHighlight text={text} highlights={moderationHighlights} />
+                  <StarRatingPicker value={rating} onChange={setRating} />
+                  <TextInput
+                    value={text}
+                    onFocus={() => {
+                      scrollToY(reviewFormOffsetY.current + 120);
+                    }}
+                    onChangeText={(value) => {
+                      setText(value);
+                      if (moderationHighlights.length) setModerationHighlights([]);
+                      if (submitError) setSubmitError(null);
+                    }}
+                    placeholder="Bu restoran hakkında ne düşünüyorsun?"
+                    placeholderTextColor={GastroColors.placeholder}
+                    style={[
+                      styles.textArea,
+                      moderationHighlights.length > 0 && styles.textAreaFlagged,
+                    ]}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                  {moderationHighlights.length > 0 ? (
+                    <View style={styles.moderationBox}>
+                      <Text style={styles.moderationTitle}>
+                        İşaretli ifadeler yayınlanamaz — düzeltip tekrar dene.
+                      </Text>
+                      <ReviewTextHighlight text={text} highlights={moderationHighlights} />
+                    </View>
+                  ) : null}
+                  <ReviewPhotoPicker photos={photos} onChange={setPhotos} />
+                  <Pressable
+                    style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+                    disabled={submitting}
+                    onPress={() => void submitReview()}>
+                    <Text style={styles.submitBtnText}>
+                      {submitting ? 'Gönderiliyor...' : 'Yorum Gönder'}
+                    </Text>
+                  </Pressable>
+                  {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+                </>
+              )}
+            </View>
+
+            <View
+              style={styles.section}
+              onLayout={(event) => {
+                reviewsSectionY.current = event.nativeEvent.layout.y;
+              }}>
+              <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
+              {hasOwnReview ? (
+                <View style={styles.visitedHint}>
+                  <Text style={styles.visitedHintText}>
+                    Daha önce bu restorana gitmişsin — puanın ve yorumun en üstte.
+                  </Text>
                 </View>
               ) : null}
-              <ReviewPhotoPicker photos={photos} onChange={setPhotos} />
-              <Pressable
-                style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-                disabled={submitting}
-                onPress={() => void submitReview()}>
-                <Text style={styles.submitBtnText}>
-                  {submitting ? 'Gönderiliyor...' : 'Yorum Gönder'}
-                </Text>
-              </Pressable>
-              {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
-            </>
-          )}
-        </View>
-
-        <View
-          style={styles.section}
-          onLayout={(event) => {
-            reviewsSectionY.current = event.nativeEvent.layout.y;
-          }}>
-          <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
-          {hasOwnReview ? (
-            <View style={styles.visitedHint}>
-              <Text style={styles.visitedHintText}>
-                Daha önce bu restorana gitmişsin — puanın ve yorumun en üstte.
-              </Text>
-            </View>
-          ) : null}
-          {reviews.length === 0 ? (
-            <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
-          ) : (
-            reviews.map((rev) => (
-              <GsReviewCard
-                key={rev.id}
-                review={rev}
-                viewerEmail={user?.email ?? null}
-                viewerUserId={user?.id ?? null}
-                viewerName={user?.fullName ?? null}
+              {reviews.length === 0 ? (
+                <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
+              ) : (
+                reviews.map((rev) => (
+                  <GsReviewCard
+                    key={rev.id}
+                    review={rev}
+                    viewerEmail={user?.email ?? null}
+                    viewerUserId={user?.id ?? null}
+                    viewerName={user?.fullName ?? null}
                 onCardLayout={(cardY) => {
                   reviewCardY.current[rev.id] = cardY;
                 }}
@@ -697,10 +699,12 @@ export default function RestaurantDetailScreen() {
                   setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
                 }
                 onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
-              />
-            ))
-          )}
-        </View>
+                  />
+                ))
+              )}
+            </View>
+          </>
+        ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
       <GoogleReviewsModal

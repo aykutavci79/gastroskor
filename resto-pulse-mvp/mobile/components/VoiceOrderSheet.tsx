@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { GastroColors } from '@/constants/theme';
 import {
   formatVoiceOrderSummary,
@@ -45,7 +46,12 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      statusBarTranslucent={false}>
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} />
         <KeyboardAvoidingView
@@ -63,18 +69,25 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
               <Text style={styles.kicker}>Gastro Sipariş</Text>
               <Text style={styles.title}>Ne arıyorsun?</Text>
               <Text style={styles.sub}>
-                Komutunu yaz — örn: 150 TL lahmacun = 150 TL&apos;ye kadar lahmacun satan yerler.
+                Komutunu yazın veya mikrofonla söyleyin — örn: 150 TL lahmacun.
               </Text>
 
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Örn: 1 km mesafede 150 TL lahmacun"
-                placeholderTextColor={GastroColors.muted}
-                multiline
-                style={styles.input}
-                editable={!searching}
-              />
+              <View style={styles.inputRow}>
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder="Örn: 1 km mesafede 150 TL lahmacun"
+                  placeholderTextColor={GastroColors.muted}
+                  multiline
+                  style={[styles.input, styles.inputFlex]}
+                  editable={!searching}
+                />
+                <GastroVoiceMicButton
+                  compact
+                  disabled={searching}
+                  onTranscript={(text) => setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))}
+                />
+              </View>
 
               <View style={styles.preview}>
                 <Text style={styles.previewLabel}>Anladığım</Text>
@@ -153,6 +166,8 @@ const styles = StyleSheet.create({
   },
   title: { color: GastroColors.text, fontSize: 22, fontWeight: '900' },
   sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  inputFlex: { flex: 1 },
   input: {
     minHeight: 72,
     borderRadius: 14,

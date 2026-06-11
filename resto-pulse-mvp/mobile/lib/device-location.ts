@@ -2,6 +2,9 @@ import * as Location from 'expo-location';
 
 export type DeviceCoords = { lat: number; lng: number };
 
+/** GPS yokken Bursa merkez — öne çıkanlar ve mesafe tahmini için. */
+export const BURSA_CENTER_COORDS: DeviceCoords = { lat: 40.1885, lng: 29.061 };
+
 const DEFAULT_TIMEOUT_MS = 8_000;
 
 function toCoords(position: Location.LocationObject): DeviceCoords {

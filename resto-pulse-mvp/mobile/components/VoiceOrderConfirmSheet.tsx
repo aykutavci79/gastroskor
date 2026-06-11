@@ -22,6 +22,7 @@ import {
   submitRestaurantOrder,
   verifyOrderPhoneOtp,
 } from '@/lib/api';
+import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
   formatVoiceOrderCommandSummary,
@@ -119,11 +120,16 @@ export function VoiceOrderConfirmSheet({
     setError(null);
     try {
       const result = await sendOrderPhoneOtp(userEmail, phone.trim());
-      setOtpSent(true);
-      setOtpInfo(
-        result.info_message ??
-          `${result.phone_masked} numarasına SMS gönderildi.`,
-      );
+      await applyOrderPhoneSendOtpResult({
+        result,
+        phoneInput: phone,
+        storageKey: PHONE_STORAGE_KEY,
+        setVerifiedPhoneE164,
+        setPhoneVerified,
+        setOtpSent,
+        setOtpCode,
+        setOtpInfo,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'SMS gönderilemedi.');
     } finally {

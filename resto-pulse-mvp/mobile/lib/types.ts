@@ -96,10 +96,12 @@ export type OrderPhoneStatus = {
 
 export type OrderPhoneSendOtpResponse = {
   sent: boolean;
+  auto_verified?: boolean;
   phone_masked: string;
   expires_in_minutes: number;
-  delivery_mode?: 'mock' | 'apitest' | 'live' | string;
+  delivery_mode?: 'mock' | 'apitest' | 'live' | 'test_bypass' | string;
   info_message?: string | null;
+  order_phone?: OrderPhoneStatus | null;
 };
 
 export type RestaurantOrderActiveResponse = {

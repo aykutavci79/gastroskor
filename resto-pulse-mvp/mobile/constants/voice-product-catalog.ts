@@ -9,21 +9,25 @@ export type VoiceCatalogProduct = {
 
 export const VOICE_CATALOG_PRODUCTS: VoiceCatalogProduct[] = [
   { slug: 'lahmacun', label: 'Lahmacun', searchGroup: 'lahmacun', aliases: ['lahmacun', 'lahmacunu'] },
+  { slug: 'cantik', label: 'Cantık', searchGroup: 'cantik', aliases: ['cantık', 'cantik'] },
   {
     slug: 'acili-lahmacun',
     label: 'Acılı Lahmacun',
     searchGroup: 'lahmacun',
     aliases: ['acılı lahmacun', 'acı lahmacun', 'acili lahmacun'],
   },
+  { slug: 'sutlac', label: 'Sütlaç', searchGroup: 'sutlac', aliases: ['sütlaç', 'sutlac', 'fırın sütlaç', 'firin sutlac'] },
+  { slug: 'baklava', label: 'Baklava', searchGroup: 'baklava', aliases: ['baklava', 'cevizli baklava', 'fıstıklı baklava'] },
+  { slug: 'kunefe', label: 'Künefe', searchGroup: 'kunefe', aliases: ['künefe', 'kunefe', 'kaymaklı künefe', 'kaymakli kunefe'] },
   {
     slug: 'cantik-kiymali',
-    label: 'Kıymalı Cantı',
+    label: 'Kıymalı Cantık',
     searchGroup: 'cantik',
-    aliases: ['kıymalı cantı', 'kıymalı cantık', 'kiymali cantik'],
+    aliases: ['kıymalı cantık', 'kiymali cantik', 'kıymalı cantı', 'kiymali canti'],
   },
   {
     slug: 'cantik-kusbasili',
-    label: 'Kuşbaşılı Cantı',
+    label: 'Kuşbaşılı Cantık',
     searchGroup: 'cantik',
     aliases: ['kuşbaşılı cantı', 'kuşbaşılı cantık', 'kusbasili cantik'],
   },
