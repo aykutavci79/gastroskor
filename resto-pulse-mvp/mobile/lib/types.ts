@@ -46,6 +46,14 @@ export type RestaurantMenuItem = {
   category?: string | null;
   sort_order?: number;
   image_url?: string | null;
+  voice_product_slug?: string | null;
+};
+
+export type VoiceMenuMatch = {
+  voice_product_slug: string;
+  label: string;
+  price_tl: number;
+  menu_item_id: string;
 };
 
 export type RestaurantOrderLineRead = {
@@ -139,6 +147,25 @@ export type RestaurantListItem = {
   google_photo_url?: string | null;
   check_in_visitor_count?: number;
   online_orders_available?: boolean;
+  online_order_categories?: string[];
+  gastro_score?: number | null;
+  distance_score?: number | null;
+  rating_score?: number | null;
+  popularity_score?: number | null;
+  voice_menu_matches?: VoiceMenuMatch[];
+  voice_search_token?: string | null;
+};
+
+export type OnlineOrderCategoryOption = {
+  slug: string;
+  label: string;
+};
+
+export type OnlineOrderOpenListResponse = {
+  items: RestaurantListItem[];
+  categories: OnlineOrderCategoryOption[];
+  voice_search_token?: string | null;
+  voice_product_slugs?: string[];
 };
 
 export type RestaurantFollowStatus = {

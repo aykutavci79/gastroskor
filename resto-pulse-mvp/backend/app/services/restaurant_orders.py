@@ -28,6 +28,7 @@ from app.constants.order_reject_reasons import (
     validate_rejection_reason,
 )
 from app.services.order_phone_verification import user_has_verified_order_phone
+from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.phone_tr import normalize_tr_mobile
 from app.services.restaurant_menu import active_menu_items
 from app.services.restaurant_promo import subscription_allows_promo
@@ -120,6 +121,13 @@ def online_orders_available(ownership: RestaurantOwnership | None) -> bool:
     if not ownership.online_orders_enabled:
         return False
     return len(active_menu_items(ownership)) > 0
+
+
+def customer_online_orders_available(db: Session, ownership: RestaurantOwnership | None) -> bool:
+    if not online_orders_available(ownership):
+        return False
+    assert ownership is not None
+    return meets_online_order_trust_rating(db, ownership.restaurant_id)
 
 
 def order_line_to_dict(line: RestaurantOrderLine) -> dict:
@@ -218,6 +226,8 @@ def create_restaurant_order(
     ownership = get_ownership_for_restaurant(db, restaurant_id)
     if not online_orders_available(ownership):
         raise OrderError("Bu restoran su an online siparis kabul etmiyor.")
+    if not meets_online_order_trust_rating(db, restaurant_id):
+        raise OrderError("Bu restoran online siparis icin minimum 3.0 puan sartini karsilamiyor.")
 
     assert ownership is not None
     if get_pending_order_for_user(db, user_id=user.id, restaurant_id=restaurant_id):

@@ -9,6 +9,7 @@ type Props = {
   onCityChange: (v: string) => void;
   onSearch: () => void;
   searching?: boolean;
+  onInputFocus?: () => void;
 };
 
 export function SearchBar({
@@ -18,12 +19,14 @@ export function SearchBar({
   onCityChange,
   onSearch,
   searching = false,
+  onInputFocus,
 }: Props) {
   return (
     <View style={styles.wrap}>
       <TextInput
         value={query}
         onChangeText={onQueryChange}
+        onFocus={onInputFocus}
         placeholder="Ara: Örn. Döner 4 yıldız Bursa"
         placeholderTextColor={GastroColors.placeholder}
         style={styles.input}
@@ -36,6 +39,7 @@ export function SearchBar({
         <TextInput
           value={city}
           onChangeText={onCityChange}
+          onFocus={onInputFocus}
           placeholder="Şehir (ör. Bursa)"
           placeholderTextColor={GastroColors.placeholder}
           style={[styles.input, styles.cityInput]}

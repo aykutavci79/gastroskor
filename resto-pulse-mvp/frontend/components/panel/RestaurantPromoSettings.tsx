@@ -2,8 +2,10 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
+import { VoiceProductCatalogPicker } from '@/components/panel/VoiceProductCatalogPicker';
 import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
+import { ONLINE_ORDER_CATEGORIES } from '@/lib/online-order-categories';
 import { getPanelPromo, updatePanelPromo, uploadPanelCardCoverImage, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
 
@@ -18,6 +20,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const [settings, setSettings] = useState<RestaurantPromoSettings | null>(null);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
   const [onlineOrdersEnabled, setOnlineOrdersEnabled] = useState(false);
+  const [orderCategoryTags, setOrderCategoryTags] = useState<string[]>([]);
   const [directOrderText, setDirectOrderText] = useState('');
   const [directOrderPhone, setDirectOrderPhone] = useState('');
   const [directOrderWhatsapp, setDirectOrderWhatsapp] = useState('');
@@ -40,6 +43,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setSettings(data);
         setHasOwnCourier(data.has_own_courier);
         setOnlineOrdersEnabled(data.online_orders_enabled);
+        setOrderCategoryTags(data.online_order_category_tags ?? []);
         setDirectOrderText(data.direct_order_text ?? '');
         setDirectOrderPhone(data.direct_order_phone ?? '');
         setDirectOrderWhatsapp(data.direct_order_whatsapp ?? '');
@@ -63,6 +67,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         user_email: userEmail,
         has_own_courier: hasOwnCourier,
         online_orders_enabled: hasOwnCourier ? onlineOrdersEnabled : false,
+        online_order_category_tags: hasOwnCourier ? orderCategoryTags : [],
         direct_order_text: directOrderText.trim() || null,
         direct_order_phone: directOrderPhone.trim() || null,
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
@@ -244,15 +249,55 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         </label>
 
         {hasOwnCourier ? (
-          <label className="flex items-center gap-2 text-sm text-content">
-            <input
-              type="checkbox"
-              checked={onlineOrdersEnabled}
-              onChange={(e) => setOnlineOrdersEnabled(e.target.checked)}
-              className="rounded border-border"
-            />
-            Online siparis al (uygulamada menu tablosu, telefon ile)
-          </label>
+          <>
+            <label className="flex items-center gap-2 text-sm text-content">
+              <input
+                type="checkbox"
+                checked={onlineOrdersEnabled}
+                onChange={(e) => setOnlineOrdersEnabled(e.target.checked)}
+                className="rounded border-border"
+              />
+              Online siparis al (uygulamada menu tablosu, telefon ile)
+            </label>
+            {onlineOrdersEnabled ? (
+              <div>
+                <p className="text-xs text-content-muted">
+                  Musteri listesinde filtre icin en az bir mutfak secin (zorunlu).
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {ONLINE_ORDER_CATEGORIES.map((cat) => {
+                    const on = orderCategoryTags.includes(cat.slug);
+                    return (
+                      <button
+                        key={cat.slug}
+                        type="button"
+                        title={cat.hint}
+                        onClick={() =>
+                          setOrderCategoryTags((prev) =>
+                            on ? prev.filter((slug) => slug !== cat.slug) : [...prev, cat.slug],
+                          )
+                        }
+                        className={`rounded-lg border px-3 py-2 text-left text-xs ${
+                          on
+                            ? 'border-accent bg-accent/20 text-accent'
+                            : 'border-border text-content-muted hover:border-brand/50'
+                        }`}>
+                        <span className="block font-semibold">{cat.label}</span>
+                        {cat.hint ? (
+                          <span className="mt-0.5 block text-[10px] opacity-80">{cat.hint}</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <VoiceProductCatalogPicker
+                  userEmail={userEmail}
+                  subscriptionActive={subscriptionActive}
+                  onlineOrdersEnabled={onlineOrdersEnabled}
+                />
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         <div>

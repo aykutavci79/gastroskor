@@ -55,7 +55,10 @@ export default function RootLayout() {
               headerTintColor: GastroColors.text,
               contentStyle: { backgroundColor: GastroColors.bg },
             }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: false, headerBackTitle: 'Geri', title: 'Keşfet' }}
+            />
             <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />
@@ -64,6 +67,14 @@ export default function RootLayout() {
             <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
             <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
             <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
+            <Stack.Screen
+              name="siparis-acik"
+              options={{
+                title: 'Online Sipariş',
+                headerBackTitle: 'Geri',
+                headerBackVisible: true,
+              }}
+            />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

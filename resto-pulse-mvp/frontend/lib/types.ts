@@ -46,6 +46,28 @@ export type RestaurantMenuItem = {
   category?: string | null;
   sort_order?: number;
   is_active?: boolean;
+  voice_product_slug?: string | null;
+};
+
+export type VoiceProductCatalogGroup = {
+  search_group: string;
+  search_label: string;
+  products: {
+    slug: string;
+    label: string;
+    aliases: string[];
+    hint?: string | null;
+    sort_order: number;
+  }[];
+};
+
+export type VoiceMenuOfferingState = {
+  slug: string;
+  label: string;
+  search_group: string;
+  enabled: boolean;
+  price_tl: number | null;
+  menu_item_id: string | null;
 };
 
 export type RestaurantPromoPublic = {
@@ -168,6 +190,7 @@ export type RestaurantPromoSettings = {
   subscription_active: boolean;
   has_own_courier: boolean;
   online_orders_enabled: boolean;
+  online_order_category_tags: string[];
   direct_order_text: string | null;
   direct_order_phone: string | null;
   direct_order_whatsapp: string | null;

@@ -1,8 +1,9 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedHighlightsSection } from '@/components/FeaturedHighlightsSection';
+import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
 import { RegionalFlavorsHomeSection } from '@/components/RegionalFlavorsHomeSection';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SearchBar } from '@/components/SearchBar';
@@ -10,6 +11,7 @@ import { SloganBanner } from '@/components/SloganBanner';
 import { TabScreenHeader } from '@/components/TabScreenHeader';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
+import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
 import { listRestaurants, searchLivePlaces } from '@/lib/api';
 import {
   livePlaceDistanceLabel,
@@ -30,6 +32,9 @@ const SECTION_GAP = 24;
 export default function ExploreScreen() {
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const searchSectionY = useRef(0);
+  const onFieldFocus = useKeyboardFieldFocus(scrollRef);
   const [inputQuery, setInputQuery] = useState('');
   const [inputCity, setInputCity] = useState('Bursa');
   const [activeQuery, setActiveQuery] = useState('');
@@ -171,7 +176,13 @@ export default function ExploreScreen() {
   }
 
   return (
-    <Screen scroll style={styles.page} refreshing={refreshing} onRefresh={onRefresh}>
+    <Screen
+      scroll
+      scrollRef={scrollRef}
+      keyboardVerticalOffset={72}
+      style={styles.page}
+      refreshing={refreshing}
+      onRefresh={onRefresh}>
       <TabScreenHeader
         title="Keşfet"
         subtitle="Yakınındaki lezzetleri ara ve kesfet."
@@ -179,13 +190,19 @@ export default function ExploreScreen() {
         showDmAvatar
       />
 
+      <OnlineOrderEntryBanner />
+
       <FeaturedHighlightsSection />
 
       <SloganBanner />
 
       <RegionalFlavorsHomeSection />
 
-      <View style={styles.searchSection}>
+      <View
+        style={styles.searchSection}
+        onLayout={(event) => {
+          searchSectionY.current = event.nativeEvent.layout.y;
+        }}>
         <Text style={styles.sectionTitle}>Canlı arama</Text>
         <Text style={styles.sectionSub}>Google Haritalar ile anlık mekan araması</Text>
         <SearchBar
@@ -195,6 +212,7 @@ export default function ExploreScreen() {
           onCityChange={setInputCity}
           onSearch={commitSearch}
           searching={loadingSearch}
+          onInputFocus={() => onFieldFocus(searchSectionY.current, 48)}
         />
         {error ? (
           <View style={styles.errorBox}>

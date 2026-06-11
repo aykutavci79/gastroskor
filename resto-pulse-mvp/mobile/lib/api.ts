@@ -16,6 +16,7 @@ import type {
   PanelAccess,
   PanelDashboard,
   Restaurant,
+  OnlineOrderOpenListResponse,
   RestaurantListItem,
   RestaurantMenuItem,
   RestaurantPromoSettings,
@@ -41,6 +42,7 @@ import type {
 } from '@/lib/types';
 
 import { getApiV1Base } from '@/lib/api-base';
+import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { authHeaders } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 import { formatApiError } from '@/lib/format-api-error';
@@ -124,6 +126,72 @@ export function listRestaurants(params: {
   if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
   const query = search.toString();
   return request<RestaurantListItem[]>(`/restaurants${query ? `?${query}` : ''}`);
+}
+
+export async function listOnlineOrderRestaurants(params: {
+  origin_lat?: number;
+  origin_lng?: number;
+  city?: string;
+  category?: string;
+  min_rating?: number;
+  sort?: 'gastro_score' | 'distance' | 'rating' | 'popularity';
+  limit?: number;
+  voice_product?: string;
+  price_max?: number;
+  max_distance_km?: number;
+}): Promise<OnlineOrderOpenListResponse> {
+  const minRating = Math.max(ONLINE_ORDER_MIN_RATING, params.min_rating ?? ONLINE_ORDER_MIN_RATING);
+  const search = new URLSearchParams();
+  if (params.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
+  if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
+  if (params.city) search.set('city', params.city);
+  if (params.category) search.set('category', params.category);
+  search.set('min_rating', String(minRating));
+  if (params.sort) search.set('sort', params.sort);
+  if (params.limit != null) search.set('limit', String(params.limit));
+  if (params.voice_product) search.set('voice_product', params.voice_product);
+  if (params.price_max != null) search.set('price_max', String(params.price_max));
+  if (params.max_distance_km != null) search.set('max_distance_km', String(params.max_distance_km));
+  const query = search.toString();
+  try {
+    return await request<OnlineOrderOpenListResponse>(
+      `/restaurants/online-orders-open${query ? `?${query}` : ''}`,
+    );
+  } catch {
+    const fallback = await listRestaurants({
+      city: params.city,
+      origin_lat: params.origin_lat,
+      origin_lng: params.origin_lng,
+    });
+    let items = fallback.filter((row) => row.online_orders_available);
+    if (params.category) {
+      items = items.filter((row) => (row.online_order_categories ?? []).includes(params.category!));
+    }
+    items = items.filter((row) => {
+      const rating = row.google_rating ?? row.avg_rating;
+      return rating != null && rating >= minRating;
+    });
+    if (params.sort === 'rating') {
+      items.sort((a, b) => (b.google_rating ?? b.avg_rating ?? 0) - (a.google_rating ?? a.avg_rating ?? 0));
+    } else if (params.sort === 'popularity') {
+      items.sort(
+        (a, b) =>
+          (b.google_review_count ?? 0) - (a.google_review_count ?? 0) ||
+          (b.google_rating ?? b.avg_rating ?? 0) - (a.google_rating ?? a.avg_rating ?? 0),
+      );
+    } else if (params.sort === 'distance' && params.origin_lat != null) {
+      items.sort(
+        (a, b) => (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12),
+      );
+    } else {
+      items.sort(
+        (a, b) =>
+          (b.gastro_score ?? 0) - (a.gastro_score ?? 0) ||
+          (b.google_review_count ?? 0) - (a.google_review_count ?? 0),
+      );
+    }
+    return { items: items.slice(0, params.limit ?? 50), categories: [] };
+  }
 }
 
 export function listRegionalProducts(params?: { city?: string }) {

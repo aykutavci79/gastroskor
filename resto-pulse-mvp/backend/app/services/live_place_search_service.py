@@ -12,6 +12,7 @@ from app.integrations.maps_links import build_destination_label, build_google_ma
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse, ParsedSearchIntent
 from app.services.city_resolver import normalize_city_key, resolve_city_name
+from app.services.food_place_filter import is_food_related_place
 from app.services.gastro_score_ranking import rank_live_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
 from app.services.profanity_tr import normalize_review_text
@@ -100,6 +101,17 @@ def _prefilter_place_rows(
     return [row for row in rows if row.rating is not None and row.rating >= criteria.min_rating]
 
 
+def _filter_food_search_items(items: list[LivePlaceSearchItem]) -> list[LivePlaceSearchItem]:
+    kept: list[LivePlaceSearchItem] = []
+    for item in items:
+        if item.restaurant_id or item.is_premium_partner:
+            kept.append(item)
+            continue
+        if is_food_related_place(name=item.name, address=item.address):
+            kept.append(item)
+    return kept
+
+
 def _finalize_search_response(
     items: list[LivePlaceSearchItem],
     *,
@@ -108,7 +120,8 @@ def _finalize_search_response(
     parsed_model: ParsedSearchIntent,
     filters_applied: dict,
 ) -> LivePlaceSearchResponse:
-    filtered = apply_smart_filters(items, criteria)[:limit]
+    food_only = _filter_food_search_items(items)
+    filtered = apply_smart_filters(food_only, criteria)[:limit]
     return LivePlaceSearchResponse(
         items=filtered,
         parsed=parsed_model,

@@ -1,7 +1,9 @@
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +11,11 @@ import {
   View,
 } from 'react-native';
 
-import { FeaturedCompactCard, FEATURED_CARD_HEIGHT } from '@/components/FeaturedCompactCard';
+import {
+  FeaturedCompactCard,
+  FEATURED_CARD_HEIGHT,
+  FEATURED_CARD_WIDTH,
+} from '@/components/FeaturedCompactCard';
 import { GastroColors } from '@/constants/theme';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
 import { resolveDeviceCoords } from '@/lib/device-location';
@@ -20,10 +26,15 @@ import type { RestaurantTrendingItem } from '@/lib/types';
 
 type LocationState = 'loading' | 'granted' | 'denied';
 
+const FEATURED_GAP = 12;
+const AUTO_SCROLL_MS = 5000;
+
 export function FeaturedHighlightsSection() {
   const [items, setItems] = useState<RestaurantTrendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationState, setLocationState] = useState<LocationState>('loading');
+  const scrollRef = useRef<ScrollView>(null);
+  const activeIndexRef = useRef(0);
 
   const loadFeatured = useCallback(async (coords: { lat: number; lng: number } | null) => {
     setLoading(true);
@@ -91,6 +102,30 @@ export function FeaturedHighlightsSection() {
     };
   }, [loadFeatured]);
 
+  useEffect(() => {
+    activeIndexRef.current = 0;
+    scrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [items.length]);
+
+  useEffect(() => {
+    if (items.length <= 1) return undefined;
+
+    const stride = FEATURED_CARD_WIDTH + FEATURED_GAP;
+    const timer = setInterval(() => {
+      const next = (activeIndexRef.current + 1) % items.length;
+      activeIndexRef.current = next;
+      scrollRef.current?.scrollTo({ x: next * stride, animated: true });
+    }, AUTO_SCROLL_MS);
+
+    return () => clearInterval(timer);
+  }, [items.length]);
+
+  function onFeaturedScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const stride = FEATURED_CARD_WIDTH + FEATURED_GAP;
+    const x = event.nativeEvent.contentOffset.x;
+    activeIndexRef.current = Math.max(0, Math.min(items.length - 1, Math.round(x / stride)));
+  }
+
   async function requestLocationAgain() {
     setLocationState('loading');
     setLoading(true);
@@ -133,9 +168,15 @@ export function FeaturedHighlightsSection() {
 
       {!loading && items.length > 0 ? (
         <ScrollView
+          ref={scrollRef}
           horizontal
           nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={FEATURED_CARD_WIDTH + FEATURED_GAP}
+          snapToAlignment="start"
+          onMomentumScrollEnd={onFeaturedScrollEnd}
+          onScrollEndDrag={onFeaturedScrollEnd}
           style={styles.strip}
           contentContainerStyle={styles.listContent}>
           {items.map((item, index) => {
@@ -165,7 +206,7 @@ const styles = StyleSheet.create({
   titles: { gap: 4 },
   title: { color: GastroColors.text, fontSize: 20, fontWeight: '800' },
   sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
-  listContent: { gap: 12, paddingRight: 8 },
+  listContent: { gap: FEATURED_GAP, paddingRight: 8 },
   strip: { height: FEATURED_CARD_HEIGHT },
   locationBox: {
     borderRadius: 16,

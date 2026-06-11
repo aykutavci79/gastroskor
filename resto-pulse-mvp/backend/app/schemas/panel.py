@@ -102,6 +102,7 @@ class MenuItemCreateRequest(BaseModel):
     price_tl: float = Field(ge=0, le=99999)
     description: str | None = Field(default=None, max_length=500)
     category: str | None = Field(default=None, max_length=60)
+    voice_product_slug: str | None = Field(default=None, max_length=60)
 
 
 class MenuItemUpdateRequest(BaseModel):
@@ -112,12 +113,38 @@ class MenuItemUpdateRequest(BaseModel):
     category: str | None = Field(default=None, max_length=60)
     is_active: bool | None = None
     sort_order: int | None = None
+    voice_product_slug: str | None = Field(default=None, max_length=60)
+
+
+class VoiceMenuOfferingInput(BaseModel):
+    slug: str = Field(min_length=2, max_length=60)
+    enabled: bool = False
+    price_tl: float | None = Field(default=None, ge=0, le=99999)
+
+
+class VoiceMenuOfferingsSyncRequest(BaseModel):
+    user_email: str
+    offerings: list[VoiceMenuOfferingInput] = Field(min_length=1, max_length=80)
+
+
+class VoiceMenuOfferingState(BaseModel):
+    slug: str
+    label: str
+    search_group: str
+    enabled: bool = False
+    price_tl: float | None = None
+    menu_item_id: str | None = None
+
+
+class VoiceMenuOfferingsResponse(BaseModel):
+    items: list[VoiceMenuOfferingState] = Field(default_factory=list)
 
 
 class RestaurantPromoSettingsUpdate(BaseModel):
     user_email: str
     has_own_courier: bool = False
     online_orders_enabled: bool | None = None
+    online_order_category_tags: list[str] | None = None
     direct_order_text: str | None = Field(default=None, max_length=120)
     direct_order_phone: str | None = Field(default=None, max_length=32)
     direct_order_whatsapp: str | None = Field(default=None, max_length=32)

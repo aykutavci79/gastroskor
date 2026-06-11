@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.constants.online_order_categories import normalize_category_slugs
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.google_places_live import GooglePlacesLiveClient
@@ -27,6 +28,8 @@ from app.schemas.panel import (
     PanelApplicationListResponse,
     MenuItemCreateRequest,
     MenuItemUpdateRequest,
+    VoiceMenuOfferingsResponse,
+    VoiceMenuOfferingsSyncRequest,
     PanelNotificationPreferencesRead,
     PanelNotificationPreferencesUpdate,
     PanelNotificationRead,
@@ -78,8 +81,14 @@ from app.services.restaurant_menu import (
     create_menu_item,
     delete_menu_item,
     list_panel_menu,
+    load_ownership_with_menu,
     menu_item_to_dict,
     update_menu_item,
+)
+from app.services.voice_menu_offerings import (
+    list_voice_offerings_state,
+    sync_voice_menu_offerings,
+    voice_catalog_response,
 )
 from app.services.restaurant_orders import (
     OrderError,
@@ -449,6 +458,16 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
             ownership.online_orders_enabled = False
         elif payload.online_orders_enabled is not None:
             ownership.online_orders_enabled = payload.online_orders_enabled
+        if "online_order_category_tags" in fields:
+            ownership.online_order_category_tags = normalize_category_slugs(payload.online_order_category_tags)
+        if ownership.online_orders_enabled and ownership.promo_has_own_courier:
+            tags = normalize_category_slugs(ownership.online_order_category_tags or [])
+            if not tags:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Online siparis acikken en az bir mutfak secmelisiniz (or. doner, pizza).",
+                )
+            ownership.online_order_category_tags = tags
         ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
         ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
         ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
@@ -569,6 +588,7 @@ def add_panel_menu_item(payload: MenuItemCreateRequest, db: Session = Depends(ge
         price_tl=payload.price_tl,
         description=payload.description,
         category=payload.category,
+        voice_product_slug=payload.voice_product_slug,
     )
     return menu_item_to_dict(row)
 
@@ -594,6 +614,7 @@ def update_panel_menu_item(
         category=payload.category,
         is_active=payload.is_active,
         sort_order=payload.sort_order,
+        voice_product_slug=payload.voice_product_slug,
     )
     return menu_item_to_dict(row)
 
@@ -611,6 +632,42 @@ def remove_panel_menu_item(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
     delete_menu_item(db, ownership, item_id)
     return {"deleted": True}
+
+
+@panel_router.get("/voice-menu-offerings", response_model=VoiceMenuOfferingsResponse)
+def get_panel_voice_menu_offerings(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    ownership = load_ownership_with_menu(db, ownership.id) or ownership
+    return VoiceMenuOfferingsResponse(items=list_voice_offerings_state(ownership))
+
+
+@panel_router.put("/voice-menu-offerings", response_model=VoiceMenuOfferingsResponse)
+def put_panel_voice_menu_offerings(payload: VoiceMenuOfferingsSyncRequest, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    if not subscription_allows_promo(ownership.subscription):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sesli menu urunleri sadece aktif abonelikte yayinlanir.",
+        )
+    rows = sync_voice_menu_offerings(
+        db,
+        ownership,
+        [row.model_dump() for row in payload.offerings],
+    )
+    return VoiceMenuOfferingsResponse(items=rows)
+
+
+@panel_router.get("/voice-products/catalog")
+def get_panel_voice_product_catalog():
+    return voice_catalog_response()
 
 
 @panel_router.get("/orders", response_model=PanelOrderListResponse)

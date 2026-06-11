@@ -46,6 +46,8 @@ export function AppKpiDashboard() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,6 +76,39 @@ export function AppKpiDashboard() {
       .finally(() => setLoading(false));
   }, [allowed, days]);
 
+  async function sendDailyReportNow() {
+    setSendingReport(true);
+    setReportMessage(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/panel/admin/kpi/send-report', { method: 'POST' });
+      const json = (await res.json()) as {
+        detail?: string;
+        ok?: boolean;
+        result?: { sent?: number; recipients?: number; errors?: string[] | null; reason?: string };
+      };
+      if (!res.ok) {
+        throw new Error(typeof json.detail === 'string' ? json.detail : 'Mail gonderilemedi');
+      }
+      const sent = json.result?.sent ?? 0;
+      const recipients = json.result?.recipients ?? 0;
+      const errs = json.result?.errors?.filter(Boolean) ?? [];
+      if (sent > 0) {
+        setReportMessage(`Gunluk ozet maili gonderildi (${sent}/${recipients} alici). Spam klasorune de bak.`);
+      } else if (json.result?.reason === 'no_recipients') {
+        setError('Alici yok: Railway\'de METRICS_DAILY_REPORT_EMAILS veya PANEL_ADMIN_EMAILS tanimla.');
+      } else if (errs.length) {
+        setError(errs.join(' | '));
+      } else {
+        setError('Mail gonderilemedi — Railway SMTP ve EMAIL_PROVIDER=smtp ayarlarini kontrol et.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Mail gonderilemedi');
+    } finally {
+      setSendingReport(false);
+    }
+  }
+
   if (allowed === null) {
     return <p className="text-sm text-content-muted">Yetki kontrol ediliyor...</p>;
   }
@@ -93,7 +128,8 @@ export function AppKpiDashboard() {
       <section className="rounded-2xl border border-brand-gold/30 bg-brand-gold/5 p-6">
         <h1 className="text-xl font-semibold text-brand-gold">Uygulama KPI (pazarlama)</h1>
         <p className="mt-2 text-sm text-content-muted">
-          Mobil oturum suresi, giris, canli arama ve yorumlar. Play Console ile birlikte kullanin.
+          Mobil oturum suresi, giris, canli arama ve yorumlar. Otomatik mail her gun ~08:00 (TR).
+          Web sayfa goruntulemesi degil — API/mobil olaylari.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="text-sm text-content">
@@ -109,7 +145,16 @@ export function AppKpiDashboard() {
             </select>
           </label>
           {loading ? <span className="text-xs text-content-muted">Yukleniyor...</span> : null}
+          <button
+            type="button"
+            onClick={() => void sendDailyReportNow()}
+            disabled={sendingReport}
+            className="rounded-lg border border-brand-gold/50 bg-brand-gold/10 px-3 py-1.5 text-sm font-medium text-brand-gold hover:bg-brand-gold/20 disabled:opacity-50"
+          >
+            {sendingReport ? 'Gonderiliyor...' : 'Simdi mail gonder (test)'}
+          </button>
         </div>
+        {reportMessage ? <p className="mt-3 text-sm text-emerald-300">{reportMessage}</p> : null}
         {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
       </section>
 

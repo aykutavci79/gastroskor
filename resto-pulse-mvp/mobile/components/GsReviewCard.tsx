@@ -32,6 +32,8 @@ type Props = {
   viewerName: string | null;
   onChange: (review: DisplayReview) => void;
   onDelete: (reviewId: string) => void;
+  onInputFocus?: () => void;
+  onCardLayout?: (offsetY: number) => void;
 };
 
 function isReplyMine(reply: ReviewReply, viewerEmail: string | null): boolean {
@@ -46,6 +48,8 @@ export function GsReviewCard({
   viewerName,
   onChange,
   onDelete,
+  onInputFocus,
+  onCardLayout,
 }: Props) {
   const ownReview = isOwnReview(review, viewerEmail, viewerUserId);
   const canInteract = Boolean(viewerEmail?.trim());
@@ -196,7 +200,9 @@ export function GsReviewCard({
   }
 
   return (
-    <View style={styles.card}>
+    <View
+      style={styles.card}
+      onLayout={(event) => onCardLayout?.(event.nativeEvent.layout.y)}>
       <View style={styles.head}>
         <View style={styles.authorRow}>
           <UserAvatar
@@ -224,6 +230,7 @@ export function GsReviewCard({
           <StarRatingPicker value={editRating} onChange={setEditRating} />
           <TextInput
             value={editText}
+            onFocus={onInputFocus}
             onChangeText={setEditText}
             placeholder="Yorumunuz"
             placeholderTextColor={GastroColors.placeholder}
@@ -307,6 +314,7 @@ export function GsReviewCard({
                   <>
                     <TextInput
                       value={editingReplyText}
+                      onFocus={onInputFocus}
                       onChangeText={setEditingReplyText}
                       style={styles.replyInput}
                       multiline
@@ -352,6 +360,7 @@ export function GsReviewCard({
         <View style={styles.replyComposer}>
           <TextInput
             value={replyText}
+            onFocus={onInputFocus}
             onChangeText={setReplyText}
             placeholder="Deneyimini ekle..."
             placeholderTextColor={GastroColors.placeholder}

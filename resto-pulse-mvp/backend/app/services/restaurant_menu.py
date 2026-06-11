@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.constants.voice_product_catalog import get_voice_product, is_valid_voice_product_slug
 from app.models import RestaurantMenuItem, RestaurantOwnership
 from app.services.restaurant_promo import subscription_allows_promo
 
@@ -27,6 +28,7 @@ def menu_item_to_dict(item: RestaurantMenuItem) -> dict:
         "sort_order": item.sort_order,
         "is_active": item.is_active,
         "image_url": item.image_url,
+        "voice_product_slug": item.voice_product_slug,
     }
 
 
@@ -52,6 +54,17 @@ def list_panel_menu(db: Session, ownership: RestaurantOwnership) -> list[dict]:
     return [menu_item_to_dict(row) for row in rows]
 
 
+def _normalize_voice_slug(value: str | None) -> str | None:
+    if value is None:
+        return None
+    slug = value.strip().lower()
+    if not slug:
+        return None
+    if not is_valid_voice_product_slug(slug):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Gecersiz sesli urun kodu.")
+    return slug
+
+
 def create_menu_item(
     db: Session,
     ownership: RestaurantOwnership,
@@ -60,6 +73,7 @@ def create_menu_item(
     price_tl: float,
     description: str | None = None,
     category: str | None = None,
+    voice_product_slug: str | None = None,
 ) -> RestaurantMenuItem:
     if not subscription_allows_promo(ownership.subscription):
         raise HTTPException(
@@ -79,6 +93,7 @@ def create_menu_item(
         description=(description or "").strip() or None,
         category=(category or "").strip() or None,
         sort_order=count,
+        voice_product_slug=_normalize_voice_slug(voice_product_slug),
     )
     db.add(row)
     db.commit()
@@ -97,6 +112,8 @@ def update_menu_item(
     category: str | None = None,
     is_active: bool | None = None,
     sort_order: int | None = None,
+    voice_product_slug: str | None = None,
+    clear_voice_product_slug: bool = False,
 ) -> RestaurantMenuItem:
     row = db.get(RestaurantMenuItem, item_id)
     if not row or row.ownership_id != ownership.id:
@@ -113,6 +130,10 @@ def update_menu_item(
         row.is_active = is_active
     if sort_order is not None:
         row.sort_order = sort_order
+    if clear_voice_product_slug:
+        row.voice_product_slug = None
+    elif voice_product_slug is not None:
+        row.voice_product_slug = _normalize_voice_slug(voice_product_slug)
     db.add(row)
     db.commit()
     db.refresh(row)

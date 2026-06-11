@@ -64,9 +64,11 @@ from app.schemas.restaurant import (
     CityTopResponse,
     NewMemberRestaurantsResponse,
     RestaurantCreate,
+    OnlineOrderOpenListResponse,
     RestaurantListItem,
     RestaurantRead,
     RestaurantTrendingItem,
+    VoiceProductCatalogResponse,
 )
 from app.schemas.restaurant_order import (
     OrderPhoneSendOtpRequest,
@@ -98,6 +100,7 @@ from app.services.restaurant_orders import (
     get_recent_rejected_order_for_user,
     notify_new_restaurant_order,
     online_orders_available,
+    customer_online_orders_available,
     order_to_dict,
     raise_order_http,
 )
@@ -114,6 +117,11 @@ from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
 from app.services.regional_flavors import get_regional_product, list_regional_products
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
+from app.constants.online_order_categories import normalize_category_slugs
+from app.constants.online_orders import MIN_LIST_RATING
+from app.services.online_orders_discovery import categories_payload, list_online_order_restaurants
+from app.constants.voice_product_catalog import resolve_voice_search_token
+from app.services.voice_menu_offerings import voice_catalog_response
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.services.display_name import normalize_author_name_display, public_author_name
@@ -543,6 +551,16 @@ def serialize_compensation_coupon(row: CompensationCoupon) -> CompensationCoupon
 @router.get("/health")
 def health():
     return {"status": "ok", "service": settings.app_name}
+
+
+@router.post("/dev/seed-tester-online-restaurants")
+def seed_tester_online_restaurants_route(db: Session = Depends(get_db)):
+    """Test donemi — 5 deneme restorani (online siparis + menu)."""
+    if settings.environment.lower() == "production":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    from app.services.seed_tester_online_restaurants import seed_tester_online_restaurants
+
+    return seed_tester_online_restaurants(db)
 
 
 @router.post("/dev/seed-panel-demo")
@@ -1057,6 +1075,52 @@ def list_restaurants(
     return result
 
 
+@router.get("/voice-products/catalog", response_model=VoiceProductCatalogResponse)
+def get_voice_product_catalog():
+    payload = voice_catalog_response()
+    return VoiceProductCatalogResponse(**payload)
+
+
+@router.get("/restaurants/online-orders-open", response_model=OnlineOrderOpenListResponse)
+def list_online_orders_open(
+    origin_lat: float | None = Query(default=None, ge=-90, le=90),
+    origin_lng: float | None = Query(default=None, ge=-180, le=180),
+    city: str | None = Query(default="Bursa"),
+    category: str | None = Query(default=None, description="Kategori slug"),
+    min_rating: float | None = Query(default=MIN_LIST_RATING, ge=MIN_LIST_RATING, le=5),
+    sort: str = Query(
+        default="gastro_score",
+        pattern="^(gastro_score|distance|rating|popularity)$",
+    ),
+    limit: int = Query(default=50, ge=1, le=100),
+    voice_product: str | None = Query(default=None, description="Sesli urun veya grup (or. lahmacun, cantik)"),
+    price_max: float | None = Query(default=None, ge=0, le=99999, description="Butce tavanı TL"),
+    max_distance_km: float | None = Query(default=None, ge=0, le=50, description="Maksimum mesafe km"),
+    db: Session = Depends(get_db),
+):
+    voice_token, voice_slugs = resolve_voice_search_token(voice_product)
+    items = list_online_order_restaurants(
+        db,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
+        city=city,
+        category=category,
+        min_rating=min_rating,
+        sort=sort,
+        limit=limit,
+        voice_product=voice_product,
+        price_max=price_max,
+        max_distance_km=max_distance_km,
+    )
+    merge_check_in_counts_into_rows(db, items)
+    return OnlineOrderOpenListResponse(
+        items=[RestaurantListItem(**row) for row in items],
+        categories=categories_payload(),
+        voice_search_token=voice_token,
+        voice_product_slugs=voice_slugs,
+    )
+
+
 @router.get("/me/restaurant-follows", response_model=RestaurantFollowListResponse)
 def list_my_restaurant_follows(
     user_email: str = Query(..., min_length=3),
@@ -1271,7 +1335,7 @@ def get_active_restaurant_order(
         else None
     )
     return RestaurantOrderActiveResponse(
-        online_orders_available=online_orders_available(ownership),
+        online_orders_available=customer_online_orders_available(db, ownership),
         pending_order=pending_payload,
         recent_rejected_order=recent_rejected_payload,
         order_phone=OrderPhoneStatus.model_validate(order_phone_status_for_user(user)),
@@ -2147,4 +2211,17 @@ async def cron_metrics_daily_report(
 
     result = await run_metrics_daily_report(db)
     return {"ok": result.get("ok"), "result": result}
+
+
+@router.post("/internal/cron/seed-tester-online-restaurants")
+def cron_seed_tester_online_restaurants(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.seed_tester_online_restaurants import seed_tester_online_restaurants
+
+    return seed_tester_online_restaurants(db)
 

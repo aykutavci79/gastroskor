@@ -19,6 +19,8 @@ import type {
   ReviewAnalyzeResult,
   ReviewReply,
   UserProfile,
+  VoiceMenuOfferingState,
+  VoiceProductCatalogGroup,
 } from '@/lib/types';
 
 import { getApiBase, getApiV1Base } from '@/lib/api-base';
@@ -468,6 +470,26 @@ export function deletePanelMenuItem(userEmail: string, itemId: string) {
   );
 }
 
+export function getVoiceProductCatalog() {
+  return request<{ groups: VoiceProductCatalogGroup[]; products: unknown[] }>('/panel/voice-products/catalog');
+}
+
+export function getPanelVoiceMenuOfferings(userEmail: string) {
+  return request<{ items: VoiceMenuOfferingState[] }>(
+    `/panel/voice-menu-offerings?user_email=${encodeURIComponent(userEmail)}`,
+  );
+}
+
+export function syncPanelVoiceMenuOfferings(payload: {
+  user_email: string;
+  offerings: { slug: string; enabled: boolean; price_tl: number | null }[];
+}) {
+  return request<{ items: VoiceMenuOfferingState[] }>('/panel/voice-menu-offerings', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function listPanelOrders(userEmail: string, limit = 100, days = 7) {
   const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}&days=${days}`;
   return request<{ items: import('@/lib/types').RestaurantOrderRead[] }>(`/panel/orders${query}`);
@@ -497,6 +519,7 @@ export function updatePanelPromo(payload: {
   user_email: string;
   has_own_courier: boolean;
   online_orders_enabled?: boolean;
+  online_order_category_tags?: string[];
   direct_order_text?: string | null;
   direct_order_phone?: string | null;
   direct_order_whatsapp?: string | null;

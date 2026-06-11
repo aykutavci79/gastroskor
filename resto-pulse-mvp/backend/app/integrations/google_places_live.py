@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
+from app.services.food_place_filter import is_food_related_place
 
 try:
     import certifi
@@ -22,6 +23,7 @@ class LivePlaceResult:
     latitude: float | None
     longitude: float | None
     photo_reference: str | None = None
+    types: tuple[str, ...] = ()
 
 
 def build_place_photo_url(photo_reference: str, *, maxwidth: int = 400) -> str:
@@ -84,6 +86,14 @@ class GooglePlacesLiveClient:
             photo_ref = None
             if photos and isinstance(photos[0], dict):
                 photo_ref = photos[0].get("photo_reference")
+            raw_types = row.get("types") or []
+            place_types = tuple(str(t) for t in raw_types if t)
+            if not is_food_related_place(
+                name=row.get("name", "").strip() or "Isimsiz mekan",
+                address=row.get("formatted_address") or row.get("vicinity"),
+                types=place_types,
+            ):
+                continue
             results.append(
                 LivePlaceResult(
                     place_id=place_id,
@@ -94,6 +104,7 @@ class GooglePlacesLiveClient:
                     latitude=location.get("lat"),
                     longitude=location.get("lng"),
                     photo_reference=photo_ref,
+                    types=place_types,
                 )
             )
         return results
@@ -111,6 +122,7 @@ class GooglePlacesLiveClient:
             "location": f"{lat},{lng}",
             "rankby": "distance",
             "keyword": query.strip(),
+            "type": "restaurant",
             "language": "tr",
             "key": settings.google_places_api_key or "",
         }
@@ -130,6 +142,7 @@ class GooglePlacesLiveClient:
         merged_query = f"{query.strip()} {city}".strip()
         params: dict[str, str | int] = {
             "query": merged_query,
+            "type": "restaurant",
             "language": "tr",
             "region": "tr",
             "key": settings.google_places_api_key or "",

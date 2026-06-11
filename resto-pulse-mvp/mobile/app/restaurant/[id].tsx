@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,6 +32,7 @@ import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
 import { StarRatingPicker } from '@/components/StarRatingPicker';
 import { GastroColors } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
+import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
 import {
   createReview,
   getCheckInStatus,
@@ -84,48 +84,27 @@ export default function RestaurantDetailScreen() {
   const [following, setFollowing] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus | null>(null);
   const [checkInBusy, setCheckInBusy] = useState(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const onFieldFocus = useKeyboardFieldFocus(scrollRef);
   const reviewFormOffsetY = useRef(0);
   const menuOffsetY = useRef(0);
-  const focusedScrollTargetY = useRef(0);
+  const reviewsSectionY = useRef(0);
+  const reviewCardY = useRef<Record<string, number>>({});
   const pendingMenuFocus = useRef(focus === 'menu');
 
-  const scrollToY = useCallback((targetY: number) => {
-    const y = Math.max(0, targetY);
-    focusedScrollTargetY.current = y;
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y, animated: true });
-    });
-  }, []);
+  const scrollToY = useCallback(
+    (targetY: number) => {
+      onFieldFocus(targetY, 48);
+    },
+    [onFieldFocus],
+  );
 
   const scrollToOrderField = useCallback(
     (offsetInSection: number) => {
-      scrollToY(menuOffsetY.current + offsetInSection - 48);
+      scrollToY(menuOffsetY.current + offsetInSection);
     },
     [scrollToY],
   );
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardInset(event.endCoordinates.height);
-      if (focusedScrollTargetY.current > 0) {
-        requestAnimationFrame(() => {
-          scrollRef.current?.scrollTo({
-            y: Math.max(0, focusedScrollTargetY.current - 16),
-            animated: true,
-          });
-        });
-      }
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
@@ -478,12 +457,12 @@ export default function RestaurantDetailScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
         <ScrollView
           ref={scrollRef}
           style={styles.scrollView}
-          contentContainerStyle={[styles.scroll, keyboardInset > 0 && { paddingBottom: keyboardInset + 48 }]}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
@@ -646,7 +625,7 @@ export default function RestaurantDetailScreen() {
               <TextInput
                 value={text}
                 onFocus={() => {
-                  scrollToY(reviewFormOffsetY.current - 16);
+                  scrollToY(reviewFormOffsetY.current + 120);
                 }}
                 onChangeText={(value) => {
                   setText(value);
@@ -685,7 +664,11 @@ export default function RestaurantDetailScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
+        <View
+          style={styles.section}
+          onLayout={(event) => {
+            reviewsSectionY.current = event.nativeEvent.layout.y;
+          }}>
           <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
           {hasOwnReview ? (
             <View style={styles.visitedHint}>
@@ -704,6 +687,12 @@ export default function RestaurantDetailScreen() {
                 viewerEmail={user?.email ?? null}
                 viewerUserId={user?.id ?? null}
                 viewerName={user?.fullName ?? null}
+                onCardLayout={(cardY) => {
+                  reviewCardY.current[rev.id] = cardY;
+                }}
+                onInputFocus={() =>
+                  scrollToY(reviewsSectionY.current + (reviewCardY.current[rev.id] ?? 0) + 140)
+                }
                 onChange={(updated) =>
                   setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
                 }

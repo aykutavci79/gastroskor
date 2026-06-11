@@ -38,7 +38,7 @@ def _path_requires_auth(path: str, method: str) -> bool:
         return False
     if method == "GET" and any(path.startswith(prefix) for prefix in PUBLIC_GET_PREFIXES):
         return False
-    if path == "/api/v1/dev/seed-panel-demo":
+    if path in {"/api/v1/dev/seed-panel-demo", "/api/v1/dev/seed-tester-online-restaurants"}:
         return False
     if path.startswith("/api/v1/panel/"):
         return True
@@ -122,7 +122,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Oturum gerekli. Google ile giris yapip tekrar deneyin."},
             )
 
-        if settings.environment.lower() == "production" and path == "/api/v1/dev/seed-panel-demo":
+        if settings.environment.lower() == "production" and path in {
+            "/api/v1/dev/seed-panel-demo",
+            "/api/v1/dev/seed-tester-online-restaurants",
+        }:
             return JSONResponse(status_code=404, content={"detail": "Not found"})
 
         return await call_next(request)

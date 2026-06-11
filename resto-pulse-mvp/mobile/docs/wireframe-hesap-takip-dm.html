@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GastroSkor — Hesap / Takip / DM wireframe</title>
+  <style>
+    :root {
+      --bg: #141414;
+      --panel: #1e1e1e;
+      --input: #2a2a2a;
+      --border: #2e2e2e;
+      --text: #fff;
+      --muted: #a0a0a0;
+      --accent: #ff6b35;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    .layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .panel h2 { font-size: 0.85rem; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    button.screen-btn {
+      display: block; width: 100%; text-align: left;
+      background: var(--input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 6px; cursor: pointer; font-size: 0.88rem;
+    }
+    button.screen-btn.active { border-color: var(--accent); background: rgba(255,107,53,0.15); }
+    label.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 10px 0; font-size: 0.88rem; }
+    .phone-wrap { display: flex; justify-content: center; }
+    .phone {
+      width: 320px; height: 640px; border-radius: 28px;
+      border: 2px solid var(--border); background: var(--bg);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .status { text-align: center; font-size: 11px; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--border); }
+    .screen { flex: 1; overflow-y: auto; padding: 14px; font-size: 13px; }
+    .tabs {
+      display: flex; border-top: 1px solid var(--border); background: var(--panel); padding: 8px 4px 10px;
+    }
+    .tab { flex: 1; text-align: center; font-size: 10px; color: var(--muted); position: relative; }
+    .tab.on { color: var(--accent); font-weight: 700; }
+    .tab-icon {
+      width: 18px; height: 18px; border-radius: 4px; background: var(--input);
+      margin: 0 auto 4px;
+    }
+    .tab.on .tab-icon { background: var(--accent); }
+    .badge {
+      position: absolute; top: -2px; right: calc(50% - 18px);
+      background: var(--accent); color: #fff; font-size: 9px; font-weight: 700;
+      min-width: 14px; height: 14px; border-radius: 7px; line-height: 14px;
+    }
+    .title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .block {
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--input); padding: 12px; margin: 10px 0;
+    }
+    .block-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+    .row-item {
+      display: flex; gap: 10px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .row-item:last-child { border-bottom: none; }
+    .avatar { width: 36px; height: 36px; border-radius: 18px; background: #3a3a3a; flex-shrink: 0; }
+    .row-meta { flex: 1; }
+    .row-meta strong { display: block; font-size: 13px; }
+    .row-meta span { font-size: 11px; color: var(--muted); }
+    .action { color: var(--accent); font-size: 11px; font-weight: 700; }
+    .inner-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .inner-tab {
+      flex: 1; text-align: center; padding: 8px; border-radius: 10px;
+      border: 1px solid var(--border); font-size: 12px; color: var(--muted); cursor: pointer;
+    }
+    .inner-tab.on { border-color: var(--accent); color: var(--text); font-weight: 700; background: rgba(255,107,53,0.1); }
+    .btn-primary {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-weight: 800; font-size: 13px; border-radius: 12px; padding: 10px 14px; margin-top: 8px;
+    }
+    .note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 24px; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; vertical-align: top; }
+    th { background: var(--panel); color: var(--muted); }
+    .header-dm {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .dm-icon { width: 32px; height: 32px; border-radius: 16px; border: 1px solid var(--border); background: var(--input); position: relative; }
+    .dm-icon .badge { right: -2px; top: -2px; }
+    .card-placeholder { height: 88px; border-radius: 12px; background: var(--input); border: 1px solid var(--border); margin-bottom: 8px; }
+    .search-bar { height: 40px; border-radius: 10px; background: var(--input); border: 1px solid var(--border); margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GastroSkor — Hesap / Takip / DM wireframe</h1>
+    <p class="sub">Uygulamada degisiklik yok. Soldan ekran sec; sagda telefon onizlemesi. Bu dosyayi cift tikla — tarayicida acilir.</p>
+
+    <div class="layout">
+      <div>
+        <div class="panel">
+          <h2>Ekran sec</h2>
+          <div id="screen-buttons"></div>
+        </div>
+        <div class="panel" style="margin-top:12px">
+          <h2>DM nerede olsun?</h2>
+          <label class="row">
+            <span><strong>A — Ayri tab</strong><br><small style="color:var(--muted)">5 sekme (+ Mesaj)</small></span>
+            <input type="radio" name="dm" value="tab" checked />
+          </label>
+          <label class="row">
+            <span><strong>B — Header ikonu</strong><br><small style="color:var(--muted)">4 sekme, zarf sag ust</small></span>
+            <input type="radio" name="dm" value="header" />
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <p class="sub" id="screen-caption" style="text-align:center;margin-top:0"></p>
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="status">9:41</div>
+            <div class="screen" id="screen-content"></div>
+            <div class="tabs" id="tab-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Alan</th><th>Simdi (build 25)</th><th>Onerilen</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Hesap tab</td>
+          <td>Giris + profil + bildirimler + arkadas + takip + gizlilik + web panel</td>
+          <td>Giris/cikis + bildirim toggle + gizlilik + hakkinda</td>
+        </tr>
+        <tr>
+          <td>Takip</td>
+          <td>Hesap icinde iki ayri blok</td>
+          <td>Yeni tab: Restoranlar | Arkadaslar</td>
+        </tr>
+        <tr>
+          <td>DM</td>
+          <td>Profil veya Gurme sheet</td>
+          <td>Ayri tab veya header zarf + badge</td>
+        </tr>
+        <tr>
+          <td>Web paneli</td>
+          <td>Herkeste Hesap altinda</td>
+          <td>Sadece Isletme tab (sahipler)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentScreen = 'overview';
+    let dmMode = 'tab';
+    let takipSub = 'restoran';
+
+    const screens = [
+      { id: 'overview', label: 'Genel tab bar', caption: 'Onerilen tab bar' },
+      { id: 'hesap', label: 'Hesap ekrani', caption: 'Hesap — sadelesmis', tab: 'hesap' },
+      { id: 'takip', label: 'Takip ekrani', caption: 'Takip — Restoranlar / Arkadaslar', tab: 'takip' },
+      { id: 'dm', label: 'Mesajlar (DM)', caption: 'DM kutusu', tab: 'dm' },
+      { id: 'kesfet', label: 'Alternatif: DM header', caption: '4 tab + header DM', tab: 'kesfet' },
+    ];
+
+    function renderButtons() {
+      const el = document.getElementById('screen-buttons');
+      el.innerHTML = screens.map(s =>
+        `<button type="button" class="screen-btn${currentScreen === s.id ? ' active' : ''}" data-id="${s.id}">${s.label}</button>`
+      ).join('');
+      el.querySelectorAll('button').forEach(btn => {
+        btn.onclick = () => { currentScreen = btn.dataset.id; renderAll(); };
+      });
+    }
+
+    function renderTabs(active) {
+      const tabs = dmMode === 'tab'
+        ? [
+            { k: 'kesfet', l: 'Kesfet' },
+            { k: 'gurme', l: 'Gurme' },
+            { k: 'dm', l: 'Mesaj', b: 2 },
+            { k: 'takip', l: 'Takip', b: 1 },
+            { k: 'hesap', l: 'Hesap' },
+          ]
+        : [
+            { k: 'kesfet', l: 'Kesfet' },
+            { k: 'gurme', l: 'Gurme' },
+            { k: 'takip', l: 'Takip', b: 1 },
+            { k: 'hesap', l: 'Hesap' },
+          ];
+      document.getElementById('tab-bar').innerHTML = tabs.map(t => `
+        <div class="tab${active === t.k ? ' on' : ''}">
+          ${t.b ? `<span class="badge">${t.b}</span>` : ''}
+          <div class="tab-icon"></div>
+          ${t.l}
+        </div>`).join('');
+    }
+
+    function row(primary, secondary, action) {
+      return `<div class="row-item"><div class="avatar"></div><div class="row-meta"><strong>${primary}</strong>${secondary ? `<span>${secondary}</span>` : ''}</div>${action ? `<span class="action">${action}</span>` : ''}</div>`;
+    }
+
+    function renderScreen() {
+      const s = document.getElementById('screen-content');
+      const cap = document.getElementById('screen-caption');
+      const meta = screens.find(x => x.id === currentScreen);
+      cap.textContent = meta.caption;
+      renderTabs(meta.tab || 'takip');
+
+      if (currentScreen === 'overview') {
+        s.innerHTML = `<div class="title">Navigasyon</div>
+          <p style="color:var(--muted);font-size:12px;line-height:1.6">
+            Kesfet — arama<br>
+            Gurme — sohbet odalari<br>
+            Mesaj — DM (badge: 2)<br>
+            Takip — restoran + arkadas (badge: 1)<br>
+            Hesap — giris, ayarlar<br><br>
+            Isletme tabi sadece restoran sahiplerinde.
+          </p>`;
+        return;
+      }
+      if (currentScreen === 'hesap') {
+        s.innerHTML = `<div class="title">Hesap</div><p style="color:var(--muted);font-size:11px">Surum 1.0.13 · build 25</p>
+          <div class="block"><div class="block-label">Oturum</div><strong>aykut@gmail.com</strong><br><span style="color:var(--muted);font-size:11px">Aykut Avci</span><br><div style="margin-top:8px;text-align:center;border:1px solid var(--border);border-radius:10px;padding:10px">Cikis yap</div></div>
+          <div class="block"><div class="block-label">Bildirimler</div>Push bildirimleri: <strong>Acik</strong></div>
+          <div class="block"><div class="block-label">Yorumlarda isim gizliligi</div>Tam ad · Gizli · Takma ad</div>
+          <div class="block"><div class="block-label">Hakkinda</div><span style="color:var(--muted);font-size:11px">Gizlilik · KVKK · Kosullar</span></div>
+          <p class="note">Web paneli linki kaldirildi — sadece Isletme tabinda.</p>`;
+        return;
+      }
+      if (currentScreen === 'takip') {
+        s.innerHTML = `<div class="title">Takip</div>
+          <div class="inner-tabs">
+            <div class="inner-tab${takipSub==='restoran'?' on':''}" onclick="takipSub='restoran';renderScreen()">Restoranlar</div>
+            <div class="inner-tab${takipSub==='arkadas'?' on':''}" onclick="takipSub='arkadas';renderScreen()">Arkadaslar <span style="background:var(--accent);color:#fff;border-radius:8px;padding:1px 5px;font-size:10px">1</span></div>
+          </div>
+          ${takipSub === 'restoran' ? `
+            <p style="color:var(--muted);font-size:11px">12 restoran</p>
+            ${row('Kofteci Yusuf','Osmangazi · GS 4.3','Detay')}
+            ${row('Haci Dayi','Nilufer · GS 4.7','Detay')}
+          ` : `
+            <div class="block"><div class="block-label">Gelen istek (1)</div>${row('@zeynep','Arkadaslik istegi','Kabul')}</div>
+            <div class="block"><div class="block-label">Arkadaslar</div>${row('@mehmet','Gastro 4.1','Mesaj')}${row('@elif','Gastro 3.9','Mesaj')}</div>
+          `}`;
+        return;
+      }
+      if (currentScreen === 'dm') {
+        s.innerHTML = `<div class="title">Mesajlar</div>
+          ${row('@mehmet','Yarin oraya gidelim mi?','2')}
+          ${row('@elif','Tavsiye icin tesekkurler','')}
+          ${row('@can','Foto attim','1')}
+          <p class="note">DM sadece kabul edilmis arkadaslarla.</p>`;
+        return;
+      }
+      s.innerHTML = `<div class="header-dm"><div class="title">Kesfet</div><div class="dm-icon"><span class="badge">2</span></div></div>
+        <div class="search-bar"></div>
+        <div class="card-placeholder"></div><div class="card-placeholder"></div>
+        <p class="note">4 tab kalir; DM sag ustte zarf ikonu.</p>`;
+    }
+
+    function renderAll() { renderButtons(); renderScreen(); }
+
+    document.querySelectorAll('input[name=dm]').forEach(r => {
+      r.onchange = () => { dmMode = r.value; renderAll(); };
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

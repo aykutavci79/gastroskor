@@ -23,6 +23,14 @@ class RestaurantMenuItemPublic(BaseModel):
     description: str | None = None
     category: str | None = None
     image_url: str | None = None
+    voice_product_slug: str | None = None
+
+
+class VoiceMenuMatchPublic(BaseModel):
+    voice_product_slug: str
+    label: str
+    price_tl: float
+    menu_item_id: str
 
 
 class RestaurantPromoPublic(BaseModel):
@@ -47,8 +55,26 @@ class RestaurantRead(RestaurantCreate):
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
     online_orders_available: bool = False
+    online_order_categories: list[str] = Field(default_factory=list)
     check_in_visitor_count: int = Field(ge=0, default=0)
     model_config = ConfigDict(from_attributes=True)
+
+
+class OnlineOrderCategoryOption(BaseModel):
+    slug: str
+    label: str
+
+
+class OnlineOrderOpenListResponse(BaseModel):
+    items: list["RestaurantListItem"]
+    categories: list[OnlineOrderCategoryOption] = Field(default_factory=list)
+    voice_search_token: str | None = None
+    voice_product_slugs: list[str] = Field(default_factory=list)
+
+
+class VoiceProductCatalogResponse(BaseModel):
+    groups: list[dict]
+    products: list[dict]
 
 
 class RestaurantListItem(BaseModel):
@@ -66,6 +92,7 @@ class RestaurantListItem(BaseModel):
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
     online_orders_available: bool = False
+    online_order_categories: list[str] = Field(default_factory=list)
     card_emoji: str | None = None
     google_rating: float | None = None
     google_review_count: int | None = None
@@ -75,6 +102,12 @@ class RestaurantListItem(BaseModel):
     distance_meters: float | None = None
     google_photo_url: str | None = None
     check_in_visitor_count: int = Field(ge=0, default=0)
+    gastro_score: float | None = None
+    distance_score: float | None = None
+    rating_score: float | None = None
+    popularity_score: float | None = None
+    voice_menu_matches: list[VoiceMenuMatchPublic] = Field(default_factory=list)
+    voice_search_token: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

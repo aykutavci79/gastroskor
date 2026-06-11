@@ -216,6 +216,27 @@ export function PanelAdminTools() {
     );
   }
 
+  async function onSeedTesterRestaurants() {
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/panel/admin/seed-tester-restaurants', { method: 'POST' });
+      const data = (await res.json()) as {
+        detail?: string;
+        count?: number;
+        restaurants?: Array<{ name?: string }>;
+      };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Seed basarisiz');
+      const names = (data.restaurants ?? []).map((row) => row.name).filter(Boolean).join(', ');
+      setMessage(`Deneme restoranlari hazir (${data.count ?? 0}): ${names || '—'}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Seed basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-content-muted">
@@ -224,6 +245,19 @@ export function PanelAdminTools() {
           /panel/admin/kpi
         </a>
       </p>
+      <section className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-6">
+        <h2 className="text-xl font-semibold text-amber-100">Tester — Deneme restoranlari</h2>
+        <p className="mt-1 text-sm text-content-muted">
+          Expo testleri icin Bursa&apos;da 5 online siparis restorani olusturur veya gunceller (Deneme 1–5).
+        </p>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void onSeedTesterRestaurants()}
+          className="mt-4 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          Deneme restoranlarini olustur / guncelle
+        </button>
+      </section>
       <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6">
         <h2 className="text-xl font-semibold text-emerald-100">Mekan claim talepleri</h2>
         <p className="mt-1 text-sm text-content-muted">
