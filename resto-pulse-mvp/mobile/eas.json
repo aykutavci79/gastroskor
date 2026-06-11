@@ -25,7 +25,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
         "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
-        "EXPO_PUBLIC_SENTRY_DSN": "https://3cdc58929d96bb4218a21e5000ced449@o4511548636528640.ingest.de.sentry.io/4511548646817872"
+        "EXPO_PUBLIC_SENTRY_DSN": "https://3cdc58929d96bb4218a21e5000ced449@o4511548636528640.ingest.de.sentry.io/4511548646817872",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "android": {
         "buildType": "app-bundle"
