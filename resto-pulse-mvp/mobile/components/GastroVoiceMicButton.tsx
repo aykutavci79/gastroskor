@@ -4,12 +4,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
 import { buildGastroSpeechStartOptions } from '@/lib/gastro-speech-options';
+import { mergeSpeechTranscript } from '@/lib/merge-speech-transcript';
 import {
   getSpeechRecognitionNative,
   readRecognitionAvailable,
 } from '@/lib/speech-recognition-native';
 
-const RESTART_DELAY_MS = 300;
+const RESTART_DELAY_MS = 450;
 
 type Props = {
   /** isFinal=true yalnizca kullanici durdurunca veya active=false olunca. */
@@ -114,8 +115,8 @@ function GastroVoiceMicButtonImpl({
       speech.addListener('result', (event) => {
         const text = event.results[0]?.transcript?.trim();
         if (!text) return;
-        lastTranscriptRef.current = text;
-        onTranscript(text, false);
+        lastTranscriptRef.current = mergeSpeechTranscript(lastTranscriptRef.current, text);
+        onTranscript(lastTranscriptRef.current, false);
       }),
       speech.addListener('error', (event) => {
         clearRestartTimer();
