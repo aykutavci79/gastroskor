@@ -14,6 +14,7 @@ type Props = {
   href: string;
   distanceLabel?: string | null;
   googleRating?: number | null;
+  voiceMatches?: VoiceMenuMatch[];
   voiceLetter?: string | null;
 };
 
@@ -40,7 +41,7 @@ export function OnlineOrderRestaurantCard({
     voiceMatches && voiceMatches.length
       ? voiceMatches
           .slice(0, 2)
-          .map((m) => `${m.label} ${m.price_tl.toFixed(0)} ₺`)
+          .map((match) => `${match.label} ${match.price_tl.toFixed(0)} ₺`)
           .join(' · ')
       : null;
 

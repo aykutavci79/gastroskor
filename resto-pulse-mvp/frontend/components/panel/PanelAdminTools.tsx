@@ -42,6 +42,7 @@ export function PanelAdminTools() {
       admin_emails_configured?: boolean;
       panel_admin_secret_configured?: boolean;
       hint?: string;
+      detail?: string;
       http_status?: number;
       error?: string;
     } | null;

@@ -172,6 +172,7 @@ export default function OnlineOrdersOpenScreen() {
   const onVoiceSearch = useCallback(
     async (query: VoiceOrderQuery) => {
       if (!query.voiceProduct || query.priceMax == null) return;
+      setVoiceSheetOpen(false);
       setVoiceSearching(true);
       setLoading(true);
       setError(null);
@@ -192,7 +193,6 @@ export default function OnlineOrdersOpenScreen() {
         });
         setAllItems(res.items);
         if (res.categories.length) setCategories(res.categories);
-        setVoiceSheetOpen(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sesli arama basarisiz');
         setAllItems([]);
@@ -230,74 +230,79 @@ export default function OnlineOrdersOpenScreen() {
       />
       <Screen
         scroll
-        style={[
-          styles.page,
-          voiceQuery && items.length > 0 ? { paddingBottom: 240 + keyboardInset } : null,
-        ]}>
-        <View style={styles.hero}>
-          <Text style={styles.heroKicker}>GastroSkor</Text>
-          <Text style={styles.heroTitle}>Lezzetler kapında</Text>
-          <Text style={styles.heroSub}>Mutfak seç veya Gastro Sipariş komutuyla ara + sipariş ver</Text>
-          <Pressable
-            style={({ pressed }) => [styles.voiceHeroBtn, pressed && styles.voiceHeroBtnPressed]}
-            onPress={() => setVoiceSheetOpen(true)}>
-            <Text style={styles.voiceHeroEmoji}>🎙️</Text>
-            <View style={styles.voiceHeroTextWrap}>
-              <Text style={styles.voiceHeroTitle}>Gastro Sipariş</Text>
-              <Text style={styles.voiceHeroSub}>“150 TL lahmacun” ara, sonra “B’den 3 tane” yaz</Text>
+        style={
+          voiceQuery && items.length > 0
+            ? { ...styles.page, paddingBottom: 240 + keyboardInset }
+            : styles.page
+        }>
+        {!voiceQuery ? (
+          <>
+            <View style={styles.hero}>
+              <Text style={styles.heroKicker}>GastroSkor</Text>
+              <Text style={styles.heroTitle}>Lezzetler kapında</Text>
+              <Text style={styles.heroSub}>Mutfak seç veya Gastro Sipariş komutuyla ara + sipariş ver</Text>
+              <Pressable
+                style={({ pressed }) => [styles.voiceHeroBtn, pressed && styles.voiceHeroBtnPressed]}
+                onPress={() => setVoiceSheetOpen(true)}>
+                <Text style={styles.voiceHeroEmoji}>🎙️</Text>
+                <View style={styles.voiceHeroTextWrap}>
+                  <Text style={styles.voiceHeroTitle}>Gastro Sipariş</Text>
+                  <Text style={styles.voiceHeroSub}>“150 TL lahmacun” ara, sonra “B’den 3 tane” yaz</Text>
+                </View>
+              </Pressable>
             </View>
-          </Pressable>
-        </View>
 
-        <View style={styles.filterPanel}>
-          <Text style={styles.sectionTitle}>Mutfaklar</Text>
-          <KitchenCategoryGrid
-            categories={categories}
-            selectedSlugs={draftSlugs}
-            onToggle={(slug) => setDraftSlugs((prev) => toggleKitchenSlug(prev, slug))}
-            onClear={() => setDraftSlugs([])}
-          />
+            <View style={styles.filterPanel}>
+              <Text style={styles.sectionTitle}>Mutfaklar</Text>
+              <KitchenCategoryGrid
+                categories={categories}
+                selectedSlugs={draftSlugs}
+                onToggle={(slug) => setDraftSlugs((prev) => toggleKitchenSlug(prev, slug))}
+                onClear={() => setDraftSlugs([])}
+              />
 
-          <View style={styles.divider} />
+              <View style={styles.divider} />
 
-          <FilterRangeBar
-            label="Mesafe"
-            value={draftMaxDistanceKm}
-            min={0}
-            max={MAX_DISTANCE_KM}
-            step={0.1}
-            formatValue={(km) => (km <= 0 ? '0 km' : `${km.toFixed(1)} km`)}
-            onChange={setDraftMaxDistanceKm}
-          />
+              <FilterRangeBar
+                label="Mesafe"
+                value={draftMaxDistanceKm}
+                min={0}
+                max={MAX_DISTANCE_KM}
+                step={0.1}
+                formatValue={(km) => (km <= 0 ? '0 km' : `${km.toFixed(1)} km`)}
+                onChange={setDraftMaxDistanceKm}
+              />
 
-          <FilterRangeBar
-            label="Minimum puan"
-            value={draftMinRating}
-            min={ONLINE_ORDER_MIN_RATING}
-            max={MAX_RATING}
-            step={0.1}
-            formatValue={(stars) => `${stars.toFixed(1)} ★`}
-            onChange={setDraftMinRating}
-          />
-          <Text style={styles.ratingHint}>3.0 altı restoranlar online siparişte listelenmez.</Text>
+              <FilterRangeBar
+                label="Minimum puan"
+                value={draftMinRating}
+                min={ONLINE_ORDER_MIN_RATING}
+                max={MAX_RATING}
+                step={0.1}
+                formatValue={(stars) => `${stars.toFixed(1)} ★`}
+                onChange={setDraftMinRating}
+              />
+              <Text style={styles.ratingHint}>3.0 altı restoranlar online siparişte listelenmez.</Text>
 
-          {!coords ? (
-            <Text style={styles.coordsHint}>Mesafe filtresi için konum izni gerekir.</Text>
-          ) : null}
+              {!coords ? (
+                <Text style={styles.coordsHint}>Mesafe filtresi için konum izni gerekir.</Text>
+              ) : null}
 
-          <Pressable
-            style={({ pressed }) => [styles.listBtn, pressed && styles.listBtnPressed, loading && styles.listBtnDisabled]}
-            onPress={() => void onListele()}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#141414" />
-            ) : (
-              <Text style={styles.listBtnText}>
-                {hasListed && filtersDirty ? 'Yeniden listele' : 'Listele'}
-              </Text>
-            )}
-          </Pressable>
-        </View>
+              <Pressable
+                style={({ pressed }) => [styles.listBtn, pressed && styles.listBtnPressed, loading && styles.listBtnDisabled]}
+                onPress={() => void onListele()}
+                disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#141414" />
+                ) : (
+                  <Text style={styles.listBtnText}>
+                    {hasListed && filtersDirty ? 'Yeniden listele' : 'Listele'}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        ) : null}
 
         {!hasListed ? (
           <View style={styles.promptBox}>
@@ -319,11 +324,13 @@ export default function OnlineOrdersOpenScreen() {
 
         {voiceQuery ? (
           <View style={styles.voiceResultBanner}>
-            <Text style={styles.voiceResultLabel}>Sesli arama</Text>
+            <View style={styles.voiceResultTop}>
+              <Text style={styles.voiceResultLabel}>Gastro Sipariş araması</Text>
+              <Pressable onPress={() => setVoiceSheetOpen(true)}>
+                <Text style={styles.voiceResultEdit}>Düzenle</Text>
+              </Pressable>
+            </View>
             <Text style={styles.voiceResultText}>{formatVoiceOrderSummary(voiceQuery)}</Text>
-            <Pressable onPress={() => setVoiceSheetOpen(true)}>
-              <Text style={styles.voiceResultEdit}>Düzenle</Text>
-            </Pressable>
           </View>
         ) : null}
 
@@ -468,7 +475,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,107,53,0.35)',
     backgroundColor: 'rgba(255,107,53,0.08)',
     padding: 14,
-    gap: 4,
+    gap: 6,
+  },
+  voiceResultTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   voiceResultLabel: {
     color: GastroColors.accent,
@@ -478,7 +491,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   voiceResultText: { color: GastroColors.text, fontSize: 15, fontWeight: '700' },
-  voiceResultEdit: { color: GastroColors.gold, fontSize: 13, fontWeight: '700', marginTop: 4 },
+  voiceResultEdit: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
   voiceLegend: {
     borderRadius: 12,
     borderWidth: 1,

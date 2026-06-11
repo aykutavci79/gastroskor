@@ -98,7 +98,10 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                 </Pressable>
                 <Pressable
                   style={[styles.searchBtn, !canSearch && styles.searchBtnDisabled]}
-                  onPress={() => onSearch(parsed)}
+                  onPress={() => {
+                    if (!canSearch) return;
+                    onSearch(parsed);
+                  }}
                   disabled={!canSearch}>
                   {searching ? (
                     <ActivityIndicator color="#141414" />

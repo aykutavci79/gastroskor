@@ -41,7 +41,7 @@ module.exports = ({ config }) => ({
   name: 'GastroSkor',
   owner: 'delimanyah',
   slug: 'gastroskor',
-  version: '1.0.22',
+  version: '1.0.23',
   orientation: 'portrait',
   icon: './assets/logo.png',
   scheme: 'gastroskor',
@@ -54,7 +54,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '26',
+    buildNumber: '27',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -75,7 +75,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/logo.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 34,
+    versionCode: 35,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [appLinkIntentFilter],
   },
