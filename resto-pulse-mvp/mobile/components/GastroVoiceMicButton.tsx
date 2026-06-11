@@ -13,11 +13,17 @@ type Props = {
   onTranscript: (text: string) => void;
   disabled?: boolean;
   compact?: boolean;
+  /** false iken native STT hook'lari mount edilmez (sheet kapanirken crash onlemi). */
+  active?: boolean;
 };
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-export function GastroVoiceMicButton({ onTranscript, disabled = false, compact = false }: Props) {
+function GastroVoiceMicButtonImpl({
+  onTranscript,
+  disabled = false,
+  compact = false,
+}: Omit<Props, 'active'>) {
   const [listening, setListening] = useState(false);
   const [available, setAvailable] = useState(!isExpoGo);
   const [hint, setHint] = useState<string | null>(null);
@@ -25,6 +31,16 @@ export function GastroVoiceMicButton({ onTranscript, disabled = false, compact =
   useEffect(() => {
     if (isExpoGo) return;
     void ExpoSpeechRecognitionModule.isRecognitionAvailable().then(setAvailable);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      try {
+        ExpoSpeechRecognitionModule.stop();
+      } catch {
+        /* native modul yok */
+      }
+    };
   }, []);
 
   useSpeechRecognitionEvent('start', () => setListening(true));
@@ -93,6 +109,31 @@ export function GastroVoiceMicButton({ onTranscript, disabled = false, compact =
       </Pressable>
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </>
+  );
+}
+
+export function GastroVoiceMicButton({
+  active = true,
+  onTranscript,
+  disabled = false,
+  compact = false,
+}: Props) {
+  if (!active) {
+    return (
+      <Pressable
+        style={[styles.btn, compact && styles.btnCompact, styles.btnDisabled]}
+        disabled>
+        <Text style={styles.emoji}>🎙️</Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <GastroVoiceMicButtonImpl
+      onTranscript={onTranscript}
+      disabled={disabled}
+      compact={compact}
+    />
   );
 }
 

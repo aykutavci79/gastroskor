@@ -1,3 +1,4 @@
+import { ensureArray } from '@/lib/ensure-array';
 import type { RestaurantMenuItem } from '@/lib/types';
 
 export type CategoryVisualKind =
@@ -111,7 +112,7 @@ export function resolveCategoryVisual(input: {
   name?: string | null;
   menuItems?: RestaurantMenuItem[];
 }): CategoryVisual {
-  const menuText = (input.menuItems ?? [])
+  const menuText = ensureArray<RestaurantMenuItem>(input.menuItems)
     .map((m) => `${m.name} ${m.category ?? ''}`)
     .join(' ');
   const haystack = normalize([input.category, input.name, menuText].filter(Boolean).join(' '));

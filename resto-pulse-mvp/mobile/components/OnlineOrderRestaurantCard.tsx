@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GastroColors, GastroShadow } from '@/constants/theme';
 import { categoryLabel } from '@/constants/online-order-categories';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
+import { coerceNumber } from '@/lib/coerce-number';
+import { ensureArray } from '@/lib/ensure-array';
 import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import { restaurantMenuItemCount } from '@/lib/restaurant-menu';
@@ -29,20 +31,21 @@ export function OnlineOrderRestaurantCard({
 }: Props) {
   const router = useRouter();
   const cover = resolveCardCoverUrl(restaurant);
+  const menuPreview = ensureArray(restaurant.menu_preview);
   const visual = resolveCategoryVisual({
     category: restaurant.category,
     name: restaurant.name,
-    menuItems: restaurant.menu_preview,
+    menuItems: menuPreview,
   });
-  const rating = coercePriceTl(googleRating ?? restaurant.google_rating ?? restaurant.avg_rating);
-  const menuCount = restaurantMenuItemCount(restaurant);
-  const kitchens = (restaurant.online_order_categories ?? []).slice(0, 3);
+  const rating = coerceNumber(googleRating ?? restaurant.google_rating ?? restaurant.avg_rating);
+  const menuCount = restaurantMenuItemCount({ ...restaurant, menu_preview: menuPreview });
+  const kitchens = ensureArray<string>(restaurant.online_order_categories).slice(0, 3);
+  const voiceList = ensureArray<VoiceMenuMatch>(voiceMatches);
   const previewPrice =
-    coercePriceTl(voiceMatches?.[0]?.price_tl) ??
-    coercePriceTl(restaurant.menu_preview?.[0]?.price_tl);
+    coercePriceTl(voiceList[0]?.price_tl) ?? coercePriceTl(menuPreview[0]?.price_tl);
   const voiceMatchLabel =
-    voiceMatches && voiceMatches.length
-      ? voiceMatches
+    voiceList.length > 0
+      ? voiceList
           .slice(0, 2)
           .map((match) => {
             const price = formatPriceTl(match.price_tl, 0);

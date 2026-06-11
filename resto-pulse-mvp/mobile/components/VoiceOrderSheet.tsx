@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -37,12 +37,23 @@ const EXAMPLES = [
 export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
+  const [micActive, setMicActive] = useState(true);
 
   const parsed = useMemo(() => parseVoiceOrderQuery(draft), [draft]);
   const canSearch = parsed.voiceProduct != null && parsed.priceMax != null && !searching;
 
+  useEffect(() => {
+    if (visible) setMicActive(true);
+  }, [visible]);
+
   function applyExample(text: string) {
     setDraft(text);
+  }
+
+  function handleSearch() {
+    if (!canSearch) return;
+    setMicActive(false);
+    onSearch(parsed);
   }
 
   return (
@@ -85,6 +96,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                 />
                 <GastroVoiceMicButton
                   compact
+                  active={micActive}
                   disabled={searching}
                   onTranscript={(text) => setDraft((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))}
                 />
@@ -112,10 +124,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                 </Pressable>
                 <Pressable
                   style={[styles.searchBtn, !canSearch && styles.searchBtnDisabled]}
-                  onPress={() => {
-                    if (!canSearch) return;
-                    onSearch(parsed);
-                  }}
+                  onPress={handleSearch}
                   disabled={!canSearch}>
                   {searching ? (
                     <ActivityIndicator color="#141414" />

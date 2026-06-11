@@ -193,7 +193,6 @@ export default function OnlineOrdersOpenScreen() {
   const onVoiceSearch = useCallback(
     async (query: VoiceOrderQuery) => {
       if (!query.voiceProduct || query.priceMax == null) return;
-      setVoiceSheetOpen(false);
       setVoiceSearching(true);
       setLoading(true);
       setError(null);
@@ -214,6 +213,7 @@ export default function OnlineOrdersOpenScreen() {
         });
         setAllItems(Array.isArray(res.items) ? res.items : []);
         if (Array.isArray(res.categories) && res.categories.length) setCategories(res.categories);
+        setVoiceSheetOpen(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sesli arama basarisiz');
         setAllItems([]);
