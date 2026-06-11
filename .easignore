@@ -1,0 +1,16 @@
+# Monorepo — EAS sadece gastroskor mobil icin arsivler
+bahce-ustasi/
+aile-finans/
+kelime-bulmaca/
+subsnap/
+resto-pulse-mvp/backend/
+resto-pulse-mvp/frontend/
+app/
+components/
+.cursor/
+*.docx
+**/.git
+**/node_modules/.cache
+**/.expo
+**/dist-web-test
+resto-pulse-mvp/mobile/docs/

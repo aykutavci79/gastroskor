@@ -1,0 +1,4 @@
+# Mobil — build disi dosyalar
+docs/
+.expo/
+node_modules/.cache/
