@@ -6,8 +6,10 @@ import { GastroColors } from '@/constants/theme';
 import { buildGastroSpeechStartOptions } from '@/lib/gastro-speech-options';
 import { mergeSpeechTranscript } from '@/lib/merge-speech-transcript';
 import {
+  addSpeechListener,
   getSpeechRecognitionNative,
   readRecognitionAvailable,
+  requestSpeechPermissions,
 } from '@/lib/speech-recognition-native';
 
 const RESTART_DELAY_MS = 450;
@@ -67,7 +69,13 @@ function GastroVoiceMicButtonImpl({
       setAvailable(false);
       return;
     }
-    setAvailable(readRecognitionAvailable(speech));
+    let cancelled = false;
+    void readRecognitionAvailable(speech).then((ok) => {
+      if (!cancelled) setAvailable(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [speech]);
 
   useEffect(() => {
@@ -89,7 +97,7 @@ function GastroVoiceMicButtonImpl({
     if (!speech) return;
 
     const subs = [
-      speech.addListener('start', () => {
+      addSpeechListener(speech, 'start', () => {
         if (!isAutoRestartRef.current) {
           lastTranscriptRef.current = '';
         }
@@ -97,7 +105,7 @@ function GastroVoiceMicButtonImpl({
         setListening(true);
         setHint(null);
       }),
-      speech.addListener('end', () => {
+      addSpeechListener(speech, 'end', () => {
         if (userStoppedRef.current) {
           finishSession();
           return;
@@ -112,13 +120,13 @@ function GastroVoiceMicButtonImpl({
           restartListening();
         }, RESTART_DELAY_MS);
       }),
-      speech.addListener('result', (event) => {
+      addSpeechListener(speech, 'result', (event) => {
         const text = event.results[0]?.transcript?.trim();
         if (!text) return;
         lastTranscriptRef.current = mergeSpeechTranscript(lastTranscriptRef.current, text);
         onTranscript(lastTranscriptRef.current, false);
       }),
-      speech.addListener('error', (event) => {
+      addSpeechListener(speech, 'error', (event) => {
         clearRestartTimer();
         if (!userStoppedRef.current && event.error === 'no-speech') {
           restartTimerRef.current = setTimeout(() => {
@@ -183,7 +191,7 @@ function GastroVoiceMicButtonImpl({
     userStoppedRef.current = false;
     lastTranscriptRef.current = '';
     try {
-      const permission = await speech.requestPermissionsAsync();
+      const permission = await requestSpeechPermissions(speech);
       if (!permission.granted) {
         setHint('Mikrofon ve konusma tanima izni gerekli.');
         return;

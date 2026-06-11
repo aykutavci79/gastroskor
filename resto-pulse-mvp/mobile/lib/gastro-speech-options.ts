@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { VOICE_CONTEXT_PHRASES } from '@/constants/voice-product-catalog';
+import { supportsContinuousListening } from '@/lib/speech-recognition-native';
 
 /**
  * Gastro Siparis STT — uzun cumle (fiyat + urun) icin dinleme ayarlari.
@@ -12,13 +13,17 @@ export function buildGastroSpeechStartOptions(): Record<string, unknown> {
   const options: Record<string, unknown> = {
     lang: 'tr-TR',
     interimResults: true,
-    continuous: true,
+    continuous: supportsContinuousListening(),
     maxAlternatives: 1,
     contextualStrings: VOICE_CONTEXT_PHRASES.slice(0, 50),
-    iosTaskHint: 'search',
   };
 
+  if (Platform.OS === 'ios') {
+    options.iosTaskHint = 'search';
+  }
+
   if (Platform.OS === 'android') {
+    options.androidRecognitionServicePackage = 'com.google.android.googlequicksearchbox';
     options.androidIntentOptions = {
       /** En az bu kadar dinle (erken kapanmayi geciktir). */
       EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 2500,
