@@ -1,14 +1,14 @@
 """Menu ogelerine sesli urun slug
 
 Revision ID: 20260617_0040
-Revises: 20260616_0039
+Revises: 20260610_0040
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "20260617_0040"
-down_revision = "20260616_0039"
+down_revision = "20260610_0040"
 branch_labels = None
 depends_on = None
 
