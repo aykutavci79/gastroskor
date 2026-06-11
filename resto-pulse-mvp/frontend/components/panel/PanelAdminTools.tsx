@@ -33,11 +33,27 @@ export function PanelAdminTools() {
   const [appsLoading, setAppsLoading] = useState(false);
   const [appFilter, setAppFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('pending');
   const [forceTakeoverApps, setForceTakeoverApps] = useState(true);
+  const [adminStatus, setAdminStatus] = useState<{
+    is_panel_admin?: boolean;
+    admin_emails_configured?: boolean;
+    panel_admin_secret_configured?: boolean;
+    railway?: {
+      is_panel_admin?: boolean;
+      admin_emails_configured?: boolean;
+      panel_admin_secret_configured?: boolean;
+      hint?: string;
+      http_status?: number;
+      error?: string;
+    } | null;
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/panel/admin/status')
       .then((r) => r.json())
-      .then((data: { is_panel_admin?: boolean }) => setAllowed(Boolean(data.is_panel_admin)))
+      .then((data) => {
+        setAdminStatus(data);
+        setAllowed(Boolean(data.is_panel_admin));
+      })
       .catch(() => setAllowed(false));
   }, []);
 
@@ -250,6 +266,21 @@ export function PanelAdminTools() {
         <p className="mt-1 text-sm text-content-muted">
           Expo testleri icin Bursa&apos;da 5 online siparis restorani olusturur veya gunceller (Deneme 1–5).
         </p>
+        {adminStatus ? (
+          <ul className="mt-3 space-y-1 text-xs text-content-muted">
+            <li>
+              Vercel admin: {adminStatus.is_panel_admin ? 'evet' : 'hayir'} · e-posta listesi:{' '}
+              {adminStatus.admin_emails_configured ? 'tanimli' : 'eksik'}
+            </li>
+            <li>
+              Railway admin:{' '}
+              {adminStatus.railway?.is_panel_admin ? 'evet' : 'hayir'} · e-posta listesi:{' '}
+              {adminStatus.railway?.admin_emails_configured ? 'tanimli' : 'eksik'}
+              {adminStatus.railway?.http_status ? ` · HTTP ${adminStatus.railway.http_status}` : ''}
+              {adminStatus.railway?.error ? ` · ${adminStatus.railway.error}` : ''}
+            </li>
+          </ul>
+        ) : null}
         <button
           type="button"
           disabled={loading}
@@ -471,17 +502,9 @@ export function PanelAdminTools() {
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
           <p>{error}</p>
           <p className="mt-2 text-xs text-rose-200/80">
-            API kontrol:{' '}
-            <a
-              href={`https://api.gastroskor.com.tr/api/v1/panel/admin/status?user_email=${encodeURIComponent(userEmail ?? '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="underline">
-              admin/status
-            </a>
-            {' '}
-            — <code className="text-rose-100">is_panel_admin: true</code> ve{' '}
-            <code className="text-rose-100">admin_emails_configured: true</code> olmali.
+            Kontrol: Vercel ve Railway&apos;de <code className="text-rose-100">PANEL_ADMIN_EMAILS</code> icinde{' '}
+            <code className="text-rose-100">{userEmail ?? 'admin e-postan'}</code> olmali (veya her iki tarafta ayni{' '}
+            <code className="text-rose-100">PANEL_ADMIN_SECRET</code>). Sayfayi yenileyip ustteki Railway satirina bak.
           </p>
         </div>
       ) : null}

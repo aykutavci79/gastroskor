@@ -16,6 +16,7 @@ from app.models import Restaurant, RestaurantAnalyticsEvent, RestaurantCompetito
 from app.schemas.panel import (
     AdminActivateSubscriptionRequest,
     AdminGrantPanelRequest,
+    AdminPanelUserRequest,
     AdminVisitCompleteRequest,
     AiPurchaseRequest,
     AnalyticsEventCreate,
@@ -381,6 +382,18 @@ def panel_admin_status(user_email: str = Query(...)):
             "degisiklikten sonra Redeploy."
         ),
     }
+
+
+@panel_router.post("/admin/seed-tester-restaurants")
+def admin_seed_tester_restaurants(
+    payload: AdminPanelUserRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    from app.services.seed_tester_online_restaurants import seed_tester_online_restaurants
+
+    return seed_tester_online_restaurants(db)
 
 
 @panel_router.post("/admin/grant-access", response_model=PanelAccessRead)

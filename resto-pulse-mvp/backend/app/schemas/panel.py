@@ -167,6 +167,10 @@ class PanelAdminResetPublicDataRequest(BaseModel):
     hide_from_public: bool = True
 
 
+class AdminPanelUserRequest(BaseModel):
+    user_email: str
+
+
 class PanelResetPublicDataResponse(BaseModel):
     orders_deleted: int
     menu_items_deleted: int
