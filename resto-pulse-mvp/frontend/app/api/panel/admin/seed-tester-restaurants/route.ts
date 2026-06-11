@@ -36,15 +36,25 @@ export async function POST() {
     cache: 'no-store',
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data = (await response.json().catch(() => ({}))) as { detail?: string };
   if (!response.ok) {
     const detail = typeof data.detail === 'string' ? data.detail : 'Deneme restoranlari olusturulamadi';
+    const hints: string[] = [];
+    if (response.status === 401) {
+      hints.push('Railway oturum reddetti — cikis yapip Google ile tekrar giris yapin.');
+    }
+    if (response.status === 403) {
+      hints.push(
+        `Railway'de PANEL_ADMIN_EMAILS icinde ${email} veya Vercel ile ayni PANEL_ADMIN_SECRET olmali.`,
+      );
+    }
+    if (!process.env.PANEL_ADMIN_SECRET?.trim()) {
+      hints.push('Vercel\'de PANEL_ADMIN_SECRET tanimli degil.');
+    }
     return NextResponse.json(
       {
-        detail:
-          response.status === 403
-            ? `${detail} — Railway'de PANEL_ADMIN_EMAILS icinde ${email} veya PANEL_ADMIN_SECRET (Vercel ile ayni) olmali.`
-            : detail,
+        detail: hints.length ? `${detail} ${hints.join(' ')}` : detail,
+        status: response.status,
       },
       { status: response.status },
     );

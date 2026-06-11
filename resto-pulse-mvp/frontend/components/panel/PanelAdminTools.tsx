@@ -500,12 +500,15 @@ export function PanelAdminTools() {
       ) : null}
       {error ? (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <p>{error}</p>
-          <p className="mt-2 text-xs text-rose-200/80">
-            Kontrol: Vercel ve Railway&apos;de <code className="text-rose-100">PANEL_ADMIN_EMAILS</code> icinde{' '}
-            <code className="text-rose-100">{userEmail ?? 'admin e-postan'}</code> olmali (veya her iki tarafta ayni{' '}
-            <code className="text-rose-100">PANEL_ADMIN_SECRET</code>). Sayfayi yenileyip ustteki Railway satirina bak.
-          </p>
+          <p className="font-medium">{error}</p>
+          {adminStatus ? (
+            <p className="mt-2 text-xs text-rose-200/80">
+              Vercel secret: {adminStatus.panel_admin_secret_configured ? 'tanimli' : 'eksik'} · Railway admin:{' '}
+              {adminStatus.railway?.is_panel_admin ? 'evet' : 'hayir'}
+              {adminStatus.railway?.panel_admin_secret_configured === false ? ' · Railway secret eksik' : ''}
+              {typeof adminStatus.railway?.detail === 'string' ? ` · ${adminStatus.railway.detail}` : ''}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -31,6 +31,14 @@ PUBLIC_GET_PREFIXES = (
 )
 
 
+def _panel_admin_secret_trusted(request: Request) -> bool:
+    expected = (settings.panel_admin_secret or "").strip()
+    if not expected:
+        return False
+    header = (request.headers.get("x-panel-admin-secret") or "").strip()
+    return bool(header) and header == expected
+
+
 def _path_requires_auth(path: str, method: str) -> bool:
     if not path.startswith("/api/v1/"):
         return False
@@ -103,6 +111,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if auth_header.lower().startswith("bearer "):
             token = auth_header[7:].strip()
 
+        panel_admin_trusted = path.startswith("/api/v1/panel/admin/") and _panel_admin_secret_trusted(request)
+
         auth: RequestAuth | None = None
         if token:
             try:
@@ -110,13 +120,12 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 auth = RequestAuth.from_claims(claims)
                 set_request_auth(auth)
             except ValueError:
-                if auth_require_bearer() and _path_requires_auth(path, method):
+                if auth_require_bearer() and _path_requires_auth(path, method) and not panel_admin_trusted:
                     return JSONResponse(
                         status_code=401,
                         content={"detail": "Gecersiz veya suresi dolmus oturum."},
                     )
-
-        if auth_require_bearer() and _path_requires_auth(path, method) and auth is None:
+        if auth_require_bearer() and _path_requires_auth(path, method) and auth is None and not panel_admin_trusted:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Oturum gerekli. Google ile giris yapip tekrar deneyin."},

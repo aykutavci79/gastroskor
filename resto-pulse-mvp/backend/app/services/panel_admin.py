@@ -14,9 +14,14 @@ from app.services.restaurant_claim import ensure_restaurant_for_place
 ADMIN_VERIFICATION_METHOD = "admin_bypass"
 
 
+def _normalize_admin_email_part(value: str) -> str:
+    cleaned = value.strip().strip('"').strip("'").lower()
+    return cleaned
+
+
 def panel_admin_emails() -> set[str]:
     raw = settings.panel_admin_emails or ""
-    return {part.strip().lower() for part in raw.split(",") if part.strip()}
+    return {_normalize_admin_email_part(part) for part in raw.split(",") if part.strip()}
 
 
 def is_panel_admin_email(email: str | None) -> bool:
