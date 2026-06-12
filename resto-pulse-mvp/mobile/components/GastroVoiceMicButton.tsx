@@ -15,9 +15,14 @@ type Props = {
   compact?: boolean;
   /** false olunca dinleme durdurulur (arama tamamlandi vb.). */
   active?: boolean;
-  /** Orb overlay gibi ozel UI icin seffaf dokunma alani */
+  /** Keşfet orb ustu — online siparis compact ile ayni STT yolu */
+  overlayCompact?: boolean;
+  /** @deprecated overlayCompact kullan */
   orbOverlay?: boolean;
+  /** Acilista otomatik kayit baslat (Keşfet ses overlay). */
+  autoStart?: boolean;
   onUiStateChange?: (state: VoiceMicUiState) => void;
+  onHintChange?: (hint: string | null) => void;
 };
 
 /** iOS: Whisper backend · Android: cihaz STT (expo-speech-recognition). */
@@ -26,16 +31,21 @@ export function GastroVoiceMicButton({
   onTranscript,
   disabled = false,
   compact = false,
+  overlayCompact = false,
   orbOverlay = false,
+  autoStart = false,
   onUiStateChange,
+  onHintChange,
 }: Props) {
   const shared = {
     active,
     onTranscript,
     disabled: disabled || !active,
-    compact,
-    orbOverlay,
+    compact: compact || overlayCompact || orbOverlay,
+    overlayCompact: overlayCompact || orbOverlay,
+    autoStart,
     onUiStateChange,
+    onHintChange,
   };
 
   if (Platform.OS === 'ios') {

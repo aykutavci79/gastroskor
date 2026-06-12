@@ -49,7 +49,8 @@ Universal / App Links **native build** gerektirir (Expo Go'da tam calismaz).
 
 ```bash
 cd mobile
-eas build --profile production --platform all
+npm run build:prod          # once iOS, bitince Android
+npm run build:prod:ios-only   # sadece iOS
 ```
 
 Surum: **1.0.10+** (app.config.js intent filter + associated domains).

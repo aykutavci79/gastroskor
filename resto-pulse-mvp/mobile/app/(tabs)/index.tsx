@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -11,7 +12,6 @@ import {
 
 import { KesfetFilterChips, type KesfetChipId } from '@/components/KesfetFilterChips';
 import { KesfetHomeChrome } from '@/components/KesfetHomeChrome';
-import { KesfetVoiceSearchSheet } from '@/components/KesfetVoiceSearchSheet';
 import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
 import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
 import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBanner';
@@ -24,7 +24,11 @@ import {
   livePlaceDistanceLabel,
   livePlaceToRestaurantCard,
 } from '@/lib/live-place-card';
-import { registerKesfetVoiceOpener, unregisterKesfetVoiceOpener } from '@/lib/kesfet-voice-bridge';
+import {
+  consumePendingKesfetVoiceSearch,
+  registerKesfetVoiceSearchListener,
+  unregisterKesfetVoiceSearchListener,
+} from '@/lib/kesfet-voice-bridge';
 import { restaurantDetailHref } from '@/lib/uuid';
 import type {
   LivePlaceSearchItem,
@@ -44,7 +48,6 @@ export default function ExploreScreen() {
 
   const [inputQuery, setInputQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [activeChip, setActiveChip] = useState<KesfetChipId>('en-iyi');
 
   const [searchItems, setSearchItems] = useState<LivePlaceSearchItem[]>([]);
@@ -56,12 +59,6 @@ export default function ExploreScreen() {
 
   const trimmedQuery = inputQuery.trim();
   const searchMode = trimmedQuery.length >= 2;
-
-  useEffect(() => {
-    const openVoice = () => setVoiceOpen(true);
-    registerKesfetVoiceOpener(openVoice);
-    return () => unregisterKesfetVoiceOpener(openVoice);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +135,27 @@ export default function ExploreScreen() {
     }
   }, [refreshCoordsIfStale, ensureCoords]);
 
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      setInputQuery(text);
+      setSearchFocused(true);
+      void loadSearchResults(text);
+    },
+    [loadSearchResults],
+  );
+
+  useEffect(() => {
+    registerKesfetVoiceSearchListener(handleVoiceTranscript);
+    return () => unregisterKesfetVoiceSearchListener(handleVoiceTranscript);
+  }, [handleVoiceTranscript]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const pending = consumePendingKesfetVoiceSearch();
+      if (pending) handleVoiceTranscript(pending);
+    }, [handleVoiceTranscript]),
+  );
+
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadSearchResults(inputQuery);
@@ -161,12 +179,6 @@ export default function ExploreScreen() {
     if (chip === 'tescilli') {
       router.push('/yoresel' as never);
     }
-  }
-
-  function handleVoiceTranscript(text: string) {
-    setInputQuery(text);
-    setSearchFocused(true);
-    void loadSearchResults(text);
   }
 
   const chrome = (
@@ -235,11 +247,6 @@ export default function ExploreScreen() {
             })
           )}
         </View>
-        <KesfetVoiceSearchSheet
-          visible={voiceOpen}
-          onClose={() => setVoiceOpen(false)}
-          onTranscript={handleVoiceTranscript}
-        />
       </Screen>
     );
   }
@@ -257,11 +264,6 @@ export default function ExploreScreen() {
         </View>
         <RecentPhotosStrip style={styles.flexPhotos} />
       </View>
-      <KesfetVoiceSearchSheet
-        visible={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onTranscript={handleVoiceTranscript}
-      />
     </Screen>
   );
 }

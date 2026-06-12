@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 import { CenterMicTabBar } from '@/components/CenterMicTabBar';
+import { KesfetVoiceOverlayRoot } from '@/components/KesfetVoiceOverlayRoot';
 import { GastroColors } from '@/constants/theme';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
 import { AppBadgesProvider, useAppBadges } from '@/context/app-badges-context';
@@ -51,6 +52,7 @@ function TabsWithBadges() {
   const showBusinessTab = Boolean(user?.email && hasBusiness && !sessionLoading);
 
   return (
+    <>
     <Tabs
       tabBar={(props) => <CenterMicTabBar {...props} />}
       screenOptions={{
@@ -98,6 +100,8 @@ function TabsWithBadges() {
         }}
       />
     </Tabs>
+    <KesfetVoiceOverlayRoot />
+    </>
   );
 }
 

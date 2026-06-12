@@ -58,7 +58,34 @@ eas init
 
 `app.config.js` icindeki `extra.eas.projectId` otomatik dolar veya `.env` `EAS_PROJECT_ID` kullanilir.
 
-## 5. Build
+## 5. Surum teyidi (build oncesi zorunlu)
+
+Play Console / App Store Connect'teki **canli** surumleri `release-versions.json` dosyasina yaz:
+
+```json
+{
+  "play": { "versionName": "1.0.35", "versionCode": 47 },
+  "appStore": { "version": "1.0.37", "buildNumber": 40 }
+}
+```
+
+Kontrol ve otomatik bump:
+
+```bash
+cd mobile
+npm run release:check          # karsilastir, uyari ver
+npm run release:check:apply    # app.config.js'i magaza+EAS ustune cikar
+```
+
+Android build (teyit + bump + build):
+
+```bash
+npm run build:android:prod:safe
+```
+
+**Kural:** `versionCode` ve `buildNumber` magazadaki ve EAS'teki son degerden **buyuk** olmali; aksi halde Play "eski surum" hatasi verir.
+
+## 6. Build
 
 ```bash
 # Android APK (ic dagitim / tester)
@@ -67,11 +94,21 @@ eas build --profile preview --platform android
 # iOS cihaz (TestFlight oncesi)
 eas build --profile preview --platform ios
 
-# Magaza surumu
-eas build --profile production --platform all
+# Magaza surumu — tek tek (onerilen)
+eas build --profile production --platform ios --wait
+eas submit --profile production --platform ios --latest
+
+eas build --profile production --platform android --wait
+eas submit --profile production --platform android --latest
+
+# veya npm ile sirali (once iOS, sonra Android)
+npm run build:prod
+npm run build:prod:submit
 ```
 
-## 6. Magazaya gonderim
+**Not:** `--platform all` ile paralel build yapmayin; biri submit'te patlayinca digeri de bosuna kredi yakar.
+
+## 7. Magazaya gonderim
 
 `eas.json` submit blogunu doldurun:
 
@@ -79,11 +116,11 @@ eas build --profile production --platform all
 - **iOS:** Apple ID, ASC App ID, Team ID
 
 ```bash
-eas submit --profile production --platform android
-eas submit --profile production --platform ios
+eas submit --profile production --platform ios --latest
+eas submit --profile production --platform android --latest
 ```
 
-## 7. Magaza listesi (her iki platform)
+## 8. Magaza listesi (her iki platform)
 
 - Uygulama adi: **GastroSkor**
 - Kisa aciklama: Turkiye restoran kesfi ve GS yorumlari

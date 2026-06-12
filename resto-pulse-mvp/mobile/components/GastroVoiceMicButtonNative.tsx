@@ -13,6 +13,7 @@ import {
 } from '@/lib/speech-recognition-native';
 
 const RESTART_DELAY_MS = 450;
+const AUTO_START_DELAY_MS = 450;
 
 import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 
@@ -20,9 +21,11 @@ type Props = {
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
+  overlayCompact?: boolean;
   active?: boolean;
-  orbOverlay?: boolean;
+  autoStart?: boolean;
   onUiStateChange?: (state: VoiceMicUiState) => void;
+  onHintChange?: (hint: string | null) => void;
 };
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -31,18 +34,29 @@ export function GastroVoiceMicButtonNative({
   onTranscript,
   disabled = false,
   compact = false,
+  overlayCompact = false,
   active = true,
-  orbOverlay = false,
+  autoStart = false,
   onUiStateChange,
+  onHintChange,
 }: Props) {
   const [listening, setListening] = useState(false);
   const [available, setAvailable] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const autoStartedRef = useRef(false);
   const lastTranscriptRef = useRef('');
   const userStoppedRef = useRef(true);
   const isAutoRestartRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speech = getSpeechRecognitionNative();
+
+  const updateHint = useCallback(
+    (next: string | null) => {
+      setHint(next);
+      onHintChange?.(next);
+    },
+    [onHintChange],
+  );
 
   const clearRestartTimer = useCallback(() => {
     if (restartTimerRef.current) {
@@ -84,6 +98,7 @@ export function GastroVoiceMicButtonNative({
 
   useEffect(() => {
     if (active) return;
+    autoStartedRef.current = false;
     userStoppedRef.current = true;
     clearRestartTimer();
     if (!speech) {
@@ -107,7 +122,7 @@ export function GastroVoiceMicButtonNative({
         }
         isAutoRestartRef.current = false;
         setListening(true);
-        setHint(null);
+        updateHint(null);
       }),
       addSpeechListener(speech, 'end', () => {
         if (userStoppedRef.current) {
@@ -141,15 +156,15 @@ export function GastroVoiceMicButtonNative({
         }
         setListening(false);
         if (event.error === 'not-allowed') {
-          setHint('Mikrofon izni gerekli.');
+          updateHint('Mikrofon izni gerekli.');
           return;
         }
         if (event.error === 'no-speech') {
-          setHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+          updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
           return;
         }
         if (event.error === 'aborted') return;
-        setHint('Ses tanima basarisiz. Metin ile deneyin.');
+        updateHint('Ses tanima basarisiz. Metin ile deneyin.');
       }),
     ];
 
@@ -163,15 +178,15 @@ export function GastroVoiceMicButtonNative({
         /* native modul */
       }
     };
-  }, [clearRestartTimer, finishSession, onTranscript, restartListening, speech]);
+  }, [clearRestartTimer, finishSession, onTranscript, restartListening, speech, updateHint]);
 
   const startListening = useCallback(async () => {
     if (disabled || isExpoGo || !speech) {
-      setHint('Mikrofon TestFlight / Play build gerektirir.');
+      updateHint('Mikrofon TestFlight / Play build gerektirir.');
       return;
     }
     if (!available) {
-      setHint('Bu cihazda ses tanima kullanilamiyor.');
+      updateHint('Bu cihazda ses tanima kullanilamiyor.');
       return;
     }
     if (listening) {
@@ -185,41 +200,42 @@ export function GastroVoiceMicButtonNative({
       return;
     }
 
-    setHint(null);
+    updateHint(null);
     userStoppedRef.current = false;
     lastTranscriptRef.current = '';
     try {
       const permission = await requestSpeechPermissions(speech);
       if (!permission.granted) {
-        setHint('Mikrofon ve konusma tanima izni gerekli.');
+        updateHint('Mikrofon ve konusma tanima izni gerekli.');
         return;
       }
       speech.start(buildGastroSpeechStartOptions());
     } catch {
       userStoppedRef.current = true;
-      setHint('Ses tanima baslatilamadi. Metin ile deneyin.');
+      updateHint('Ses tanima baslatilamadi. Metin ile deneyin.');
       setListening(false);
     }
-  }, [available, clearRestartTimer, disabled, finishSession, listening, speech]);
+  }, [available, clearRestartTimer, disabled, finishSession, listening, speech, updateHint]);
+
+  useEffect(() => {
+    if (!autoStart || !active || disabled || isExpoGo || autoStartedRef.current || listening) return;
+    if (!speech || !available) return;
+
+    const timer = setTimeout(() => {
+      if (autoStartedRef.current || listening) return;
+      autoStartedRef.current = true;
+      void startListening();
+    }, AUTO_START_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [active, autoStart, available, disabled, listening, speech, startListening]);
 
   useEffect(() => {
     onUiStateChange?.({ listening, transcribing: false });
   }, [listening, onUiStateChange]);
 
-  if (orbOverlay) {
-    return (
-      <>
-        <Pressable
-          style={styles.orbHit}
-          onPress={() => void startListening()}
-          disabled={disabled}
-          accessibilityRole="button"
-          accessibilityLabel="Sesli arama"
-        />
-        {hint ? <Text style={styles.hintOrb}>{hint}</Text> : null}
-      </>
-    );
-  }
+  const showCompactHint = compact && !overlayCompact && listening;
+  const showInlineHint = hint && !overlayCompact;
 
   return (
     <>
@@ -227,14 +243,22 @@ export function GastroVoiceMicButtonNative({
         style={[
           styles.btn,
           compact && styles.btnCompact,
+          overlayCompact && styles.btnOverlay,
           listening && styles.btnActive,
+          overlayCompact && !listening && styles.btnOverlayIdle,
           (disabled || !available) && styles.btnDisabled,
         ]}
         onPress={() => void startListening()}
-        disabled={disabled}>
+        disabled={disabled}
+        hitSlop={overlayCompact ? 12 : undefined}
+        accessibilityRole="button"
+        accessibilityLabel="Sesli arama"
+        accessibilityHint={
+          listening ? 'Dinlemeyi bitirmek icin tekrar dokun' : 'Konusmak icin dokun'
+        }>
         {listening ? (
           <ActivityIndicator color="#141414" size="small" />
-        ) : (
+        ) : overlayCompact ? null : (
           <Text style={styles.emoji}>🎙️</Text>
         )}
         {!compact ? (
@@ -243,8 +267,8 @@ export function GastroVoiceMicButtonNative({
           </Text>
         ) : null}
       </Pressable>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-      {listening && compact ? (
+      {showInlineHint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {showCompactHint ? (
         <Text style={styles.hintCompact}>Bitirmek icin tekrar dokun</Text>
       ) : null}
     </>
@@ -270,6 +294,19 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 10,
   },
+  btnOverlay: {
+    width: 120,
+    height: 120,
+    minWidth: 120,
+    minHeight: 120,
+    borderRadius: 60,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  btnOverlayIdle: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+  },
   btnActive: {
     backgroundColor: GastroColors.gold,
     borderColor: GastroColors.gold,
@@ -283,22 +320,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
-    textAlign: 'center',
-  },
-  orbHit: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-    backgroundColor: 'transparent',
-  },
-  hintOrb: {
-    position: 'absolute',
-    top: '100%',
-    marginTop: 8,
-    left: -40,
-    right: -40,
-    color: GastroColors.gold,
-    fontSize: 11,
-    lineHeight: 15,
     textAlign: 'center',
   },
 });

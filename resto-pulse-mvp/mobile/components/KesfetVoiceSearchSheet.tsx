@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -43,9 +43,10 @@ const CHIP_LAYOUT: Record<ChipPosition, { top?: string; bottom?: string; left?: 
 
 export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props) {
   const insets = useSafeAreaInsets();
-  const [micActive, setMicActive] = useState(true);
+  const [micActive, setMicActive] = useState(false);
   const [uiState, setUiState] = useState<VoiceMicUiState>({ listening: false, transcribing: false });
   const [liveDraft, setLiveDraft] = useState('');
+  const [micHint, setMicHint] = useState<string | null>(null);
   const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearDemoTimers = useCallback(() => {
@@ -61,12 +62,20 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
   useEffect(() => {
     if (!visible) {
       clearDemoTimers();
+      setMicActive(false);
+      setUiState({ listening: false, transcribing: false });
+      setLiveDraft('');
+      setMicHint(null);
       return;
     }
-    setMicActive(true);
     setUiState({ listening: false, transcribing: false });
     setLiveDraft('');
-    return () => clearDemoTimers();
+    setMicHint(null);
+    const readyTimer = setTimeout(() => setMicActive(true), 400);
+    return () => {
+      clearTimeout(readyTimer);
+      clearDemoTimers();
+    };
   }, [visible, clearDemoTimers]);
 
   const runVoiceDemo = useCallback(() => {
@@ -101,13 +110,19 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     onClose();
   }
 
-  const statusLine = uiState.transcribing
-    ? 'Cevriliyor…'
-    : uiState.listening
-      ? 'Dinliyorum…'
-      : isExpoGo
-        ? 'Dokun — ses önizlemesi'
-        : 'Ne aramak istediğini söyle';
+  const statusLine = micHint
+    ? micHint
+    : uiState.transcribing
+      ? 'Cevriliyor…'
+      : uiState.listening
+        ? Platform.OS === 'ios'
+          ? 'Dinliyorum… Bitirmek için mikrofona dokun'
+          : 'Dinliyorum… Bitirmek için dokun veya sus'
+        : isExpoGo
+          ? 'Dokun — ses önizlemesi'
+          : Platform.OS === 'ios'
+            ? 'Konuşmaya başladık — bitirince mikrofona dokun'
+            : 'Ne aramak istediğini söyle';
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -138,27 +153,29 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
             />
           ))}
 
-          <View style={styles.orbStack}>
+          <View style={styles.orbStack} pointerEvents="box-none">
             <VoiceListenOrb listening={uiState.listening} transcribing={uiState.transcribing} />
-            <View style={styles.orbTouch}>
-              {isExpoGo ? (
-                <Pressable
-                  style={styles.orbHit}
-                  onPress={runVoiceDemo}
-                  accessibilityRole="button"
-                  accessibilityLabel="Sesli arama demo"
-                />
-              ) : (
-                <SpeechMicErrorBoundary>
+            {isExpoGo ? (
+              <Pressable
+                style={styles.orbHit}
+                onPress={runVoiceDemo}
+                accessibilityRole="button"
+                accessibilityLabel="Sesli arama demo"
+              />
+            ) : (
+              <View style={styles.micTapLayer} pointerEvents="box-none">
+                <SpeechMicErrorBoundary compact>
                   <GastroVoiceMicButton
-                    orbOverlay
+                    overlayCompact
+                    autoStart
                     active={micActive}
                     onTranscript={handleTranscript}
                     onUiStateChange={setUiState}
+                    onHintChange={setMicHint}
                   />
                 </SpeechMicErrorBoundary>
-              )}
-            </View>
+              </View>
+            )}
           </View>
 
           <Text style={styles.status}>{statusLine}</Text>
@@ -243,16 +260,25 @@ const styles = StyleSheet.create({
     minHeight: VOICE_ORB_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 4,
   },
-  orbTouch: {
-    ...StyleSheet.absoluteFillObject,
+  micTapLayer: {
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    zIndex: 30,
+    elevation: 30,
   },
   orbHit: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
+    position: 'absolute',
+    top: 44,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'transparent',
+    zIndex: 30,
   },
   status: {
     marginTop: 18,

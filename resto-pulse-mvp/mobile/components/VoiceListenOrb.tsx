@@ -143,7 +143,7 @@ export function VoiceListenOrb({ listening = false, transcribing = false }: Prop
   const active = listening || transcribing;
 
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} pointerEvents="none">
       <View style={styles.micZone}>
         {RING_SIZES.map((size, index) => (
           <RippleRing key={size} size={size} delayMs={RING_DELAYS[index]} />

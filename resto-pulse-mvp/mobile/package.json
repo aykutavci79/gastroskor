@@ -14,7 +14,12 @@
     "build:android:preview": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-preview.ps1",
     "build:android:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android",
     "build:ios:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform ios",
-    "build:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform all"
+    "build:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-release.ps1",
+    "build:prod:submit": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-release.ps1 -Submit",
+    "build:prod:ios-only": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-release.ps1 -SkipSecond",
+    "release:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1",
+    "release:check:apply": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -Apply",
+    "build:android:prod:safe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -AndroidOnly -Apply; powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

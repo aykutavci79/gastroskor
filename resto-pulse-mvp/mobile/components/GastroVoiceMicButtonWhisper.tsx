@@ -1,5 +1,5 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
@@ -7,13 +7,17 @@ import { useVoiceWhisperRecorder } from '@/hooks/use-voice-whisper-recorder';
 
 import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 
+const AUTO_START_DELAY_MS = 450;
+
 type Props = {
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
+  overlayCompact?: boolean;
   active?: boolean;
-  orbOverlay?: boolean;
+  autoStart?: boolean;
   onUiStateChange?: (state: VoiceMicUiState) => void;
+  onHintChange?: (hint: string | null) => void;
 };
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -22,49 +26,81 @@ export function GastroVoiceMicButtonWhisper({
   onTranscript,
   disabled = false,
   compact = false,
+  overlayCompact = false,
   active = true,
-  orbOverlay = false,
+  autoStart = false,
   onUiStateChange,
+  onHintChange,
 }: Props) {
   const [hint, setHint] = useState<string | null>(null);
+  const autoStartedRef = useRef(false);
   const { recording, transcribing, startRecording, stopAndTranscribe, cancelRecording } =
     useVoiceWhisperRecorder();
 
+  const updateHint = useCallback(
+    (next: string | null) => {
+      setHint(next);
+      onHintChange?.(next);
+    },
+    [onHintChange],
+  );
+
   useEffect(() => {
     if (active) return;
+    autoStartedRef.current = false;
     void cancelRecording();
   }, [active, cancelRecording]);
 
+  const beginRecording = useCallback(async () => {
+    updateHint(null);
+    const started = await startRecording();
+    if (!started) {
+      updateHint('Mikrofon izni gerekli.');
+      autoStartedRef.current = false;
+    }
+  }, [startRecording, updateHint]);
+
+  useEffect(() => {
+    if (!autoStart || !active || disabled || isExpoGo || autoStartedRef.current || recording) return;
+
+    const timer = setTimeout(() => {
+      if (autoStartedRef.current || recording) return;
+      autoStartedRef.current = true;
+      void beginRecording();
+    }, AUTO_START_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [active, autoStart, beginRecording, disabled, recording]);
+
   const handlePress = useCallback(async () => {
     if (disabled || isExpoGo) {
-      setHint('Mikrofon TestFlight / Play build gerektirir.');
+      updateHint('Mikrofon TestFlight / Play build gerektirir.');
       return;
     }
     if (transcribing) return;
 
     if (recording) {
       try {
-        setHint('Cevriliyor…');
+        updateHint('Cevriliyor…');
         const text = await stopAndTranscribe();
-        setHint(null);
+        updateHint(null);
         if (text) {
           onTranscript(text, false);
           onTranscript(text, true);
         } else {
-          setHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+          updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+          autoStartedRef.current = false;
         }
       } catch (err) {
-        setHint(err instanceof Error ? err.message : 'Ses tanima basarisiz. Metin ile deneyin.');
+        updateHint(err instanceof Error ? err.message : 'Ses tanima basarisiz. Metin ile deneyin.');
+        autoStartedRef.current = false;
       }
       return;
     }
 
-    setHint(null);
-    const started = await startRecording();
-    if (!started) {
-      setHint('Mikrofon izni gerekli.');
-    }
-  }, [disabled, onTranscript, recording, startRecording, stopAndTranscribe, transcribing]);
+    autoStartedRef.current = true;
+    await beginRecording();
+  }, [beginRecording, disabled, onTranscript, recording, stopAndTranscribe, transcribing, updateHint]);
 
   const busy = recording || transcribing;
 
@@ -72,20 +108,8 @@ export function GastroVoiceMicButtonWhisper({
     onUiStateChange?.({ listening: recording, transcribing });
   }, [onUiStateChange, recording, transcribing]);
 
-  if (orbOverlay) {
-    return (
-      <>
-        <Pressable
-          style={styles.orbHit}
-          onPress={() => void handlePress()}
-          disabled={disabled || transcribing}
-          accessibilityRole="button"
-          accessibilityLabel="Sesli arama"
-        />
-        {hint ? <Text style={styles.hintOrb}>{hint}</Text> : null}
-      </>
-    );
-  }
+  const showCompactHint = compact && !overlayCompact && busy && !transcribing;
+  const showInlineHint = hint && !overlayCompact;
 
   return (
     <>
@@ -93,14 +117,26 @@ export function GastroVoiceMicButtonWhisper({
         style={[
           styles.btn,
           compact && styles.btnCompact,
+          overlayCompact && styles.btnOverlay,
           recording && styles.btnActive,
+          overlayCompact && !recording && !transcribing && styles.btnOverlayIdle,
           (disabled || transcribing) && styles.btnDisabled,
         ]}
         onPress={() => void handlePress()}
-        disabled={disabled || transcribing}>
+        disabled={disabled || transcribing}
+        hitSlop={overlayCompact ? 12 : undefined}
+        accessibilityRole="button"
+        accessibilityLabel="Sesli arama"
+        accessibilityHint={
+          recording
+            ? 'Dinlemeyi bitirmek icin tekrar dokun'
+            : 'Konusmak icin dokun, bitirince tekrar dokun'
+        }>
         {transcribing ? (
           <ActivityIndicator color="#141414" size="small" />
-        ) : (
+        ) : recording ? (
+          <ActivityIndicator color="#141414" size="small" />
+        ) : overlayCompact ? null : (
           <Text style={styles.emoji}>🎙️</Text>
         )}
         {!compact ? (
@@ -113,8 +149,8 @@ export function GastroVoiceMicButtonWhisper({
           </Text>
         ) : null}
       </Pressable>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-      {busy && compact && !transcribing ? (
+      {showInlineHint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {showCompactHint ? (
         <Text style={styles.hintCompact}>Bitirmek icin tekrar dokun</Text>
       ) : null}
     </>
@@ -140,6 +176,19 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 10,
   },
+  btnOverlay: {
+    width: 120,
+    height: 120,
+    minWidth: 120,
+    minHeight: 120,
+    borderRadius: 60,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  btnOverlayIdle: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+  },
   btnActive: {
     backgroundColor: GastroColors.gold,
     borderColor: GastroColors.gold,
@@ -153,22 +202,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
-    textAlign: 'center',
-  },
-  orbHit: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-    backgroundColor: 'transparent',
-  },
-  hintOrb: {
-    position: 'absolute',
-    top: '100%',
-    marginTop: 8,
-    left: -40,
-    right: -40,
-    color: GastroColors.gold,
-    fontSize: 11,
-    lineHeight: 15,
     textAlign: 'center',
   },
 });
