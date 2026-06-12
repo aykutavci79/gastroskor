@@ -1,8 +1,11 @@
 import type { MetadataRoute } from 'next';
 
+import pagesData from '@/data/regional-flavor-pages.json';
 import { getApiV1Base } from '@/lib/api-base';
 import { getSiteUrl } from '@/lib/site-url';
 import type { RestaurantListItem } from '@/lib/types';
+
+const FALLBACK_REGIONAL_SLUGS = pagesData.pages.map((page) => page.slug).filter(Boolean);
 
 const STATIC_PATHS = [
   '/',
@@ -20,11 +23,12 @@ async function fetchRegionalProductSlugs(): Promise<string[]> {
     const response = await fetch(`${getApiV1Base()}/regional-flavors/products?city=Bursa`, {
       next: { revalidate: 86400 },
     });
-    if (!response.ok) return [];
+    if (!response.ok) return FALLBACK_REGIONAL_SLUGS;
     const data = (await response.json()) as { items?: { slug: string }[] };
-    return (data.items ?? []).map((item) => item.slug).filter(Boolean);
+    const slugs = (data.items ?? []).map((item) => item.slug).filter(Boolean);
+    return slugs.length > 0 ? slugs : FALLBACK_REGIONAL_SLUGS;
   } catch {
-    return [];
+    return FALLBACK_REGIONAL_SLUGS;
   }
 }
 
@@ -45,6 +49,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
 
+  let restaurantIds: string[] = [];
+  let regionalSlugs: string[] = FALLBACK_REGIONAL_SLUGS;
+  try {
+    [restaurantIds, regionalSlugs] = await Promise.all([
+      fetchRestaurantIds(),
+      fetchRegionalProductSlugs(),
+    ]);
+  } catch {
+    // Statik + yedek slug listesi ile devam et
+  }
+
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: path === '/' ? siteUrl : `${siteUrl}${path}`,
     lastModified: now,
@@ -52,8 +67,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === '/' ? 1 : path === '/bursa' ? 0.9 : 0.4,
   }));
 
-  const restaurantIds = await fetchRestaurantIds();
-  const regionalSlugs = await fetchRegionalProductSlugs();
   const restaurantEntries: MetadataRoute.Sitemap = restaurantIds.map((id) => ({
     url: `${siteUrl}/restaurants/${id}`,
     lastModified: now,
@@ -65,7 +78,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${siteUrl}/yoresel-lezzetler/${slug}`,
     lastModified: now,
     changeFrequency: 'weekly',
-    priority: 0.65,
+    priority: 0.75,
   }));
 
   return [...staticEntries, ...restaurantEntries, ...regionalEntries];

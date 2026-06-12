@@ -1,0 +1,400 @@
+{
+  "pages": [
+    {
+      "slug": "bursa-cantik",
+      "name": "Bursa Cantık",
+      "city": "Bursa",
+      "kategori": "Hamur İşi",
+      "tescilYili": "2021",
+      "searchTag": "cantık",
+      "seeAllHref": "/bursa?tag=cantik",
+      "h1": "Bursa Cantık — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa Cantık Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "Bursa'nın TÜRKPATENT tescilli lezzeti cantık nerede yenir? GastroSkor puanına göre Bursa'nın en iyi cantık restoranları, fiyatlar ve yorumlar.",
+        "keywords": "bursa cantık, bursa cantık nerede yenir, en iyi cantık bursa, cantık fiyat, cantıkçı bursa"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Cantık Restoranları",
+      "kisaTarih": "Cantık, 1800'lü yıllarda Osmanlı-Rus Savaşı döneminde Bursa'ya göç eden Kırım Tatarları tarafından Türk mutfağına kazandırılmıştır. Asıl Tatar cantığından farklı olarak Bursa'da üstü açık, yuvarlak bir pide formuna evrilerek şehre özgü bir lezzet hâline gelmiştir. TÜRKPATENT tarafından 01.11.2021 tarihinde coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Mayalı hamurdan hazırlanan cantık; kıymalı, kuşbaşılı veya peynirli iç harçla doldurulur. Kenarları kalın, ortası ince olan yuvarlak pide, geleneksel taş tabanlı fırınlarda gürgen odunuyla pişirilir. Fırından çıkınca kenarlara eritilmiş tereyağı sürülür; yanında genellikle ayran içilir.",
+      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli yöresel lezzeti cantık hakkında bilgi ve en iyi restoranlar.",
+      "faq": [
+        {
+          "question": "Cantık nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir pide çeşididir. Mayalı hamur üzerine kıyma, kuşbaşı et veya peynir konularak taş fırında pişirilir."
+        },
+        {
+          "question": "Cantık'ı nereden yiyebilirim?",
+          "answer": "Bursa'da tarihi Kayhan Çarşısı ve Tuzpazarı Çarşısı'ndaki fırınlar ile aşağıdaki GastroSkor listesindeki restoranlar en iyi seçenekler arasındadır."
+        },
+        {
+          "question": "Cantık ile pide arasındaki fark nedir?",
+          "answer": "Cantık da hamur işi olsa da Bursa'ya özgü bir formdur: üstü açık, yuvarlak, kenarları kalın ve ortası incedir; iç harç genelde kıyma, kuşbaşı veya peynirdir. Klasik kapalı pide veya lahmacun gibi ince açılmış üstü kapalı çeşitlerden ayrılır; taş fırında gürgen odunuyla pişirilip kenarlarına tereyağı sürülerek servis edilir."
+        }
+      ]
+    },
+    {
+      "slug": "bursa-cevizli-lokum",
+      "name": "Bursa Cevizli Lokum",
+      "city": "Bursa",
+      "kategori": "Tatlı",
+      "tescilYili": "2021",
+      "searchTag": "cevizli lokum",
+      "seeAllHref": "/bursa?tag=lokum",
+      "h1": "Bursa Cevizli Lokum — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa Cevizli Lokum Nerede Yenir? En İyi 10 Mekan | GastroSkor",
+        "description": "Bursa cevizli lokum nerede yenir? TÜRKPATENT tescilli Bursa cevizli lokumu için GastroSkor puanına göre en iyi pastane ve tatlıcılar.",
+        "keywords": "bursa cevizli lokum, cevizli lokum bursa, bursa lokum nerede yenir, en iyi lokum bursa, bursa tatlıcı"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Cevizli Lokum Mekanları",
+      "kisaTarih": "Osmanlı saray mutfağından gelen lokum geleneği Bursa'da cevizle buluşarak kendine özgü bir form kazanmıştır. İri Bursa cevizinin eklendiği bu tatlı, şehrin hediyelik ve günlük tatlı kültürünün simgelerinden biridir. TÜRKPATENT tarafından 2021'de coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Nişasta ve şekerden hazırlanan lokum hamuruna iri Bursa cevizi eklenerek üzeri hindistan cevizi veya pudra şekeriyle kaplanır. Yumuşak dokusu ve ceviz aromasıyla çay saatlerinin ve misafir ağırlamanın vazgeçilmezidir.",
+      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli cevizli lokumu hakkında bilgi ve en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "Bursa cevizli lokum nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir lokum çeşididir. Klasik lokum hamuruna iri ceviz parçaları eklenerek üretilir; hindistan cevizi veya pudra şekeriyle kaplanarak servis edilir."
+        },
+        {
+          "question": "Bursa'da cevizli lokum nereden alınır?",
+          "answer": "Tarihi çarşı çevresindeki tatlıcılar, pastaneler ve aşağıdaki GastroSkor listesindeki mekanlar en güvenilir adreslerdir. Taze üretim için sabah saatlerini tercih edebilirsiniz."
+        },
+        {
+          "question": "Cevizli lokum ile klasik lokum arasındaki fark nedir?",
+          "answer": "Klasik lokum düz ve sade lokum iken Bursa cevizli lokumda iri ceviz parçaları hamurun içine gömülür; daha tok bir doku ve belirgin ceviz aroması verir. Bursa dışındaki sade lokumlardan coğrafi işaret ve üretim usulüyle ayrılır."
+        }
+      ]
+    },
+    {
+      "slug": "bursa-sut-helvasi",
+      "name": "Bursa Süt Helvası",
+      "city": "Bursa",
+      "kategori": "Tatlı",
+      "tescilYili": "2021",
+      "searchTag": "süt helvası",
+      "seeAllHref": "/bursa?tag=helva",
+      "h1": "Bursa Süt Helvası — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa Süt Helvası Nerede Yenir? En İyi 10 Mekan | GastroSkor",
+        "description": "Bursa süt helvası nerede yenir? TÜRKPATENT tescilli Bursa süt helvası için GastroSkor puanına göre en iyi fırın, pastane ve tatlıcılar.",
+        "keywords": "bursa süt helvası, süt helvası bursa, bursa helva nerede yenir, en iyi süt helvası bursa, bursa tatlı"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Süt Helvası Mekanları",
+      "kisaTarih": "Bursa'nın fırın ve pastanelerinde yüzyıllardır yapılan geleneksel bir tatlıdır. Şehrin süt ve un zenginliğiyle öne çıkan bu helva, özellikle kış aylarında sıcak servis edilir. TÜRKPATENT tarafından 2021'de coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Un, süt, şeker ve tereyağından hazırlanan helva, fırında pişirilerek üzeri karamelize edilir. Dışı hafif çıtır, içi yumuşak dokulu olan Bursa süt helvası genellikle tarçın veya fıstıkla servis edilir.",
+      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli süt helvası hakkında bilgi ve en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "Bursa süt helvası nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir fırın tatlısıdır. Un ve süt temelli hamur fırında pişirilerek üst yüzeyi kızartılır; sıcak veya ılık servis edilir."
+        },
+        {
+          "question": "Bursa'da süt helvası nerede yenir?",
+          "answer": "Şehir merkezindeki köklü fırınlar, pastaneler ve aşağıdaki GastroSkor listesindeki mekanlar en iyi adreslerdir. Öğleden sonra taze tepsiler genelde daha erken tükenir."
+        },
+        {
+          "question": "Süt helvası ile tahin helvası arasındaki fark nedir?",
+          "answer": "Bursa süt helvası un ve süt bazlıdır, fırında pişirilerek karamelize bir üst tabaka oluşur. Tahin helvası ise tahin ve şekerle hazırlanan farklı bir helva ailesidir; doku ve aroma olarak birbirinden ayrılır."
+        }
+      ]
+    },
+    {
+      "slug": "bursa-tahinli-pide",
+      "name": "Bursa Tahinli Pide",
+      "city": "Bursa",
+      "kategori": "Fırın Ürünü",
+      "tescilYili": "2021",
+      "searchTag": "tahinli pide",
+      "seeAllHref": "/bursa?tag=pide",
+      "h1": "Bursa Tahinli Pide — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa Tahinli Pide Nerede Yenir? En İyi 10 Fırın | GastroSkor",
+        "description": "Bursa tahinli pide nerede yenir? TÜRKPATENT tescilli Bursa tahinli pidesi için GastroSkor puanına göre en iyi fırın ve kahvaltı mekanları.",
+        "keywords": "bursa tahinli pide, tahinli pide bursa, bursa pide nerede yenir, en iyi tahinli pide bursa, bursa kahvaltı"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Tahinli Pide Fırınları",
+      "kisaTarih": "Bursa fırınlarının sabah kahvaltısının simgesi olan tahinli pide, şehrin fırıncılık geleneğinin en köklü ürünlerindendir. Tahin ve pekmez dolgusuyla hazırlanan bu pide, Bursa sabahlarının vazgeçilmezidir. TÜRKPATENT tarafından 2021'de tescillenmiştir.",
+      "urunBilgisi": "İnce açılan hamura tahin ve pekmez sürülerek rulo yapılır, fırında pişirilir. Sabah kahvaltısında sıcak servis edilir; yanında çay veya süt tercih edilir.",
+      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli tahinli pidesi hakkında bilgi ve en iyi fırın önerileri.",
+      "faq": [
+        {
+          "question": "Bursa tahinli pide nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir fırın ürünüdür. İnce hamur katmanları arasına tahin ve pekmez sürülerek rulo yapılır ve taş fırında pişirilir."
+        },
+        {
+          "question": "Bursa'da tahinli pide nerede yenir?",
+          "answer": "Sabah erken saatlerde şehir merkezindeki köklü fırınlar en taze seçenekleri sunar. Aşağıdaki GastroSkor listesindeki mekanlar da güvenilir adreslerdir."
+        },
+        {
+          "question": "Tahinli pide ile cantık arasındaki fark nedir?",
+          "answer": "Tahinli pide tatlı kahvaltılık bir fırın ürünüdür; tahin ve pekmez dolgulu, rulo formda pişirilir. Cantık ise üstü açık, et veya peynirli iç harçlı tuzlu bir hamur işidir; ikisi de Bursa fırın kültürünün parçasıdır ancak sunum ve içerik olarak farklıdır."
+        }
+      ]
+    },
+    {
+      "slug": "kemalpasa-tatlisi",
+      "name": "Kemalpaşa Tatlısı",
+      "city": "Bursa",
+      "kategori": "Tatlı",
+      "tescilYili": "2021",
+      "searchTag": "kemalpaşa tatlısı",
+      "seeAllHref": "/bursa?tag=kemalpasa-tatlisi",
+      "h1": "Kemalpaşa Tatlısı — Nerede Yenir?",
+      "seo": {
+        "title": "Kemalpaşa Tatlısı Nerede Yenir? En İyi 10 Mekan | GastroSkor",
+        "description": "Kemalpaşa tatlısı Bursa'da nerede yenir? TÜRKPATENT tescilli Kemalpaşa tatlısı için GastroSkor puanına göre en iyi tatlıcı ve restoranlar.",
+        "keywords": "kemalpaşa tatlısı, kemalpaşa tatlısı bursa, kemalpaşa tatlısı nerede yenir, mustafakemalpaşa tatlısı, bursa tatlı"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Kemalpaşa Tatlısı Mekanları",
+      "kisaTarih": "Bursa'nın Kemalpaşa ilçesine özgü bu tatlı, sütlü peynirden yapılan kadayıf türevi olup yüzyıllardır bölgenin en bilinen şerbetli tatlılarından biridir. Yumuşak dokusu ve hafif peynir aromasıyla öne çıkar. TÜRKPATENT tarafından 2021'de tescil almıştır.",
+      "urunBilgisi": "Taze peynirden yapılan yuvarlak toplar kızartılarak şerbete batırılır. Yumuşak dokusu ve şerbetli tadıyla servis edilir; üzerine kaymak veya dondurma eklenebilir.",
+      "schemaDescription": "Kemalpaşa tatlısı hakkında bilgi ve Bursa'daki en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "Kemalpaşa tatlısı nedir?",
+          "answer": "Kemalpaşa ilçesine özgü, TÜRKPATENT tescilli şerbetli bir tatlıdır. Sütlü peynirden yoğrulan hamur topları kızartılıp şerbete batırılarak yumuşak dokulu bir tatlı elde edilir."
+        },
+        {
+          "question": "Kemalpaşa tatlısını Bursa'da nerede yiyebilirim?",
+          "answer": "Bursa merkezindeki tatlıcılar, Kemalpaşa yönündeki yerel üreticiler ve aşağıdaki GastroSkor listesindeki mekanlar en iyi seçeneklerdir."
+        },
+        {
+          "question": "Kemalpaşa tatlısı ile lokma arasındaki fark nedir?",
+          "answer": "Her ikisi de kızartılıp şerbete batırılır; ancak Kemalpaşa tatlısı peynir bazlı yuvarlak toplardan oluşur ve içi yumuşak kalır. Lokma ise mayalı hamur parçalarından yapılır; doku ve aroma olarak farklı bir tatlı ailesine girer."
+        }
+      ]
+    },
+    {
+      "slug": "inegol-sutlu-kadayifi",
+      "name": "İnegöl Sütlü Kadayıfı",
+      "city": "Bursa",
+      "kategori": "Tatlı",
+      "tescilYili": "2023",
+      "searchTag": "sütlü kadayıf",
+      "seeAllHref": "/bursa?tag=kadayif",
+      "h1": "İnegöl Sütlü Kadayıfı — Nerede Yenir?",
+      "seo": {
+        "title": "İnegöl Sütlü Kadayıfı Nerede Yenir? En İyi 10 Mekan | GastroSkor",
+        "description": "İnegöl sütlü kadayıfı Bursa'da nerede yenir? TÜRKPATENT tescilli İnegöl sütlü kadayıfı için GastroSkor puanına göre en iyi tatlıcılar.",
+        "keywords": "inegöl sütlü kadayıfı, sütlü kadayıf bursa, inegöl kadayıf nerede yenir, bursa tatlı, inegöl tatlısı"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi İnegöl Sütlü Kadayıfı Mekanları",
+      "kisaTarih": "İnegöl'e özgü bu kadayıf çeşidi, sütlü iç harcıyla klasik tel kadayıftan ayrılır. Bölgenin süt üretim geleneğiyle birleşen bu tatlı, son yıllarda Bursa genelinde de popülerleşmiştir. TÜRKPATENT tarafından 2023'te coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Tel kadayıf içine sütlü muhallebi benzeri iç harç konularak fırında pişirilir, üzerine kaymak ve ceviz eklenerek servis edilir. Hem sıcak hem ılık tüketilebilir.",
+      "schemaDescription": "İnegöl sütlü kadayıfı hakkında bilgi ve Bursa'daki en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "İnegöl sütlü kadayıfı nedir?",
+          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli bir tatlıdır. Tel kadayıf arasına sütlü iç harç yerleştirilerek fırında pişirilir; üzerine kaymak ve ceviz eklenir."
+        },
+        {
+          "question": "İnegöl sütlü kadayıfı nerede yenir?",
+          "answer": "İnegöl merkezindeki tatlıcılar ve Bursa şehir merkezindeki köklü pastaneler en iyi adreslerdir. GastroSkor listesindeki mekanları da inceleyebilirsiniz."
+        },
+        {
+          "question": "Sütlü kadayıf ile klasik tel kadayıf arasındaki fark nedir?",
+          "answer": "Klasik tel kadayıfta ceviz ve şerbet ön plandayken İnegöl sütlü kadayıfında sütlü muhallebi benzeri iç harç kullanılır; daha yumuşak ve kremsi bir doku oluşur."
+        }
+      ]
+    },
+    {
+      "slug": "bursa-doner-kebabi",
+      "name": "Bursa Döner Kebabı (İskender)",
+      "city": "Bursa",
+      "kategori": "Et Yemeği",
+      "tescilYili": "2022",
+      "searchTag": "iskender",
+      "seeAllHref": "/bursa?tag=iskender",
+      "h1": "Bursa Döner Kebabı (İskender) — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa İskender Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "Bursa İskender kebap nerede yenir? TÜRKPATENT tescilli Bursa döner kebabı için GastroSkor puanına göre en iyi restoranlar, fiyatlar ve yorumlar.",
+        "keywords": "bursa iskender, iskender bursa nerede yenir, en iyi iskender bursa, bursa döner kebabı, bursa kebap"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi İskender Restoranları",
+      "kisaTarih": "İskender Efendi tarafından 1867'de icat edilen ve dünyaya Bursa'dan yayılan döner kebap, tereyağlı domates sosuyla özgün formunu Bursa'da bulmuştur. Meşe odununda pişirilen döner dilimleri, pide üzerine dizilerek servis edilir. TÜRKPATENT tarafından 2022'de tescillenmiştir.",
+      "urunBilgisi": "Meşe odununda pişirilen döner dilimleri, pide üzerine dizilir; üzerine kaynar tereyağı ve domates sosu dökülür, yanında yoğurt servis edilir.",
+      "schemaDescription": "Bursa döner kebabı (İskender) hakkında bilgi ve en iyi restoran önerileri.",
+      "faq": [
+        {
+          "question": "Bursa döner kebabı (İskender) nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir kebap çeşididir. Meşe odununda pişirilen döner eti ince pideler üzerine yerleştirilir; kaynar tereyağı, domates sosu ve yoğurtla servis edilir."
+        },
+        {
+          "question": "Bursa'da en iyi İskender nerede yenir?",
+          "answer": "Şehir merkezindeki köklü kebapçılar, özellikle Osmangazi ve çevresindeki mekanlar en çok tercih edilen adreslerdir. Aşağıdaki GastroSkor listesi gastro skoruna göre sıralı öneriler sunar."
+        },
+        {
+          "question": "İskender ile pideli köfte arasındaki fark nedir?",
+          "answer": "İskender döner eti, tereyağı ve domates sosuyla pideler üzerinde servis edilir. Pideli köftede ise ızgara köfte ince pide üzerine konur; domates, biber ve soğanla birlikte sunulur. İkisi de Bursa'nın tescilli et yemekleridir ancak pişirme ve sunum biçimleri farklıdır."
+        }
+      ]
+    },
+    {
+      "slug": "bursa-pideli-kofte",
+      "name": "Bursa Pideli Köfte",
+      "city": "Bursa",
+      "kategori": "Et Yemeği",
+      "tescilYili": "2021",
+      "searchTag": "pideli köfte",
+      "seeAllHref": "/bursa?tag=pideli-kofte",
+      "h1": "Bursa Pideli Köfte — Nerede Yenir?",
+      "seo": {
+        "title": "Bursa Pideli Köfte Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "Bursa pideli köfte nerede yenir? TÜRKPATENT tescilli Bursa pideli köftesi için GastroSkor puanına göre en iyi restoranlar ve yorumlar.",
+        "keywords": "bursa pideli köfte, pideli köfte bursa, pideli köfte nerede yenir, en iyi pideli köfte bursa, kayhan köfte"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Pideli Köfte Restoranları",
+      "kisaTarih": "Bursa'nın tarihi Kayhan Çarşısı'ndan doğan pideli köfte, şehrin özgün pide fırıncılık geleneğiyle et kültürünün birleşimidir. Izgara köftenin ince pide üzerinde sunulması Bursa'ya has bir yemek deneyimi oluşturur. TÜRKPATENT tarafından 2021'de tescillenmiştir.",
+      "urunBilgisi": "Izgara köfte, Kayhan usulü ince pide üzerine yerleştirilir; domates, biber ve soğanla birlikte servis edilir.",
+      "schemaDescription": "Bursa pideli köftesi hakkında bilgi ve en iyi restoran önerileri.",
+      "faq": [
+        {
+          "question": "Bursa pideli köfte nedir?",
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir et yemeğidir. Izgara köfte ince pide üzerine yerleştirilir; domates, biber ve soğanla birlikte servis edilir."
+        },
+        {
+          "question": "Bursa'da pideli köfte nerede yenir?",
+          "answer": "Kayhan Çarşısı çevresindeki köklü köfteciler ve şehir merkezindeki et lokantaları en bilinen adreslerdir. GastroSkor listesindeki mekanlar puan sırasına göre önerilir."
+        },
+        {
+          "question": "Pideli köfte ile İskender arasındaki fark nedir?",
+          "answer": "Pideli köfte ızgara köfte ve sebzelerle servis edilir; döner eti ve tereyağlı domates sosu kullanılmaz. İskender ise döner dilimleri, tereyağı ve domates sosuyla hazırlanır. İkisi de pide üzerinde sunulsa da lezzet profili ve pişirme yöntemi farklıdır."
+        }
+      ]
+    },
+    {
+      "slug": "zeyniler-hinkali",
+      "name": "Zeyniler Hınkalı",
+      "city": "Bursa",
+      "kategori": "Hamur İşi",
+      "tescilYili": "2024",
+      "searchTag": "hınkalı",
+      "seeAllHref": "/bursa?tag=hinkali",
+      "h1": "Zeyniler Hınkalı — Nerede Yenir?",
+      "seo": {
+        "title": "Zeyniler Hınkalısı Nerede Yenir? En İyi 10 Mekan | GastroSkor",
+        "description": "Bursa Zeyniler hınkalısı nerede yenir? TÜRKPATENT tescilli Zeyniler hınkalısı için GastroSkor puanına göre en iyi restoran ve lokantalar.",
+        "keywords": "zeyniler hınkalı, hınkalı bursa, hınkalı nerede yenir, bursa hınkalı, zeyniler köyü"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi Hınkalı Mekanları",
+      "kisaTarih": "Bursa'nın Zeyniler köyüne özgü geleneksel hınkalı, Kafkas mutfağından esinlenerek yöreye uyarlanmış ve köy mutfağının en tanınan yemeklerinden biridir. TÜRKPATENT tarafından 2024'te coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Et dolgulu büyük hamur topları haşlanarak pişirilir; üzerine sarımsaklı yoğurt ve tereyağı dökülür.",
+      "schemaDescription": "Zeyniler hınkalısı hakkında bilgi ve Bursa'daki en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "Zeyniler hınkalısı nedir?",
+          "answer": "Bursa'nın Zeyniler köyüne özgü, TÜRKPATENT tescilli bir hamur işidir. Et dolgulu büyük hamur topları haşlanarak pişirilir; sarımsaklı yoğurt ve tereyağıyla servis edilir."
+        },
+        {
+          "question": "Bursa'da hınkalı nerede yenir?",
+          "answer": "Zeyniler köyü ve çevresindeki yerel lokantalar en otantik deneyimi sunar. Bursa merkezinde bu lezzeti sunan restoranlar için aşağıdaki GastroSkor listesine bakabilirsiniz."
+        },
+        {
+          "question": "Hınkalı ile mantı arasındaki fark nedir?",
+          "answer": "Her ikisi de haşlanmış hamur dolgusudur; ancak hınkalı daha büyük ve et ağırlıklıdır, sarımsaklı yoğurt ve tereyağıyla sunulur. Mantı ise küçük boyutlu, genelde kıymalı ve farklı soslarla servis edilen ayrı bir gelenektir."
+        }
+      ]
+    },
+    {
+      "slug": "inegol-buryan",
+      "name": "İnegöl Büryanı",
+      "city": "Bursa",
+      "kategori": "Et Yemeği",
+      "tescilYili": "2024",
+      "searchTag": "büryani",
+      "seeAllHref": "/bursa?tag=buryan",
+      "h1": "İnegöl Büryanı — Nerede Yenir?",
+      "seo": {
+        "title": "İnegöl Büryanı Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "İnegöl büryanı nerede yenir? TÜRKPATENT tescilli İnegöl büryanı (mişörizi) için GastroSkor puanına göre en iyi restoranlar ve yorumlar.",
+        "keywords": "inegöl büryanı, inegöl büryan, büryani bursa, inegöl et yemeği, mişörizi"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi İnegöl Büryanı Restoranları",
+      "kisaTarih": "İnegöl'e özgü büryani, toprağa gömülen tandırda saatlerce pişirilen bir kuzu yemeğidir. Yörede mişörizi olarak da bilinen bu lezzet, yavaş pişirme geleneğinin en özel örneklerindendir. TÜRKPATENT tarafından 2024'te coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Kuzu eti toprak altındaki tandırda kendi suyu ve buharıyla 6-8 saat pişirilir; lavaş veya pide eşliğinde servis edilir.",
+      "schemaDescription": "İnegöl büryanı hakkında bilgi ve en iyi restoran önerileri.",
+      "faq": [
+        {
+          "question": "İnegöl büryanı nedir?",
+          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli bir kuzu yemeğidir. Et toprak altındaki tandırda saatlerce kendi suyu ve buharıyla pişirilir; yörede mişörizi adıyla da bilinir."
+        },
+        {
+          "question": "İnegöl büryanı nerede yenir?",
+          "answer": "İnegöl merkezindeki köklü et lokantaları ve Bursa genelinde büryan sunan mekanlar en iyi adreslerdir. GastroSkor listesindeki restoranlar puan sırasına göre önerilir."
+        },
+        {
+          "question": "Büryan ile kuzu tandır arasındaki fark nedir?",
+          "answer": "Her ikisi de yavaş pişirme yöntemi kullanır; ancak İnegöl büryanının kendine özgü tandır tekniği, et kesimi ve sunum usulü vardır. Coğrafi işaret tescili bu farkları koruma altına alır."
+        }
+      ]
+    },
+    {
+      "slug": "inegol-kofte",
+      "name": "İnegöl Köfte",
+      "city": "Bursa",
+      "kategori": "Et Yemeği",
+      "tescilYili": "2006",
+      "searchTag": "inegöl köfte",
+      "seeAllHref": "/bursa?tag=inegol-kofte",
+      "h1": "İnegöl Köfte — Nerede Yenir?",
+      "seo": {
+        "title": "İnegöl Köfte Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "İnegöl köfte Bursa'da nerede yenir? TÜRKPATENT tescilli İnegöl köftesi için GastroSkor puanına göre en iyi mangal ve köfteciler.",
+        "keywords": "inegöl köfte, inegöl köfte bursa, inegöl köfte nerede yenir, en iyi inegöl köfte, bursa köfte"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi İnegöl Köfte Restoranları",
+      "kisaTarih": "Türkiye'nin en tanınan köfte markalarından biri olan İnegöl köftesi, 2006'da ilk coğrafi işaret tescilini alan Bursa ürünlerindendir. Minimum baharat ve soğanla yoğrulan et, mangal ateşinde pişirilerek kendine özgü lezzetini oluşturur.",
+      "urunBilgisi": "Dana ve kuzu karışımı kıymaya soğan ve minimum baharat eklenerek yoğrulan köfte, dinlendirildikten sonra mangal ateşinde pişirilir.",
+      "schemaDescription": "İnegöl köftesi hakkında bilgi ve Bursa'daki en iyi restoran önerileri.",
+      "faq": [
+        {
+          "question": "İnegöl köfte nedir?",
+          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli bir ızgara köfte çeşididir. Dana ve kuzu eti soğan ve az baharatla yoğrulur; mangal ateşinde pişirilerek servis edilir."
+        },
+        {
+          "question": "Bursa'da İnegöl köfte nerede yenir?",
+          "answer": "İnegöl merkezindeki köklü köfteciler ve Bursa genelinde İnegöl usulü köfte sunan mangal restoranları en iyi adreslerdir. GastroSkor listesine göre sıralı öneriler aşağıdadır."
+        },
+        {
+          "question": "İnegöl köfte ile pideli köfte arasındaki fark nedir?",
+          "answer": "İnegöl köfte tek başına mangalda pişirilen ızgara köftedir; pide üzerinde servis edilmez. Pideli köfte ise ızgara köftenin ince pide üzerine yerleştirilmesiyle hazırlanan ayrı bir Bursa yemeğidir."
+        }
+      ]
+    },
+    {
+      "slug": "inegol-piyazi",
+      "name": "İnegöl Piyazı",
+      "city": "Bursa",
+      "kategori": "Meze / Salata",
+      "tescilYili": "2005",
+      "searchTag": "inegöl piyaz",
+      "seeAllHref": "/bursa?tag=piyaz",
+      "h1": "İnegöl Piyazı — Nerede Yenir?",
+      "seo": {
+        "title": "İnegöl Piyazı Nerede Yenir? En İyi 10 Restoran | GastroSkor",
+        "description": "İnegöl piyazı Bursa'da nerede yenir? TÜRKPATENT tescilli İnegöl piyazı için GastroSkor puanına göre en iyi köfteci ve lokantalar.",
+        "keywords": "inegöl piyazı, inegöl piyaz, piyaz bursa, inegöl piyazı nerede yenir, bursa meze"
+      },
+      "restaurantSectionTitle": "Bursa'nın En İyi İnegöl Piyazı Mekanları",
+      "kisaTarih": "İnegöl usulü piyaz, Türkiye'nin farklı piyaz geleneklerinden ayrışan kendine özgü tarifiyle bilinir. İnegöl köftesinin vazgeçilmez eşlikçisi olan bu meze, 2005'ten beri coğrafi işaret koruması altındadır.",
+      "urunBilgisi": "Haşlanmış kuru fasulye, ince doğranmış soğan, zeytinyağı ve sirkeyle hazırlanır; İnegöl köftesinin vazgeçilmez yanı olarak servis edilir.",
+      "schemaDescription": "İnegöl piyazı hakkında bilgi ve Bursa'daki en iyi mekan önerileri.",
+      "faq": [
+        {
+          "question": "İnegöl piyazı nedir?",
+          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli bir mezedir. Haşlanmış kuru fasulye ince doğranmış soğan, zeytinyağı ve sirkeyle hazırlanır."
+        },
+        {
+          "question": "İnegöl piyazı nerede yenir?",
+          "answer": "İnegöl köftesi sunan köftecilerde genellikle birlikte servis edilir. İnegöl ve Bursa merkezindeki mangal restoranları en otantik deneyimi sunar."
+        },
+        {
+          "question": "İnegöl piyazı ile Antalya piyazı arasındaki fark nedir?",
+          "answer": "İnegöl piyazında haşlanmış kuru fasulye ve ince doğranmış soğan ön plandadır; sirkeli ve zeytinyağlı sade bir tarif kullanılır. Antalya piyazında tahin, yumurta ve farklı malzemelerle hazırlanan ayrı bir usul vardır."
+        }
+      ]
+    }
+  ]
+}

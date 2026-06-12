@@ -22,6 +22,32 @@ export function buildWebSiteJsonLd(siteUrl: string) {
     url: siteUrl,
     inLanguage: 'tr-TR',
     description: 'Restoran ara, gastro skor oku ve yorum bırak.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${siteUrl}/bursa?tag={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+}
+
+export function buildRegionalFlavorListJsonLd(
+  siteUrl: string,
+  items: { slug: string; name: string }[],
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Bursa Yöresel Lezzetler — GastroSkor',
+    url: `${siteUrl}/yoresel-lezzetler`,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: `${siteUrl}/yoresel-lezzetler/${item.slug}`,
+    })),
   };
 }
 
@@ -104,6 +130,42 @@ export function buildBreadcrumbJsonLd(
       position: index + 1,
       name: crumb.name,
       item: `${siteUrl}${crumb.path}`,
+    })),
+  };
+}
+
+export function buildRegionalFlavorFoodJsonLd(
+  siteUrl: string,
+  options: {
+    name: string;
+    description: string;
+    path: string;
+    areaServed: string;
+  },
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FoodEstablishment',
+    name: options.name,
+    description: options.description,
+    url: `${siteUrl}${options.path}`,
+    areaServed: options.areaServed,
+    servesCuisine: 'Türk Mutfağı',
+  };
+}
+
+export function buildFaqJsonLd(items: { question: string; answer: string }[]) {
+  if (items.length === 0) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
     })),
   };
 }

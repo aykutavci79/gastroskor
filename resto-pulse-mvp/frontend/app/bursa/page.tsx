@@ -3,10 +3,16 @@ import Link from 'next/link';
 
 import { JsonLd } from '@/components/JsonLd';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
+import pagesData from '@/data/regional-flavor-pages.json';
 import { getApiV1Base } from '@/lib/api-base';
+import { filterRestaurantsBySearchTag } from '@/lib/regional-flavor-restaurants';
 import { getSiteUrl } from '@/lib/site-url';
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from '@/lib/structured-data';
 import type { RestaurantListItem } from '@/lib/types';
+
+type Props = {
+  searchParams: Promise<{ tag?: string }>;
+};
 
 const CITY = 'Bursa';
 const siteUrl = getSiteUrl();
@@ -46,8 +52,19 @@ async function fetchBursaRestaurants(): Promise<RestaurantListItem[]> {
   }
 }
 
-export default async function BursaRestaurantsPage() {
-  const restaurants = await fetchBursaRestaurants();
+function resolveTagSearchTerm(tag: string): string {
+  const normalizedTag = tag.trim().toLowerCase();
+  const page = pagesData.pages.find((entry) => entry.seeAllHref.includes(`tag=${normalizedTag}`));
+  return page?.searchTag ?? normalizedTag.replace(/-/g, ' ');
+}
+
+export default async function BursaRestaurantsPage({ searchParams }: Props) {
+  const { tag } = await searchParams;
+  const allRestaurants = await fetchBursaRestaurants();
+  const restaurants = tag
+    ? filterRestaurantsBySearchTag(allRestaurants, resolveTagSearchTerm(tag))
+    : allRestaurants;
+  const tagLabel = tag ? resolveTagSearchTerm(tag) : null;
 
   return (
     <div className="space-y-8">
@@ -69,7 +86,18 @@ export default async function BursaRestaurantsPage() {
       />
 
       <header className="space-y-3">
-        <h1 className="text-3xl font-bold text-content">Bursa Restoranları</h1>
+        <h1 className="text-3xl font-bold text-content">
+          {tagLabel ? `Bursa — ${tagLabel} restoranları` : 'Bursa Restoranları'}
+        </h1>
+        {tag ? (
+          <p className="text-sm text-content-muted">
+            <Link href="/bursa" className="text-brand underline">
+              Tüm Bursa restoranları
+            </Link>
+            {' '}
+            listesine dön
+          </p>
+        ) : null}
         <p className="max-w-3xl text-base leading-relaxed text-content-muted">
           <strong className="font-semibold text-content">GastroSkor</strong> ile Bursa&apos;da restoran
           keşfet: gastro skor, üye yorumları ve Google puanlarını tek ekranda gör. İskender, kebap,
@@ -85,7 +113,9 @@ export default async function BursaRestaurantsPage() {
 
       {restaurants.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-content">Kayıtlı Bursa restoranları</h2>
+          <h2 className="text-xl font-semibold text-content">
+            {tagLabel ? `Kayıtlı ${tagLabel} mekanları` : 'Kayıtlı Bursa restoranları'}
+          </h2>
           <p className="text-sm text-content-muted">
             GastroSkor veritabanındaki mekanlar — puan ve yorum sayfalarına gitmek için isme tıkla.
           </p>
@@ -112,7 +142,9 @@ export default async function BursaRestaurantsPage() {
         </section>
       ) : (
         <p className="text-sm text-content-muted">
-          Henüz kayıtlı restoran listesi boş; yukarıdan canlı arama ile Bursa mekanlarını bulabilirsin.
+          {tag
+            ? `“${tagLabel}” için kayıtlı restoran bulunamadı; yukarıdan canlı arama ile Bursa mekanlarını deneyebilirsin.`
+            : 'Henüz kayıtlı restoran listesi boş; yukarıdan canlı arama ile Bursa mekanlarını bulabilirsin.'}
         </p>
       )}
 

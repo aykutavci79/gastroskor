@@ -9,6 +9,18 @@ export function SiteFooter() {
           <Link href="/bursa" className="text-content-muted hover:text-accent">
             Bursa restoranları
           </Link>
+          <Link href="/yoresel-lezzetler" className="text-content-muted hover:text-accent">
+            Yöresel lezzetler
+          </Link>
+          <Link href="/yoresel-lezzetler/bursa-doner-kebabi" className="text-content-muted hover:text-accent">
+            Bursa İskender
+          </Link>
+          <Link href="/yoresel-lezzetler/bursa-pideli-kofte" className="text-content-muted hover:text-accent">
+            Pideli köfte
+          </Link>
+          <Link href="/yoresel-lezzetler/bursa-cantik" className="text-content-muted hover:text-accent">
+            Bursa cantık
+          </Link>
           <Link href="/gizlilik" className="text-content-muted hover:text-accent">
             Gizlilik
           </Link>
