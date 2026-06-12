@@ -28,3 +28,15 @@ def test_voice_boilerplate_doner_siralan() -> None:
 def test_voice_boilerplate_cantik() -> None:
     parsed = parse_search_query("cantık satan restoranları sıralar.")
     assert parsed.query == "cantık"
+
+
+def test_spoken_rating_dort_yildiz_ustu_restoranlari() -> None:
+    parsed = parse_search_query("dört yıldız üstü restoranları sıralan")
+    assert parsed.min_rating == 4.0
+    assert parsed.query == "restoran"
+
+
+def test_spoken_rating_dort_bucuk_yildiz() -> None:
+    parsed = parse_search_query("dört buçuk yıldız üstü kebap")
+    assert parsed.min_rating == 4.5
+    assert parsed.query == "kebap"

@@ -24,6 +24,11 @@ const PHRASE_FIXES: Array<[RegExp, string]> = [
   [/\byildiz\b/gi, 'yıldız'],
   [/\bdort\s*bucuk\b/gi, '4.5'],
   [/\bdört\s*buçuk\b/gi, '4.5'],
+  [/\bdort\s*bucuk\b/gi, '4.5'],
+  [/\bdört\s*yıldız\s*üstü\b/gi, '4 yıldız üstü'],
+  [/\bdort\s*yildiz\s*ustu\b/gi, '4 yıldız üstü'],
+  [/\bdört\s*yıldız\b/gi, '4 yıldız'],
+  [/\bdort\s*yildiz\b/gi, '4 yıldız'],
   [/\b4\s*buçuk\b/gi, '4.5'],
   [/\byorum\s*üstü\b/gi, 'yorum üstü'],
   [/\byorum\s*ustu\b/gi, 'yorum üstü'],
@@ -35,8 +40,10 @@ const PHRASE_FIXES: Array<[RegExp, string]> = [
 /** "lahmacun satan restoranlari siralas" -> "lahmacun" */
 const SEARCH_BOILERPLATE: RegExp[] = [
   /\s+(?:satan|satanlar)\s+(?:restoran(?:lar(?:ı|i|ını|ini)?)?|yer(?:ler)?(?:i)?)(?:\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste))?\.?\s*$/gi,
+  /\s+(?:restoran(?:lar(?:ı|i|ını|ini)?)?)\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste)\.?\s*$/gi,
   /\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste)\.?\s*$/gi,
   /\s+(?:satan|satanlar)\s+(?:restoran(?:lar(?:ı|i)?)?|yer(?:ler)?(?:i)?)\.?\s*$/gi,
+  /\s+restoran(?:lar(?:ı|i|ını|ini)?)?\.?\s*$/gi,
 ];
 
 function stripVoiceSearchBoilerplate(text: string): string {
