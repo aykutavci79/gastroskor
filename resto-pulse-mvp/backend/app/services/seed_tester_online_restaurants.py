@@ -23,7 +23,12 @@ from app.models import (
     RestaurantPlatformProfile,
     RestaurantSubscription,
 )
+from app.services.turkish_text_fold import fold_tr_ascii
 from app.services.user_accounts import get_or_create_user
+
+
+def _menu_item_label_match(item_name: str, label: str) -> bool:
+    return fold_tr_ascii(item_name) == fold_tr_ascii(label)
 
 
 def _place_id_for(seed: TesterRestaurantSeed) -> str:
@@ -141,7 +146,12 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
                 item
                 for item in existing_items
                 if item.voice_product_slug == voice_slug
-                or (voice_slug is None and item.name == label)
+                or (voice_slug is None and _menu_item_label_match(item.name, label))
+                or (
+                    voice_slug is not None
+                    and not (item.voice_product_slug or "").strip()
+                    and _menu_item_label_match(item.name, label)
+                )
             ),
             None,
         )

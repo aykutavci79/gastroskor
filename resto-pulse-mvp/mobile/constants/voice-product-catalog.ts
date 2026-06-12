@@ -16,9 +16,20 @@ export const VOICE_CATALOG_PRODUCTS: VoiceCatalogProduct[] = [
     searchGroup: 'lahmacun',
     aliases: ['acılı lahmacun', 'acı lahmacun', 'acili lahmacun'],
   },
-  { slug: 'sutlac', label: 'Sütlaç', searchGroup: 'sutlac', aliases: ['sütlaç', 'sutlac', 'fırın sütlaç', 'firin sutlac'] },
+  {
+    slug: 'sutlac',
+    label: 'Sütlaç',
+    searchGroup: 'sutlac',
+    aliases: ['sütlaç', 'sutlac', 'sutlaş', 'sutlas', 'fırın sütlaç', 'firin sutlac'],
+  },
   { slug: 'baklava', label: 'Baklava', searchGroup: 'baklava', aliases: ['baklava', 'cevizli baklava', 'fıstıklı baklava'] },
   { slug: 'kunefe', label: 'Künefe', searchGroup: 'kunefe', aliases: ['künefe', 'kunefe', 'kaymaklı künefe', 'kaymakli kunefe'] },
+  {
+    slug: 'borek',
+    label: 'Börek',
+    searchGroup: 'borek',
+    aliases: ['börek', 'borek', 'su böreği', 'su boregi', 'peynirli börek', 'peynirli borek'],
+  },
   {
     slug: 'cantik-kiymali',
     label: 'Kıymalı Cantık',

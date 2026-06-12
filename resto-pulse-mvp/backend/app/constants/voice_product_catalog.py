@@ -40,7 +40,7 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         slug="sutlac",
         label="Sutlac",
         search_group="sutlac",
-        aliases=("sutlac", "sütlaç", "firin sutlac", "sutlac tatlisi"),
+        aliases=("sutlac", "sütlaç", "sutlas", "sutlach", "firin sutlac", "sutlac tatlisi"),
         sort_order=15,
     ),
     VoiceProduct(
@@ -56,6 +56,13 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         search_group="kunefe",
         aliases=("kunefe", "künefe", "kaymakli kunefe"),
         sort_order=17,
+    ),
+    VoiceProduct(
+        slug="borek",
+        label="Borek",
+        search_group="borek",
+        aliases=("borek", "börek", "su boregi", "su böreği", "peynirli borek", "peynirli börek"),
+        sort_order=18,
     ),
     VoiceProduct(
         slug="cantik-kiymali",

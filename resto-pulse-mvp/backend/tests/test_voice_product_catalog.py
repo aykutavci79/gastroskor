@@ -38,6 +38,18 @@ def test_resolve_sutlac_ascii():
     assert slugs == ["sutlac"]
 
 
+def test_resolve_borek_with_turkish_chars():
+    token, slugs = resolve_voice_search_token("börek")
+    assert token == "borek"
+    assert slugs == ["borek"]
+
+
+def test_resolve_borek_ascii():
+    token, slugs = resolve_voice_search_token("borek")
+    assert token == "borek"
+    assert slugs == ["borek"]
+
+
 def test_resolve_specific_product_alias():
     token, slugs = resolve_voice_search_token("kusbasili cantik")
     assert token == "cantik"

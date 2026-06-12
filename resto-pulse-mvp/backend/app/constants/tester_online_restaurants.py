@@ -45,7 +45,7 @@ TESTER_RESTAURANTS: tuple[TesterRestaurantSeed, ...] = (
             TesterMenuItem("baklava", "Baklava", 120.0, "tatli"),
             TesterMenuItem("sutlac", "Sutlac", 85.0, "tatli"),
             TesterMenuItem("kunefe", "Kunefe", 145.0, "tatli"),
-            TesterMenuItem(None, "Börek", 75.0, "tuzlu"),
+            TesterMenuItem("borek", "Borek", 75.0, "tuzlu"),
             TesterMenuItem("su", "Su", 15.0, "icecek"),
             TesterMenuItem("kola", "Kola", 45.0, "icecek"),
             TesterMenuItem("ayran", "Ayran", 30.0, "icecek"),
