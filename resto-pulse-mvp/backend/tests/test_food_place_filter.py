@@ -29,6 +29,14 @@ def test_accepts_doner_shop_name() -> None:
     )
 
 
+def test_accepts_chocolate_cafe_tagged_as_store() -> None:
+    assert is_food_related_place(
+        name="Mons Chocolate",
+        address="Barbaros Bulvarı No:1 Bursa",
+        types=["store", "point_of_interest", "establishment"],
+    )
+
+
 def test_db_rows_always_allowed_flag() -> None:
     assert is_food_related_place(
         name="Herhangi Sokak 12",

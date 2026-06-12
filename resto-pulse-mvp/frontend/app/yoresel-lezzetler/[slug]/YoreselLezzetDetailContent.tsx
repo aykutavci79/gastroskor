@@ -76,8 +76,18 @@ export function YoreselLezzetDetailContent({
     };
   }, [slug, city, initialProduct]);
 
+  const gastroGooglePlaceIds = useMemo(() => {
+    return new Set(
+      gastroRestaurants.map((restaurant) => restaurant.google_place_id).filter((id): id is string => Boolean(id)),
+    );
+  }, [gastroRestaurants]);
+
+  const googleLiveItems = useMemo(() => {
+    return liveItems.filter((item) => !gastroGooglePlaceIds.has(item.place_id));
+  }, [liveItems, gastroGooglePlaceIds]);
+
   useEffect(() => {
-    if (useTemplate || !product) return;
+    if (!product) return;
     let cancelled = false;
     setSearchNote(null);
     setLiveItems([]);
@@ -107,7 +117,7 @@ export function YoreselLezzetDetailContent({
     return () => {
       cancelled = true;
     };
-  }, [useTemplate, product, city, coords?.lat, coords?.lng]);
+  }, [product, city, coords?.lat, coords?.lng]);
 
   if (useTemplate && pageContent) {
     return (
@@ -216,6 +226,40 @@ export function YoreselLezzetDetailContent({
                   Henüz bu lezzet için kayıtlı restoran bulunamadı. Yakında yeni mekanlar eklenecek.
                 </p>
               )}
+            </section>
+
+            <section className="space-y-4 border-t border-border/50 pt-8">
+              <div>
+                <h2 className="text-xl font-semibold text-content">Google&apos;da daha fazla mekan</h2>
+                <p className="mt-1 text-sm text-content-muted">
+                  GastroSkor veritabanına henüz eklenmemiş mekanlar — Google canlı arama ile
+                  &quot;{product.live_search_query}&quot; sorgusu.
+                </p>
+              </div>
+
+              {searchNote ? <p className="text-xs text-brand-gold">{searchNote}</p> : null}
+
+              {googleLiveItems.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {googleLiveItems.map((item) => (
+                    <RestaurantCard
+                      key={item.place_id}
+                      restaurant={livePlaceToRestaurantCard(item)}
+                      compact={false}
+                      distanceLabel={livePlaceDistanceLabel(item)}
+                      googleRating={item.rating}
+                      googleReviewCount={item.user_ratings_total}
+                      distanceMeters={item.distance_meters}
+                      mapsDirectionsUrl={item.maps_directions_url}
+                      href={livePlaceDetailHref(item)}
+                    />
+                  ))}
+                </div>
+              ) : !loading && product ? (
+                <p className="rounded-2xl border border-border/70 bg-surface-card p-6 text-sm text-content-muted">
+                  Bu sorgu için Google canlı arama sonucu bulunamadı. Ana sayfadaki aramayı da deneyebilirsiniz.
+                </p>
+              ) : null}
             </section>
 
             <RegionalFlavorFaq items={pageContent.faq} />

@@ -77,6 +77,32 @@ EXCLUDE_PLACE_TYPES = frozenset(
 )
 
 # Isim/adres: sokak, bina, is merkezi vb.
+# Google bazen cafe/pastane isimlerini yalnizca "store" olarak etiketler (ornegin cikolata dukkani).
+NAME_FOOD_HINTS = (
+    "cafe",
+    "café",
+    "kahve",
+    "coffee",
+    "chocolate",
+    "chocolat",
+    "cikolata",
+    "çikolata",
+    "pastane",
+    "patisserie",
+    "pâtisserie",
+    "bakery",
+    "fırın",
+    "firin",
+    "muhallebi",
+    "dondurma",
+    "restoran",
+    "restaurant",
+    "lounge",
+    "bistro",
+    "brasserie",
+)
+
+
 EXCLUDE_NAME_MARKERS = (
     " sokak",
     " sok.",
@@ -140,9 +166,18 @@ def _looks_like_address_only(name: str) -> bool:
     return any(n.endswith(end) for end in endings)
 
 
-def _has_excluded_name_marker(name: str, address: str | None) -> bool:
-    blob = f" {_normalized_blob(name, address)} "
+def _has_excluded_name_marker(name: str, address: str | None = None) -> bool:
+    """Yalnizca isimde plaza/AVM/sokak adi gibi isaretler; adres satirindaki cadde/bulvar sayilmaz."""
+    _ = address
+    blob = f" {_normalized_blob(name)} "
     return any(marker in blob for marker in EXCLUDE_NAME_MARKERS)
+
+
+def _name_suggests_food_place(name: str) -> bool:
+    blob = _normalized_blob(name)
+    if not blob:
+        return False
+    return any(hint in blob for hint in NAME_FOOD_HINTS)
 
 
 def is_food_related_place(
@@ -170,6 +205,8 @@ def is_food_related_place(
         return True
 
     if type_set & EXCLUDE_PLACE_TYPES:
+        if _name_suggests_food_place(name_clean):
+            return True
         return False
 
     if type_set and type_set <= {"point_of_interest", "establishment"}:
