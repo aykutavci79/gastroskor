@@ -797,6 +797,34 @@ class RestaurantPlatformProfile(Base):
     restaurant: Mapped["Restaurant"] = relationship(back_populates="platform_profiles")
 
 
+class GooglePlaceCatalog(Base):
+    """Google canli arama sonuclari — kalici havuz (API maliyetini amorti eder)."""
+
+    __tablename__ = "google_place_catalog"
+    __table_args__ = (UniqueConstraint("google_place_id", name="uq_google_place_catalog_place_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    google_place_id: Mapped[str] = mapped_column(String(255), index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    name_normalized: Mapped[str] = mapped_column(String(255), index=True)
+    city: Mapped[str] = mapped_column(String(120), index=True)
+    address: Mapped[str | None] = mapped_column(String(500))
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
+    rating: Mapped[float | None] = mapped_column(Float)
+    user_ratings_total: Mapped[int | None] = mapped_column(Integer)
+    photo_reference: Mapped[str | None] = mapped_column(String(512))
+    restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
+    )
+    seen_count: Mapped[int] = mapped_column(Integer, default=1)
+    last_source_query: Mapped[str | None] = mapped_column(String(255))
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    restaurant: Mapped["Restaurant | None"] = relationship()
+
+
 class Review(Base):
     __tablename__ = "reviews"
 

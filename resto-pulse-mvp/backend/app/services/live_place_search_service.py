@@ -14,6 +14,7 @@ from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.food_place_filter import is_food_related_place
 from app.services.gastro_score_ranking import live_place_sort_key, rank_live_places
+from app.services.google_place_catalog import persist_live_place_results, persist_search_items, search_catalog_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
@@ -303,6 +304,7 @@ async def search_live_places_optimized(
     cached_rows = cached.get("items") if cached else None
     if cached_rows:
         cached_items = [LivePlaceSearchItem(**row) for row in cached_rows]
+        persist_search_items(db, cached_items, city=city_label, source_query=search_text)
         return _finalize_search_response(
             cached_items,
             criteria=criteria,
@@ -312,11 +314,13 @@ async def search_live_places_optimized(
         )
 
     db_rows = search_restaurants_in_db(db, query=search_text, city=city_label, limit=max(limit, 15))
+    catalog_rows = search_catalog_places(db, query=search_text, city=city_label, limit=max(limit, 15))
+    prefetched_rows = _merge_place_rows(db_rows, catalog_rows)
     google_called = False
     place_rows: list[LivePlaceResult]
 
-    if len(db_rows) >= limit:
-        place_rows = db_rows
+    if len(prefetched_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE:
+        place_rows = prefetched_rows
     else:
         google_called = True
         fetch_limit = min(20, max(limit, 12))
@@ -327,7 +331,13 @@ async def search_live_places_optimized(
             origin_lat=origin_lat,
             origin_lng=origin_lng,
         )
-        place_rows = _merge_place_rows(db_rows, google_rows)
+        place_rows = _merge_place_rows(prefetched_rows, google_rows)
+        persist_live_place_results(
+            db,
+            google_rows,
+            city=city_label,
+            source_query=search_text,
+        )
 
     place_rows = _prefilter_place_rows(place_rows, criteria)
     rank_pool = min(20, max(limit, 15))
@@ -341,7 +351,11 @@ async def search_live_places_optimized(
     items = _ranked_to_items(ranked_rows, city=city_label)
     enriched = _enrich_with_partners(db, items)
 
-    filters_applied["source"] = "db_only" if not google_called else "db_and_google"
+    filters_applied["source"] = (
+        "db_and_google"
+        if google_called
+        else ("catalog" if catalog_rows and not db_rows else "db_only" if db_rows else "catalog")
+    )
 
     if enriched and (google_called or len(db_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE):
         write_place_search_cache(
