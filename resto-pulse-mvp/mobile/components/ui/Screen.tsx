@@ -21,6 +21,8 @@ type Props = {
   /** Tab bar altindaki ekranlar icin (Keşfet vb.) */
   keyboardVerticalOffset?: number;
   scrollRef?: RefObject<ScrollView | null>;
+  /** Keşfet vitrin gibi kenar boslugu olmayan tam ekran */
+  flush?: boolean;
 };
 
 export function Screen({
@@ -31,11 +33,14 @@ export function Screen({
   onRefresh,
   keyboardVerticalOffset = 0,
   scrollRef,
+  flush = false,
 }: Props) {
+  const contentStyle = [flush ? styles.flush : styles.scroll, style];
+
   const body = scroll ? (
     <ScrollView
       ref={scrollRef}
-      contentContainerStyle={[styles.scroll, style]}
+      contentContainerStyle={contentStyle}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
       automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
@@ -51,7 +56,7 @@ export function Screen({
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.scroll, style]}>{children}</View>
+    <View style={[flush ? styles.flushBody : styles.scroll, style]}>{children}</View>
   );
 
   return (
@@ -70,4 +75,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: GastroColors.bg },
   flex: { flex: 1 },
   scroll: { padding: 16, paddingBottom: 32, gap: 16 },
+  flush: { paddingBottom: 8, gap: 0 },
+  flushBody: { flex: 1, paddingBottom: 0 },
 });

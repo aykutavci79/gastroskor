@@ -1,24 +1,31 @@
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import { FeaturedHighlightsSection } from '@/components/FeaturedHighlightsSection';
+import { KesfetFilterChips, type KesfetChipId } from '@/components/KesfetFilterChips';
+import { KesfetHomeChrome } from '@/components/KesfetHomeChrome';
+import { KesfetVoiceSearchSheet } from '@/components/KesfetVoiceSearchSheet';
 import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
-import { RegionalFlavorsHomeSection } from '@/components/RegionalFlavorsHomeSection';
+import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
+import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBanner';
 import { RestaurantCard } from '@/components/RestaurantCard';
-import { SearchBar } from '@/components/SearchBar';
-import { SloganBanner } from '@/components/SloganBanner';
-import { TabScreenHeader } from '@/components/TabScreenHeader';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
-import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
-import { listRestaurants, searchLivePlaces } from '@/lib/api';
+import { searchLivePlaces } from '@/lib/api';
+import { formatApiError } from '@/lib/format-api-error';
 import {
   livePlaceDistanceLabel,
   livePlaceToRestaurantCard,
 } from '@/lib/live-place-card';
+import { registerKesfetVoiceOpener, unregisterKesfetVoiceOpener } from '@/lib/kesfet-voice-bridge';
 import { restaurantDetailHref } from '@/lib/uuid';
-import { formatApiError } from '@/lib/format-api-error';
 import type {
   LivePlaceSearchItem,
   ParsedSearchIntent,
@@ -27,33 +34,38 @@ import type {
 
 type Coords = { lat: number; lng: number };
 
-const SECTION_GAP = 24;
+const SEARCH_CITY = 'Bursa';
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
   const scrollRef = useRef<ScrollView>(null);
-  const searchSectionY = useRef(0);
-  const onFieldFocus = useKeyboardFieldFocus(scrollRef);
-  const [inputQuery, setInputQuery] = useState('');
-  const [inputCity, setInputCity] = useState('Bursa');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [activeCity, setActiveCity] = useState('Bursa');
 
-  const [dbRestaurants, setDbRestaurants] = useState<RestaurantListItem[]>([]);
+  const [inputQuery, setInputQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [activeChip, setActiveChip] = useState<KesfetChipId>('en-iyi');
+
   const [searchItems, setSearchItems] = useState<LivePlaceSearchItem[]>([]);
   const [searchCards, setSearchCards] = useState<RestaurantListItem[]>([]);
   const [liveParsed, setLiveParsed] = useState<ParsedSearchIntent | null>(null);
-  const [hasActiveSearch, setHasActiveSearch] = useState(false);
-
-  const [loadingDb, setLoadingDb] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const trimmedQuery = inputQuery.trim();
+  const searchMode = trimmedQuery.length >= 2;
+
+  useEffect(() => {
+    const openVoice = () => setVoiceOpen(true);
+    registerKesfetVoiceOpener(openVoice);
+    return () => unregisterKesfetVoiceOpener(openVoice);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted' || cancelled) return;
@@ -63,7 +75,7 @@ export default function ExploreScreen() {
           coordsUpdatedAtRef.current = Date.now();
         }
       } catch {
-        /* Konum opsiyonel — DB listesi icin */
+        /* konum opsiyonel */
       }
     })();
     return () => {
@@ -92,24 +104,13 @@ export default function ExploreScreen() {
     await ensureCoords();
   }, [ensureCoords]);
 
-  const loadDbRestaurants = useCallback(async (city: string) => {
-    await refreshCoordsIfStale();
-    const coords = (await ensureCoords()) ?? coordsRef.current;
-    const list = await listRestaurants({
-      city: city.trim() || 'Bursa',
-      origin_lat: coords?.lat,
-      origin_lng: coords?.lng,
-    });
-    setDbRestaurants(list);
-  }, [refreshCoordsIfStale, ensureCoords]);
-
-  const loadSearchResults = useCallback(async (query: string, city: string) => {
+  const loadSearchResults = useCallback(async (query: string) => {
     const q = query.trim();
     if (q.length < 2) {
-      setHasActiveSearch(false);
       setSearchItems([]);
       setSearchCards([]);
       setLiveParsed(null);
+      setError(null);
       return;
     }
 
@@ -120,7 +121,7 @@ export default function ExploreScreen() {
       const coords = (await ensureCoords()) ?? coordsRef.current;
       const result = await searchLivePlaces({
         q,
-        city: city.trim() || 'Bursa',
+        city: SEARCH_CITY,
         limit: 20,
         origin_lat: coords?.lat,
         origin_lng: coords?.lng,
@@ -128,113 +129,79 @@ export default function ExploreScreen() {
       setSearchItems(result.items);
       setSearchCards(result.items.map(livePlaceToRestaurantCard));
       setLiveParsed(result.parsed);
-      setHasActiveSearch(true);
     } catch (err) {
       setError(formatApiError(err, 'Arama'));
       setSearchItems([]);
       setSearchCards([]);
-      setHasActiveSearch(true);
     } finally {
       setLoadingSearch(false);
     }
   }, [refreshCoordsIfStale, ensureCoords]);
 
-  const loadAll = useCallback(async () => {
-    await Promise.all([
-      loadDbRestaurants(activeCity).catch(() => setDbRestaurants([])),
-      loadSearchResults(activeQuery, activeCity),
-    ]);
-  }, [activeCity, activeQuery, loadDbRestaurants, loadSearchResults]);
-
-  useEffect(() => {
-    setLoadingDb(true);
-    loadDbRestaurants(activeCity).finally(() => setLoadingDb(false));
-  }, [activeCity, loadDbRestaurants]);
-
   useEffect(() => {
     const timer = setTimeout(() => {
-      void loadSearchResults(inputQuery, inputCity);
+      void loadSearchResults(inputQuery);
     }, 500);
     return () => clearTimeout(timer);
-  }, [inputQuery, inputCity, loadSearchResults]);
-
-  useEffect(() => {
-    setActiveQuery(inputQuery.trim());
-    setActiveCity(inputCity.trim() || 'Bursa');
-  }, [inputQuery, inputCity]);
-
-  function commitSearch() {
-    setActiveQuery(inputQuery.trim());
-    setActiveCity(inputCity.trim() || 'Bursa');
-    void loadSearchResults(inputQuery, inputCity);
-  }
+  }, [inputQuery, loadSearchResults]);
 
   async function onRefresh() {
+    if (!searchMode) return;
     setRefreshing(true);
-    await loadAll();
+    await loadSearchResults(trimmedQuery);
     setRefreshing(false);
   }
 
-  return (
-    <Screen
-      scroll
-      scrollRef={scrollRef}
-      keyboardVerticalOffset={72}
-      style={styles.page}
-      refreshing={refreshing}
-      onRefresh={onRefresh}>
-      <TabScreenHeader
-        title="Keşfet"
-        subtitle="Yakınındaki lezzetleri ara ve kesfet."
-        showBrandMark
-        showDmAvatar
-      />
+  function handleChipChange(chip: KesfetChipId) {
+    setActiveChip(chip);
+    if (chip === 'online') {
+      router.push('/siparis-acik' as never);
+      return;
+    }
+    if (chip === 'tescilli') {
+      router.push('/yoresel' as never);
+    }
+  }
 
-      <OnlineOrderEntryBanner />
+  function handleVoiceTranscript(text: string) {
+    setInputQuery(text);
+    setSearchFocused(true);
+    void loadSearchResults(text);
+  }
 
-      <FeaturedHighlightsSection />
+  const chrome = (
+    <KesfetHomeChrome
+      city={`${SEARCH_CITY}, TR`}
+      query={inputQuery}
+      onQueryChange={setInputQuery}
+      onSearchFocus={() => setSearchFocused(true)}
+      searchFocused={searchFocused}
+    />
+  );
 
-      <SloganBanner />
-
-      <RegionalFlavorsHomeSection />
-
-      <View
-        style={styles.searchSection}
-        onLayout={(event) => {
-          searchSectionY.current = event.nativeEvent.layout.y;
-        }}>
-        <Text style={styles.sectionTitle}>Canlı arama</Text>
-        <Text style={styles.sectionSub}>Google Haritalar ile anlık mekan araması</Text>
-        <SearchBar
-          query={inputQuery}
-          city={inputCity}
-          onQueryChange={setInputQuery}
-          onCityChange={setInputCity}
-          onSearch={commitSearch}
-          searching={loadingSearch}
-          onInputFocus={() => onFieldFocus(searchSectionY.current, 48)}
-        />
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.error}>{error}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      {hasActiveSearch && activeQuery.length >= 2 ? (
-        <View style={styles.section}>
-          <View style={styles.sectionTitles}>
-            <Text style={styles.sectionTitle}>Arama sonuçları</Text>
-            <Text style={styles.sectionSub}>
-              Google canlı arama · &quot;{activeQuery}&quot;
-            </Text>
-          </View>
+  if (searchMode) {
+    return (
+      <Screen
+        scroll
+        flush
+        scrollRef={scrollRef}
+        keyboardVerticalOffset={72}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        style={styles.searchScroll}>
+        {chrome}
+        <View style={styles.searchBody}>
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.error}>{error}</Text>
+            </View>
+          ) : null}
           {loadingSearch ? (
             <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
           ) : searchCards.length === 0 ? (
             <Text style={styles.empty}>
               {liveParsed?.min_rating != null
-                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok. Farklı kelime deneyin.`
+                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
                 : 'Canlı aramada sonuç bulunamadı.'}
             </Text>
           ) : (
@@ -268,55 +235,51 @@ export default function ExploreScreen() {
             })
           )}
         </View>
-      ) : null}
+        <KesfetVoiceSearchSheet
+          visible={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          onTranscript={handleVoiceTranscript}
+        />
+      </Screen>
+    );
+  }
 
-      <View style={styles.section}>
-        <View style={styles.sectionTitles}>
-          <Text style={styles.sectionTitle}>Kayıtlı restoranlar</Text>
-          <Text style={styles.sectionSub}>GastroSkor veritabanı · üye ve yorumlu mekanlar</Text>
+  return (
+    <Screen scroll={false} flush style={styles.vitrinPage}>
+      {chrome}
+      <KesfetFilterChips active={activeChip} onChange={handleChipChange} />
+      <View style={styles.vitrinFill}>
+        <View style={styles.flexOnline}>
+          <OnlineOrderEntryBanner variant="vitrin" style={styles.fillChild} />
         </View>
-        {loadingDb ? (
-          <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
-        ) : dbRestaurants.length === 0 ? (
-          <Text style={styles.empty}>Kayıtlı restoran bulunamadı.</Text>
-        ) : (
-          dbRestaurants.map((r, index) => {
-            const detailHref = restaurantDetailHref({
-              id: r.id,
-              restaurant_id: r.restaurant_id,
-              google_place_id: r.google_place_id,
-            });
-            return (
-              <RestaurantCard
-                key={`db-${r.id}-${index}`}
-                restaurant={r}
-                googleRating={r.google_rating}
-                googleReviewCount={r.google_review_count}
-                href={detailHref}
-              />
-            );
-          })
-        )}
+        <View style={styles.flexRegional}>
+          <RegionalFlavorsEntryBanner style={styles.fillChild} />
+        </View>
+        <RecentPhotosStrip style={styles.flexPhotos} />
       </View>
+      <KesfetVoiceSearchSheet
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onTranscript={handleVoiceTranscript}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { gap: SECTION_GAP },
-  section: { gap: 8 },
-  searchSection: { gap: 10 },
-  sectionTitles: { gap: 4 },
-  sectionTitle: {
-    color: GastroColors.text,
-    fontSize: 20,
-    fontWeight: '800',
+  vitrinPage: { flex: 1 },
+  vitrinFill: {
+    flex: 1,
+    minHeight: 0,
+    paddingTop: 3,
+    gap: 3,
   },
-  sectionSub: {
-    color: GastroColors.muted,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  flexOnline: { flex: 1.15, minHeight: 0, paddingHorizontal: 12 },
+  flexRegional: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
+  flexPhotos: { flex: 1, minHeight: 0, marginBottom: 4 },
+  fillChild: { flex: 1, marginHorizontal: 0, alignSelf: 'stretch', width: '100%' },
+  searchScroll: { paddingHorizontal: 12, gap: 12, paddingBottom: 24 },
+  searchBody: { gap: 12, paddingHorizontal: 4 },
   empty: { color: GastroColors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
   errorBox: {
     borderRadius: 12,

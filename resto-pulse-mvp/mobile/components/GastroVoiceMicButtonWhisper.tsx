@@ -5,11 +5,15 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { GastroColors } from '@/constants/theme';
 import { useVoiceWhisperRecorder } from '@/hooks/use-voice-whisper-recorder';
 
+import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
+
 type Props = {
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
   active?: boolean;
+  orbOverlay?: boolean;
+  onUiStateChange?: (state: VoiceMicUiState) => void;
 };
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -19,6 +23,8 @@ export function GastroVoiceMicButtonWhisper({
   disabled = false,
   compact = false,
   active = true,
+  orbOverlay = false,
+  onUiStateChange,
 }: Props) {
   const [hint, setHint] = useState<string | null>(null);
   const { recording, transcribing, startRecording, stopAndTranscribe, cancelRecording } =
@@ -61,6 +67,25 @@ export function GastroVoiceMicButtonWhisper({
   }, [disabled, onTranscript, recording, startRecording, stopAndTranscribe, transcribing]);
 
   const busy = recording || transcribing;
+
+  useEffect(() => {
+    onUiStateChange?.({ listening: recording, transcribing });
+  }, [onUiStateChange, recording, transcribing]);
+
+  if (orbOverlay) {
+    return (
+      <>
+        <Pressable
+          style={styles.orbHit}
+          onPress={() => void handlePress()}
+          disabled={disabled || transcribing}
+          accessibilityRole="button"
+          accessibilityLabel="Sesli arama"
+        />
+        {hint ? <Text style={styles.hintOrb}>{hint}</Text> : null}
+      </>
+    );
+  }
 
   return (
     <>
@@ -128,6 +153,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
+    textAlign: 'center',
+  },
+  orbHit: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+  },
+  hintOrb: {
+    position: 'absolute',
+    top: '100%',
+    marginTop: 8,
+    left: -40,
+    right: -40,
+    color: GastroColors.gold,
+    fontSize: 11,
+    lineHeight: 15,
     textAlign: 'center',
   },
 });

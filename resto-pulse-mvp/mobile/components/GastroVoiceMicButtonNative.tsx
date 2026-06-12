@@ -14,11 +14,15 @@ import {
 
 const RESTART_DELAY_MS = 450;
 
+import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
+
 type Props = {
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
   compact?: boolean;
   active?: boolean;
+  orbOverlay?: boolean;
+  onUiStateChange?: (state: VoiceMicUiState) => void;
 };
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -28,6 +32,8 @@ export function GastroVoiceMicButtonNative({
   disabled = false,
   compact = false,
   active = true,
+  orbOverlay = false,
+  onUiStateChange,
 }: Props) {
   const [listening, setListening] = useState(false);
   const [available, setAvailable] = useState(false);
@@ -196,6 +202,25 @@ export function GastroVoiceMicButtonNative({
     }
   }, [available, clearRestartTimer, disabled, finishSession, listening, speech]);
 
+  useEffect(() => {
+    onUiStateChange?.({ listening, transcribing: false });
+  }, [listening, onUiStateChange]);
+
+  if (orbOverlay) {
+    return (
+      <>
+        <Pressable
+          style={styles.orbHit}
+          onPress={() => void startListening()}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="Sesli arama"
+        />
+        {hint ? <Text style={styles.hintOrb}>{hint}</Text> : null}
+      </>
+    );
+  }
+
   return (
     <>
       <Pressable
@@ -258,6 +283,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
+    textAlign: 'center',
+  },
+  orbHit: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+  },
+  hintOrb: {
+    position: 'absolute',
+    top: '100%',
+    marginTop: 8,
+    left: -40,
+    right: -40,
+    color: GastroColors.gold,
+    fontSize: 11,
+    lineHeight: 15,
     textAlign: 'center',
   },
 });

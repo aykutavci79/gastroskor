@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
+import { CenterMicTabBar } from '@/components/CenterMicTabBar';
 import { GastroColors } from '@/constants/theme';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
 import { AppBadgesProvider, useAppBadges } from '@/context/app-badges-context';
@@ -51,15 +52,9 @@ function TabsWithBadges() {
 
   return (
     <Tabs
+      tabBar={(props) => <CenterMicTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: GastroColors.panel,
-          borderTopColor: GastroColors.border,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
         tabBarActiveTintColor: GastroColors.accent,
         tabBarInactiveTintColor: GastroColors.muted,
         tabBarBadgeStyle: { backgroundColor: GastroColors.accent, color: '#fff', fontSize: 10 },
