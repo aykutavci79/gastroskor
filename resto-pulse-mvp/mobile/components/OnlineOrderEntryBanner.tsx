@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -151,7 +152,10 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
         style,
         pressed && styles.pressed,
       ]}
-      onPress={() => router.push('/siparis-acik' as never)}
+      onPress={() => {
+        Keyboard.dismiss();
+        router.push('/siparis-acik' as never);
+      }}
       accessibilityRole="button"
       accessibilityLabel="Online siparis acik restoranlar">
       <View style={styles.mediaClip} pointerEvents="none">

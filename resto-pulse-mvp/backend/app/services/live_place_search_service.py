@@ -13,7 +13,7 @@ from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Revi
 from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse, ParsedSearchIntent
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.food_place_filter import is_food_related_place
-from app.services.gastro_score_ranking import rank_live_places
+from app.services.gastro_score_ranking import live_place_sort_key, rank_live_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
@@ -112,6 +112,40 @@ def _filter_food_search_items(items: list[LivePlaceSearchItem]) -> list[LivePlac
     return kept
 
 
+def _refresh_search_item_scores(item: LivePlaceSearchItem) -> LivePlaceSearchItem:
+    from app.services.gastro_score_ranking import (
+        distance_score_for_meters,
+        popularity_score_for_reviews,
+        rating_score_for_stars,
+    )
+
+    dist_score = (
+        distance_score_for_meters(item.distance_meters) if item.distance_meters is not None else 0.0
+    )
+    rating_score = rating_score_for_stars(item.rating)
+    popularity_score = popularity_score_for_reviews(item.user_ratings_total, item.rating)
+    return item.model_copy(
+        update={
+            "distance_score": dist_score,
+            "rating_score": rating_score,
+            "popularity_score": popularity_score,
+            "gastro_score": dist_score + rating_score,
+        }
+    )
+
+
+def _sort_search_items(items: list[LivePlaceSearchItem]) -> list[LivePlaceSearchItem]:
+    refreshed = [_refresh_search_item_scores(item) for item in items]
+    return sorted(
+        refreshed,
+        key=lambda item: live_place_sort_key(
+            rating=item.rating,
+            distance_meters=item.distance_meters,
+            user_ratings_total=item.user_ratings_total,
+        ),
+    )
+
+
 def _finalize_search_response(
     items: list[LivePlaceSearchItem],
     *,
@@ -121,7 +155,8 @@ def _finalize_search_response(
     filters_applied: dict,
 ) -> LivePlaceSearchResponse:
     food_only = _filter_food_search_items(items)
-    filtered = apply_smart_filters(food_only, criteria)[:limit]
+    sorted_items = _sort_search_items(food_only)
+    filtered = apply_smart_filters(sorted_items, criteria)[:limit]
     return LivePlaceSearchResponse(
         items=filtered,
         parsed=parsed_model,

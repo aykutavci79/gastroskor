@@ -20,14 +20,15 @@ const PEEK_RIGHT = 40;
 
 type Props = {
   style?: ViewStyle;
+  onDismissKeyboard?: () => void;
 };
 
-export function RecentPhotosStrip({ style }: Props) {
+export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const tileWidth = peekTileWidth(screenWidth, { gap: TILE_GAP, peekRight: PEEK_RIGHT });
 
   return (
-    <View style={[styles.section, style]}>
+    <Pressable style={[styles.section, style]} onPress={onDismissKeyboard} accessible={false}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Az önce yenilenler</Text>
@@ -69,7 +70,7 @@ export function RecentPhotosStrip({ style }: Props) {
           ))}
         </ScrollView>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

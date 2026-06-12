@@ -1,12 +1,16 @@
 import * as Location from 'expo-location';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -30,6 +34,8 @@ import {
   unregisterKesfetVoiceSearchListener,
 } from '@/lib/kesfet-voice-bridge';
 import { restaurantDetailHref } from '@/lib/uuid';
+import { gastroSpeakVoiceSearchResults } from '@/lib/gastro-speak';
+import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
 import type {
   LivePlaceSearchItem,
   ParsedSearchIntent,
@@ -42,9 +48,12 @@ const SEARCH_CITY = 'Bursa';
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
   const scrollRef = useRef<ScrollView>(null);
+  const searchInputRef = useRef<TextInput>(null);
+  const voiceSearchAnnounceRef = useRef(false);
 
   const [inputQuery, setInputQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -59,6 +68,17 @@ export default function ExploreScreen() {
 
   const trimmedQuery = inputQuery.trim();
   const searchMode = trimmedQuery.length >= 2;
+
+  const resetKesfetVitrin = useCallback(() => {
+    Keyboard.dismiss();
+    searchInputRef.current?.blur();
+    setInputQuery('');
+    setSearchFocused(false);
+    setSearchItems([]);
+    setSearchCards([]);
+    setLiveParsed(null);
+    setError(null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +99,16 @@ export default function ExploreScreen() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const unsub = navigation.addListener('tabPress', () => {
+      if (!navigation.isFocused()) return;
+      if (searchMode || searchFocused) {
+        resetKesfetVitrin();
+      }
+    });
+    return unsub;
+  }, [navigation, resetKesfetVitrin, searchFocused, searchMode]);
 
   const ensureCoords = useCallback(async (): Promise<Coords | null> => {
     if (coordsRef.current) return coordsRef.current;
@@ -102,7 +132,7 @@ export default function ExploreScreen() {
   }, [ensureCoords]);
 
   const loadSearchResults = useCallback(async (query: string) => {
-    const q = query.trim();
+    const q = polishVoiceSearchTranscript(query);
     if (q.length < 2) {
       setSearchItems([]);
       setSearchCards([]);
@@ -126,10 +156,25 @@ export default function ExploreScreen() {
       setSearchItems(result.items);
       setSearchCards(result.items.map(livePlaceToRestaurantCard));
       setLiveParsed(result.parsed);
+      if (voiceSearchAnnounceRef.current) {
+        voiceSearchAnnounceRef.current = false;
+        gastroSpeakVoiceSearchResults(
+          result.items.length,
+          result.items.slice(0, 3).map((item) => ({
+            name: item.name,
+            rating: item.rating,
+            distanceMeters: item.distance_meters,
+          })),
+        );
+      }
     } catch (err) {
       setError(formatApiError(err, 'Arama'));
       setSearchItems([]);
       setSearchCards([]);
+      if (voiceSearchAnnounceRef.current) {
+        voiceSearchAnnounceRef.current = false;
+        gastroSpeakVoiceSearchResults(0, []);
+      }
     } finally {
       setLoadingSearch(false);
     }
@@ -137,9 +182,13 @@ export default function ExploreScreen() {
 
   const handleVoiceTranscript = useCallback(
     (text: string) => {
-      setInputQuery(text);
-      setSearchFocused(true);
-      void loadSearchResults(text);
+      const polished = polishVoiceSearchTranscript(text);
+      setInputQuery(polished);
+      setSearchFocused(false);
+      Keyboard.dismiss();
+      searchInputRef.current?.blur();
+      voiceSearchAnnounceRef.current = true;
+      void loadSearchResults(polished);
     },
     [loadSearchResults],
   );
@@ -170,7 +219,14 @@ export default function ExploreScreen() {
     setRefreshing(false);
   }
 
+  function dismissKeyboard() {
+    Keyboard.dismiss();
+    searchInputRef.current?.blur();
+    setSearchFocused(false);
+  }
+
   function handleChipChange(chip: KesfetChipId) {
+    dismissKeyboard();
     setActiveChip(chip);
     if (chip === 'online') {
       router.push('/siparis-acik' as never);
@@ -182,78 +238,71 @@ export default function ExploreScreen() {
   }
 
   const chrome = (
-    <KesfetHomeChrome
-      city={`${SEARCH_CITY}, TR`}
-      query={inputQuery}
-      onQueryChange={setInputQuery}
-      onSearchFocus={() => setSearchFocused(true)}
-      searchFocused={searchFocused}
-    />
+    <View style={styles.chromeWrap}>
+      <KesfetHomeChrome
+        city={`${SEARCH_CITY}, TR`}
+        query={inputQuery}
+        onQueryChange={setInputQuery}
+        onSearchFocus={() => setSearchFocused(true)}
+        onSearchBlur={() => setSearchFocused(false)}
+        onClear={resetKesfetVitrin}
+        onDismiss={dismissKeyboard}
+        searchInputRef={searchInputRef}
+        searchFocused={searchFocused}
+      />
+    </View>
   );
 
-  if (searchMode) {
-    return (
-      <Screen
-        scroll
-        flush
-        scrollRef={scrollRef}
-        keyboardVerticalOffset={72}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        style={styles.searchScroll}>
-        {chrome}
-        <View style={styles.searchBody}>
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.error}>{error}</Text>
-            </View>
-          ) : null}
-          {loadingSearch ? (
-            <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
-          ) : searchCards.length === 0 ? (
-            <Text style={styles.empty}>
-              {liveParsed?.min_rating != null
-                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
-                : 'Canlı aramada sonuç bulunamadı.'}
-            </Text>
-          ) : (
-            searchCards.map((r, index) => {
-              const liveItem = searchItems[index];
-              const detailHref = restaurantDetailHref({
-                id: r.id,
-                restaurant_id: r.restaurant_id,
-                google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
-                liveScores: liveItem
-                  ? {
-                      gastro_score: liveItem.gastro_score,
-                      distance_score: liveItem.distance_score,
-                      rating_score: liveItem.rating_score,
-                      distance_meters: liveItem.distance_meters,
-                      distance_origin: liveItem.distance_origin,
-                      rating: liveItem.rating,
-                    }
-                  : null,
-              });
-              return (
-                <RestaurantCard
-                  key={`search-${r.id}-${index}`}
-                  restaurant={r}
-                  googleRating={r.google_rating}
-                  googleReviewCount={r.google_review_count}
-                  distanceLabel={liveItem ? livePlaceDistanceLabel(liveItem) : undefined}
-                  href={detailHref}
-                />
-              );
-            })
-          )}
+  const searchBody = searchMode ? (
+    <View style={styles.searchBody}>
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.error}>{error}</Text>
         </View>
-      </Screen>
-    );
-  }
+      ) : null}
+      {loadingSearch ? (
+        <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
+      ) : searchCards.length === 0 ? (
+        <Text style={styles.empty}>
+          {liveParsed?.min_rating != null
+            ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
+            : 'Canlı aramada sonuç bulunamadı.'}
+        </Text>
+      ) : (
+        searchCards.map((r, index) => {
+          const liveItem = searchItems[index];
+          const detailHref = restaurantDetailHref({
+            id: r.id,
+            restaurant_id: r.restaurant_id,
+            google_place_id: liveItem?.place_id ?? r.google_place_id ?? null,
+            liveScores: liveItem
+              ? {
+                  gastro_score: liveItem.gastro_score,
+                  distance_score: liveItem.distance_score,
+                  rating_score: liveItem.rating_score,
+                  distance_meters: liveItem.distance_meters,
+                  distance_origin: liveItem.distance_origin,
+                  rating: liveItem.rating,
+                }
+              : null,
+          });
+          return (
+            <RestaurantCard
+              key={`search-${r.id}-${index}`}
+              restaurant={r}
+              googleRating={r.google_rating}
+              googleReviewCount={r.google_review_count}
+              distanceLabel={liveItem ? livePlaceDistanceLabel(liveItem) : undefined}
+              href={detailHref}
+            />
+          );
+        })
+      )}
+    </View>
+  ) : null;
 
-  return (
-    <Screen scroll={false} flush style={styles.vitrinPage}>
-      {chrome}
+  const vitrinBody = !searchMode ? (
+    <>
       <KesfetFilterChips active={activeChip} onChange={handleChipChange} />
       <View style={styles.vitrinFill}>
         <View style={styles.flexOnline}>
@@ -262,14 +311,65 @@ export default function ExploreScreen() {
         <View style={styles.flexRegional}>
           <RegionalFlavorsEntryBanner style={styles.fillChild} />
         </View>
-        <RecentPhotosStrip style={styles.flexPhotos} />
+        <RecentPhotosStrip style={styles.flexPhotos} onDismissKeyboard={dismissKeyboard} />
+      </View>
+    </>
+  ) : null;
+
+  const showVitrinDismissOverlay = searchFocused && !searchMode;
+
+  return (
+    <Screen scroll={false} flush keyboardVerticalOffset={72} style={styles.page}>
+      {chrome}
+      <View style={styles.bodyHost}>
+        {searchMode ? (
+          <ScrollView
+            ref={scrollRef}
+            style={styles.searchScrollHost}
+            contentContainerStyle={styles.searchScroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={GastroColors.accent}
+              />
+            }>
+            {searchBody}
+          </ScrollView>
+        ) : (
+          <View style={styles.vitrinTapArea}>{vitrinBody}</View>
+        )}
+        {showVitrinDismissOverlay ? (
+          <Pressable
+            style={styles.vitrinDismissOverlay}
+            onPress={dismissKeyboard}
+            accessibilityRole="button"
+            accessibilityLabel="Klavyeyi kapat"
+          />
+        ) : null}
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  vitrinPage: { flex: 1 },
+  page: { flex: 1 },
+  chromeWrap: {
+    zIndex: 20,
+    elevation: 20,
+  },
+  bodyHost: { flex: 1, minHeight: 0, position: 'relative' },
+  searchScrollHost: { flex: 1 },
+  vitrinTapArea: { flex: 1, minHeight: 0 },
+  vitrinDismissOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 15,
+    elevation: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+  },
   vitrinFill: {
     flex: 1,
     minHeight: 0,

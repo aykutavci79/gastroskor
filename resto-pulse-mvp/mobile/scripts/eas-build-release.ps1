@@ -37,7 +37,7 @@ function Invoke-PlatformSubmit([string]$Platform) {
 $first = if ($Order -eq 'ios-first') { 'ios' } else { 'android' }
 $second = if ($Order -eq 'ios-first') { 'android' } else { 'ios' }
 
-Write-Host "GastroSkor sirali release — $Order$(if ($Submit) { ' + submit' } else { '' })"
+Write-Host "GastroSkor sirali release - $Order$(if ($Submit) { ' + submit' } else { '' })"
 Write-Host "NODE_OPTIONS=$env:NODE_OPTIONS"
 
 Write-Host ""

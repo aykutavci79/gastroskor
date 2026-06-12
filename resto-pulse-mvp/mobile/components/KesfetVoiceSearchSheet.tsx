@@ -12,6 +12,8 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { VOICE_ORB_SIZE, VoiceListenOrb } from '@/components/VoiceListenOrb';
 import { GastroColors } from '@/constants/theme';
 import { isExpoGo } from '@/lib/google-signin-config';
+import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
 
 const DEMO_PHRASE = '150 TL lik lahmacun';
 
@@ -61,6 +63,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
 
   useEffect(() => {
     if (!visible) {
+      gastroStopSpeaking();
       clearDemoTimers();
       setMicActive(false);
       setUiState({ listening: false, transcribing: false });
@@ -71,9 +74,13 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     setUiState({ listening: false, transcribing: false });
     setLiveDraft('');
     setMicHint(null);
-    const readyTimer = setTimeout(() => setMicActive(true), 400);
+    setMicActive(false);
+    let cancelled = false;
+    gastroSpeakListening(() => {
+      if (!cancelled) setMicActive(true);
+    });
     return () => {
-      clearTimeout(readyTimer);
+      cancelled = true;
       clearDemoTimers();
     };
   }, [visible, clearDemoTimers]);
@@ -87,6 +94,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     }
 
     setLiveDraft('');
+    gastroSpeakListening();
     setUiState({ listening: true, transcribing: false });
     scheduleDemo(700, () => setLiveDraft('150 TL'));
     scheduleDemo(1400, () => setLiveDraft(DEMO_PHRASE));
@@ -101,7 +109,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
   }, [clearDemoTimers, onClose, onTranscript, scheduleDemo, uiState.listening, uiState.transcribing]);
 
   function handleTranscript(text: string, isFinal: boolean) {
-    const trimmed = text.trim();
+    const trimmed = polishVoiceSearchTranscript(text);
     if (!trimmed) return;
     setLiveDraft(trimmed);
     if (!isFinal) return;

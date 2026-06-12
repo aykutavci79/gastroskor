@@ -1,4 +1,6 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { RefObject } from 'react';
 
 import { DmAvatarButton } from '@/components/DmAvatarButton';
 import { GastroColors } from '@/constants/theme';
@@ -8,6 +10,10 @@ type Props = {
   query: string;
   onQueryChange: (value: string) => void;
   onSearchFocus?: () => void;
+  onSearchBlur?: () => void;
+  onClear?: () => void;
+  onDismiss?: () => void;
+  searchInputRef?: RefObject<TextInput | null>;
   searchFocused?: boolean;
 };
 
@@ -16,8 +22,14 @@ export function KesfetHomeChrome({
   query,
   onQueryChange,
   onSearchFocus,
+  onSearchBlur,
+  onClear,
+  onDismiss,
+  searchInputRef,
   searchFocused = false,
 }: Props) {
+  const showClear = query.trim().length > 0;
+
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -28,16 +40,38 @@ export function KesfetHomeChrome({
       <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
         <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
+          ref={searchInputRef}
           value={query}
           onChangeText={onQueryChange}
           onFocus={onSearchFocus}
+          onBlur={onSearchBlur}
           placeholder="İskender, cantık, pideli köfte…"
           placeholderTextColor={GastroColors.placeholder}
           style={styles.searchInput}
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
+          blurOnSubmit={false}
         />
+        {showClear ? (
+          <Pressable
+            onPress={onClear}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Aramayı temizle">
+            <Ionicons name="close-circle" size={18} color={GastroColors.muted} />
+          </Pressable>
+        ) : searchFocused && onDismiss ? (
+          <Pressable
+            onPress={onDismiss}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Aramadan vazgeç">
+            <Text style={styles.cancel}>Vazgeç</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.clearSlot} />
+        )}
       </View>
     </View>
   );
@@ -93,5 +127,14 @@ const styles = StyleSheet.create({
     color: GastroColors.text,
     fontSize: 12,
     padding: 0,
+  },
+  clearSlot: {
+    width: 18,
+    height: 18,
+  },
+  cancel: {
+    color: GastroColors.accent,
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

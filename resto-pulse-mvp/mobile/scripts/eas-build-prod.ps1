@@ -14,8 +14,8 @@ if ($args.Count -gt 0) {
   $argsList += $args
 }
 
-Write-Host "GastroSkor production build — platform: $Platform"
+Write-Host "GastroSkor production build - platform: $Platform"
 Write-Host "NODE_OPTIONS=$env:NODE_OPTIONS"
-Write-Host "Paralel iki OS build icin: npm run build:prod"
-Write-Host "eas $($argsList -join ' ')"
+Write-Host "Sirali iki OS build icin: npm run build:prod"
+Write-Host ("eas " + ($argsList -join ' '))
 & eas @argsList

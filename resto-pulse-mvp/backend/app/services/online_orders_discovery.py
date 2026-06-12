@@ -13,6 +13,7 @@ from app.models import PlatformName, Restaurant, RestaurantOwnership, Restaurant
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
     haversine_meters,
+    live_place_sort_key,
     popularity_score_for_reviews,
     rating_score_for_stars,
 )
@@ -38,7 +39,7 @@ def _attach_gastro_scores(items: list[dict]) -> None:
         row["distance_score"] = round(distance_score, 2)
         row["rating_score"] = round(rating_score, 2)
         row["popularity_score"] = round(popularity_score, 2)
-        row["gastro_score"] = round(distance_score + rating_score + popularity_score, 2)
+        row["gastro_score"] = round(distance_score + rating_score, 2)
 
 
 def _sort_online_order_items(items: list[dict], sort: str) -> None:
@@ -68,13 +69,12 @@ def _sort_online_order_items(items: list[dict], sort: str) -> None:
             )
         )
         return
-    # GastroSkor: puan + yorum + mesafe (uygulama geneli ile ayni)
+    # GastroSkor: puan + mesafe; esitlikte yildiz, mesafe, populerlik.
     items.sort(
-        key=lambda row: (
-            -(row.get("gastro_score") or 0),
-            -(row.get("popularity_score") or 0),
-            -(row.get("google_rating") or row.get("avg_rating") or 0),
-            row.get("distance_meters") if row.get("distance_meters") is not None else 1e12,
+        key=lambda row: live_place_sort_key(
+            rating=row.get("google_rating") if row.get("google_rating") is not None else row.get("avg_rating"),
+            distance_meters=row.get("distance_meters"),
+            user_ratings_total=row.get("google_review_count"),
         )
     )
 

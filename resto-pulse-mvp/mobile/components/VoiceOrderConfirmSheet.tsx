@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,7 @@ import {
   verifyOrderPhoneOtp,
 } from '@/lib/api';
 import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
+import { gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
@@ -65,6 +66,7 @@ export function VoiceOrderConfirmSheet({
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const spokeConfirmRef = useRef(false);
 
   const resolved = useMemo(() => {
     if (!command || !restaurant) return { line: null, choices: [], issue: null };
@@ -112,6 +114,24 @@ export function VoiceOrderConfirmSheet({
   const lineTotal = unitPrice != null && command ? unitPrice * command.quantity : 0;
   const normalizedPhone = normalizeTrMobileInput(phone);
   const phoneOk = Boolean(phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164);
+
+  useEffect(() => {
+    if (!visible) {
+      spokeConfirmRef.current = false;
+      gastroStopSpeaking();
+      return;
+    }
+    if (spokeConfirmRef.current || !command || !restaurant || !activeLine) return;
+
+    gastroSpeakOrderConfirm({
+      restaurantName: restaurant.name,
+      quantity: command.quantity,
+      productLabel: activeLine.label,
+      totalTl: formatPriceTl(lineTotal, 0),
+      paymentNote: command.paymentNote,
+    });
+    spokeConfirmRef.current = true;
+  }, [visible, command, restaurant, activeLine, lineTotal]);
 
   async function onSendOtp() {
     if (!userEmail || !normalizedPhone) {

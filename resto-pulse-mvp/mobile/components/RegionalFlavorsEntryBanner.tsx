@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import { Animated, Keyboard, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
@@ -69,7 +69,10 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
   return (
     <Pressable
       style={({ pressed }) => [styles.banner, style, pressed && styles.pressed]}
-      onPress={() => router.push('/yoresel' as never)}
+      onPress={() => {
+        Keyboard.dismiss();
+        router.push('/yoresel' as never);
+      }}
       accessibilityRole="button"
       accessibilityLabel="Yoresel lezzetler">
       <View style={styles.mediaClip} pointerEvents="none">

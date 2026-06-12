@@ -27,3 +27,15 @@ export function textIncludesTrFolded(haystack: string, needle: string, minNeedle
   if (!foldedNeedle || foldedNeedle.length < minNeedleLen) return false;
   return foldedHaystack.includes(foldedNeedle);
 }
+
+/**
+ * iOS TTS ozel harfleri (o, u, s, …) tek tek okuyabiliyor.
+ * Konusma icin ASCII yakinlastirma — ekranda orijinal metin kalir.
+ */
+export function prepareTurkishSpeechText(value: string): string {
+  const input = typeof value === 'string' ? value : '';
+  return foldTrAscii(input)
+    .replace(/[&/\\|+_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
