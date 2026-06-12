@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.app_metrics import AppMetricsSummaryResponse, AppUsageEventCreate
+from app.schemas.google_place_catalog import PlaceCatalogStatsResponse
 from app.services.app_metrics import ALLOWED_CLIENT_EVENTS, build_metrics_summary, record_app_usage_event
+from app.services.google_place_catalog import build_catalog_stats
 
 metrics_router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -51,3 +53,14 @@ def admin_metrics_summary(
 ):
     require_admin(x_panel_admin_secret)
     return build_metrics_summary(db, days=days)
+
+
+@metrics_router.get("/admin/place-catalog", response_model=PlaceCatalogStatsResponse)
+def admin_place_catalog_stats(
+    recent_limit: int = Query(default=10, ge=1, le=50),
+    top_queries_limit: int = Query(default=10, ge=1, le=30),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    require_admin(x_panel_admin_secret)
+    return build_catalog_stats(db, recent_limit=recent_limit, top_queries_limit=top_queries_limit)

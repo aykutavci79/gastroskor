@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.integrations.google_places_live import LivePlaceResult
 from app.models.entities import GooglePlaceCatalog
 from app.services.google_place_catalog import (
+    build_catalog_stats,
     count_catalog_places,
     persist_live_place_results,
     search_catalog_places,
@@ -88,3 +89,40 @@ def test_upsert_updates_rating(db: Session) -> None:
     assert len(hits) == 1
     assert hits[0].rating == 4.6
     assert hits[0].user_ratings_total == 20
+
+
+def test_build_catalog_stats(db: Session) -> None:
+    rows = [
+        LivePlaceResult(
+            place_id="ChIJstats1",
+            name="Lahmacun Evi",
+            formatted_address="Bursa",
+            rating=4.2,
+            user_ratings_total=50,
+            latitude=40.19,
+            longitude=29.06,
+            photo_reference=None,
+        ),
+        LivePlaceResult(
+            place_id="ChIJstats2",
+            name="Pideci",
+            formatted_address="Bursa",
+            rating=4.0,
+            user_ratings_total=12,
+            latitude=40.20,
+            longitude=29.07,
+            photo_reference=None,
+        ),
+    ]
+    persist_live_place_results(db, [rows[0]], city="Bursa", source_query="lahmacun")
+    persist_live_place_results(db, [rows[1]], city="Bursa", source_query="pide")
+    persist_live_place_results(db, [rows[0]], city="Bursa", source_query="lahmacun")
+
+    stats = build_catalog_stats(db, recent_limit=5, top_queries_limit=5)
+    assert stats["total_places"] == 2
+    assert stats["total_seen_events"] == 3
+    assert stats["linked_restaurants"] == 0
+    assert stats["by_city"] == [{"city": "Bursa", "count": 2}]
+    query_names = {row["query"] for row in stats["top_queries"]}
+    assert query_names == {"lahmacun", "pide"}
+    assert len(stats["recent_places"]) == 2

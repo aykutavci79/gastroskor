@@ -208,3 +208,61 @@ def count_catalog_places(db: Session, *, city: str | None = None) -> int:
     if city:
         stmt = stmt.where(GooglePlaceCatalog.city.ilike(f"%{city.strip()}%"))
     return int(db.scalar(stmt) or 0)
+
+
+def build_catalog_stats(db: Session, *, recent_limit: int = 10, top_queries_limit: int = 10) -> dict:
+    total_places = count_catalog_places(db)
+    total_seen_events = int(
+        db.scalar(select(func.coalesce(func.sum(GooglePlaceCatalog.seen_count), 0))) or 0
+    )
+    linked_restaurants = int(
+        db.scalar(
+            select(func.count())
+            .select_from(GooglePlaceCatalog)
+            .where(GooglePlaceCatalog.restaurant_id.is_not(None))
+        )
+        or 0
+    )
+
+    city_rows = db.execute(
+        select(GooglePlaceCatalog.city, func.count())
+        .group_by(GooglePlaceCatalog.city)
+        .order_by(func.count().desc(), GooglePlaceCatalog.city.asc())
+    ).all()
+    by_city = [{"city": row[0], "count": int(row[1])} for row in city_rows]
+
+    query_rows = db.execute(
+        select(GooglePlaceCatalog.last_source_query, func.count())
+        .where(GooglePlaceCatalog.last_source_query.is_not(None))
+        .where(GooglePlaceCatalog.last_source_query != "")
+        .group_by(GooglePlaceCatalog.last_source_query)
+        .order_by(func.count().desc())
+        .limit(top_queries_limit)
+    ).all()
+    top_queries = [{"query": row[0], "count": int(row[1])} for row in query_rows if row[0]]
+
+    recent_rows = db.scalars(
+        select(GooglePlaceCatalog)
+        .order_by(GooglePlaceCatalog.last_seen_at.desc())
+        .limit(recent_limit)
+    ).all()
+    recent_places = [
+        {
+            "name": row.name,
+            "city": row.city,
+            "rating": row.rating,
+            "seen_count": int(row.seen_count or 0),
+            "last_source_query": row.last_source_query,
+            "last_seen_at": row.last_seen_at,
+        }
+        for row in recent_rows
+    ]
+
+    return {
+        "total_places": total_places,
+        "total_seen_events": total_seen_events,
+        "linked_restaurants": linked_restaurants,
+        "by_city": by_city,
+        "top_queries": top_queries,
+        "recent_places": recent_places,
+    }

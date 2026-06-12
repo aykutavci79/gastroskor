@@ -28,6 +28,22 @@ type MetricsSummary = {
   daily: DailyRow[];
 };
 
+type PlaceCatalogStats = {
+  total_places: number;
+  total_seen_events: number;
+  linked_restaurants: number;
+  by_city: { city: string; count: number }[];
+  top_queries: { query: string; count: number }[];
+  recent_places: {
+    name: string;
+    city: string;
+    rating: number | null;
+    seen_count: number;
+    last_source_query: string | null;
+    last_seen_at: string;
+  }[];
+};
+
 function formatDuration(seconds: number | null): string {
   if (seconds == null || Number.isNaN(seconds)) return '—';
   const m = Math.floor(seconds / 60);
@@ -45,7 +61,9 @@ export function AppKpiDashboard() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [days, setDays] = useState(30);
   const [data, setData] = useState<MetricsSummary | null>(null);
+  const [catalog, setCatalog] = useState<PlaceCatalogStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [sendingReport, setSendingReport] = useState(false);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +93,21 @@ export function AppKpiDashboard() {
       })
       .finally(() => setLoading(false));
   }, [allowed, days]);
+
+  useEffect(() => {
+    if (!allowed) return;
+    setCatalogLoading(true);
+    fetch('/api/panel/admin/place-catalog')
+      .then(async (r) => {
+        const json = await r.json();
+        if (!r.ok) {
+          throw new Error(typeof json.detail === 'string' ? json.detail : 'Place catalog yuklenemedi');
+        }
+        setCatalog(json as PlaceCatalogStats);
+      })
+      .catch(() => setCatalog(null))
+      .finally(() => setCatalogLoading(false));
+  }, [allowed]);
 
   async function sendDailyReportNow() {
     setSendingReport(true);
@@ -179,6 +212,79 @@ export function AppKpiDashboard() {
           ))}
         </div>
       ) : null}
+
+      <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+        <h2 className="text-lg font-semibold text-emerald-300">Google Place Catalog</h2>
+        <p className="mt-2 text-sm text-content-muted">
+          Canli aramalardan biriken kalici mekan havuzu. Google faturasini amorti etmek icin buradan takip et.
+        </p>
+        {catalogLoading ? <p className="mt-3 text-xs text-content-muted">Catalog yukleniyor...</p> : null}
+        {catalog ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: 'Toplam mekan', value: catalog.total_places },
+                { label: 'Toplam gorulme', value: catalog.total_seen_events },
+                { label: 'Uye eslesmesi', value: catalog.linked_restaurants },
+                {
+                  label: 'Sehir sayisi',
+                  value: catalog.by_city.length,
+                },
+              ].map((card) => (
+                <div key={card.label} className="rounded-2xl border border-border bg-surface/80 p-4">
+                  <p className="text-xs uppercase tracking-wide text-content-muted">{card.label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-content">{card.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {catalog.top_queries.length ? (
+              <div className="rounded-2xl border border-border bg-surface/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-content-muted">En cok aranan sorgular</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {catalog.top_queries.map((row) => (
+                    <li
+                      key={row.query}
+                      className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-content"
+                    >
+                      {row.query} <span className="text-content-muted">({row.count})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {catalog.recent_places.length ? (
+              <div className="overflow-x-auto rounded-2xl border border-border">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-surface/90 text-xs uppercase text-content-muted">
+                    <tr>
+                      <th className="px-4 py-3">Mekan</th>
+                      <th className="px-4 py-3">Sehir</th>
+                      <th className="px-4 py-3">Puan</th>
+                      <th className="px-4 py-3">Gorulme</th>
+                      <th className="px-4 py-3">Son arama</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {catalog.recent_places.map((row) => (
+                      <tr key={`${row.name}-${row.last_seen_at}`} className="border-t border-border/60">
+                        <td className="px-4 py-2 text-content">{row.name}</td>
+                        <td className="px-4 py-2">{row.city}</td>
+                        <td className="px-4 py-2">{row.rating ?? '—'}</td>
+                        <td className="px-4 py-2">{row.seen_count}</td>
+                        <td className="px-4 py-2 text-content-muted">{row.last_source_query ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-content-muted">Henuz catalog kaydi yok — deploy sonrasi arama yapinca dolacak.</p>
+            )}
+          </div>
+        ) : null}
+      </section>
 
       {data?.daily?.length ? (
         <section className="overflow-x-auto rounded-2xl border border-border">
