@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from '@/components/Providers';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <body>
+        <GoogleAnalytics />
         <JsonLd data={[buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl)]} />
         <Providers>
           <SiteHeader />
