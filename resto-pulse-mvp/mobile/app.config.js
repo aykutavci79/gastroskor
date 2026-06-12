@@ -135,6 +135,13 @@ module.exports = ({ config }) => ({
       },
     ],
     [
+      'expo-av',
+      {
+        microphonePermission:
+          'Gastro Siparis sesli arama icin mikrofon kullanilir.',
+      },
+    ],
+    [
       'expo-speech-recognition',
       {
         microphonePermission:

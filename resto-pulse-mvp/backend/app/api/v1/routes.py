@@ -224,6 +224,7 @@ from app.api.v1.metrics_routes import metrics_router
 from app.api.v1.gourmet_chat_routes import router as gourmet_chat_router
 from app.api.v1.panel_routes import panel_router
 from app.api.v1.social_routes import router as social_router
+from app.api.v1.voice_routes import router as voice_router
 from app.services.user_accounts import get_or_create_user, serialize_user
 from app.services.app_metrics import record_app_usage_event
 from app.services.request_identity import (
@@ -2159,6 +2160,7 @@ router.include_router(panel_router)
 router.include_router(metrics_router)
 router.include_router(gourmet_chat_router)
 router.include_router(social_router)
+router.include_router(voice_router)
 
 
 @router.post("/internal/cron/panel-notifications")

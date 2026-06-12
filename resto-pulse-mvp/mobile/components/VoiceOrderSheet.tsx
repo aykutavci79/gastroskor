@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
+import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
+import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
 import {
   formatVoiceOrderSummary,
   parseVoiceOrderQuery,
@@ -37,6 +39,10 @@ const EXAMPLES = [
 
 export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch }: Props) {
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardBottomInset();
+  const scrollRef = useRef<ScrollView>(null);
+  const onFieldFocus = useKeyboardFieldFocus(scrollRef);
+  const inputRowYRef = useRef(0);
   const [draft, setDraft] = useState('');
   const [micActive, setMicActive] = useState(true);
 
@@ -79,24 +85,35 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
         <Pressable style={styles.backdrop} onPress={onClose} />
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
           <ScrollView
+            ref={scrollRef}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
-            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={styles.scrollContent}
             bounces={false}>
-            <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onPress={(e) => e.stopPropagation()}>
+            <Pressable
+              style={[
+                styles.sheet,
+                { paddingBottom: Math.max(insets.bottom, 16) + keyboardInset },
+              ]}
+              onPress={(e) => e.stopPropagation()}>
               <View style={styles.handle} />
               <Text style={styles.kicker}>Gastro Sipariş</Text>
               <Text style={styles.title}>Ne arıyorsun?</Text>
               <Text style={styles.sub}>
-                Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun veya
-                2–3 sn sus — sonra otomatik arar.
+                {Platform.OS === 'ios'
+                  ? 'Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun — metin geldikten sonra otomatik arar.'
+                  : 'Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun veya 2–3 sn sus — sonra otomatik arar.'}
               </Text>
 
-              <View style={styles.inputRow}>
+              <View
+                style={styles.inputRow}
+                onLayout={(event) => {
+                  inputRowYRef.current = event.nativeEvent.layout.y;
+                }}>
                 <TextInput
                   value={draft}
                   onChangeText={setDraft}
@@ -105,6 +122,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                   multiline
                   style={[styles.input, styles.inputFlex]}
                   editable={!searching}
+                  onFocus={() => onFieldFocus(inputRowYRef.current, 24)}
                 />
                 <SpeechMicErrorBoundary compact>
                   <GastroVoiceMicButton

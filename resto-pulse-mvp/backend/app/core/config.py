@@ -43,7 +43,12 @@ class Settings(BaseSettings):
     places_timeout_ms: int = 10000
     places_max_reviews: int = 5
     openai_api_key: str | None = None
+    groq_api_key: str | None = None
     anthropic_api_key: str | None = None
+    voice_transcribe_groq_model: str = "whisper-large-v3-turbo"
+    voice_transcribe_openai_model: str = "gpt-4o-mini-transcribe"
+    voice_transcribe_max_bytes: int = 5_000_000
+    voice_transcribe_timeout_sec: float = 25.0
 
     sms_provider: str = "mock"
     netgsm_user: str | None = None
