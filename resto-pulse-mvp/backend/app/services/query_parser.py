@@ -34,9 +34,36 @@ _MIN_DISTANCE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Sesli arama: "lahmacun satan restoranlari siralas" -> "lahmacun"
+_VOICE_BOILERPLATE_RES = (
+    re.compile(
+        r"\s+(?:satan|satanlar)\s+"
+        r"(?:restoran(?:lar(?:ı|i|ını|ini)?)?|yer(?:ler)?(?:i)?)"
+        r"(?:\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste))?"
+        r"\.?\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste)\.?\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s+(?:satan|satanlar)\s+(?:restoran(?:lar(?:ı|i)?)?|yer(?:ler)?(?:i)?)\.?\s*$",
+        re.IGNORECASE,
+    ),
+)
+
+
+def strip_voice_search_boilerplate(raw: str) -> str:
+    text = raw.strip()
+    text = re.sub(r"\.+$", "", text).strip()
+    for pattern in _VOICE_BOILERPLATE_RES:
+        text = pattern.sub("", text).strip()
+    return text
+
 
 def parse_search_query(raw: str) -> ParsedSearchQuery:
-    text = raw.strip()
+    text = strip_voice_search_boilerplate(raw.strip())
     removed: list[str] = []
     min_rating: float | None = None
     max_distance_m: float | None = None

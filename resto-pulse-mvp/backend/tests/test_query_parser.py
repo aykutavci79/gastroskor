@@ -13,3 +13,18 @@ def test_min_rating_plus_suffix() -> None:
     parsed = parse_search_query("lahmacun 4.5+")
     assert parsed.min_rating == 4.5
     assert "lahmacun" in parsed.query
+
+
+def test_voice_boilerplate_satan_restoranlari_sirala() -> None:
+    parsed = parse_search_query("lahmacun satan restoranları sıralar.")
+    assert parsed.query == "lahmacun"
+
+
+def test_voice_boilerplate_doner_siralan() -> None:
+    parsed = parse_search_query("döner satan restoranları sıralan")
+    assert parsed.query == "döner"
+
+
+def test_voice_boilerplate_cantik() -> None:
+    parsed = parse_search_query("cantık satan restoranları sıralar.")
+    assert parsed.query == "cantık"

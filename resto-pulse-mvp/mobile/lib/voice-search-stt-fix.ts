@@ -32,6 +32,21 @@ const PHRASE_FIXES: Array<[RegExp, string]> = [
   [/\bkonumuma\s*yakin\b/gi, 'konumuma en yakın'],
 ];
 
+/** "lahmacun satan restoranlari siralas" -> "lahmacun" */
+const SEARCH_BOILERPLATE: RegExp[] = [
+  /\s+(?:satan|satanlar)\s+(?:restoran(?:lar(?:ı|i|ını|ini)?)?|yer(?:ler)?(?:i)?)(?:\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste))?\.?\s*$/gi,
+  /\s+(?:sırala|sıralar|sıralan|sıralama|sirala|siralar|siralan|listele|liste)\.?\s*$/gi,
+  /\s+(?:satan|satanlar)\s+(?:restoran(?:lar(?:ı|i)?)?|yer(?:ler)?(?:i)?)\.?\s*$/gi,
+];
+
+function stripVoiceSearchBoilerplate(text: string): string {
+  let out = text.replace(/\.+$/, '').trim();
+  for (const pattern of SEARCH_BOILERPLATE) {
+    out = out.replace(pattern, '').trim();
+  }
+  return out;
+}
+
 export function polishVoiceSearchTranscript(raw: string): string {
   let text = normalizeTrSpeechText(raw);
   if (!text) return '';
@@ -40,7 +55,8 @@ export function polishVoiceSearchTranscript(raw: string): string {
     text = text.replace(pattern, replacement);
   }
 
-  return text.replace(/\s{2,}/g, ' ').trim();
+  text = text.replace(/\s{2,}/g, ' ').trim();
+  return stripVoiceSearchBoilerplate(text);
 }
 
 /** Android/iOS STT oneri listesi — kesfet arama cumleleri. */
