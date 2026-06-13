@@ -1,12 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { listDmInbox } from '@/lib/api';
+import { exitDmScreen } from '@/lib/dm-navigation';
 import type { DmThreadSummary } from '@/lib/types';
 
 function formatWhen(value?: string | null) {
@@ -50,6 +51,14 @@ export default function DmInboxScreen() {
     }, [load]),
   );
 
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      exitDmScreen(router);
+      return true;
+    });
+    return () => sub.remove();
+  }, [router]);
+
   if (!user?.email) {
     return (
       <Screen>
@@ -59,15 +68,12 @@ export default function DmInboxScreen() {
   }
 
   return (
-    <Screen>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Ozel mesajlar</Text>
-        {unreadTotal > 0 ? (
-          <Text style={styles.unreadBadge}>{unreadTotal} okunmamis</Text>
-        ) : (
-          <Text style={styles.sub}>Arkadaslarin ve sohbetten actigin konusmalar burada.</Text>
-        )}
-      </View>
+    <Screen scroll edges={['left', 'right']}>
+      {unreadTotal > 0 ? (
+        <Text style={styles.unreadBadge}>{unreadTotal} okunmamis</Text>
+      ) : (
+        <Text style={styles.sub}>Arkadaslarin ve sohbetten actigin konusmalar burada.</Text>
+      )}
 
       {loading ? (
         <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} />
@@ -120,10 +126,8 @@ export default function DmInboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: 6, marginBottom: 8 },
-  title: { color: GastroColors.text, fontSize: 22, fontWeight: '800' },
-  sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
-  unreadBadge: { color: GastroColors.accent, fontWeight: '700', fontSize: 13 },
+  sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18, marginBottom: 8 },
+  unreadBadge: { color: GastroColors.accent, fontWeight: '700', fontSize: 13, marginBottom: 8 },
   list: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowMeta: { flex: 1, gap: 4 },

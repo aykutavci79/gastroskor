@@ -90,6 +90,7 @@ def list_online_order_restaurants(
     sort: str = ONLINE_ORDER_SORT_GASTRO,
     limit: int = 50,
     voice_product: str | None = None,
+    voice_products: str | None = None,
     price_max: float | None = None,
     max_distance_km: float | None = None,
 ) -> list[dict]:
@@ -98,10 +99,29 @@ def list_online_order_restaurants(
     rating_floor = max(MIN_LIST_RATING, float(min_rating)) if min_rating is not None else MIN_LIST_RATING
     has_origin = origin_lat is not None and origin_lng is not None
     city_filter = (city or "").strip()
-    voice_token, voice_product_slugs = resolve_voice_search_token(voice_product)
-    voice_slug_set = set(voice_product_slugs) if voice_product_slugs else set()
+    voice_groups: list[str] = []
+    if voice_products:
+        for part in voice_products.split(","):
+            token, _ = resolve_voice_search_token(part.strip())
+            if token and token not in voice_groups:
+                voice_groups.append(token)
+    elif voice_product:
+        token, _ = resolve_voice_search_token(voice_product)
+        if token:
+            voice_groups = [token]
+
+    voice_token = voice_groups[0] if voice_groups else None
+    group_slug_map: dict[str, set[str]] = {}
+    voice_slug_set: set[str] = set()
+    for group in voice_groups:
+        token, slugs = resolve_voice_search_token(group)
+        if token:
+            group_slug_map[token] = set(slugs)
+            voice_slug_set |= set(slugs)
+
+    multi_product_cart = len(voice_groups) > 1
     distance_cap_m = max(0, float(max_distance_km)) * 1000 if max_distance_km is not None else None
-    price_cap = float(price_max) if price_max is not None else None
+    price_cap = float(price_max) if price_max is not None and not multi_product_cart else None
 
     rows = db.scalars(
         select(RestaurantOwnership)
@@ -125,12 +145,19 @@ def list_online_order_restaurants(
         ).all():
             google_profiles[str(profile.restaurant_id)] = profile
 
+    voice_search = bool(voice_slug_set)
     items: list[dict] = []
     for ownership in rows:
         if not online_orders_available(ownership):
             continue
         restaurant = ownership.restaurant
-        if city_filter and restaurant.city and city_filter.lower() not in restaurant.city.lower():
+        # Sesli urun aramasinda sehir metni degil mesafe onemli (tester / pilot Bursa'da olabilir).
+        if (
+            not voice_search
+            and city_filter
+            and restaurant.city
+            and city_filter.lower() not in restaurant.city.lower()
+        ):
             continue
 
         tags = normalize_category_slugs(ownership.online_order_category_tags or [])
@@ -179,6 +206,13 @@ def list_online_order_restaurants(
             )
             if not voice_matches:
                 continue
+            if multi_product_cart:
+                for slugs in group_slug_map.values():
+                    if not any(row["voice_product_slug"] in slugs for row in voice_matches):
+                        voice_matches = []
+                        break
+                if not voice_matches:
+                    continue
 
         menu_full = public_menu_for_ownership(ownership, preview=False)
         promo = promo_from_ownership(ownership)

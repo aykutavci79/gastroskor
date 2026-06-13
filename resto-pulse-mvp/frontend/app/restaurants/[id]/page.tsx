@@ -5,6 +5,13 @@ import { RestaurantDetailView } from '@/components/RestaurantDetailView';
 import { getRestaurant, listRestaurantReviews } from '@/lib/api';
 import { getSiteUrl } from '@/lib/site-url';
 import { buildBreadcrumbJsonLd, buildRestaurantJsonLd } from '@/lib/structured-data';
+import {
+  buildSeoTitle,
+  isPlaceholderRestaurantName,
+  restaurantSeoTitle,
+  sanitizeRestaurantDisplayName,
+} from '@/lib/seo-title';
+import { isTesterSeedRestaurant, testerRestaurantRobots } from '@/lib/tester-restaurant';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,24 +21,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const restaurant = await getRestaurant(id);
-    const place = [restaurant.district, restaurant.city].filter(Boolean).join(', ');
-    const title = place ? `${restaurant.name} — ${place}` : restaurant.name;
+    const displayName = sanitizeRestaurantDisplayName(restaurant.name);
+    const noindex =
+      isTesterSeedRestaurant(restaurant) || isPlaceholderRestaurantName(restaurant.name);
+    const titleText = restaurantSeoTitle(
+      restaurant.name,
+      restaurant.district,
+      restaurant.city,
+      restaurant.address,
+    );
     const rating =
       restaurant.avg_rating != null ? ` GS puanı ${restaurant.avg_rating.toFixed(1)}.` : '';
-    const description = `${restaurant.name} GastroSkor sayfası.${rating} Yorumlar, menü ve konum.`;
+    const description = `${displayName || titleText} GastroSkor sayfası.${rating} Yorumlar, menü ve konum.`;
     return {
-      title,
+      title: buildSeoTitle(titleText),
       description,
       alternates: { canonical: `/restaurants/${id}` },
+      ...(noindex ? { robots: testerRestaurantRobots() } : {}),
       openGraph: {
-        title,
+        title: titleText,
         description,
         url: `${getSiteUrl()}/restaurants/${id}`,
         type: 'website',
       },
     };
   } catch {
-    return { title: 'Restoran' };
+    return { title: buildSeoTitle('Restoran') };
   }
 }
 
@@ -49,8 +64,9 @@ export default async function RestaurantDetailPage({ params }: Props) {
   }
 
   const siteUrl = getSiteUrl();
+  const hideFromSearch = restaurant != null && isTesterSeedRestaurant(restaurant);
   const jsonLd =
-    restaurant != null
+    restaurant != null && !hideFromSearch
       ? [
           buildBreadcrumbJsonLd(siteUrl, [
             { name: 'GastroSkor', path: '/' },

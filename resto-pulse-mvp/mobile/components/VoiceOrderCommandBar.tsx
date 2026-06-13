@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroSpeakListening, gastroStopSpeaking, gastroSpeak } from '@/lib/gastro-speak';
+import { gastroPrepareVoiceInput, gastroStopSpeaking, gastroSpeak } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
   type VoiceOrderCommand,
 } from '@/lib/parse-voice-order-command';
+import { isSmartCartCommand } from '@/lib/smart-voice-cart';
 import { polishVoiceOrderCommandTranscript } from '@/lib/voice-order-stt-fix';
 import type { VoiceOrderRestaurantOption } from '@/lib/voice-order-letters';
 
@@ -21,7 +22,7 @@ type Props = {
 };
 
 const EXAMPLES = [
-  "B'den 3 lahmacun 1 kola 1 kadayıf",
+  '3 lahmacun 1 ayran 400 TL geçmesin',
   "B'den 3 lahmacun, kapıda kredi kartı",
 ];
 
@@ -29,14 +30,18 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
   const [micActive, setMicActive] = useState(false);
+  const [micHint, setMicHint] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
     submittedRef.current = false;
     setDraft('');
+    setMicHint(null);
     gastroStopSpeaking();
-    gastroSpeakListening(() => setMicActive(true));
+    setMicActive(false);
+    const cancelPrep = gastroPrepareVoiceInput(() => setMicActive(true));
     return () => {
+      cancelPrep();
       setMicActive(false);
       gastroStopSpeaking();
     };
@@ -47,11 +52,12 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
     [draft, restaurants, defaultProductSearchGroup],
   );
 
-  const canSubmit = parsed.confidence === 'high';
+  const canSubmit = parsed.confidence === 'high' || isSmartCartCommand(parsed);
 
   const trySubmit = useCallback(
     (command: VoiceOrderCommand) => {
-      if (command.confidence !== 'high' || submittedRef.current) return;
+      if (submittedRef.current) return;
+      if (command.confidence !== 'high' && !isSmartCartCommand(command)) return;
       submittedRef.current = true;
       setMicActive(false);
       onSubmit(command);
@@ -66,7 +72,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       setDraft(polished);
       if (!isFinal) return;
       const command = parseVoiceOrderCommand(polished, restaurants, defaultProductSearchGroup);
-      if (command.confidence === 'high') {
+      if (command.confidence === 'high' || isSmartCartCommand(command)) {
         trySubmit(command);
         return;
       }
@@ -81,15 +87,15 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <Text style={styles.label}>Gastro Sipariş komutu</Text>
       <Text style={styles.hint}>
-        {Platform.OS === 'ios'
-          ? 'Mikrofona konuş: B harfinden 3 lahmacun 1 kola 1 kadayıf.'
-          : 'A/B/C harfine göre yaz veya konuş; birden fazla ürün tek komutta.'}
+        Restoran seçmeden: “3 lahmacun 1 ayran, 400 TL geçmesin” — en uygun restoranı bulur.
+        {'\n'}
+        Ya da harfle: “B&apos;den 3 lahmacun, kapıda kredi kartı”.
       </Text>
       <View style={styles.inputRow}>
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder="B'den 3 lahmacun 1 kola 1 kadayıf"
+          placeholder="3 lahmacun 1 ayran 400 TL geçmesin"
           placeholderTextColor={GastroColors.muted}
           style={[styles.input, styles.inputFlex]}
           multiline
@@ -99,11 +105,13 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
           <GastroVoiceMicButton
             compact
             active={micActive}
-            autoStart={Platform.OS === 'ios' && micActive}
+            autoStart={micActive}
             onTranscript={handleTranscript}
+            onHintChange={setMicHint}
           />
         </SpeechMicErrorBoundary>
       </View>
+      {micHint ? <Text style={styles.micHint}>{micHint}</Text> : null}
       <Text style={styles.preview}>{formatVoiceOrderCommandSummary(parsed)}</Text>
       {parsed.issues.length && parsed.confidence !== 'high' ? (
         <Text style={styles.issues}>{parsed.issues.join(' ')}</Text>
@@ -138,7 +146,8 @@ const styles = StyleSheet.create({
   label: { color: GastroColors.accent, fontSize: 12, fontWeight: '800', letterSpacing: 0.8 },
   hint: { color: GastroColors.muted, fontSize: 12, lineHeight: 16 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  inputFlex: { flex: 1 },
+  inputFlex: { flex: 1, minWidth: 0, flexShrink: 1 },
+  micHint: { color: GastroColors.gold, fontSize: 11, lineHeight: 15 },
   input: {
     minHeight: 52,
     borderRadius: 12,

@@ -109,6 +109,13 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         sort_order=41,
     ),
     VoiceProduct(
+        slug="kebap",
+        label="Kebap",
+        search_group="kebap",
+        aliases=("kebap", "kebabi", "kebab"),
+        sort_order=42,
+    ),
+    VoiceProduct(
         slug="doner-durum",
         label="Doner Durum",
         search_group="doner",
@@ -154,6 +161,27 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
 
 VALID_VOICE_PRODUCT_SLUGS = frozenset(p.slug for p in VOICE_PRODUCTS)
 
+KEBAP_SEARCH_SLUGS = (
+    "kebap",
+    "adana-kebap",
+    "urfa-kebap",
+    "iskender",
+    "doner-durum",
+)
+
+ADANA_KEBAP_SEARCH_SLUGS = ("adana-kebap", "kebap")
+URFA_KEBAP_SEARCH_SLUGS = ("urfa-kebap", "kebap")
+
+
+def _expand_group_slugs(group: str, slugs: list[str]) -> list[str]:
+    if group == "kebap":
+        return list(dict.fromkeys([*KEBAP_SEARCH_SLUGS, *slugs]))
+    if group == "adana-kebap":
+        return list(dict.fromkeys([*ADANA_KEBAP_SEARCH_SLUGS, *slugs]))
+    if group == "urfa-kebap":
+        return list(dict.fromkeys([*URFA_KEBAP_SEARCH_SLUGS, *slugs]))
+    return slugs
+
 _BY_SLUG: dict[str, VoiceProduct] = {p.slug: p for p in VOICE_PRODUCTS}
 _BY_SEARCH_GROUP: dict[str, list[str]] = {}
 _ALIAS_INDEX: dict[str, str] = {}
@@ -195,15 +223,19 @@ def resolve_voice_search_token(raw: str | None) -> tuple[str | None, list[str]]:
         return None, []
 
     if key in _BY_SEARCH_GROUP:
-        return key, list(_BY_SEARCH_GROUP[key])
+        slugs = _expand_group_slugs(key, list(_BY_SEARCH_GROUP[key]))
+        return key, slugs
 
     slug = _ALIAS_INDEX.get(key)
     if slug and slug in _BY_SLUG:
         product = _BY_SLUG[slug]
-        return product.search_group, list(_BY_SEARCH_GROUP.get(product.search_group, [slug]))
+        group = product.search_group
+        slugs = _expand_group_slugs(group, list(_BY_SEARCH_GROUP.get(group, [slug])))
+        return group, slugs
 
     if slug and slug in _BY_SEARCH_GROUP:
-        return slug, list(_BY_SEARCH_GROUP[slug])
+        slugs = _expand_group_slugs(slug, list(_BY_SEARCH_GROUP[slug]))
+        return slug, slugs
 
     if key in _BY_SLUG:
         product = _BY_SLUG[key]

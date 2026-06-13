@@ -1,6 +1,3 @@
-import { Platform } from 'react-native';
-
-import { GastroVoiceMicButtonNative } from '@/components/GastroVoiceMicButtonNative';
 import { GastroVoiceMicButtonWhisper } from '@/components/GastroVoiceMicButtonWhisper';
 
 export type VoiceMicUiState = {
@@ -25,7 +22,7 @@ type Props = {
   onHintChange?: (hint: string | null) => void;
 };
 
-/** iOS: Whisper backend · Android: cihaz STT (expo-speech-recognition). */
+/** iOS + Android: mikrofon kaydi → backend Whisper (cihaz STT kullanilmiyor). */
 export function GastroVoiceMicButton({
   active = true,
   onTranscript,
@@ -37,20 +34,16 @@ export function GastroVoiceMicButton({
   onUiStateChange,
   onHintChange,
 }: Props) {
-  const shared = {
-    active,
-    onTranscript,
-    disabled: disabled || !active,
-    compact: compact || overlayCompact || orbOverlay,
-    overlayCompact: overlayCompact || orbOverlay,
-    autoStart,
-    onUiStateChange,
-    onHintChange,
-  };
-
-  if (Platform.OS === 'ios') {
-    return <GastroVoiceMicButtonWhisper {...shared} />;
-  }
-
-  return <GastroVoiceMicButtonNative {...shared} />;
+  return (
+    <GastroVoiceMicButtonWhisper
+      active={active}
+      onTranscript={onTranscript}
+      disabled={disabled || !active}
+      compact={compact || overlayCompact || orbOverlay}
+      overlayCompact={overlayCompact || orbOverlay}
+      autoStart={autoStart}
+      onUiStateChange={onUiStateChange}
+      onHintChange={onHintChange}
+    />
+  );
 }

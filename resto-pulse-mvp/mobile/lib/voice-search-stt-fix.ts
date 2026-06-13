@@ -1,4 +1,5 @@
 import { normalizeTrSpeechText } from '@/lib/turkish-text-fold';
+import { isJunkSpeechTranscript } from '@/lib/speech-transcript-quality';
 
 /** STT'nin sik yanlis duydugu yemek / arama ifadeleri. */
 const PHRASE_FIXES: Array<[RegExp, string]> = [
@@ -56,7 +57,7 @@ function stripVoiceSearchBoilerplate(text: string): string {
 
 export function polishVoiceSearchTranscript(raw: string): string {
   let text = normalizeTrSpeechText(raw);
-  if (!text) return '';
+  if (!text || isJunkSpeechTranscript(text)) return '';
 
   for (const [pattern, replacement] of PHRASE_FIXES) {
     text = text.replace(pattern, replacement);
@@ -86,4 +87,7 @@ export const KESFET_SEARCH_CONTEXT_PHRASES: string[] = [
   'kebapçı',
   'tatlıcı',
   'yıldız üstü',
+  'online sipariş',
+  'gastro sipariş',
+  'sipariş ver',
 ];

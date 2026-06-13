@@ -56,6 +56,23 @@ def test_resolve_specific_product_alias():
     assert set(slugs) == {"cantik-kiymali", "cantik-kusbasili"}
 
 
+def test_resolve_kebap_expands_to_grill_variants():
+    token, slugs = resolve_voice_search_token("kebap")
+    assert token == "kebap"
+    assert "kebap" in slugs
+    assert "adana-kebap" in slugs
+    assert "urfa-kebap" in slugs
+    assert "iskender" in slugs
+
+
+def test_resolve_adana_kebap_includes_generic_kebap():
+    token, slugs = resolve_voice_search_token("adana-kebap")
+    assert token == "adana-kebap"
+    assert "adana-kebap" in slugs
+    assert "kebap" in slugs
+    assert "urfa-kebap" not in slugs
+
+
 def test_voice_menu_matches_respect_price_max():
     ownership = SimpleNamespace(
         menu_items=[

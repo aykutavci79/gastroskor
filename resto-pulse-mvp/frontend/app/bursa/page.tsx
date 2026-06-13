@@ -7,6 +7,7 @@ import pagesData from '@/data/regional-flavor-pages.json';
 import { getApiV1Base } from '@/lib/api-base';
 import { filterRestaurantsBySearchTag } from '@/lib/regional-flavor-restaurants';
 import { getSiteUrl } from '@/lib/site-url';
+import { buildSeoTitle } from '@/lib/seo-title';
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from '@/lib/structured-data';
 import type { RestaurantListItem } from '@/lib/types';
 
@@ -18,7 +19,7 @@ const CITY = 'Bursa';
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: 'Bursa Restoranları — Puanlar, Yorumlar ve Gastro Skor',
+  title: buildSeoTitle('Bursa restoranları'),
   description:
     'Bursa restoranlarını GastroSkor ile keşfet. İskender, kebap, döner ve daha fazlası için gastro skor, GS yorumları ve Google puanlarını karşılaştır.',
   keywords: [

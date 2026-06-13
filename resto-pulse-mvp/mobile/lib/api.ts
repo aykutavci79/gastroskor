@@ -160,6 +160,7 @@ export async function listOnlineOrderRestaurants(params: {
   sort?: 'gastro_score' | 'distance' | 'rating' | 'popularity';
   limit?: number;
   voice_product?: string;
+  voice_products?: string;
   price_max?: number;
   max_distance_km?: number;
 }): Promise<OnlineOrderOpenListResponse> {
@@ -173,6 +174,7 @@ export async function listOnlineOrderRestaurants(params: {
   if (params.sort) search.set('sort', params.sort);
   if (params.limit != null) search.set('limit', String(params.limit));
   if (params.voice_product) search.set('voice_product', params.voice_product);
+  if (params.voice_products) search.set('voice_products', params.voice_products);
   if (params.price_max != null) search.set('price_max', String(params.price_max));
   if (params.max_distance_km != null) search.set('max_distance_km', String(params.max_distance_km));
   const query = search.toString();

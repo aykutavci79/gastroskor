@@ -5,11 +5,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { Animated, Keyboard, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
-const CITY = 'Bursa';
 const MIN_HEIGHT = 58;
 
 type Slide = {
@@ -31,12 +31,13 @@ function buildSlides(items: RegionalProductItem[]): Slide[] {
 }
 
 export function RegionalFlavorsEntryBanner({ style }: Props) {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const [count, setCount] = useState<number | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
 
   const refresh = useCallback(() => {
-    void listRegionalProducts({ city: CITY })
+    void listRegionalProducts({ city })
       .then((data) => {
         setCount(data.items.length);
         setSlides(buildSlides(data.items));
@@ -45,7 +46,7 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
         setCount(null);
         setSlides([]);
       });
-  }, []);
+  }, [city]);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,12 +57,14 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
   const safeSlides = useMemo(() => slides, [slides]);
   const { opacityA, opacityB, indexA, indexB } = useBannerCrossfade(safeSlides.length);
 
+  if (count === 0) return null;
+
   const countLine =
     count == null
-      ? `${CITY} · yöresel ürünler`
+      ? `${cityLabel} · yöresel ürünler`
       : count === 0
-        ? `${CITY} · yakında liste`
-        : `${CITY} · ${count} tescilli ürün`;
+        ? `${cityLabel} · yakında liste`
+        : `${cityLabel} · ${count} tescilli ürün`;
 
   const slideA = safeSlides[indexA];
   const slideB = safeSlides[indexB];
@@ -100,7 +103,6 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
             />
           </Animated.View>
         ) : null}
-        <View style={styles.scrim} />
         {slideA ? (
           <Animated.View style={[styles.productTag, { opacity: opacityA }]} pointerEvents="none">
             <Text style={styles.productTagText} numberOfLines={1}>
@@ -150,10 +152,6 @@ const styles = StyleSheet.create({
   mediaFallback: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(245,158,11,0.12)',
-  },
-  scrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.48)',
   },
   content: {
     ...StyleSheet.absoluteFillObject,

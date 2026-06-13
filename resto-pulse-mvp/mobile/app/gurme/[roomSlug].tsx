@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GourmetChatMessageBubble } from '@/components/GourmetChatCards';
 import { NicknameActionSheet } from '@/components/NicknameActionSheet';
 import { GastroColors, GastroStyles } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import {
   ReviewModerationApiError,
@@ -34,7 +35,6 @@ import {
 } from '@/lib/api';
 import type { GourmetChatAuthor, GourmetChatMessage, GourmetTriviaLeaderboardItem } from '@/lib/types';
 
-const CITY = 'Bursa';
 const POLL_MS = 12_000;
 
 function param(value: string | string[] | undefined, fallback = '') {
@@ -45,6 +45,7 @@ export default function GurmeRoomScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const { city, cityLabel } = useCity();
   const roomSlug = param(params.roomSlug);
   const roomTitle = param(params.title, 'Oda');
   const roomEmoji = param(params.emoji, '💬');
@@ -75,8 +76,8 @@ export default function GurmeRoomScreen() {
       if (!silent) setError(null);
       try {
         const [payload, board] = await Promise.all([
-          listGourmetChatMessages(roomSlug, CITY),
-          listGourmetTriviaLeaderboard(roomSlug, CITY, 5),
+          listGourmetChatMessages(roomSlug, city),
+          listGourmetTriviaLeaderboard(roomSlug, city, 5),
         ]);
         setMessages(payload.items);
         setLeaderboard(board.items);
@@ -86,7 +87,7 @@ export default function GurmeRoomScreen() {
         setLoading(false);
       }
     },
-    [roomSlug],
+    [roomSlug, city],
   );
 
   useEffect(() => {
@@ -249,7 +250,7 @@ export default function GurmeRoomScreen() {
     try {
       await createGourmetChatMessage(roomSlug, {
         user_email: user.email,
-        city: CITY,
+        city,
         body: trimmed,
       });
       setBody('');
@@ -280,7 +281,7 @@ export default function GurmeRoomScreen() {
             <Text style={styles.headerEmoji}>{roomEmoji}</Text>
             <View style={styles.headerTextWrap}>
               <Text style={styles.headerTitle}>{roomTitle}</Text>
-              <Text style={styles.headerCity}>Bursa · canli sohbet</Text>
+              <Text style={styles.headerCity}>{cityLabel} · canli sohbet</Text>
             </View>
           </View>
         </View>

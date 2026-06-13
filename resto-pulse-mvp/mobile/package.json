@@ -19,7 +19,8 @@
     "build:prod:ios-only": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-release.ps1 -SkipSecond",
     "release:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1",
     "release:check:apply": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -Apply",
-    "build:android:prod:safe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -AndroidOnly -Apply; powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android"
+    "verify:voice-stt": "node ./scripts/verify-voice-stt-fixes.mjs",
+    "build:android:prod:safe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -AndroidOnly -Apply; node ./scripts/verify-voice-stt-fixes.mjs; powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -18,7 +18,7 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
 import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
-import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroPrepareVoiceInput, gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderSummary,
   parseVoiceOrderQuery,
@@ -29,6 +29,9 @@ import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
 type Props = {
   visible: boolean;
   searching?: boolean;
+  initialDraft?: string;
+  /** Siri / shortcut acilisinda TTS beklemeden mikrofonu ac. */
+  startMicImmediately?: boolean;
   onClose: () => void;
   onSearch: (query: VoiceOrderQuery) => void;
 };
@@ -39,7 +42,14 @@ const EXAMPLES = [
   '200 TL adana kebap',
 ];
 
-export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch }: Props) {
+export function VoiceOrderSheet({
+  visible,
+  searching = false,
+  initialDraft,
+  startMicImmediately = false,
+  onClose,
+  onSearch,
+}: Props) {
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardBottomInset();
   const scrollRef = useRef<ScrollView>(null);
@@ -47,6 +57,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   const inputRowYRef = useRef(0);
   const [draft, setDraft] = useState('');
   const [micActive, setMicActive] = useState(true);
+  const [micHint, setMicHint] = useState<string | null>(null);
 
   const parsed = useMemo(() => parseVoiceOrderQuery(draft), [draft]);
   const canSearch = parsed.voiceProduct != null && !searching;
@@ -54,13 +65,20 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   useEffect(() => {
     if (!visible) {
       setMicActive(false);
+      setMicHint(null);
       gastroStopSpeaking();
       return;
     }
-    setDraft('');
+    setDraft(initialDraft?.trim() ?? '');
+    setMicHint(null);
+    if (startMicImmediately) {
+      setMicActive(false);
+      const timer = setTimeout(() => setMicActive(true), Platform.OS === 'ios' ? 900 : 520);
+      return () => clearTimeout(timer);
+    }
     setMicActive(false);
-    gastroSpeakListening(() => setMicActive(true));
-  }, [visible]);
+    return gastroPrepareVoiceInput(() => setMicActive(true));
+  }, [visible, initialDraft, startMicImmediately]);
 
   function applyExample(text: string) {
     setMicActive(false);
@@ -120,9 +138,8 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
               <Text style={styles.kicker}>Gastro Sipariş</Text>
               <Text style={styles.title}>Ne arıyorsun?</Text>
               <Text style={styles.sub}>
-                {Platform.OS === 'ios'
-                  ? 'Mikrofona bas, ürünü söyle (örn: lahmacun veya 200 lira lahmacun). Bitirince tekrar dokun — otomatik arar. Bütçe şart değil.'
-                  : 'Mikrofona bas, ürünü söyle. Bitirince tekrar dokun veya 2–3 sn sus — otomatik arar. Bütçe şart değil.'}
+                Mikrofon açılır, ürünü söyle. 2–3 sn susunca otomatik arar; istersen bitirmek için
+                mikrofona tekrar dokun. Bütçe şart değil.
               </Text>
 
               <View
@@ -140,16 +157,20 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                   editable={!searching}
                   onFocus={() => onFieldFocus(inputRowYRef.current, 24)}
                 />
-                <SpeechMicErrorBoundary compact>
-                  <GastroVoiceMicButton
-                    compact
-                    active={micActive}
-                    autoStart={Platform.OS === 'ios' && micActive}
-                    disabled={searching}
-                    onTranscript={handleVoiceTranscript}
-                  />
-                </SpeechMicErrorBoundary>
+                <View style={styles.micCol}>
+                  <SpeechMicErrorBoundary compact>
+                    <GastroVoiceMicButton
+                      compact
+                      active={micActive}
+                      autoStart={micActive}
+                      disabled={searching}
+                      onTranscript={handleVoiceTranscript}
+                      onHintChange={setMicHint}
+                    />
+                  </SpeechMicErrorBoundary>
+                </View>
               </View>
+              {micHint ? <Text style={styles.micHint}>{micHint}</Text> : null}
 
               <View style={styles.preview}>
                 <Text style={styles.previewLabel}>Anladığım</Text>
@@ -227,7 +248,9 @@ const styles = StyleSheet.create({
   title: { color: GastroColors.text, fontSize: 22, fontWeight: '900' },
   sub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  inputFlex: { flex: 1 },
+  inputFlex: { flex: 1, minWidth: 0, flexShrink: 1 },
+  micCol: { flexShrink: 0, alignItems: 'center' },
+  micHint: { color: GastroColors.gold, fontSize: 11, lineHeight: 15, marginTop: -4 },
   input: {
     minHeight: 72,
     borderRadius: 14,

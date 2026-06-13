@@ -1,37 +1,78 @@
 import * as Speech from 'expo-speech';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import { Platform } from 'react-native';
 
+import {
+  prefetchTurkishTtsVoice,
+  resolveTurkishTtsVoiceId,
+  ttsLocale,
+  ttsSpeechPitch,
+  ttsSpeechRate,
+} from '@/lib/gastro-tts-voice';
 import { prepareTurkishSpeechText } from '@/lib/turkish-text-fold';
 
-const TR_LOCALE = 'tr-TR';
+const TR_LOCALE = ttsLocale();
 
 type SpeakOptions = {
   onDone?: () => void;
 };
 
 let speaking = false;
-let trVoiceId: string | null | undefined;
+let playbackAudioModeReady = false;
 
-function prefetchTurkishVoice(): void {
-  if (trVoiceId !== undefined) return;
-  trVoiceId = null;
-  void Speech.getAvailableVoicesAsync()
-    .then((voices) => {
-      const match =
-        voices.find((voice) => voice.language === TR_LOCALE) ??
-        voices.find((voice) => voice.language?.startsWith('tr'));
-      trVoiceId = match?.identifier ?? null;
-    })
-    .catch(() => {
-      trVoiceId = null;
-    });
+/** iOS ozel harfleri harf harf okuyabiliyor; Android Google TTS Turkce karakterle daha iyi. */
+function prepareSpeechText(text: string): string {
+  const input = typeof text === 'string' ? text : '';
+  if (Platform.OS === 'android') {
+    return input
+      .replace(/[’']/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  return prepareTurkishSpeechText(input);
 }
 
-prefetchTurkishVoice();
+async function ensureSpeechAudioMode(): Promise<void> {
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+    playbackAudioModeReady = true;
+  } catch {
+    /* ses modu opsiyonel */
+  }
+}
+
+/** STT baslamadan once — TTS ile mikrofon cakismasini onler. */
+export async function prepareSpeechRecognitionAudioMode(): Promise<void> {
+  gastroStopSpeaking();
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+    playbackAudioModeReady = false;
+  } catch {
+    /* ses modu opsiyonel */
+  }
+}
 
 function speakNameForTts(name: string): string {
-  return prepareTurkishSpeechText(name);
+  return prepareSpeechText(name);
 }
+
+prefetchTurkishTtsVoice();
 
 export function gastroStopSpeaking(): void {
   Speech.stop();
@@ -47,30 +88,35 @@ export async function gastroIsSpeaking(): Promise<boolean> {
 }
 
 function speakChunk(text: string, onDone?: () => void): void {
-  const trimmed = text.trim();
+  const trimmed = prepareSpeechText(text);
   if (!trimmed) {
     onDone?.();
     return;
   }
 
   speaking = true;
-  Speech.speak(trimmed, {
-    language: TR_LOCALE,
-    ...(trVoiceId ? { voice: trVoiceId } : {}),
-    pitch: 1,
-    rate: Platform.OS === 'ios' ? 0.92 : 0.95,
-    onDone: () => {
-      speaking = false;
-      onDone?.();
-    },
-    onStopped: () => {
-      speaking = false;
-    },
-    onError: () => {
-      speaking = false;
-      onDone?.();
-    },
-  });
+  void (async () => {
+    await ensureSpeechAudioMode();
+    const voiceId = await resolveTurkishTtsVoiceId();
+    Speech.speak(trimmed, {
+      language: TR_LOCALE,
+      ...(voiceId ? { voice: voiceId } : {}),
+      pitch: ttsSpeechPitch(),
+      rate: ttsSpeechRate(),
+      volume: 1,
+      onDone: () => {
+        speaking = false;
+        onDone?.();
+      },
+      onStopped: () => {
+        speaking = false;
+      },
+      onError: () => {
+        speaking = false;
+        onDone?.();
+      },
+    });
+  })();
 }
 
 /** Tek parca konusma */
@@ -106,9 +152,44 @@ function gastroSpeakSequence(chunks: string[], options?: SpeakOptions): void {
   speakNext();
 }
 
-/** Mic / ses overlay acilinca */
+/** Mic / ses overlay acilinca — Android'de TTS mikrofonu bozar, sadece ses modu hazirla. */
 export function gastroSpeakListening(onDone?: () => void): void {
-  gastroSpeak('Dinliyorum.', { onDone });
+  if (Platform.OS === 'android') {
+    gastroStopSpeaking();
+    void prepareSpeechRecognitionAudioMode().then(() => {
+      setTimeout(() => onDone?.(), 320);
+    });
+    return;
+  }
+
+  gastroSpeak('Dinliyorum.', {
+    onDone: () => {
+      setTimeout(() => onDone?.(), 120);
+    },
+  });
+}
+
+/** Whisper kayit — TTS yok; iOS'ta "Dinliyorum" kayda karisip erken kapanmayi tetikler. */
+export function gastroPrepareWhisperInput(onReady?: () => void): () => void {
+  gastroStopSpeaking();
+  let cancelled = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  void prepareSpeechRecognitionAudioMode().then(() => {
+    if (cancelled) return;
+    const delay = Platform.OS === 'ios' ? 420 : 480;
+    timer = setTimeout(() => {
+      if (!cancelled) onReady?.();
+    }, delay);
+  });
+  return () => {
+    cancelled = true;
+    if (timer) clearTimeout(timer);
+  };
+}
+
+/** Sesli giris acilisi — Android Whisper kayit, iOS TTS + kayit. Cleanup fonksiyonu doner. */
+export function gastroPrepareVoiceInput(onReady?: () => void): () => void {
+  return gastroPrepareWhisperInput(onReady);
 }
 
 export type VoiceSearchTopPlace = {
@@ -188,6 +269,8 @@ export function gastroSpeakOrderConfirm(input: OrderConfirmSpeech, onDone?: () =
 export type VoiceOrderRestaurantSpeech = {
   letter: string;
   name: string;
+  /** İlk eşleşen ürün fiyatı — sesli okuma */
+  priceHint?: string | null;
 };
 
 /** Online siparis aramasi sonrasi A/B/C secenekleri */
@@ -208,14 +291,56 @@ export function gastroSpeakVoiceOrderRestaurantOptions(
   ];
 
   options.slice(0, 3).forEach((row) => {
-    chunks.push(`${row.letter} harfi, ${speakNameForTts(row.name)}.`);
+    const pricePart = row.priceHint ? `, ${row.priceHint}` : '';
+    chunks.push(`${row.letter} harfi, ${speakNameForTts(row.name)}${pricePart}.`);
   });
 
   if (options.length > 3) {
     chunks.push('Daha fazla seçenek ekranda.');
   }
 
-  chunks.push("Örneğin B'den 3 lahmacun, kapıda kredi kartı de.");
+  chunks.push(
+    "Restoran seçmeden de söyleyebilirsin: 3 lahmacun 1 ayran, 400 lira geçmesin.",
+  );
+  chunks.push("Ya da B'den 3 lahmacun, kapıda kredi kartı de.");
+  gastroSpeakSequence(chunks, { onDone });
+}
+
+export type SmartCartSpeechLine = {
+  quantity: number;
+  label: string;
+  unitPriceTl: number;
+  lineTotalTl: number;
+};
+
+/** Akıllı sepet — en uygun restoran + fiyat detayı */
+export function gastroSpeakSmartCartProposal(
+  input: {
+    letter: string;
+    restaurantName: string;
+    lines: SmartCartSpeechLine[];
+    orderTotal: number;
+    budgetMax: number | null;
+  },
+  onDone?: () => void,
+): void {
+  const chunks: string[] = [
+    `${input.letter} harfi, ${speakNameForTts(input.restaurantName)}.`,
+    `Toplam ${String(Math.round(input.orderTotal)).replace('.', ',')} lira.`,
+  ];
+
+  input.lines.forEach((row) => {
+    const unit = String(Math.round(row.unitPriceTl)).replace('.', ',');
+    chunks.push(
+      `${row.quantity} ${speakNameForTts(row.label)}, tanesi ${unit} lira.`,
+    );
+  });
+
+  if (input.budgetMax != null) {
+    chunks.push(`${input.budgetMax} lira bütçenin altında.`);
+  }
+
+  chunks.push('Onaylıyor musun? Evet dersen hazırlarım.');
   gastroSpeakSequence(chunks, { onDone });
 }
 

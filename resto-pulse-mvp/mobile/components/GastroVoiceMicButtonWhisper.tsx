@@ -1,13 +1,16 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
-import { useVoiceWhisperRecorder } from '@/hooks/use-voice-whisper-recorder';
+import {
+  useVoiceWhisperRecorder,
+  type VoiceWhisperAutoStopReason,
+} from '@/hooks/use-voice-whisper-recorder';
 
 import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 
-const AUTO_START_DELAY_MS = 450;
+const AUTO_START_DELAY_MS = Platform.OS === 'android' ? 520 : 380;
 
 type Props = {
   onTranscript: (text: string, isFinal: boolean) => void;
@@ -34,8 +37,12 @@ export function GastroVoiceMicButtonWhisper({
 }: Props) {
   const [hint, setHint] = useState<string | null>(null);
   const autoStartedRef = useRef(false);
+  const finishingRef = useRef(false);
   const { recording, transcribing, startRecording, stopAndTranscribe, cancelRecording } =
     useVoiceWhisperRecorder();
+
+  const onTranscriptRef = useRef(onTranscript);
+  onTranscriptRef.current = onTranscript;
 
   const updateHint = useCallback(
     (next: string | null) => {
@@ -45,20 +52,59 @@ export function GastroVoiceMicButtonWhisper({
     [onHintChange],
   );
 
+  const finishRecording = useCallback(async () => {
+    if (finishingRef.current || transcribing) return;
+    finishingRef.current = true;
+    try {
+      updateHint('Cevriliyor…');
+      const text = await stopAndTranscribe();
+      updateHint(null);
+      if (text) {
+        onTranscriptRef.current(text, false);
+        onTranscriptRef.current(text, true);
+      } else {
+        updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+        autoStartedRef.current = false;
+      }
+    } catch (err) {
+      updateHint(err instanceof Error ? err.message : 'Ses tanima basarisiz. Metin ile deneyin.');
+      autoStartedRef.current = false;
+    } finally {
+      finishingRef.current = false;
+    }
+  }, [stopAndTranscribe, transcribing, updateHint]);
+
+  const finishRecordingRef = useRef(finishRecording);
+  finishRecordingRef.current = finishRecording;
+
+  const handleAutoStop = useCallback(
+    (reason: VoiceWhisperAutoStopReason) => {
+      if (reason === 'no_speech') {
+        void cancelRecording();
+        updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
+        autoStartedRef.current = false;
+        return;
+      }
+      void finishRecordingRef.current();
+    },
+    [cancelRecording, updateHint],
+  );
+
   useEffect(() => {
     if (active) return;
     autoStartedRef.current = false;
+    finishingRef.current = false;
     void cancelRecording();
   }, [active, cancelRecording]);
 
   const beginRecording = useCallback(async () => {
     updateHint(null);
-    const started = await startRecording();
+    const started = await startRecording({ onAutoStop: handleAutoStop });
     if (!started) {
       updateHint('Mikrofon izni gerekli.');
       autoStartedRef.current = false;
     }
-  }, [startRecording, updateHint]);
+  }, [handleAutoStop, startRecording, updateHint]);
 
   useEffect(() => {
     if (!autoStart || !active || disabled || isExpoGo || autoStartedRef.current || recording) return;
@@ -77,30 +123,16 @@ export function GastroVoiceMicButtonWhisper({
       updateHint('Mikrofon TestFlight / Play build gerektirir.');
       return;
     }
-    if (transcribing) return;
+    if (transcribing || finishingRef.current) return;
 
     if (recording) {
-      try {
-        updateHint('Cevriliyor…');
-        const text = await stopAndTranscribe();
-        updateHint(null);
-        if (text) {
-          onTranscript(text, false);
-          onTranscript(text, true);
-        } else {
-          updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
-          autoStartedRef.current = false;
-        }
-      } catch (err) {
-        updateHint(err instanceof Error ? err.message : 'Ses tanima basarisiz. Metin ile deneyin.');
-        autoStartedRef.current = false;
-      }
+      await finishRecording();
       return;
     }
 
     autoStartedRef.current = true;
     await beginRecording();
-  }, [beginRecording, disabled, onTranscript, recording, stopAndTranscribe, transcribing, updateHint]);
+  }, [beginRecording, disabled, finishRecording, recording, transcribing, updateHint]);
 
   const busy = recording || transcribing;
 
@@ -109,7 +141,7 @@ export function GastroVoiceMicButtonWhisper({
   }, [onUiStateChange, recording, transcribing]);
 
   const showCompactHint = compact && !overlayCompact && busy && !transcribing;
-  const showInlineHint = hint && !overlayCompact;
+  const showInlineHint = hint && !overlayCompact && !compact;
 
   return (
     <>
@@ -129,8 +161,8 @@ export function GastroVoiceMicButtonWhisper({
         accessibilityLabel="Sesli arama"
         accessibilityHint={
           recording
-            ? 'Dinlemeyi bitirmek icin tekrar dokun'
-            : 'Konusmak icin dokun, bitirince tekrar dokun'
+            ? 'Dinlemeyi bitirmek icin tekrar dokun veya sus'
+            : 'Konusmak icin dokun; susunca otomatik biter'
         }>
         {transcribing ? (
           <ActivityIndicator color="#141414" size="small" />
@@ -144,14 +176,14 @@ export function GastroVoiceMicButtonWhisper({
             {transcribing
               ? 'Cevriliyor…'
               : recording
-                ? 'Dinleniyor… (bitir: tekrar dokun)'
+                ? 'Dinleniyor… (susunca biter)'
                 : 'Konus'}
           </Text>
         ) : null}
       </Pressable>
       {showInlineHint ? <Text style={styles.hint}>{hint}</Text> : null}
       {showCompactHint ? (
-        <Text style={styles.hintCompact}>Bitirmek icin tekrar dokun</Text>
+        <Text style={styles.hintCompact}>Susunca otomatik biter</Text>
       ) : null}
     </>
   );

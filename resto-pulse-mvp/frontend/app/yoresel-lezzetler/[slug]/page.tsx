@@ -18,6 +18,7 @@ import {
   buildItemListJsonLd,
   buildRegionalFlavorFoodJsonLd,
 } from '@/lib/structured-data';
+import { buildSeoTitle } from '@/lib/seo-title';
 import type { RegionalProductDetailResponse } from '@/lib/types';
 
 type Props = {
@@ -44,27 +45,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageContent = getRegionalFlavorPageContent(slug);
   if (pageContent) {
     const seo = resolveRegionalFlavorSeo(pageContent);
+    const shortName = pageContent.name.replace(/^Bursa\s+/i, '').replace(/^İnegöl\s+/i, '');
+    const titleText = `${shortName} · Bursa`;
     return {
-      title: seo.title,
+      title: buildSeoTitle(titleText),
       description: seo.description,
       keywords: seo.keywords.split(',').map((keyword) => keyword.trim()),
       alternates: { canonical: `/yoresel-lezzetler/${slug}` },
-      openGraph: { title: seo.title, description: seo.description },
+      openGraph: { title: titleText, description: seo.description },
     };
   }
 
   const data = await fetchProduct(slug);
   if (!data?.product) {
-    return { title: 'Yöresel lezzet' };
+    return { title: buildSeoTitle('Yöresel lezzet') };
   }
   const { product } = data;
-  const title = `${product.name} — Bursa'da nerede yenir?`;
+  const titleText = `${product.name} · Bursa`;
   const description = `${product.name} (${product.city}): ${product.summary} GastroSkor ile mekan önerileri.`;
   return {
-    title,
+    title: buildSeoTitle(titleText),
     description,
     alternates: { canonical: `/yoresel-lezzetler/${slug}` },
-    openGraph: { title, description },
+    openGraph: { title: titleText, description },
   };
 }
 

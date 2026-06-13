@@ -16,6 +16,7 @@ import {
 import { FoodCastTitle } from '@/components/FoodCastTitle';
 import { FoodcastReportSheet } from '@/components/FoodcastReportSheet';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { getFoodcastFeed, reportFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
+  const { city } = useCity();
   const router = useRouter();
   const { user } = useSession();
   const { width: screenWidth } = useWindowDimensions();
@@ -46,14 +48,14 @@ export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const feed = await getFoodcastFeed({ city: 'Bursa', limit: STRIP_LIMIT });
+      const feed = await getFoodcastFeed({ city, limit: STRIP_LIMIT });
       setItems(feed.items);
     } catch {
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     void load();

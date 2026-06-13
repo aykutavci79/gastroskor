@@ -5,17 +5,19 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
 export default function YoreselLezzetlerScreen() {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    listRegionalProducts({ city: 'Bursa' })
+    listRegionalProducts({ city })
       .then((data) => {
         if (!cancelled) setItems(data.items);
       })
@@ -28,12 +30,12 @@ export default function YoreselLezzetlerScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [city]);
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.kicker}>İç turizm · Bursa</Text>
+        <Text style={styles.kicker}>İç turizm · {cityLabel}</Text>
         <Text style={styles.title}>Yöresel lezzetler</Text>
         <Text style={styles.sub}>
           TÜRKPATENT'te tescilli ürünler. Tıklayınca Google canlı araması açılır — GastroSkor restoran onayı

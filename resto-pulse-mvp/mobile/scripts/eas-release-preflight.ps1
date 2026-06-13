@@ -132,5 +132,13 @@ if ($issues.Count -eq 0) {
 }
 
 Write-Host ""
+Write-Host "Voice STT fix checks:" -ForegroundColor Yellow
+node "$PSScriptRoot\verify-voice-stt-fixes.mjs"
+if ($LASTEXITCODE -ne 0) {
+  throw "Voice STT verify failed — build iptal."
+}
+Write-Host "  OK" -ForegroundColor Green
+Write-Host ""
+
 Write-Host "Confirm release-versions.json matches Play/App Store before building." -ForegroundColor Cyan
 Write-Host ""

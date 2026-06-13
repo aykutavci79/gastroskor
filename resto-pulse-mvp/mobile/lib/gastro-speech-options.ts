@@ -26,12 +26,11 @@ export function buildGastroSpeechStartOptions(): Record<string, unknown> {
   if (Platform.OS === 'android') {
     options.androidRecognitionServicePackage = 'com.google.android.googlequicksearchbox';
     options.androidIntentOptions = {
-      /** En az bu kadar dinle (erken kapanmayi geciktir). */
-      EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 2500,
+      EXTRA_LANGUAGE_MODEL: 'free_form',
       /** Konusma bitince sessizlik — sonra oturumu kapat. */
-      EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3200,
+      EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2200,
       /** Kelimeler arasi kisa duraklamaya tolerans. */
-      EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 1800,
+      EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 1600,
     };
   }
 

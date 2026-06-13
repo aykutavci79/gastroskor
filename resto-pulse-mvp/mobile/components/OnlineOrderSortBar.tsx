@@ -15,7 +15,11 @@ export function OnlineOrderSortBar({ value, onChange }: Props) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>Sırala</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}>
         {ONLINE_ORDER_SORT_OPTIONS.map((opt) => {
           const on = value === opt.id;
           return (

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { RefObject } from 'react';
 
+import { CityPickerModal } from '@/components/CityPickerModal';
 import { DmAvatarButton } from '@/components/DmAvatarButton';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 
 type Props = {
-  city?: string;
   query: string;
   onQueryChange: (value: string) => void;
   onSearchFocus?: () => void;
@@ -18,7 +20,6 @@ type Props = {
 };
 
 export function KesfetHomeChrome({
-  city = 'Bursa, TR',
   query,
   onQueryChange,
   onSearchFocus,
@@ -28,15 +29,48 @@ export function KesfetHomeChrome({
   searchInputRef,
   searchFocused = false,
 }: Props) {
+  const { city, cityLabel, manual, setCity, refreshFromLocation } = useCity();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const showClear = query.trim().length > 0;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
-        <Text style={styles.city}>{city}</Text>
         <Text style={styles.brand}>GastroSkor</Text>
         <DmAvatarButton />
       </View>
+      <Pressable
+        onPress={() => {
+          if (manual) {
+            setPickerOpen(true);
+          } else {
+            void refreshFromLocation();
+          }
+        }}
+        onLongPress={() => setPickerOpen(true)}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          manual ? `${cityLabel} — elle seçili, değiştirmek için dokun` : `${cityLabel} — konumdan, yenilemek için dokun`
+        }>
+        <View style={styles.cityRow}>
+          {!manual ? (
+            <Ionicons name="location-sharp" size={11} color={GastroColors.accent} />
+          ) : null}
+          <Text style={styles.city}>{cityLabel}</Text>
+          <Ionicons name="chevron-down" size={14} color={GastroColors.muted} />
+        </View>
+      </Pressable>
+      <CityPickerModal
+        visible={pickerOpen}
+        selected={city}
+        onSelect={(next) => void setCity(next, { manual: true })}
+        onClose={() => setPickerOpen(false)}
+        onUseLocation={() => {
+          setPickerOpen(false);
+          void refreshFromLocation();
+        }}
+      />
       <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
         <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
@@ -90,13 +124,19 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
   },
   city: {
     color: GastroColors.muted,
     fontSize: 10,
     fontWeight: '700',
-    flex: 1,
   },
   brand: {
     color: GastroColors.text,

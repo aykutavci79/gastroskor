@@ -17,8 +17,9 @@ import {
   FEATURED_CARD_WIDTH,
 } from '@/components/FeaturedCompactCard';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
-import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
+import { resolveDeviceCoords } from '@/lib/device-location';
 import { filterFeaturedByRating } from '@/lib/featured-rating-filter';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import { restaurantDetailHref } from '@/lib/uuid';
@@ -30,6 +31,7 @@ const FEATURED_GAP = 12;
 const AUTO_SCROLL_MS = 5000;
 
 export function FeaturedHighlightsSection() {
+  const { city, fallbackCoords } = useCity();
   const [items, setItems] = useState<RestaurantTrendingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationState, setLocationState] = useState<LocationState>('loading');
@@ -42,7 +44,7 @@ export function FeaturedHighlightsSection() {
       let raw = await listTrendingRestaurantsWeek({
         lat: coords?.lat,
         lng: coords?.lng,
-        city: 'Bursa',
+        city,
         limit: 12,
         source: 'google',
       });
@@ -50,7 +52,7 @@ export function FeaturedHighlightsSection() {
         raw = await listTrendingRestaurantsWeek({
           lat: coords?.lat,
           lng: coords?.lng,
-          city: 'Bursa',
+          city,
           limit: 12,
           source: 'gastroskor',
         });
@@ -61,7 +63,7 @@ export function FeaturedHighlightsSection() {
         const fallback = await listTrendingRestaurantsWeek({
           lat: coords?.lat,
           lng: coords?.lng,
-          city: 'Bursa',
+          city,
           limit: 12,
           source: 'gastroskor',
         });
@@ -72,7 +74,7 @@ export function FeaturedHighlightsSection() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,24 +85,23 @@ export function FeaturedHighlightsSection() {
 
       if (status !== 'granted') {
         setLocationState('denied');
-        await loadFeatured(BURSA_CENTER_COORDS);
+        await loadFeatured(fallbackCoords);
         return;
       }
 
       setLocationState('granted');
-      // iOS GPS takilmasin: once Bursa, sonra hassas konumla yenile.
-      await loadFeatured(BURSA_CENTER_COORDS);
+      await loadFeatured(fallbackCoords);
       if (cancelled) return;
       const coords = await resolveDeviceCoords({ requestPermission: false, timeoutMs: 12_000 });
       if (cancelled) return;
-      await loadFeatured(coords ?? BURSA_CENTER_COORDS);
+      await loadFeatured(coords ?? fallbackCoords);
     }
 
     void bootstrap();
     return () => {
       cancelled = true;
     };
-  }, [loadFeatured]);
+  }, [loadFeatured, fallbackCoords]);
 
   useEffect(() => {
     activeIndexRef.current = 0;
@@ -132,10 +133,10 @@ export function FeaturedHighlightsSection() {
     try {
       const coords = await resolveDeviceCoords({ requestPermission: true });
       setLocationState(coords ? 'granted' : 'denied');
-      await loadFeatured(coords ?? BURSA_CENTER_COORDS);
+      await loadFeatured(coords ?? fallbackCoords);
     } catch {
       setLocationState('denied');
-      await loadFeatured(BURSA_CENTER_COORDS);
+      await loadFeatured(fallbackCoords);
     }
   }
 
@@ -150,7 +151,7 @@ export function FeaturedHighlightsSection() {
         <View style={styles.locationBox}>
           <Text style={styles.locationTitle}>Konumunuzu paylaşın</Text>
           <Text style={styles.locationSub}>
-            Konum kapalıyken Bursa önerileri gösterilir. Yakınındakiler için konumu açın.
+            Konum kapalıyken seçili şehir merkezine göre öneriler gösterilir. Yakınındakiler için konumu açın.
           </Text>
           <Pressable style={styles.locationBtn} onPress={() => void requestLocationAgain()}>
             <Text style={styles.locationBtnText}>Konumu aç</Text>

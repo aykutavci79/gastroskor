@@ -21,6 +21,7 @@ import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBan
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { searchLivePlaces } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import {
@@ -45,9 +46,8 @@ import type {
 
 type Coords = { lat: number; lng: number };
 
-const SEARCH_CITY = 'Bursa';
-
 export default function ExploreScreen() {
+  const { city, cityLabel } = useCity();
   const navigation = useNavigation();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
@@ -151,7 +151,7 @@ export default function ExploreScreen() {
       const coords = (await ensureCoords()) ?? coordsRef.current;
       const result = await searchLivePlaces({
         q,
-        city: SEARCH_CITY,
+        city,
         limit: 20,
         origin_lat: coords?.lat,
         origin_lng: coords?.lng,
@@ -181,7 +181,7 @@ export default function ExploreScreen() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [refreshCoordsIfStale, ensureCoords]);
+  }, [refreshCoordsIfStale, ensureCoords, city]);
 
   const loadKitchenResults = useCallback(
     async (slug: string) => {
@@ -193,7 +193,7 @@ export default function ExploreScreen() {
         const coords = (await ensureCoords()) ?? coordsRef.current;
         const result = await searchLivePlaces({
           q,
-          city: SEARCH_CITY,
+          city,
           limit: 20,
           origin_lat: coords?.lat,
           origin_lng: coords?.lng,
@@ -210,7 +210,7 @@ export default function ExploreScreen() {
         setLoadingSearch(false);
       }
     },
-    [refreshCoordsIfStale, ensureCoords],
+    [refreshCoordsIfStale, ensureCoords, city],
   );
 
   const handleVoiceTranscript = useCallback(
@@ -243,6 +243,15 @@ export default function ExploreScreen() {
       setActiveKitchenSlug(null);
     }
   }, [searchMode]);
+
+  useEffect(() => {
+    if (searchMode && trimmedQuery.length >= 2) {
+      void loadSearchResults(trimmedQuery);
+    } else if (kitchenBrowseMode && activeKitchenSlug) {
+      void loadKitchenResults(activeKitchenSlug);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sehir degisince mevcut aramayi yenile
+  }, [city]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -294,7 +303,6 @@ export default function ExploreScreen() {
   const chrome = (
     <View style={styles.chromeWrap}>
       <KesfetHomeChrome
-        city={`${SEARCH_CITY}, TR`}
         query={inputQuery}
         onQueryChange={setInputQuery}
         onSearchFocus={() => setSearchFocused(true)}
@@ -312,7 +320,7 @@ export default function ExploreScreen() {
       {kitchenBrowseMode && activeKitchenSlug ? (
         <View style={styles.kitchenHeader}>
           <Text style={styles.kitchenTitle}>{kitchenChipLabel(activeKitchenSlug)}</Text>
-          <Text style={styles.kitchenSub}>GastroSkor sıralı · {SEARCH_CITY}</Text>
+          <Text style={styles.kitchenSub}>GastroSkor sıralı · {cityLabel}</Text>
         </View>
       ) : null}
       {error ? (

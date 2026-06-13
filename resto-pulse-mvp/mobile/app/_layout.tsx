@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
+import { CityProvider } from '@/context/city-context';
 import { SessionProvider } from '@/context/session-context';
 import { GastroColors } from '@/constants/theme';
 import { setupSslPinning } from '@/lib/ssl-pinning';
@@ -62,9 +63,10 @@ function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
-        <AppMetricsTracker />
-        <NotificationBootstrap />
-        <ThemeProvider value={theme}>
+        <CityProvider>
+          <AppMetricsTracker />
+          <NotificationBootstrap />
+          <ThemeProvider value={theme}>
           <Stack
             screenOptions={{
               headerStyle: { backgroundColor: GastroColors.bg },
@@ -93,9 +95,18 @@ function RootLayout() {
                 headerBackVisible: true,
               }}
             />
+            <Stack.Screen
+              name="siparis-acik-sonuclar"
+              options={{
+                title: 'Sonuçlar',
+                headerBackTitle: 'Geri',
+                headerBackVisible: true,
+              }}
+            />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>
+        </CityProvider>
       </SessionProvider>
     </AppErrorBoundary>
   );

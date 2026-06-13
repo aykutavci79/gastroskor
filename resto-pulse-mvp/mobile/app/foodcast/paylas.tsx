@@ -17,6 +17,7 @@ import {
 import { FoodCastTitle } from '@/components/FoodCastTitle';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { listRestaurants, uploadFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
@@ -25,6 +26,7 @@ import type { RestaurantListItem } from '@/lib/types';
 type PhotoAsset = { uri: string; fileName: string; mimeType: string };
 
 export default function FoodcastShareScreen() {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const { user } = useSession();
   const [photo, setPhoto] = useState<PhotoAsset | null>(null);
@@ -73,7 +75,7 @@ export default function FoodcastShareScreen() {
     if (q.length < 2) return;
     setSearching(true);
     try {
-      const rows = await listRestaurants({ q, city: 'Bursa' });
+      const rows = await listRestaurants({ q, city });
       setResults(rows.slice(0, 8));
     } catch (err) {
       Alert.alert('Arama', formatApiError(err));
@@ -180,7 +182,7 @@ export default function FoodcastShareScreen() {
         {selected ? (
           <View style={styles.selectedBox}>
             <Text style={styles.selectedTitle}>{selected.name}</Text>
-            <Text style={styles.selectedSub}>{selected.district ?? selected.city ?? 'Bursa'}</Text>
+            <Text style={styles.selectedSub}>{selected.district ?? selected.city ?? cityLabel}</Text>
             <Pressable onPress={() => setSelected(null)}>
               <Text style={styles.clear}>Seçimi temizle</Text>
             </Pressable>

@@ -1,4 +1,7 @@
-import { foldTrAscii, normalizeTrSpeechText } from '@/lib/turkish-text-fold';
+import { normalizeTrSpeechText } from '@/lib/turkish-text-fold';
+import { isJunkSpeechTranscript } from '@/lib/speech-transcript-quality';
+
+export { isJunkSpeechTranscript as isVoiceOrderJunkTranscript };
 
 const ORDER_PHRASE_FIXES: Array<[RegExp, string]> = [
   [/\bbe\s*den\b/gi, "b'den"],
@@ -19,31 +22,12 @@ const ORDER_PHRASE_FIXES: Array<[RegExp, string]> = [
   [/\bbir\s*adet\b/gi, '1 adet'],
 ];
 
-/** Whisper sessizlikte sik uydurdugu ifadeler — taslaga yazma. */
-const JUNK_TRANSCRIPT_PATTERNS: RegExp[] = [
-  /\bizlediginiz\s+i(cin|çin)\s+tesekkur/,
-  /\btesekkur\s+ederim\b/,
-  /\babone\s+ol(un)?\b/,
-  /\bthank\s+you\s+for\s+watching\b/,
-  /\bplease\s+subscribe\b/,
-  /^m\.?\s*k\.?$/,
-  /^[\p{L}]\.[\p{L}]\.?$/u,
-];
-
 const ORDER_SEARCH_BOILERPLATE: RegExp[] = [
   /\s+ara(r\s+m[ıi]s[ıi]n)?\.?\s*$/gi,
   /\s+arar\s+m[ıi]s[ıi]n\.?\s*$/gi,
   /\s+bul\.?\s*$/gi,
   /\s+getir\.?\s*$/gi,
 ];
-
-export function isVoiceOrderJunkTranscript(raw: string): boolean {
-  const text = foldTrAscii(normalizeTrSpeechText(raw));
-  if (!text) return true;
-  if (text.length <= 2) return true;
-  if (/^[.\s,;:!?-]+$/.test(text)) return true;
-  return JUNK_TRANSCRIPT_PATTERNS.some((pattern) => pattern.test(text));
-}
 
 function stripOrderSearchBoilerplate(text: string): string {
   let out = text.replace(/\.+$/, '').trim();
@@ -55,7 +39,7 @@ function stripOrderSearchBoilerplate(text: string): string {
 
 export function polishVoiceOrderQueryTranscript(raw: string): string {
   let text = normalizeTrSpeechText(raw);
-  if (!text || isVoiceOrderJunkTranscript(text)) return '';
+  if (!text || isJunkSpeechTranscript(text)) return '';
   for (const [pattern, replacement] of ORDER_PHRASE_FIXES) {
     text = text.replace(pattern, replacement);
   }

@@ -46,6 +46,7 @@ export const VOICE_CATALOG_PRODUCTS: VoiceCatalogProduct[] = [
   { slug: 'kiymali-pide', label: 'Kıymalı Pide', searchGroup: 'pide', aliases: ['kıymalı pide', 'kiymali pide'] },
   { slug: 'adana-kebap', label: 'Adana Kebap', searchGroup: 'adana-kebap', aliases: ['adana', 'adana kebap'] },
   { slug: 'urfa-kebap', label: 'Urfa Kebap', searchGroup: 'urfa-kebap', aliases: ['urfa', 'urfa kebap'] },
+  { slug: 'kebap', label: 'Kebap', searchGroup: 'kebap', aliases: ['kebap', 'kebabi', 'kebab'] },
   { slug: 'doner-durum', label: 'Döner Dürüm', searchGroup: 'doner', aliases: ['döner', 'doner', 'dürüm', 'durum'] },
   { slug: 'iskender', label: 'İskender', searchGroup: 'iskender', aliases: ['iskender', 'iskender kebap'] },
   { slug: 'ayran', label: 'Ayran', searchGroup: 'ayran', aliases: ['ayran'] },
@@ -68,6 +69,27 @@ const GROUP_LABELS: Record<string, string> = {
 
 export function voiceSearchGroupLabel(group: string): string {
   return GROUP_LABELS[group] ?? VOICE_CATALOG_PRODUCTS.find((p) => p.slug === group)?.label ?? group;
+}
+
+const KEBAP_COMPAT_SLUGS = ['kebap', 'adana-kebap', 'urfa-kebap', 'iskender', 'doner-durum'] as const;
+
+/** Backend resolve_voice_search_token ile uyumlu slug genisletmesi. */
+export function voiceSearchGroupSlugs(searchGroup: string): readonly string[] {
+  const base = VOICE_CATALOG_PRODUCTS.filter((p) => p.searchGroup === searchGroup).map((p) => p.slug);
+  if (searchGroup === 'kebap') {
+    return [...new Set([...KEBAP_COMPAT_SLUGS, ...base])];
+  }
+  if (searchGroup === 'adana-kebap') {
+    return [...new Set(['adana-kebap', 'kebap', ...base])];
+  }
+  if (searchGroup === 'urfa-kebap') {
+    return [...new Set(['urfa-kebap', 'kebap', ...base])];
+  }
+  return base.length ? base : [searchGroup];
+}
+
+export function menuSlugMatchesSearchGroup(menuSlug: string, searchGroup: string): boolean {
+  return voiceSearchGroupSlugs(searchGroup).includes(menuSlug);
 }
 
 /** STT onerisi — urun adlari. */

@@ -44,7 +44,7 @@ export function resolveRegionalFlavorSeo(page: RegionalFlavorPageContent) {
   if (page.seo) return page.seo;
   const shortName = page.name.replace(/^Bursa\s+/i, '').replace(/^İnegöl\s+/i, '');
   return {
-    title: `${page.name} Nerede Yenir? En İyi 10 Restoran | GastroSkor`,
+    title: `${shortName} nerede yenir?`,
     description: `${page.city}'nın TÜRKPATENT tescilli lezzeti ${shortName.toLowerCase()} nerede yenir? GastroSkor puanına göre en iyi restoranlar ve yorumlar.`,
     keywords: `${page.slug.replace(/-/g, ' ')}, ${page.searchTag}, ${page.city.toLowerCase()} restoran`,
   };

@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next';
 import pagesData from '@/data/regional-flavor-pages.json';
 import { getApiV1Base } from '@/lib/api-base';
 import { getSiteUrl } from '@/lib/site-url';
+import { isTesterSeedRestaurant } from '@/lib/tester-restaurant';
 import type { RestaurantListItem } from '@/lib/types';
 
 const FALLBACK_REGIONAL_SLUGS = pagesData.pages.map((page) => page.slug).filter(Boolean);
@@ -39,7 +40,7 @@ async function fetchRestaurantIds(): Promise<string[]> {
     });
     if (!response.ok) return [];
     const rows = (await response.json()) as RestaurantListItem[];
-    return rows.map((r) => r.id).filter(Boolean);
+    return rows.filter((row) => !isTesterSeedRestaurant(row)).map((r) => r.id).filter(Boolean);
   } catch {
     return [];
   }

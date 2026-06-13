@@ -5,13 +5,14 @@ import { YoreselLezzetlerContent } from '@/app/yoresel-lezzetler/YoreselLezzetle
 import pagesData from '@/data/regional-flavor-pages.json';
 import { JsonLd } from '@/components/JsonLd';
 import { getSiteUrl } from '@/lib/site-url';
+import { buildSeoTitle } from '@/lib/seo-title';
 import { buildBreadcrumbJsonLd, buildRegionalFlavorListJsonLd } from '@/lib/structured-data';
 
 const siteUrl = getSiteUrl();
 const regionalPages = pagesData.pages.map((page) => ({ slug: page.slug, name: page.name }));
 
 export const metadata: Metadata = {
-  title: 'Bursa Yöresel Lezzetler — Nerede Yenir? | GastroSkor',
+  title: buildSeoTitle('Bursa yöresel lezzetler'),
   description:
     'Bursa yöresel lezzetleri: İskender, pideli köfte, cantık, İnegöl köfte, Kemalpaşa tatlısı ve 12 TÜRKPATENT tescilli ürün için nerede yenir rehberi. GastroSkor puanlı restoran önerileri.',
   keywords: [

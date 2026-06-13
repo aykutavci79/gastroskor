@@ -5,13 +5,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { TabScreenHeader } from '@/components/TabScreenHeader';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { listGourmetChatRooms } from '@/lib/api';
 import type { GourmetChatRoom } from '@/lib/types';
 
-const CITY = 'Bursa';
-
 export default function GurmeTabScreen() {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const { user } = useSession();
   const [rooms, setRooms] = useState<GourmetChatRoom[]>([]);
@@ -23,7 +23,7 @@ export default function GurmeTabScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const roomsPayload = await listGourmetChatRooms(CITY);
+      const roomsPayload = await listGourmetChatRooms(city);
       setRooms(roomsPayload.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Odalar yuklenemedi.');
@@ -31,7 +31,7 @@ export default function GurmeTabScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     void load();
@@ -45,7 +45,7 @@ export default function GurmeTabScreen() {
         void load(true);
       }}>
       <TabScreenHeader
-        kicker="Topluluk · Bursa"
+        kicker={`Topluluk · ${cityLabel}`}
         title="Gurme Sohbetler"
         subtitle="Odaya gir, sohbete katil, @takmaad ile birini etiketle."
         showDmAvatar

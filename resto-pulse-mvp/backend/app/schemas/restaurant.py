@@ -57,6 +57,7 @@ class RestaurantRead(RestaurantCreate):
     online_orders_available: bool = False
     online_order_categories: list[str] = Field(default_factory=list)
     check_in_visitor_count: int = Field(ge=0, default=0)
+    seo_noindex: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -108,6 +109,7 @@ class RestaurantListItem(BaseModel):
     popularity_score: float | None = None
     voice_menu_matches: list[VoiceMenuMatchPublic] = Field(default_factory=list)
     voice_search_token: str | None = None
+    seo_noindex: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 

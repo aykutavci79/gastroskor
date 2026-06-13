@@ -5,8 +5,9 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { discoverRegionalProduct } from '@/lib/api';
-import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
+import { resolveDeviceCoords } from '@/lib/device-location';
 import { formatApiError } from '@/lib/format-api-error';
 import {
   livePlaceDistanceLabel,
@@ -17,6 +18,7 @@ import type { LivePlaceSearchItem, RegionalProductItem } from '@/lib/types';
 import { restaurantDetailHref } from '@/lib/uuid';
 
 export default function YoreselProductScreen() {
+  const { city, fallbackCoords } = useCity();
   const router = useRouter();
   const params = useLocalSearchParams<{ slug?: string | string[] }>();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
@@ -33,11 +35,11 @@ export default function YoreselProductScreen() {
     setError(null);
     try {
       const coords = await resolveDeviceCoords({ requestPermission: true, timeoutMs: 12_000 });
-      const origin_lat = coords?.lat ?? BURSA_CENTER_COORDS.lat;
-      const origin_lng = coords?.lng ?? BURSA_CENTER_COORDS.lng;
+      const origin_lat = coords?.lat ?? fallbackCoords.lat;
+      const origin_lng = coords?.lng ?? fallbackCoords.lng;
 
       const detail = await discoverRegionalProduct(slug, {
-        city: 'Bursa',
+        city,
         origin_lat,
         origin_lng,
         limit: 20,
@@ -61,7 +63,7 @@ export default function YoreselProductScreen() {
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [slug, city, fallbackCoords]);
 
   useEffect(() => {
     void load();

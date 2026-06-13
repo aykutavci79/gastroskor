@@ -3,7 +3,7 @@ import {
   normalizeVoiceText,
   extractPriceMax,
 } from '@/lib/parse-voice-order-query';
-import { VOICE_CATALOG_PRODUCTS, voiceSearchGroupLabel, type VoiceCatalogProduct } from '@/constants/voice-product-catalog';
+import { VOICE_CATALOG_PRODUCTS, menuSlugMatchesSearchGroup, voiceSearchGroupLabel, type VoiceCatalogProduct } from '@/constants/voice-product-catalog';
 import { foldTrAscii } from '@/lib/turkish-text-fold';
 import type { VoiceOrderRestaurantOption } from '@/lib/voice-order-letters';
 import type { VoiceMenuMatch } from '@/lib/types';
@@ -323,7 +323,7 @@ export function formatVoiceOrderCommandSummary(command: VoiceOrderCommand): stri
 }
 
 function slugInSearchGroup(slug: string, searchGroup: string): boolean {
-  return VOICE_CATALOG_PRODUCTS.some((row) => row.slug === slug && row.searchGroup === searchGroup);
+  return menuSlugMatchesSearchGroup(slug, searchGroup);
 }
 
 function resolveIntentToMenuLine(

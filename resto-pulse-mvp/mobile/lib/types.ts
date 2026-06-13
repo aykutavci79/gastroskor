@@ -150,6 +150,7 @@ export type RestaurantListItem = {
   menu_item_count?: number;
   google_rating?: number | null;
   google_review_count?: number | null;
+  google_user_ratings_total?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   maps_directions_url?: string | null;

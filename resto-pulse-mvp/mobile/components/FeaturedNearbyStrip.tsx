@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { listTrendingRestaurantsWeek } from '@/lib/api';
-import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
+import { resolveDeviceCoords } from '@/lib/device-location';
 import { filterFeaturedByRating } from '@/lib/featured-rating-filter';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export function FeaturedNearbyStrip({ style }: Props) {
+  const { city, fallbackCoords } = useCity();
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = peekTileWidth(screenWidth, { paddingLeft: 12, gap: CARD_GAP, peekRight: 40 });
@@ -46,7 +48,7 @@ export function FeaturedNearbyStrip({ style }: Props) {
       let raw = await listTrendingRestaurantsWeek({
         lat: coords?.lat,
         lng: coords?.lng,
-        city: 'Bursa',
+        city,
         limit: 12,
         source: 'google',
       });
@@ -54,7 +56,7 @@ export function FeaturedNearbyStrip({ style }: Props) {
         raw = await listTrendingRestaurantsWeek({
           lat: coords?.lat,
           lng: coords?.lng,
-          city: 'Bursa',
+          city,
           limit: 12,
           source: 'gastroskor',
         });
@@ -65,22 +67,22 @@ export function FeaturedNearbyStrip({ style }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (cancelled) return;
-      await loadFeatured(status === 'granted' ? BURSA_CENTER_COORDS : BURSA_CENTER_COORDS);
+      await loadFeatured(fallbackCoords);
       if (cancelled) return;
       const coords = await resolveDeviceCoords({ requestPermission: false, timeoutMs: 10_000 });
-      if (!cancelled) await loadFeatured(coords ?? BURSA_CENTER_COORDS);
+      if (!cancelled) await loadFeatured(coords ?? fallbackCoords);
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadFeatured]);
+  }, [loadFeatured, fallbackCoords]);
 
   return (
     <View style={[styles.section, style]}>

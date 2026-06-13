@@ -98,4 +98,22 @@ assetlinks bos fingerprint ile deploy edilirse Android **dogrulama basarisiz** o
 - GS kayitli restoran: `https://www.gastroskor.com.tr/restaurants/{uuid}`
 - Sadece Google Place: `https://www.gastroskor.com.tr/place/{placeId}`
 
+## Siri / Kısayollar — sesli sipariş
+
+**Önemli:** Kısayolda yalnızca “Uygulamayı Aç” yetmez; mikrofon için **URL aç** kullan.
+
+| Kısayol adı | Eylem |
+|-------------|--------|
+| GastroSkor sipariş | **URL Aç** → `gastroskor://siparis-acik?voice=1` |
+| (opsiyonel metin) | `gastroskor://siparis-acik?voice=1&text=150%20TL%20lahmacun` |
+
+iOS **Kısayollar** uygulaması:
+1. Yeni kısayol → **URL Aç**
+2. URL: `gastroskor://siparis-acik?voice=1`
+3. Siri’ye “GastroSkor sipariş ver” de
+
+Uygulama Online Sipariş ekranını açar, ~1 sn sonra **Gastro Sipariş** sheet’i ve mikrofon otomatik devreye girer.
+
+Build: **1.0.43+** (Siri voice launch).
+
 Bu URL'ler `mobile/lib/restaurant-share.ts` ve `frontend/lib/restaurant-share.ts` ile uretilir.

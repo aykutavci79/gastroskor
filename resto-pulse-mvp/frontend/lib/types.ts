@@ -106,6 +106,7 @@ export type RestaurantListItem = {
   distance_meters?: number | null;
   google_place_id?: string | null;
   google_photo_url?: string | null;
+  seo_noindex?: boolean;
 };
 
 export type FollowerPromotion = {

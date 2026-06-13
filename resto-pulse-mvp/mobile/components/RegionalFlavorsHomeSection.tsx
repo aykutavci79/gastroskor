@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
-const CITY = 'Bursa';
 const PREVIEW_COUNT = 4;
 
 export function RegionalFlavorsHomeSection() {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [items, setItems] = useState<RegionalProductItem[]>([]);
@@ -21,7 +22,7 @@ export function RegionalFlavorsHomeSection() {
 
     let cancelled = false;
     setLoading(true);
-    listRegionalProducts({ city: CITY })
+    listRegionalProducts({ city })
       .then((data) => {
         if (!cancelled) setItems(data.items.slice(0, PREVIEW_COUNT));
       })
@@ -37,7 +38,7 @@ export function RegionalFlavorsHomeSection() {
     return () => {
       cancelled = true;
     };
-  }, [expanded, loaded]);
+  }, [expanded, loaded, city]);
 
   return (
     <View style={styles.section}>
@@ -49,7 +50,7 @@ export function RegionalFlavorsHomeSection() {
         <View style={styles.teaserHead}>
           <Text style={styles.title}>🏺 Yöresel Lezzetler</Text>
           <View style={styles.cityPill}>
-            <Text style={styles.cityPillText}>{CITY}</Text>
+            <Text style={styles.cityPillText}>{cityLabel}</Text>
           </View>
         </View>
         <Text style={styles.sub}>

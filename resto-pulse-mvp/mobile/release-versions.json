@@ -2,14 +2,14 @@
   "_comment": "Play Console / App Store Connect'teki CANLI surumler. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Alpha",
-    "versionName": "1.0.37",
-    "versionCode": 48,
-    "lastUpdated": "2026-06-12"
+    "versionName": "1.0.42",
+    "versionCode": 51,
+    "lastUpdated": "2026-06-13"
   },
   "appStore": {
-    "version": "1.0.37",
-    "buildNumber": 40,
-    "lastUpdated": "2026-06-12",
+    "version": "1.0.42",
+    "buildNumber": 44,
+    "lastUpdated": "2026-06-13",
     "_note": "TestFlight/App Store son build — teyit et"
   }
 }

@@ -1,7 +1,8 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -11,12 +12,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { listDmMessages, sendDmMessage } from '@/lib/api';
+import { exitDmScreen } from '@/lib/dm-navigation';
 import type { DmMessageItem, PublicUserCard } from '@/lib/types';
 
 const POLL_MS = 10_000;
@@ -33,6 +34,7 @@ function formatWhen(value: string) {
 
 export default function DmThreadScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const threadId = param(params.threadId);
@@ -99,29 +101,25 @@ export default function DmThreadScreen() {
 
   const displayNickname = peer?.nickname ?? fallbackNickname;
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: `@${displayNickname}`,
+    });
+  }, [displayNickname, navigation]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      exitDmScreen(router);
+      return true;
+    });
+    return () => sub.remove();
+  }, [router]);
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <View style={styles.root}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <View style={styles.headerMeta}>
-            <UserAvatar
-              avatarUrl={peer?.avatar_url}
-              avatarPreset={peer?.avatar_preset}
-              size={36}
-              fallbackLabel={displayNickname}
-            />
-            <View>
-              <Text style={styles.headerTitle}>@{displayNickname}</Text>
-              <Text style={styles.headerSub}>Ozel mesaj</Text>
-            </View>
-          </View>
-        </View>
-
         {loading ? (
           <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
         ) : error ? (
@@ -171,25 +169,13 @@ export default function DmThreadScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: GastroColors.bg },
+  root: { flex: 1, backgroundColor: GastroColors.bg },
   flex: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: GastroColors.border,
-  },
-  back: { color: GastroColors.accent, fontWeight: '700' },
-  headerMeta: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  headerTitle: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
-  headerSub: { color: GastroColors.muted, fontSize: 12 },
   loader: { marginTop: 32 },
   messageList: { padding: 16, paddingBottom: 12, gap: 8, flexGrow: 1 },
   empty: { color: GastroColors.muted, textAlign: 'center', marginTop: 40, lineHeight: 22 },

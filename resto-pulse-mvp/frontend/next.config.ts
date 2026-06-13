@@ -1,7 +1,13 @@
 import type { NextConfig } from 'next';
 
+/**
+ * Next.js 15 "streaming metadata" — async generateMetadata tamamlaninca
+ * title/meta bazen </head> sonrasina duser (Screaming Frog: Outside <head>).
+ * Tum isteklerde metadata'yi head icinde bekle.
+ */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  htmlLimitedBots: /.*/,
   async redirects() {
     return [
       {

@@ -10,6 +10,7 @@ from app.models import PlatformName, RestaurantOwnership, RestaurantPlatformProf
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_partner import merge_partner_into_row, partner_listing_for_ownership
 from app.services.restaurant_promo import subscription_allows_promo
+from app.services.tester_restaurant_visibility import is_tester_seed_ownership
 
 
 def list_new_member_restaurants(db: Session, *, limit: int = 12) -> list[dict]:
@@ -39,6 +40,8 @@ def list_new_member_restaurants(db: Session, *, limit: int = 12) -> list[dict]:
 
     result: list[dict] = []
     for ownership in rows:
+        if is_tester_seed_ownership(ownership):
+            continue
         if not subscription_allows_promo(ownership.subscription):
             continue
         restaurant = ownership.restaurant

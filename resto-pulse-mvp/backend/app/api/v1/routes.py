@@ -114,6 +114,7 @@ from app.services.restaurant_partner import (
     partner_listings_by_google_place_ids,
     partner_listings_for_restaurant_ids,
 )
+from app.services.tester_restaurant_visibility import is_tester_seed_place_id, restaurant_should_seo_noindex
 from app.services.restaurant_menu import public_menu_for_ownership
 from app.services.city_resolver import normalize_city_key, resolve_city_from_coords, resolve_city_name
 from app.services.city_top_cache import read_city_top_cache
@@ -294,7 +295,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
 
     partner = partner_listing_for_restaurant(db, restaurant.id) if db is not None else {}
     menu: list[dict] = []
-    if db is not None and partner.get("is_premium_partner"):
+    if db is not None and (partner.get("is_premium_partner") or partner.get("seo_noindex")):
         ownership_row = db.scalar(
             select(RestaurantOwnership)
             .where(RestaurantOwnership.restaurant_id == restaurant.id)
@@ -303,6 +304,12 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         )
         if ownership_row:
             menu = public_menu_for_ownership(ownership_row, preview=False)
+
+    seo_noindex = (
+        bool(partner.get("seo_noindex"))
+        if partner
+        else (restaurant_should_seo_noindex(db, restaurant.id, google_place_id=place_id) if db is not None else False)
+    )
 
     return RestaurantRead(
         id=str(restaurant.id),
@@ -326,6 +333,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu_item_count=int(partner.get("menu_item_count") or 0),
         online_orders_available=bool(partner.get("online_orders_available")),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
+        seo_noindex=seo_noindex,
     )
 
 
@@ -1054,12 +1062,14 @@ def list_restaurants(
 
     result: list[dict] = []
     for restaurant in rows:
+        rid = str(restaurant.id)
+        place_id = google_place_ids.get(rid)
+        if is_tester_seed_place_id(place_id):
+            continue
         avg_rating = db.scalar(
             select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
         )
-        rid = str(restaurant.id)
         google_profile = google_profiles.get(rid)
-        place_id = google_place_ids.get(rid)
         destination_query = build_destination_label(
             name=restaurant.name,
             address=restaurant.address,
@@ -1104,6 +1114,8 @@ def list_restaurants(
             "google_photo_url": google_photo_url_for_profile(google_profile),
         }
         merge_partner_into_row(row, partner_map.get(rid))
+        if row.get("seo_noindex"):
+            continue
         result.append(row)
     merge_check_in_counts_into_rows(db, result)
     return result
@@ -1128,6 +1140,10 @@ def list_online_orders_open(
     ),
     limit: int = Query(default=50, ge=1, le=100),
     voice_product: str | None = Query(default=None, description="Sesli urun veya grup (or. lahmacun, cantik)"),
+    voice_products: str | None = Query(
+        default=None,
+        description="Virgülle ayrılmış çoklu urun grubu (akıllı sepet: lahmacun,ayran)",
+    ),
     price_max: float | None = Query(default=None, ge=0, le=99999, description="Butce tavanı TL"),
     max_distance_km: float | None = Query(default=None, ge=0, le=50, description="Maksimum mesafe km"),
     db: Session = Depends(get_db),
@@ -1143,6 +1159,7 @@ def list_online_orders_open(
         sort=sort,
         limit=limit,
         voice_product=voice_product,
+        voice_products=voice_products,
         price_max=price_max,
         max_distance_km=max_distance_km,
     )

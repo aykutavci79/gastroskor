@@ -8,7 +8,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { GastroColors } from '@/constants/theme';
 
@@ -23,6 +23,8 @@ type Props = {
   scrollRef?: RefObject<ScrollView | null>;
   /** Keşfet vitrin gibi kenar boslugu olmayan tam ekran */
   flush?: boolean;
+  /** Stack header varken ust safe-area tekrarlanmasin */
+  edges?: Edge[];
 };
 
 export function Screen({
@@ -34,6 +36,7 @@ export function Screen({
   keyboardVerticalOffset = 0,
   scrollRef,
   flush = false,
+  edges = ['top', 'left', 'right'],
 }: Props) {
   const contentStyle = [flush ? styles.flush : styles.scroll, style];
 
@@ -60,7 +63,7 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={edges}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

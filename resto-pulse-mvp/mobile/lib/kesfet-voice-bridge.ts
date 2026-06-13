@@ -3,6 +3,13 @@ let openVoiceOverlay: (() => void) | null = null;
 let voiceSearchListener: ((text: string) => void) | null = null;
 let pendingVoiceQuery: string | null = null;
 
+export type PendingOnlineOrderVoice = {
+  openSheet: boolean;
+  orderText?: string;
+};
+
+let pendingOnlineOrderVoice: PendingOnlineOrderVoice | null = null;
+
 export function registerKesfetVoiceOpener(fn: () => void) {
   openVoiceOverlay = fn;
 }
@@ -37,5 +44,19 @@ export function emitKesfetVoiceSearch(text: string) {
 export function consumePendingKesfetVoiceSearch(): string | null {
   const next = pendingVoiceQuery;
   pendingVoiceQuery = null;
+  return next;
+}
+
+/** Keşfet mic → "online sipariş" handsfree gecisi. */
+export function emitKesfetOnlineOrderVoice(options?: { orderText?: string }) {
+  pendingOnlineOrderVoice = {
+    openSheet: true,
+    orderText: options?.orderText?.trim() || undefined,
+  };
+}
+
+export function consumePendingOnlineOrderVoice(): PendingOnlineOrderVoice | null {
+  const next = pendingOnlineOrderVoice;
+  pendingOnlineOrderVoice = null;
   return next;
 }

@@ -1,3 +1,4 @@
+import { haversineMeters } from '@/lib/travel-estimate';
 import type { RestaurantListItem } from '@/lib/types';
 
 export type OnlineOrderSortMode = 'gastro_score' | 'distance' | 'rating' | 'popularity';
@@ -13,11 +14,33 @@ function ratingOf(row: RestaurantListItem): number {
   return row.google_rating ?? row.avg_rating ?? 0;
 }
 
+function reviewCountOf(row: RestaurantListItem): number {
+  return row.google_review_count ?? row.google_user_ratings_total ?? 0;
+}
+
+/** Konum varken mesafeyi client'ta yeniden hesapla — chip sıralaması anında yansır. */
+export function enrichOnlineOrderDistances(
+  items: RestaurantListItem[],
+  origin: { lat: number; lng: number } | null | undefined,
+): RestaurantListItem[] {
+  if (!origin) return items;
+  return items.map((row) => {
+    if (row.latitude == null || row.longitude == null) return row;
+    return {
+      ...row,
+      distance_meters: haversineMeters(origin.lat, origin.lng, row.latitude, row.longitude),
+    };
+  });
+}
+
 export function sortOnlineOrderRestaurants(
   items: RestaurantListItem[],
   mode: OnlineOrderSortMode,
+  origin?: { lat: number; lng: number } | null,
 ): RestaurantListItem[] {
-  const copy = [...items];
+  const prepared = enrichOnlineOrderDistances(items, origin);
+  const copy = [...prepared];
+
   if (mode === 'distance') {
     copy.sort(
       (a, b) =>
@@ -30,7 +53,7 @@ export function sortOnlineOrderRestaurants(
     copy.sort(
       (a, b) =>
         ratingOf(b) - ratingOf(a) ||
-        (b.google_review_count ?? 0) - (a.google_review_count ?? 0) ||
+        reviewCountOf(b) - reviewCountOf(a) ||
         (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12),
     );
     return copy;
@@ -38,7 +61,7 @@ export function sortOnlineOrderRestaurants(
   if (mode === 'popularity') {
     copy.sort(
       (a, b) =>
-        (b.google_review_count ?? 0) - (a.google_review_count ?? 0) ||
+        reviewCountOf(b) - reviewCountOf(a) ||
         ratingOf(b) - ratingOf(a) ||
         (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12),
     );

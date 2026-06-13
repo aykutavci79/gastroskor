@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -12,7 +12,7 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { VOICE_ORB_SIZE, VoiceListenOrb } from '@/components/VoiceListenOrb';
 import { GastroColors } from '@/constants/theme';
 import { isExpoGo } from '@/lib/google-signin-config';
-import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroPrepareVoiceInput, gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
 
 const DEMO_PHRASE = '150 TL lik lahmacun';
@@ -76,11 +76,12 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     setMicHint(null);
     setMicActive(false);
     let cancelled = false;
-    gastroSpeakListening(() => {
+    const cancelPrep = gastroPrepareVoiceInput(() => {
       if (!cancelled) setMicActive(true);
     });
     return () => {
       cancelled = true;
+      cancelPrep();
       clearDemoTimers();
     };
   }, [visible, clearDemoTimers]);
@@ -123,14 +124,10 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     : uiState.transcribing
       ? 'Cevriliyor…'
       : uiState.listening
-        ? Platform.OS === 'ios'
-          ? 'Dinliyorum… Bitirmek için mikrofona dokun'
-          : 'Dinliyorum… Bitirmek için dokun veya sus'
+        ? 'Dinliyorum… Susunca otomatik biter'
         : isExpoGo
           ? 'Dokun — ses önizlemesi'
-          : Platform.OS === 'ios'
-            ? 'Konuşmaya başladık — bitirince mikrofona dokun'
-            : 'Ne aramak istediğini söyle';
+          : 'Konuş — 2–3 sn susunca otomatik arar';
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>

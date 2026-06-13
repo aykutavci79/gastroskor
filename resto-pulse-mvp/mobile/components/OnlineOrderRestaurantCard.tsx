@@ -2,14 +2,13 @@ import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GastroColors, GastroShadow } from '@/constants/theme';
+import { GastroColors } from '@/constants/theme';
 import { categoryLabel } from '@/constants/online-order-categories';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { coerceNumber } from '@/lib/coerce-number';
 import { ensureArray } from '@/lib/ensure-array';
-import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
+import { formatPriceTl } from '@/lib/format-price-tl';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import { restaurantMenuItemCount } from '@/lib/restaurant-menu';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
 
 type Props = {
@@ -19,7 +18,18 @@ type Props = {
   googleRating?: number | null;
   voiceMatches?: VoiceMenuMatch[];
   voiceLetter?: string | null;
+  /** Ürün araması (lahmacun vb.) — kartta eşleşen ürün fiyatı göster */
+  showProductPrice?: boolean;
 };
+
+const THUMB = 48;
+
+function formatProductPriceLine(matches: VoiceMenuMatch[]): string | null {
+  const first = matches[0];
+  if (!first) return null;
+  const price = formatPriceTl(first.price_tl, 0);
+  return price ? `${first.label} ${price} ₺` : first.label;
+}
 
 export function OnlineOrderRestaurantCard({
   restaurant,
@@ -28,6 +38,7 @@ export function OnlineOrderRestaurantCard({
   googleRating,
   voiceMatches,
   voiceLetter,
+  showProductPrice = false,
 }: Props) {
   const router = useRouter();
   const cover = resolveCardCoverUrl(restaurant);
@@ -38,164 +49,138 @@ export function OnlineOrderRestaurantCard({
     menuItems: menuPreview,
   });
   const rating = coerceNumber(googleRating ?? restaurant.google_rating ?? restaurant.avg_rating);
-  const menuCount = restaurantMenuItemCount({ ...restaurant, menu_preview: menuPreview });
-  const kitchens = ensureArray<string>(restaurant.online_order_categories).slice(0, 3);
   const voiceList = ensureArray<VoiceMenuMatch>(voiceMatches);
-  const previewPrice =
-    coercePriceTl(voiceList[0]?.price_tl) ?? coercePriceTl(menuPreview[0]?.price_tl);
-  const voiceMatchLabel =
-    voiceList.length > 0
-      ? voiceList
-          .slice(0, 2)
-          .map((match) => {
-            const price = formatPriceTl(match.price_tl, 0);
-            return price ? `${match.label} ${price} ₺` : match.label;
-          })
-          .join(' · ')
-      : null;
+  const productPriceLine = showProductPrice ? formatProductPriceLine(voiceList) : null;
+  const kitchens = ensureArray<string>(restaurant.online_order_categories)
+    .slice(0, 2)
+    .map((slug) => categoryLabel(slug))
+    .join(' · ');
+
+  const metaParts = [
+    rating != null && rating > 0 ? `★ ${rating.toFixed(1)}` : null,
+    distanceLabel ?? null,
+  ].filter(Boolean);
 
   function openOrder() {
     router.push(href as Href);
   }
 
   return (
-    <View style={styles.card}>
-      <Pressable onPress={openOrder} style={styles.photoWrap}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={openOrder}
+      android_ripple={{ color: GastroColors.overlayRipple }}>
+      <View style={styles.thumbWrap}>
         {cover ? (
-          <Image source={{ uri: cover }} style={styles.photo} contentFit="cover" />
+          <Image source={{ uri: cover }} style={styles.thumb} contentFit="cover" />
         ) : (
-          <View style={[styles.photo, styles.photoFallback]}>
+          <View style={[styles.thumb, styles.thumbFallback]}>
             <Text style={styles.fallbackEmoji}>{visual.emoji}</Text>
           </View>
         )}
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Sipariş açık</Text>
-        </View>
-        {voiceLetter ? (
-          <View style={styles.letterBadge}>
-            <Text style={styles.letterBadgeText}>{voiceLetter}</Text>
-          </View>
-        ) : null}
-      </Pressable>
-
-      <View style={styles.body}>
-        <Text style={styles.name} numberOfLines={2}>
-          {restaurant.name}
-        </Text>
-
-        <View style={styles.metaRow}>
-          {rating != null && rating > 0 ? (
-            <Text style={styles.rating}>★ {rating.toFixed(1)}</Text>
-          ) : null}
-          {distanceLabel ? <Text style={styles.metaMuted}>📍 {distanceLabel}</Text> : null}
-        </View>
-
-        {kitchens.length ? (
-          <Text style={styles.kitchens} numberOfLines={1}>
-            {kitchens.map((slug) => categoryLabel(slug)).join(' · ')}
-          </Text>
-        ) : null}
-
-        {voiceMatchLabel ? (
-          <Text style={styles.voiceMatch} numberOfLines={2}>
-            Eşleşen: {voiceMatchLabel}
-          </Text>
-        ) : null}
-
-        <View style={styles.footer}>
-          <View style={styles.priceBlock}>
-            {previewPrice != null ? (
-              <Text style={styles.priceFrom}>{formatPriceTl(previewPrice, 0)} ₺’den</Text>
-            ) : menuCount > 0 ? (
-              <Text style={styles.priceFrom}>{menuCount} ürün</Text>
-            ) : (
-              <Text style={styles.priceFrom}>Menüye bak</Text>
-            )}
-          </View>
-          <Pressable style={styles.cta} onPress={openOrder}>
-            <Text style={styles.ctaText}>SİPARİŞ VER</Text>
-          </Pressable>
-        </View>
       </View>
-    </View>
+
+      <View style={styles.content}>
+        <View style={styles.titleRow}>
+          {voiceLetter ? <Text style={styles.letter}>{voiceLetter}</Text> : null}
+          <Text style={styles.name} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+        </View>
+
+        {metaParts.length ? (
+          <Text style={styles.metaLine} numberOfLines={1}>
+            {metaParts.join(' · ')}
+          </Text>
+        ) : null}
+
+        {productPriceLine ? (
+          <Text style={styles.productPriceLine} numberOfLines={1}>
+            {productPriceLine}
+          </Text>
+        ) : kitchens ? (
+          <Text style={styles.subLine} numberOfLines={1}>
+            {kitchens}
+          </Text>
+        ) : null}
+      </View>
+
+      <Text style={styles.cta}>Sipariş →</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: GastroColors.panel,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,53,0.25)',
-    ...GastroShadow.card,
-  },
-  photoWrap: { position: 'relative' },
-  photo: {
-    width: '100%',
-    height: 168,
-    backgroundColor: GastroColors.input,
-  },
-  photoFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fallbackEmoji: { fontSize: 48 },
-  badge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: GastroColors.accent,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  letterBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: GastroColors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  letterBadgeText: { color: '#141414', fontSize: 16, fontWeight: '900' },
-  body: { padding: 14, gap: 6 },
-  name: {
-    color: GastroColors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
-  rating: { color: GastroColors.gold, fontSize: 14, fontWeight: '800' },
-  metaMuted: { color: GastroColors.muted, fontSize: 13, fontWeight: '600' },
-  kitchens: { color: GastroColors.accent, fontSize: 12, fontWeight: '600' },
-  voiceMatch: { color: GastroColors.gold, fontSize: 12, fontWeight: '700', lineHeight: 16 },
-  footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 4,
-  },
-  priceBlock: { flex: 1 },
-  priceFrom: { color: GastroColors.text, fontSize: 15, fontWeight: '700' },
-  cta: {
-    backgroundColor: GastroColors.gold,
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minWidth: 120,
-    alignItems: 'center',
+    backgroundColor: GastroColors.panel,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
   },
-  ctaText: {
-    color: '#141414',
+  cardPressed: {
+    opacity: 0.92,
+  },
+  thumbWrap: {
+    flexShrink: 0,
+  },
+  thumb: {
+    width: THUMB,
+    height: THUMB,
+    borderRadius: 8,
+    backgroundColor: GastroColors.input,
+  },
+  thumbFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fallbackEmoji: { fontSize: 20 },
+  content: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  letter: {
+    color: GastroColors.gold,
     fontSize: 13,
     fontWeight: '900',
-    letterSpacing: 0.4,
+    flexShrink: 0,
+  },
+  name: {
+    flex: 1,
+    color: GastroColors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  metaLine: {
+    color: GastroColors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  subLine: {
+    color: GastroColors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  productPriceLine: {
+    color: GastroColors.gold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cta: {
+    color: GastroColors.accent,
+    fontSize: 12,
+    fontWeight: '800',
+    flexShrink: 0,
   },
 });

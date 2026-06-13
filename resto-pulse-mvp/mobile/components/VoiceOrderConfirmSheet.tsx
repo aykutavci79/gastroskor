@@ -47,6 +47,7 @@ type Props = {
   command: VoiceOrderCommand | null;
   restaurant: RestaurantListItem | null;
   userEmail: string | null;
+  initialSelectedByLine?: Record<number, VoiceMenuMatch>;
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -56,6 +57,7 @@ export function VoiceOrderConfirmSheet({
   command,
   restaurant,
   userEmail,
+  initialSelectedByLine,
   onClose,
   onSuccess,
 }: Props) {
@@ -185,8 +187,8 @@ export function VoiceOrderConfirmSheet({
   }, [visible]);
 
   useEffect(() => {
-    setSelectedByLine({});
-  }, [command?.rawText, restaurant?.id]);
+    setSelectedByLine(initialSelectedByLine ?? {});
+  }, [command?.rawText, restaurant?.id, initialSelectedByLine]);
 
   const normalizedPhone = normalizeTrMobileInput(phone);
   const phoneOk = Boolean(phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164);

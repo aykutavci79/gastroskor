@@ -94,7 +94,9 @@ export function extractPriceMax(text: string): number | null {
 
   const ceiling =
     folded.match(/(\d+(?:[.,]\d+)?)\s*tl(?:yi|yi)?\s*gecmesin/) ??
-    folded.match(/gecmesin.*?(\d+(?:[.,]\d+)?)\s*tl/);
+    folded.match(/gecmesin.*?(\d+(?:[.,]\d+)?)\s*tl/) ??
+    folded.match(/(\d+(?:[.,]\d+)?)\s*(?:u|ü)?\s*gecmesin/) ??
+    folded.match(/(\d+(?:[.,]\d+)?)\s*(?:u|ü)\s*gecmesin/);
   if (ceiling) {
     const n = Number(ceiling[1].replace(',', '.'));
     if (Number.isFinite(n) && n > 0) return Math.round(n);
@@ -105,6 +107,8 @@ export function extractPriceMax(text: string): number | null {
   }
 
   const patterns = [
+    /(\d+(?:[.,]\d+)?)\s*liralik/,
+    /(\d+(?:[.,]\d+)?)\s*lik/,
     /(\d+(?:[.,]\d+)?)\s*(?:tl|lira)(?:\s*(?:ye|ya)\s*kadar)?/,
     /(?:en fazla|maksimum|azami)\s*(\d+(?:[.,]\d+)?)\s*(?:tl|lira)?/,
     /(\d+(?:[.,]\d+)?)\s*liraya\s*kadar/,
@@ -194,8 +198,17 @@ export function matchVoiceProductDetail(
   return null;
 }
 
+function stripPriceNoise(text: string): string {
+  return normalizeTrSpeechText(text)
+    .replace(/\d+(?:[.,]\d+)?\s*liralik/gi, ' ')
+    .replace(/\d+(?:[.,]\d+)?\s*lik/gi, ' ')
+    .replace(/\d+(?:[.,]\d+)?\s*(?:tl|lira)(?:\s*(?:ye|ya)\s*kadar)?/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function extractProduct(text: string): { searchGroup: string; label: string } | null {
-  const detail = matchVoiceProductDetail(text);
+  const detail = matchVoiceProductDetail(stripPriceNoise(text) || text);
   if (!detail) return null;
   return { searchGroup: detail.searchGroup, label: voiceSearchGroupLabel(detail.searchGroup) };
 }
@@ -237,4 +250,21 @@ export function formatVoiceOrderSummary(query: VoiceOrderQuery): string {
     parts.push(`${query.maxDistanceKm} km mesafe`);
   }
   return parts.length ? parts.join(' · ') : 'Komutu netleştirin';
+}
+
+/** Ürün fiyatını kartta göster — lahmacun vb. Karşılaştırma araması. */
+export function shouldShowVoiceProductPrice(query: VoiceOrderQuery | null | undefined): boolean {
+  if (!query?.voiceProduct) return false;
+  const folded = foldTrAscii(query.rawText);
+  // Puan / sıralama odaklı: "kebap 4.5 yıldız restoranları sırala" → fiyat satırı yok
+  if (/\b(?:yildiz|puan|puani|siral|sirala|en iyi|en yuksek)\b/.test(folded)) {
+    return false;
+  }
+  if (
+    /\b(?:4[,.]?5|5[,.]?0|\d)\s*(?:yildiz|puan)\b/.test(folded) ||
+    /\b(?:dort|bes)\s*(?:bucuk|nokta)\s*(?:yildiz|puan)\b/.test(folded)
+  ) {
+    return false;
+  }
+  return true;
 }

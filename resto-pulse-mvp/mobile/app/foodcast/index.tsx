@@ -16,6 +16,7 @@ import { FoodCastTitle } from '@/components/FoodCastTitle';
 import { FoodcastReportSheet } from '@/components/FoodcastReportSheet';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
+import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { getFoodcastFeed, reportFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
@@ -23,6 +24,7 @@ import type { FoodcastPhotoItem, FoodcastReportReason } from '@/lib/foodcast-typ
 import { formatRelativeTimeTr } from '@/lib/relative-time-tr';
 
 export default function FoodcastFeedScreen() {
+  const { city, cityLabel } = useCity();
   const router = useRouter();
   const { user } = useSession();
   const [items, setItems] = useState<FoodcastPhotoItem[]>([]);
@@ -37,7 +39,7 @@ export default function FoodcastFeedScreen() {
     else setLoading(true);
     setError(null);
     try {
-      const feed = await getFoodcastFeed({ city: 'Bursa', limit: 50 });
+      const feed = await getFoodcastFeed({ city, limit: 50 });
       setItems(feed.items);
     } catch (err) {
       setError(formatApiError(err));
@@ -46,7 +48,7 @@ export default function FoodcastFeedScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     void load();
@@ -86,7 +88,7 @@ export default function FoodcastFeedScreen() {
         </View>
 
         <FoodCastTitle size="md" />
-        <Text style={styles.sub}>Bursa · en yeni önce · gerçek tabaklar</Text>
+        <Text style={styles.sub}>{cityLabel} · en yeni önce · gerçek tabaklar</Text>
 
         {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
