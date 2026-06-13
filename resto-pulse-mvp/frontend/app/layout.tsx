@@ -31,7 +31,6 @@ export const metadata: Metadata = {
     'Türkiye restoran',
     'Google yorum',
   ],
-  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     locale: 'tr_TR',

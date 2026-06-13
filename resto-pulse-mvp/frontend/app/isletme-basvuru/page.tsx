@@ -5,6 +5,7 @@ import { BusinessApplicationForm } from '@/components/BusinessApplicationForm';
 export const metadata = {
   title: 'İşletme Başvurusu | GastroSkor',
   description: 'Restoran paneli başvuru formu — vergi levhası ve hizmet sözleşmesi',
+  alternates: { canonical: '/isletme-basvuru' },
 };
 
 export default function BusinessApplicationPage() {

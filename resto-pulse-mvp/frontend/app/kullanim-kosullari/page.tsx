@@ -2,6 +2,7 @@ import { LegalDocument } from '@/components/LegalDocument';
 
 export const metadata = {
   title: 'Kullanım Koşulları | GastroSkor',
+  alternates: { canonical: '/kullanim-kosullari' },
 };
 
 export default function TermsPage() {

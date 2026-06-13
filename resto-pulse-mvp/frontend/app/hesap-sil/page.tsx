@@ -3,6 +3,7 @@ import { LegalDocument } from '@/components/LegalDocument';
 export const metadata = {
   title: 'Hesap ve Veri Silme | GastroSkor',
   description: 'GastroSkor hesabınızı ve ilişkili verilerinizi silme talebi',
+  alternates: { canonical: '/hesap-sil' },
 };
 
 export default function AccountDeletionPage() {

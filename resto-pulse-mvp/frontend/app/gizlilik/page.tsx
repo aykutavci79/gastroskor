@@ -2,6 +2,7 @@ import { LegalDocument } from '@/components/LegalDocument';
 
 export const metadata = {
   title: 'Gizlilik Politikası | GastroSkor',
+  alternates: { canonical: '/gizlilik' },
 };
 
 export default function PrivacyPage() {

@@ -4,6 +4,7 @@ export const metadata = {
   title: 'KVKK — Kişisel Verilerin Korunması ve İşlenmesi | GastroSkor',
   description:
     'GastroSkor kişisel verilerin korunması, işlenmesi ve gizlilik politikası — 6698 sayılı KVKK kapsamında aydınlatma metni.',
+  alternates: { canonical: '/kvkk' },
 };
 
 export default function KvkkPage() {
