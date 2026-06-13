@@ -170,13 +170,14 @@ export function FeaturedHighlightsSection() {
 
       {locationState === 'granted' && !loading && items.length > 0 ? (
         <FeaturedScrollRow>
-          {items.map((restaurant) => (
+          {items.map((restaurant, index) => (
             <FeaturedCompactCard
               key={restaurant.google_place_id ?? restaurant.id}
               restaurant={restaurant}
               href={trendingDetailHref(restaurant)}
               googleRating={restaurant.week_avg_rating ?? restaurant.google_rating}
               distanceLabel={formatDistance(restaurant) ?? undefined}
+              priorityImage={index === 0}
             />
           ))}
         </FeaturedScrollRow>

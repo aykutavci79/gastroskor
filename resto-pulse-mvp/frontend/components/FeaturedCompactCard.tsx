@@ -9,7 +9,7 @@ import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantShareButton } from '@/components/RestaurantShareButton';
 import { featuredCardClass } from '@/components/RestaurantPremiumFrame';
 import { restaurantImageAlt } from '@/lib/seo-title';
-import { resolveCardCoverUrl } from '@/lib/card-cover';
+import { resolveCardCoverUrl, optimizeCardCoverUrl } from '@/lib/card-cover';
 import { trendingDetailHref } from '@/lib/live-place-card';
 import type { RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
 
@@ -22,6 +22,8 @@ type Props = {
   href?: string | null;
   distanceLabel?: string | null;
   googleRating?: number | null;
+  /** Ilk kart LCP icin: lazy degil, yuksek oncelik. */
+  priorityImage?: boolean;
 };
 
 function locationLine(restaurant: RestaurantListItem): string | null {
@@ -37,11 +39,17 @@ function resolveFollowId(restaurant: RestaurantListItem): string | null {
   return null;
 }
 
-export function FeaturedCompactCard({ restaurant, href, distanceLabel, googleRating }: Props) {
+export function FeaturedCompactCard({
+  restaurant,
+  href,
+  distanceLabel,
+  googleRating,
+  priorityImage = false,
+}: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const isPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
-  const cover = resolveCardCoverUrl(restaurant);
+  const cover = optimizeCardCoverUrl(resolveCardCoverUrl(restaurant), CARD_W);
   const rating = googleRating ?? restaurant.week_avg_rating ?? restaurant.google_rating ?? null;
   const mapsUrl = restaurant.maps_directions_url?.trim() || null;
   const location = locationLine(restaurant);
@@ -78,7 +86,9 @@ export function FeaturedCompactCard({ restaurant, href, distanceLabel, googleRat
               width={CARD_W}
               height={PHOTO_H}
               className="h-full w-full object-cover"
-              loading="lazy"
+              loading={priorityImage ? 'eager' : 'lazy'}
+              fetchPriority={priorityImage ? 'high' : undefined}
+              decoding="async"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-4xl opacity-40">🍽️</div>

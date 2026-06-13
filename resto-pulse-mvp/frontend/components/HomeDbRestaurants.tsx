@@ -36,11 +36,20 @@ export function HomeDbRestaurants() {
         <p className="text-sm text-content-muted">GastroSkor veritabanındaki üye ve yorumlu mekanlar</p>
       </div>
       {loading ? (
-        <div className="h-32 animate-pulse rounded-2xl bg-surface-input" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="min-h-[9.5rem] animate-pulse rounded-2xl bg-surface-input" />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-          {items.slice(0, 12).map((restaurant) => (
-            <RestaurantCard key={restaurant.id} restaurant={restaurant} compact />
+          {items.slice(0, 12).map((restaurant, index) => (
+            <RestaurantCard
+              key={restaurant.id}
+              restaurant={restaurant}
+              compact
+              priorityImage={index === 0}
+            />
           ))}
         </div>
       )}

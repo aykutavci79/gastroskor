@@ -39,6 +39,8 @@ type Props = {
   featuredBorder?: boolean;
   /** Sag ust kose rozeti; premium icin varsayilan: ÖNE ÇIKAN */
   cornerBadge?: string | null;
+  /** Gridde ilk kart LCP icin kapak onceligi. */
+  priorityImage?: boolean;
 };
 
 function resolveFollowId(restaurant: RestaurantListItem): string | null {
@@ -62,6 +64,7 @@ export function RestaurantCard({
   footer,
   featuredBorder,
   cornerBadge,
+  priorityImage = false,
 }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -126,6 +129,7 @@ export function RestaurantCard({
         menuItems={menuItems}
         ownerEmoji={restaurant.card_emoji}
         compact={compact}
+        priorityImage={priorityImage}
       />
 
       <div
