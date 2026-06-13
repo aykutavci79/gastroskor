@@ -58,6 +58,7 @@ def s3_configured() -> bool:
 FOLDER_PUBLIC_PATH = {
     "menu_images": "menu",
     "review_images": "reviews",
+    "foodcast_images": "foodcast",
     "user_avatars": "avatars",
 }
 

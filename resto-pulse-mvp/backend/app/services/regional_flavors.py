@@ -153,3 +153,58 @@ def get_regional_product(*, slug: str, city: str = "Bursa") -> dict | None:
         "product": _product_payload(product),
         "discovery_note": DISCOVERY_NOTE,
     }
+
+
+async def discover_regional_product_places(
+    db,
+    *,
+    slug: str,
+    city: str = "Bursa",
+    origin_lat: float | None = None,
+    origin_lng: float | None = None,
+    limit: int = 20,
+) -> dict | None:
+    """Mahrec urun detayi + GastroSkor sirali canli arama sonuclari."""
+    from fastapi import HTTPException
+
+    base = get_regional_product(slug=slug, city=city)
+    if not base:
+        return None
+
+    from app.services.live_place_search_service import search_live_places_optimized
+    from app.services.query_parser import parse_search_query
+    from app.services.smart_filters import merge_criteria
+
+    query = base["product"]["live_search_query"]
+    parsed = parse_search_query(query)
+    criteria = merge_criteria(parsed, distance_band=None, rating_band=None)
+    places: list[dict] = []
+    places_error: str | None = None
+
+    try:
+        result = await search_live_places_optimized(
+            db,
+            q=query,
+            city=city,
+            limit=min(20, max(1, limit)),
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+            criteria=criteria,
+            parsed=parsed,
+            distance_band=None,
+            rating_band=None,
+        )
+        places = [item.model_dump() for item in result.items]
+    except HTTPException as exc:
+        detail = exc.detail
+        places_error = detail if isinstance(detail, str) else "Canli arama kullanilamiyor."
+    except Exception:
+        places_error = "Canli arama kullanilamiyor."
+
+    return {
+        **base,
+        "search_query": query,
+        "places": places,
+        "places_count": len(places),
+        "places_error": places_error,
+    }

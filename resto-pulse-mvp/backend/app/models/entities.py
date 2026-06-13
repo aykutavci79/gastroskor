@@ -91,6 +91,7 @@ class User(Base):
     dm_messages_sent: Mapped[list["DmMessage"]] = relationship(back_populates="sender")
     dm_read_states: Mapped[list["DmReadState"]] = relationship(back_populates="user")
     check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="user")
+    foodcast_photos: Mapped[list["FoodcastPhoto"]] = relationship(back_populates="author")
     friend_requests_sent: Mapped[list["FriendRequest"]] = relationship(
         back_populates="from_user",
         foreign_keys="FriendRequest.from_user_id",
@@ -294,6 +295,7 @@ class Restaurant(Base):
     follower_promotions: Mapped[list["FollowerPromotion"]] = relationship(back_populates="restaurant")
     follower_coupons: Mapped[list["FollowerCoupon"]] = relationship(back_populates="restaurant")
     check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="restaurant")
+    foodcast_photos: Mapped[list["FoodcastPhoto"]] = relationship(back_populates="restaurant")
     orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="restaurant")
 
 
@@ -791,7 +793,7 @@ class RestaurantPlatformProfile(Base):
     profile_url: Mapped[str | None] = mapped_column(String(1024))
     avg_rating: Mapped[float | None] = mapped_column(Float)
     review_count: Mapped[int | None] = mapped_column(Integer)
-    photo_reference: Mapped[str | None] = mapped_column(String(512))
+    photo_reference: Mapped[str | None] = mapped_column(Text)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     restaurant: Mapped["Restaurant"] = relationship(back_populates="platform_profiles")
@@ -813,7 +815,7 @@ class GooglePlaceCatalog(Base):
     longitude: Mapped[float | None] = mapped_column(Float)
     rating: Mapped[float | None] = mapped_column(Float)
     user_ratings_total: Mapped[int | None] = mapped_column(Integer)
-    photo_reference: Mapped[str | None] = mapped_column(String(512))
+    photo_reference: Mapped[str | None] = mapped_column(Text)
     restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
     )
@@ -1238,4 +1240,51 @@ class GourmetTriviaScore(Base):
 
     user: Mapped["User"] = relationship()
     room: Mapped["GourmetChatRoom"] = relationship()
+
+
+class FoodcastPhoto(Base):
+    __tablename__ = "foodcast_photos"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    dish_name: Mapped[str] = mapped_column(String(80))
+    caption: Mapped[str | None] = mapped_column(String(200))
+    image_url: Mapped[str] = mapped_column(String(512))
+    latitude: Mapped[float | None] = mapped_column(Float)
+    longitude: Mapped[float | None] = mapped_column(Float)
+    city: Mapped[str | None] = mapped_column(String(120), index=True)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    hidden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    hidden_reason: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    author: Mapped["User | None"] = relationship(back_populates="foodcast_photos")
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="foodcast_photos")
+    reports: Mapped[list["FoodcastPhotoReport"]] = relationship(
+        back_populates="photo", cascade="all, delete-orphan"
+    )
+
+
+class FoodcastPhotoReport(Base):
+    __tablename__ = "foodcast_photo_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    photo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("foodcast_photos.id", ondelete="CASCADE"), index=True
+    )
+    reporter_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    reporter_email: Mapped[str | None] = mapped_column(String(320))
+    reason: Mapped[str] = mapped_column(String(40))
+    note: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    photo: Mapped["FoodcastPhoto"] = relationship(back_populates="reports")
+    reporter: Mapped["User | None"] = relationship()
 

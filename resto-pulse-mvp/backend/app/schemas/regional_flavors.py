@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.live_places import LivePlaceSearchItem
+
 
 class RegionalProductItem(BaseModel):
     slug: str
@@ -30,3 +32,12 @@ class RegionalProductDetailResponse(BaseModel):
     discovery_note: str = Field(
         default="Mekan listesi Google canlı aramasıdır; GastroSkor restoran onayı vermez."
     )
+
+
+class RegionalProductDiscoverResponse(BaseModel):
+    product: RegionalProductItem
+    discovery_note: str
+    search_query: str
+    places: list[LivePlaceSearchItem] = Field(default_factory=list)
+    places_count: int = 0
+    places_error: str | None = None

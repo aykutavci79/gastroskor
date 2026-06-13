@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -26,6 +27,35 @@ from app.services.smart_filters import SmartFilterCriteria, apply_smart_filters,
 MIN_DB_HITS_TO_SKIP_GOOGLE = 3
 
 google_client = GooglePlacesLiveClient()
+logger = logging.getLogger(__name__)
+
+
+def _safe_persist_catalog(
+    db: Session,
+    places: list[LivePlaceResult],
+    *,
+    city: str,
+    source_query: str | None,
+) -> None:
+    try:
+        persist_live_place_results(db, places, city=city, source_query=source_query)
+    except Exception:
+        db.rollback()
+        logger.exception("google_place_catalog kaydi atlandi (arama devam eder)")
+
+
+def _safe_persist_search_items(
+    db: Session,
+    items: list[LivePlaceSearchItem],
+    *,
+    city: str,
+    source_query: str | None,
+) -> None:
+    try:
+        persist_search_items(db, items, city=city, source_query=source_query)
+    except Exception:
+        db.rollback()
+        logger.exception("google_place_catalog kaydi atlandi (arama devam eder)")
 
 
 def _normalize_query_key(text: str) -> str:
@@ -304,7 +334,7 @@ async def search_live_places_optimized(
     cached_rows = cached.get("items") if cached else None
     if cached_rows:
         cached_items = [LivePlaceSearchItem(**row) for row in cached_rows]
-        persist_search_items(db, cached_items, city=city_label, source_query=search_text)
+        _safe_persist_search_items(db, cached_items, city=city_label, source_query=search_text)
         return _finalize_search_response(
             cached_items,
             criteria=criteria,
@@ -332,12 +362,7 @@ async def search_live_places_optimized(
             origin_lng=origin_lng,
         )
         place_rows = _merge_place_rows(prefetched_rows, google_rows)
-        persist_live_place_results(
-            db,
-            google_rows,
-            city=city_label,
-            source_query=search_text,
-        )
+        _safe_persist_catalog(db, google_rows, city=city_label, source_query=search_text)
 
     place_rows = _prefilter_place_rows(place_rows, criteria)
     rank_pool = min(20, max(limit, 15))

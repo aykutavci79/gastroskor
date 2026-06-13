@@ -40,7 +40,11 @@ from app.models import (
 )
 from app.schemas.check_in import CheckInPayload, CheckInResult, CheckInStatus
 from app.schemas.geo_indication import GeoIndicationRead
-from app.schemas.regional_flavors import RegionalProductDetailResponse, RegionalProductListResponse
+from app.schemas.regional_flavors import (
+    RegionalProductDetailResponse,
+    RegionalProductDiscoverResponse,
+    RegionalProductListResponse,
+)
 from app.schemas.feedback import (
     CompensationCouponCreate,
     CompensationCouponRead,
@@ -115,7 +119,7 @@ from app.services.city_resolver import normalize_city_key, resolve_city_from_coo
 from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
-from app.services.regional_flavors import get_regional_product, list_regional_products
+from app.services.regional_flavors import discover_regional_product_places, get_regional_product, list_regional_products
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.constants.online_order_categories import normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
@@ -967,6 +971,28 @@ def regional_flavor_product_detail(
     city: str = Query(default="Bursa", min_length=2, max_length=120),
 ):
     payload = get_regional_product(slug=slug, city=city)
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Urun bulunamadi")
+    return payload
+
+
+@router.get("/regional-flavors/products/{slug}/discover", response_model=RegionalProductDiscoverResponse)
+async def regional_flavor_product_discover(
+    slug: str,
+    city: str = Query(default="Bursa", min_length=2, max_length=120),
+    limit: int = Query(default=20, ge=1, le=20),
+    origin_lat: float | None = Query(default=None, ge=-90, le=90),
+    origin_lng: float | None = Query(default=None, ge=-180, le=180),
+    db: Session = Depends(get_db),
+):
+    payload = await discover_regional_product_places(
+        db,
+        slug=slug,
+        city=city,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
+        limit=limit,
+    )
     if payload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Urun bulunamadi")
     return payload
@@ -2161,6 +2187,10 @@ router.include_router(metrics_router)
 router.include_router(gourmet_chat_router)
 router.include_router(social_router)
 router.include_router(voice_router)
+
+from app.api.v1.foodcast_routes import router as foodcast_router
+
+router.include_router(foodcast_router)
 
 
 @router.post("/internal/cron/panel-notifications")

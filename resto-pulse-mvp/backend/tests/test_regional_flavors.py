@@ -62,3 +62,69 @@ def test_regional_product_includes_live_search_query():
     cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
     assert cantik["live_search_query"] == "cantık"
     assert "restaurant_count" not in cantik
+
+
+def test_discover_regional_product_returns_places(monkeypatch):
+    import asyncio
+
+    from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse, ParsedSearchIntent
+    from app.services import regional_flavors
+
+    async def fake_search(*_args, **_kwargs):
+        return LivePlaceSearchResponse(
+            items=[
+                LivePlaceSearchItem(
+                    place_id="p-low",
+                    name="Low Score",
+                    address="Bursa",
+                    rating=4.0,
+                    user_ratings_total=10,
+                    latitude=40.19,
+                    longitude=29.06,
+                    distance_meters=1200,
+                    distance_origin="city_center",
+                    distance_score=0.4,
+                    rating_score=0.6,
+                    gastro_score=0.5,
+                    maps_directions_url=None,
+                ),
+                LivePlaceSearchItem(
+                    place_id="p-high",
+                    name="High Score",
+                    address="Bursa",
+                    rating=4.8,
+                    user_ratings_total=200,
+                    latitude=40.19,
+                    longitude=29.06,
+                    distance_meters=800,
+                    distance_origin="city_center",
+                    distance_score=0.7,
+                    rating_score=0.9,
+                    gastro_score=0.92,
+                    maps_directions_url=None,
+                ),
+            ],
+            parsed=ParsedSearchIntent(raw_query="cantık", query="cantık"),
+            filters_applied={},
+        )
+
+    monkeypatch.setattr(
+        "app.services.live_place_search_service.search_live_places_optimized",
+        fake_search,
+    )
+
+    payload = asyncio.run(
+        regional_flavors.discover_regional_product_places(
+            db=None,
+            slug="bursa-cantik",
+            city="Bursa",
+            origin_lat=40.1885,
+            origin_lng=29.061,
+        )
+    )
+    assert payload is not None
+    assert payload["product"]["slug"] == "bursa-cantik"
+    assert payload["search_query"] == "cantık"
+    assert payload["places_count"] == 2
+    assert {p["place_id"] for p in payload["places"]} == {"p-low", "p-high"}
+    assert payload["places_error"] is None
