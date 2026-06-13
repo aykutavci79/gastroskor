@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantShareButton } from '@/components/RestaurantShareButton';
+import { featuredCardClass } from '@/components/RestaurantPremiumFrame';
 import { restaurantImageAlt } from '@/lib/seo-title';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { trendingDetailHref } from '@/lib/live-place-card';

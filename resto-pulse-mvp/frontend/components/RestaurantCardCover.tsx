@@ -1,3 +1,4 @@
+import { RestaurantCardCoverArt } from '@/components/RestaurantCardCoverArt';
 import { restaurantImageAlt } from '@/lib/seo-title';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import type { RestaurantMenuItem } from '@/lib/types';
