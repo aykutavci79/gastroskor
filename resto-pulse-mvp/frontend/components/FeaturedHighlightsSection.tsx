@@ -137,7 +137,7 @@ export function FeaturedHighlightsSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-xl font-extrabold text-content sm:text-2xl">⭐ Öne Çıkanlar</h2>
+        <h2 className="text-xl font-extrabold text-content sm:text-2xl">⭐ Bursa&apos;da öne çıkanlar</h2>
         <p className="mt-1 text-sm text-content-muted">Konumuna yakın, 4.5+ yıldızlı restoranlar</p>
       </div>
 

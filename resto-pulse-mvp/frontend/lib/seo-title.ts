@@ -148,3 +148,13 @@ export function restaurantPageHeading(
   const location = restaurantLocationLabel(district, city, address);
   return location ? `${cleanName} · ${location}` : cleanName;
 }
+
+/** Bolum H2 — ayni metni farkli sayfalarda tekrarlamamak icin restoran adi ekler. */
+export function restaurantSectionHeading(
+  name: string | null | undefined,
+  section: string,
+): string {
+  const cleanName = sanitizeRestaurantDisplayName(name);
+  if (!cleanName) return section;
+  return `${cleanName} — ${section}`;
+}

@@ -6,9 +6,10 @@ import type { RegionalFlavorFaqItem } from '@/lib/regional-flavor-page-content';
 
 type Props = {
   items: RegionalFlavorFaqItem[];
+  heading?: string;
 };
 
-export function RegionalFlavorFaq({ items }: Props) {
+export function RegionalFlavorFaq({ items, heading = 'Sık sorulan sorular' }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   if (items.length === 0) return null;
@@ -16,7 +17,7 @@ export function RegionalFlavorFaq({ items }: Props) {
   return (
     <section className="space-y-3" aria-labelledby="regional-flavor-faq-heading">
       <h2 id="regional-flavor-faq-heading" className="text-xl font-semibold text-content">
-        Sık sorulan sorular
+        {heading}
       </h2>
       <div className="divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70 bg-surface-card">
         {items.map((item, index) => {

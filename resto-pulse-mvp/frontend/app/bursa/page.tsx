@@ -110,7 +110,7 @@ export default async function BursaRestaurantsPage({ searchParams }: Props) {
         </p>
       </header>
 
-      <LivePlaceSearch city={CITY} cityStatus="ready" embedded />
+      <LivePlaceSearch city={CITY} cityStatus="ready" embedded heading="Bursa restoranları — canlı arama" />
 
       {restaurants.length > 0 ? (
         <section className="space-y-4">

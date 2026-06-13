@@ -15,6 +15,8 @@ type Props = {
   userCoords?: { lat: number; lng: number } | null;
   /** Ana sayfada hero altinda — giris butonlari ust barda */
   embedded?: boolean;
+  /** Sayfa bazli benzersiz H2 (Screaming Frog duplicate onlemi) */
+  heading?: string;
   onSearchPerformed?: (query: string) => void;
 };
 
@@ -23,6 +25,7 @@ export function LivePlaceSearch({
   cityStatus = 'denied',
   userCoords: sharedCoords = null,
   embedded = false,
+  heading,
   onSearchPerformed,
 }: Props) {
   const [q, setQ] = useState('');
@@ -119,7 +122,7 @@ export function LivePlaceSearch({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-content">
-            {embedded ? 'Canlı arama' : 'Canlı arama'}
+            {heading ?? `${city} — canlı restoran arama`}
           </h2>
           <p className="text-xs text-content-muted">
             {embedded

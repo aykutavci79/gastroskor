@@ -23,6 +23,7 @@ export function HomePageContent() {
         cityStatus={status}
         userCoords={coords}
         embedded
+        heading="Ana sayfa — canlı restoran arama"
         onSearchPerformed={() => setHasSearched(true)}
       />
       <RegionalFlavorTeaser showProducts={hasSearched} />

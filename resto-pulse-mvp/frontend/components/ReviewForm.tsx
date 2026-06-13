@@ -16,9 +16,15 @@ type Props = {
   restaurantId: string;
   onReviewCreated: (review: Review) => void;
   onAnalyzed: (result: ReviewAnalyzeResult) => void;
+  heading?: string;
 };
 
-export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props) {
+export function ReviewForm({
+  restaurantId,
+  onReviewCreated,
+  onAnalyzed,
+  heading = 'Yorum Yaz',
+}: Props) {
   const { data: session } = useSession();
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
@@ -179,7 +185,7 @@ export function ReviewForm({ restaurantId, onReviewCreated, onAnalyzed }: Props)
 
   return (
     <section className="rounded-2xl border border-border/70 bg-surface-card p-6">
-      <h2 className="mb-4 text-xl font-semibold text-content">Yorum Yaz</h2>
+      <h2 className="mb-4 text-xl font-semibold text-content">{heading}</h2>
 
       <div className="mb-4">
         <p className="mb-2 text-sm font-medium text-content-muted">Yorumda adin nasil gorunsun?</p>

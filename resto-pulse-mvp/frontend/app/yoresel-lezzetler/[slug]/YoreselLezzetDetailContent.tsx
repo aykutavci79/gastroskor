@@ -185,7 +185,7 @@ export function YoreselLezzetDetailContent({
             </section>
 
             <section className="rounded-2xl border border-border/70 bg-surface-input/40 p-5">
-              <h2 className="text-lg font-semibold text-content">Ürün bilgisi</h2>
+              <h2 className="text-lg font-semibold text-content">{pageContent.name} — ürün bilgisi</h2>
               <p className="mt-2 text-sm leading-relaxed text-content-muted">{pageContent.urunBilgisi}</p>
             </section>
 
@@ -230,7 +230,9 @@ export function YoreselLezzetDetailContent({
 
             <section className="space-y-4 border-t border-border/50 pt-8">
               <div>
-                <h2 className="text-xl font-semibold text-content">Google&apos;da daha fazla mekan</h2>
+                <h2 className="text-xl font-semibold text-content">
+                  {pageContent.name} — Google&apos;da daha fazla mekan
+                </h2>
                 <p className="mt-1 text-sm text-content-muted">
                   GastroSkor veritabanına henüz eklenmemiş mekanlar — Google canlı arama ile
                   &quot;{product.live_search_query}&quot; sorgusu.
@@ -262,7 +264,7 @@ export function YoreselLezzetDetailContent({
               ) : null}
             </section>
 
-            <RegionalFlavorFaq items={pageContent.faq} />
+            <RegionalFlavorFaq items={pageContent.faq} heading={`${pageContent.name} — sık sorulan sorular`} />
           </div>
         ) : null}
       </main>

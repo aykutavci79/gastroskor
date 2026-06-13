@@ -40,9 +40,8 @@ export function YoreselLezzetlerContent({ city }: Props) {
       {loading ? <p className="mt-8 text-sm text-content-muted">Yükleniyor...</p> : null}
 
       {!loading ? (
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold text-content">Tescilli yöresel lezzetler</h2>
-          <div className="mt-4 grid grid-cols-1 gap-4">
+        <section className="mt-4">
+          <div className="grid grid-cols-1 gap-4">
             {items.map((item) => (
               <RegionalProductCard
                 key={item.slug}

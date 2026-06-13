@@ -18,7 +18,7 @@ import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getLivePlaceDetails, getRestaurant, listRestaurantReviews, syncUser } from '@/lib/api';
 import { aggregateCategoryScores } from '@/lib/scores';
-import { restaurantPageHeading } from '@/lib/seo-title';
+import { restaurantPageHeading, restaurantSectionHeading } from '@/lib/seo-title';
 import type { Restaurant, Review, ReviewAnalyzeResult, UserProfile } from '@/lib/types';
 
 type Props = {
@@ -208,7 +208,9 @@ export function RestaurantDetailView({
       {restaurant.promo?.menu_image_url && (!restaurant.menu || restaurant.menu.length === 0) ? (
         <section id="menu" className="scroll-mt-24 rounded-2xl border border-border/70 bg-surface-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Menu</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">
+              {restaurantSectionHeading(restaurant.name, 'menü')}
+            </h2>
             <a
               href={restaurant.promo.menu_image_url}
               target="_blank"
@@ -237,13 +239,15 @@ export function RestaurantDetailView({
 
       {restaurant.menu && restaurant.menu.length > 0 ? (
         <div id="menu" className="scroll-mt-24">
-          <RestaurantPublicMenu items={restaurant.menu} />
+          <RestaurantPublicMenu items={restaurant.menu} restaurantName={restaurant.name} />
         </div>
       ) : null}
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Konum &amp; ürünler</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">
+            {restaurantSectionHeading(restaurant.name, 'konum ve tescilli ürünler')}
+          </h2>
           <MapsDirectionsButton
             mapsDirectionsUrl={restaurant.maps_directions_url ?? restaurant.maps_search_url}
           />
@@ -260,16 +264,20 @@ export function RestaurantDetailView({
         summary={latestAnalysis?.summary}
         sentimentLabel={latestAnalysis?.sentiment_label}
         sentimentScore={latestAnalysis?.sentiment_score}
+        heading={restaurantSectionHeading(restaurant.name, 'GastroSkor skorları')}
       />
 
       <ReviewForm
         restaurantId={restaurantId}
         onReviewCreated={handleReviewCreated}
         onAnalyzed={handleAnalyzed}
+        heading={restaurantSectionHeading(restaurant.name, 'yorum yaz')}
       />
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-content">Yorumlar</h2>
+        <h2 className="mb-4 text-xl font-semibold text-content">
+          {restaurantSectionHeading(restaurant.name, 'yorumlar')}
+        </h2>
         <ReviewList
           reviews={reviews}
           viewerEmail={viewerEmail}

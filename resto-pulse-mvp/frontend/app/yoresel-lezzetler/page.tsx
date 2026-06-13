@@ -57,8 +57,9 @@ export default async function YoreselLezzetlerPage({ searchParams }: Props) {
           TÜRKPATENT&apos;te tescilli {city} yemekleri — {regionalPages.length} lezzet. Her ürün için
           nerede yenir rehberi, GastroSkor puanlı restoran önerileri ve sık sorulan sorular.
         </p>
+        <h2 className="mt-8 text-xl font-semibold text-content">Tescilli yöresel lezzetler</h2>
         <Suspense
-          fallback={<p className="mt-8 text-sm text-content-muted">Yöresel lezzetler yükleniyor…</p>}>
+          fallback={<p className="mt-4 text-sm text-content-muted">Yöresel lezzetler yükleniyor…</p>}>
           <YoreselLezzetlerContent city={city} />
         </Suspense>
       </main>

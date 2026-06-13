@@ -8,6 +8,7 @@ type Props = {
   summary?: string | null;
   sentimentLabel?: string | null;
   sentimentScore?: number | null;
+  heading?: string;
 };
 
 export function CategoryScoresPanel({
@@ -15,12 +16,13 @@ export function CategoryScoresPanel({
   summary,
   sentimentLabel,
   sentimentScore,
+  heading = 'Yapay Zeka Skorlari',
 }: Props) {
   return (
     <section className="rounded-2xl border border-border/70 bg-surface-card p-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-content">Yapay Zeka Skorlari</h2>
+          <h2 className="text-xl font-semibold text-content">{heading}</h2>
           <p className="text-sm text-content-muted">Lezzet, servis, fiyat ve hijyen (1-10)</p>
         </div>
         {sentimentScore != null ? (
