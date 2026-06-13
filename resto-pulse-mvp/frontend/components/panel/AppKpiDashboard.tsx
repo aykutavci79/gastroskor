@@ -34,6 +34,18 @@ type PlaceCatalogStats = {
   linked_restaurants: number;
   by_city: { city: string; count: number }[];
   top_queries: { query: string; count: number }[];
+  search_performance: {
+    period_days: number;
+    total_live_searches: number;
+    tracked_searches: number;
+    file_cache_hits: number;
+    google_api_calls: number;
+    google_free_searches: number;
+    file_cache_hit_rate_pct: number | null;
+    google_free_rate_pct: number | null;
+    by_source: { source: string; count: number }[];
+    top_query_groups: { query: string; count: number }[];
+  };
   recent_places: {
     name: string;
     city: string;
@@ -97,7 +109,7 @@ export function AppKpiDashboard() {
   useEffect(() => {
     if (!allowed) return;
     setCatalogLoading(true);
-    fetch('/api/panel/admin/place-catalog')
+    fetch(`/api/panel/admin/place-catalog?days=${days}`)
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) {
@@ -107,7 +119,7 @@ export function AppKpiDashboard() {
       })
       .catch(() => setCatalog(null))
       .finally(() => setCatalogLoading(false));
-  }, [allowed]);
+  }, [allowed, days]);
 
   async function sendDailyReportNow() {
     setSendingReport(true);
@@ -225,7 +237,11 @@ export function AppKpiDashboard() {
               {[
                 { label: 'Toplam mekan', value: catalog.total_places },
                 { label: 'Toplam gorulme', value: catalog.total_seen_events },
-                { label: 'Uye eslesmesi', value: catalog.linked_restaurants },
+                {
+                  label: 'Panel uyesi eslesmesi',
+                  value: catalog.linked_restaurants,
+                  hint: 'Google katalog kayitlarindan panelde kayitli restoranla eslesen (place_id)',
+                },
                 {
                   label: 'Sehir sayisi',
                   value: catalog.by_city.length,
@@ -234,9 +250,98 @@ export function AppKpiDashboard() {
                 <div key={card.label} className="rounded-2xl border border-border bg-surface/80 p-4">
                   <p className="text-xs uppercase tracking-wide text-content-muted">{card.label}</p>
                   <p className="mt-2 text-2xl font-semibold text-content">{card.value}</p>
+                  {'hint' in card && card.hint ? (
+                    <p className="mt-1 text-[11px] leading-4 text-content-muted">{card.hint}</p>
+                  ) : null}
                 </div>
               ))}
             </div>
+
+            {catalog.search_performance ? (
+              <div className="rounded-2xl border border-border bg-surface/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-content-muted">
+                  Arama performansi ({catalog.search_performance.period_days} gun)
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    {
+                      label: "Google'siz oran",
+                      value:
+                        catalog.search_performance.google_free_rate_pct != null
+                          ? `%${catalog.search_performance.google_free_rate_pct}`
+                          : '—',
+                    },
+                    {
+                      label: 'Dosya cache hit',
+                      value:
+                        catalog.search_performance.file_cache_hit_rate_pct != null
+                          ? `%${catalog.search_performance.file_cache_hit_rate_pct}`
+                          : '—',
+                    },
+                    {
+                      label: 'Google API cagri',
+                      value: catalog.search_performance.google_api_calls,
+                    },
+                    {
+                      label: 'Izlenen arama',
+                      value: `${catalog.search_performance.tracked_searches}/${catalog.search_performance.total_live_searches}`,
+                    },
+                  ].map((card) => (
+                    <div key={card.label} className="rounded-xl border border-border/70 bg-surface/80 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-content-muted">{card.label}</p>
+                      <p className="mt-1 text-xl font-semibold text-content">{card.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {catalog.search_performance.tracked_searches === 0 ? (
+                  <p className="mt-2 text-xs text-content-muted">
+                    Deploy sonrasi yeni aramalardan itibaren dolar. Gecmis aramalarda kaynak bilgisi yok.
+                  </p>
+                ) : null}
+                {catalog.search_performance.by_source.length ? (
+                  <ul className="mt-3 flex flex-wrap gap-2 text-xs text-content-muted">
+                    {catalog.search_performance.by_source.map((row) => (
+                      <li key={row.source} className="rounded-full border border-border px-2 py-1">
+                        {row.source}: {row.count}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {catalog.search_performance.top_query_groups.length ? (
+                  <div className="mt-3">
+                    <p className="text-[11px] uppercase tracking-wide text-content-muted">
+                      En cok aranan (gruplanmis)
+                    </p>
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {catalog.search_performance.top_query_groups.map((row) => (
+                        <li
+                          key={row.query}
+                          className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-content"
+                        >
+                          {row.query} <span className="text-content-muted">({row.count})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {catalog.by_city.length ? (
+              <div className="rounded-2xl border border-border bg-surface/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-content-muted">Sehir dagilimi</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {catalog.by_city.map((row) => (
+                    <li
+                      key={row.city}
+                      className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-content"
+                    >
+                      {row.city} <span className="text-content-muted">({row.count})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             {catalog.top_queries.length ? (
               <div className="rounded-2xl border border-border bg-surface/60 p-4">

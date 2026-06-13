@@ -59,8 +59,14 @@ def admin_metrics_summary(
 def admin_place_catalog_stats(
     recent_limit: int = Query(default=10, ge=1, le=50),
     top_queries_limit: int = Query(default=10, ge=1, le=30),
+    days: int = Query(default=30, ge=1, le=365, description="Arama performansi penceresi (gun)"),
     db: Session = Depends(get_db),
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
 ):
     require_admin(x_panel_admin_secret)
-    return build_catalog_stats(db, recent_limit=recent_limit, top_queries_limit=top_queries_limit)
+    return build_catalog_stats(
+        db,
+        recent_limit=recent_limit,
+        top_queries_limit=top_queries_limit,
+        search_stats_days=days,
+    )

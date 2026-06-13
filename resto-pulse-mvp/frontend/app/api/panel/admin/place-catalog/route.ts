@@ -33,9 +33,10 @@ export async function GET(request: Request) {
     30,
     Math.max(1, Number(url.searchParams.get('top_queries_limit') ?? '10') || 10),
   );
+  const days = Math.min(365, Math.max(1, Number(url.searchParams.get('days') ?? '30') || 30));
 
   const response = await fetch(
-    `${API_BASE}/api/v1/metrics/admin/place-catalog?recent_limit=${recentLimit}&top_queries_limit=${topQueriesLimit}`,
+    `${API_BASE}/api/v1/metrics/admin/place-catalog?recent_limit=${recentLimit}&top_queries_limit=${topQueriesLimit}&days=${days}`,
     {
       headers: { 'X-Panel-Admin-Secret': secret },
       cache: 'no-store',

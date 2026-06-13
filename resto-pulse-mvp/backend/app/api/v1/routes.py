@@ -231,6 +231,7 @@ from app.api.v1.social_routes import router as social_router
 from app.api.v1.voice_routes import router as voice_router
 from app.services.user_accounts import get_or_create_user, serialize_user
 from app.services.app_metrics import record_app_usage_event
+from app.services.live_search_metrics import record_live_search_metric
 from app.services.request_identity import (
     auth_require_bearer,
     get_request_auth,
@@ -681,7 +682,12 @@ async def search_live_places(
             rating_band=rating_band,
         )
         try:
-            record_app_usage_event(db, event_type="live_search", platform="api")
+            record_live_search_metric(
+                db,
+                city=city,
+                query=q,
+                filters_applied=result.filters_applied,
+            )
         except Exception:
             logger.exception("live_search metrics kaydi atlandi")
         return result

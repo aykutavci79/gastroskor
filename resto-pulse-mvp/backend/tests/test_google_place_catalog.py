@@ -91,7 +91,21 @@ def test_upsert_updates_rating(db: Session) -> None:
     assert hits[0].user_ratings_total == 20
 
 
-def test_build_catalog_stats(db: Session) -> None:
+def test_build_catalog_stats(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.services.google_place_catalog.build_live_search_source_stats",
+        lambda *_args, **_kwargs: {
+            "period_days": 30,
+            "total_live_searches": 0,
+            "tracked_searches": 0,
+            "file_cache_hits": 0,
+            "google_api_calls": 0,
+            "google_free_searches": 0,
+            "file_cache_hit_rate_pct": None,
+            "google_free_rate_pct": None,
+            "by_source": [],
+        },
+    )
     rows = [
         LivePlaceResult(
             place_id="ChIJstats1",
@@ -126,3 +140,4 @@ def test_build_catalog_stats(db: Session) -> None:
     query_names = {row["query"] for row in stats["top_queries"]}
     assert query_names == {"lahmacun", "pide"}
     assert len(stats["recent_places"]) == 2
+    assert "search_performance" in stats

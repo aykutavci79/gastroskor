@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.integrations.google_places_live import LivePlaceResult
 from app.models import GooglePlaceCatalog, PlatformName, RestaurantPlatformProfile
 from app.schemas.live_places import LivePlaceSearchItem
+from app.services.live_search_metrics import build_live_search_source_stats, normalize_catalog_source_query
 from app.services.profanity_tr import normalize_review_text
 
 
@@ -210,7 +211,13 @@ def count_catalog_places(db: Session, *, city: str | None = None) -> int:
     return int(db.scalar(stmt) or 0)
 
 
-def build_catalog_stats(db: Session, *, recent_limit: int = 10, top_queries_limit: int = 10) -> dict:
+def build_catalog_stats(
+    db: Session,
+    *,
+    recent_limit: int = 10,
+    top_queries_limit: int = 10,
+    search_stats_days: int = 30,
+) -> dict:
     total_places = count_catalog_places(db)
     total_seen_events = int(
         db.scalar(select(func.coalesce(func.sum(GooglePlaceCatalog.seen_count), 0))) or 0
@@ -236,10 +243,19 @@ def build_catalog_stats(db: Session, *, recent_limit: int = 10, top_queries_limi
         .where(GooglePlaceCatalog.last_source_query.is_not(None))
         .where(GooglePlaceCatalog.last_source_query != "")
         .group_by(GooglePlaceCatalog.last_source_query)
-        .order_by(func.count().desc())
-        .limit(top_queries_limit)
     ).all()
-    top_queries = [{"query": row[0], "count": int(row[1])} for row in query_rows if row[0]]
+    grouped_queries: dict[str, int] = {}
+    for raw_query, count in query_rows:
+        if not raw_query:
+            continue
+        key = normalize_catalog_source_query(raw_query) or raw_query.strip().lower()
+        grouped_queries[key] = grouped_queries.get(key, 0) + int(count)
+    top_queries = [
+        {"query": query, "count": count}
+        for query, count in sorted(grouped_queries.items(), key=lambda row: (-row[1], row[0]))[
+            :top_queries_limit
+        ]
+    ]
 
     recent_rows = db.scalars(
         select(GooglePlaceCatalog)
@@ -264,5 +280,6 @@ def build_catalog_stats(db: Session, *, recent_limit: int = 10, top_queries_limi
         "linked_restaurants": linked_restaurants,
         "by_city": by_city,
         "top_queries": top_queries,
+        "search_performance": build_live_search_source_stats(db, days=search_stats_days),
         "recent_places": recent_places,
     }
