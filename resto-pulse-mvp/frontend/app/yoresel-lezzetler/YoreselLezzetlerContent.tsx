@@ -1,16 +1,16 @@
 'use client';
 
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { RegionalProductCard } from '@/components/RegionalProductCard';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
-export function YoreselLezzetlerContent() {
-  const searchParams = useSearchParams();
-  const city = useMemo(() => searchParams.get('city')?.trim() || 'Bursa', [searchParams]);
+type Props = {
+  city: string;
+};
+
+export function YoreselLezzetlerContent({ city }: Props) {
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,27 +36,23 @@ export function YoreselLezzetlerContent() {
   }, [city]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <Link href="/" className="text-sm text-content-muted hover:text-content">
-        ← Ana sayfa
-      </Link>
-      <h1 className="mt-4 text-3xl font-bold text-content">{city} yöresel lezzetler</h1>
-      <p className="mt-2 max-w-2xl text-sm text-content-muted">
-        TÜRKPATENT&apos;te tescilli {city} yemekleri — {items.length || 12} lezzet. Her ürün için nerede
-        yenir rehberi, GastroSkor puanlı restoran önerileri ve sık sorulan sorular.
-      </p>
-
+    <>
       {loading ? <p className="mt-8 text-sm text-content-muted">Yükleniyor...</p> : null}
 
-      <div className="mt-8 grid grid-cols-1 gap-4">
-        {items.map((item) => (
-          <RegionalProductCard
-            key={item.slug}
-            item={item}
-            href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
-          />
-        ))}
-      </div>
+      {!loading ? (
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold text-content">Tescilli yöresel lezzetler</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4">
+            {items.map((item) => (
+              <RegionalProductCard
+                key={item.slug}
+                item={item}
+                href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {note ? (
         <p className="mt-8 text-xs text-content-muted">
@@ -70,6 +66,6 @@ export function YoreselLezzetlerContent() {
           </a>
         </p>
       ) : null}
-    </main>
+    </>
   );
 }

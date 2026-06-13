@@ -133,3 +133,18 @@ export function regionalFlavorSeoTitle(name: string, city: string): string {
 
   return trimSeoTitle(candidates[0], maxPrimary);
 }
+
+/** Sayfa H1 — ayni isimli subeleri mahalle/ilce ile ayirir. */
+export function restaurantPageHeading(
+  name: string | null | undefined,
+  district?: string | null,
+  city?: string | null,
+  address?: string | null,
+): string {
+  const cleanName = sanitizeRestaurantDisplayName(name);
+  if (!cleanName) {
+    return restaurantLocationLabel(district, city, address) || 'Restoran';
+  }
+  const location = restaurantLocationLabel(district, city, address);
+  return location ? `${cleanName} · ${location}` : cleanName;
+}

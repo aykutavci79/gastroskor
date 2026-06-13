@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { YoreselLezzetlerContent } from '@/app/yoresel-lezzetler/YoreselLezzetlerContent';
@@ -11,6 +12,10 @@ import { buildBreadcrumbJsonLd, buildRegionalFlavorListJsonLd } from '@/lib/stru
 
 const siteUrl = getSiteUrl();
 const regionalPages = pagesData.pages.map((page) => ({ slug: page.slug, name: page.name }));
+
+type Props = {
+  searchParams: Promise<{ city?: string }>;
+};
 
 export const metadata: Metadata = {
   title: buildSeoTitle('Bursa yöresel lezzetler'),
@@ -28,7 +33,10 @@ export const metadata: Metadata = {
   alternates: { canonical: '/yoresel-lezzetler' },
 };
 
-export default function YoreselLezzetlerPage() {
+export default async function YoreselLezzetlerPage({ searchParams }: Props) {
+  const { city: rawCity } = await searchParams;
+  const city = rawCity?.trim() || 'Bursa';
+
   return (
     <>
       <JsonLd
@@ -40,14 +48,20 @@ export default function YoreselLezzetlerPage() {
           buildRegionalFlavorListJsonLd(siteUrl, regionalPages),
         ]}
       />
-      <Suspense
-      fallback={
-        <main className="mx-auto max-w-5xl px-4 py-10">
-          <p className="text-sm text-content-muted">Yöresel lezzetler yükleniyor…</p>
-        </main>
-      }>
-        <YoreselLezzetlerContent />
-      </Suspense>
+      <main className="mx-auto max-w-5xl px-4 py-10">
+        <Link href="/" className="text-sm text-content-muted hover:text-content">
+          ← Ana sayfa
+        </Link>
+        <h1 className="mt-4 text-3xl font-bold text-content">{city} yöresel lezzetler</h1>
+        <p className="mt-2 max-w-2xl text-sm text-content-muted">
+          TÜRKPATENT&apos;te tescilli {city} yemekleri — {regionalPages.length} lezzet. Her ürün için
+          nerede yenir rehberi, GastroSkor puanlı restoran önerileri ve sık sorulan sorular.
+        </p>
+        <Suspense
+          fallback={<p className="mt-8 text-sm text-content-muted">Yöresel lezzetler yükleniyor…</p>}>
+          <YoreselLezzetlerContent city={city} />
+        </Suspense>
+      </main>
     </>
   );
 }

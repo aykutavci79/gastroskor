@@ -16,8 +16,8 @@ export function HomePageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <FeaturedHighlightsSection />
       <SloganBanner />
+      <FeaturedHighlightsSection />
       <LivePlaceSearch
         city={city}
         cityStatus={status}

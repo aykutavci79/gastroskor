@@ -18,6 +18,7 @@ import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getLivePlaceDetails, getRestaurant, listRestaurantReviews, syncUser } from '@/lib/api';
 import { aggregateCategoryScores } from '@/lib/scores';
+import { restaurantPageHeading } from '@/lib/seo-title';
 import type { Restaurant, Review, ReviewAnalyzeResult, UserProfile } from '@/lib/types';
 
 type Props = {
@@ -164,7 +165,14 @@ export function RestaurantDetailView({
           ← Restoran listesi
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-bold text-content">{restaurant.name}</h1>
+          <h1 className="text-3xl font-bold text-content">
+            {restaurantPageHeading(
+              restaurant.name,
+              restaurant.district,
+              restaurant.city,
+              restaurant.address,
+            )}
+          </h1>
           <RestaurantCategoryBadge
             category={restaurant.category}
             name={restaurant.name}
