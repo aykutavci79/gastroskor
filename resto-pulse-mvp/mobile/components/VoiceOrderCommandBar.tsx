@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroSpeakListening, gastroStopSpeaking, gastroSpeak } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
@@ -21,8 +21,8 @@ type Props = {
 };
 
 const EXAMPLES = [
+  "B'den 3 lahmacun 1 kola 1 kadayıf",
   "B'den 3 lahmacun, kapıda kredi kartı",
-  'A restoranından 2 cantık nakit',
 ];
 
 export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, onSubmit }: Props) {
@@ -66,7 +66,13 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       setDraft(polished);
       if (!isFinal) return;
       const command = parseVoiceOrderCommand(polished, restaurants, defaultProductSearchGroup);
-      trySubmit(command);
+      if (command.confidence === 'high') {
+        trySubmit(command);
+        return;
+      }
+      if (command.issues.length) {
+        gastroSpeak(command.issues[0]);
+      }
     },
     [defaultProductSearchGroup, restaurants, trySubmit],
   );
@@ -76,14 +82,14 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       <Text style={styles.label}>Gastro Sipariş komutu</Text>
       <Text style={styles.hint}>
         {Platform.OS === 'ios'
-          ? 'Mikrofona konuş: B harfinden 3 lahmacun, kapıda kredi kartı.'
-          : 'A/B/C harfine göre yaz veya konuş.'}
+          ? 'Mikrofona konuş: B harfinden 3 lahmacun 1 kola 1 kadayıf.'
+          : 'A/B/C harfine göre yaz veya konuş; birden fazla ürün tek komutta.'}
       </Text>
       <View style={styles.inputRow}>
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder="B'den 3 lahmacun, kapıda kredi kartı"
+          placeholder="B'den 3 lahmacun 1 kola 1 kadayıf"
           placeholderTextColor={GastroColors.muted}
           style={[styles.input, styles.inputFlex]}
           multiline

@@ -49,7 +49,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   const [micActive, setMicActive] = useState(true);
 
   const parsed = useMemo(() => parseVoiceOrderQuery(draft), [draft]);
-  const canSearch = parsed.voiceProduct != null && parsed.priceMax != null && !searching;
+  const canSearch = parsed.voiceProduct != null && !searching;
 
   useEffect(() => {
     if (!visible) {
@@ -63,7 +63,12 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   }, [visible]);
 
   function applyExample(text: string) {
+    setMicActive(false);
     setDraft(text);
+    const query = parseVoiceOrderQuery(text);
+    if (query.voiceProduct && !searching) {
+      onSearch(query);
+    }
   }
 
   function handleSearch() {
@@ -78,7 +83,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
     setDraft(polished);
     if (!isFinal || searching) return;
     const query = parseVoiceOrderQuery(polished);
-    if (query.voiceProduct && query.priceMax != null) {
+    if (query.voiceProduct) {
       setMicActive(false);
       onSearch(query);
     }
@@ -116,8 +121,8 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
               <Text style={styles.title}>Ne arıyorsun?</Text>
               <Text style={styles.sub}>
                 {Platform.OS === 'ios'
-                  ? 'Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun — metin geldikten sonra otomatik arar.'
-                  : 'Mikrofona bas, tum cumleyi soyle (orn: 200 lira lahmacun). Bitirince tekrar dokun veya 2–3 sn sus — sonra otomatik arar.'}
+                  ? 'Mikrofona bas, ürünü söyle (örn: lahmacun veya 200 lira lahmacun). Bitirince tekrar dokun — otomatik arar. Bütçe şart değil.'
+                  : 'Mikrofona bas, ürünü söyle. Bitirince tekrar dokun veya 2–3 sn sus — otomatik arar. Bütçe şart değil.'}
               </Text>
 
               <View

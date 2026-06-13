@@ -52,7 +52,7 @@ import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { notifyAuthFailure } from '@/lib/auth-session-events';
 import { authHeaders, refreshAuthTokens } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
-import { formatApiError } from '@/lib/format-api-error';
+import { formatApiError, parseHttpErrorText } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 
 export { ReviewModerationApiError };
@@ -1038,7 +1038,8 @@ export async function uploadFoodcastPhoto(params: {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(formatApiError(text || `Upload failed ${response.status}`));
+    const message = parseHttpErrorText(text) || `Yükleme başarısız (${response.status})`;
+    throw new Error(message);
   }
   return response.json() as Promise<{ photo: FoodcastPhotoItem }>;
 }

@@ -194,7 +194,7 @@ export default function OnlineOrdersOpenScreen() {
 
   const onVoiceSearch = useCallback(
     async (query: VoiceOrderQuery) => {
-      if (!query.voiceProduct || query.priceMax == null) return;
+      if (!query.voiceProduct) return;
       setVoiceSearching(true);
       setLoading(true);
       setError(null);
@@ -210,7 +210,7 @@ export default function OnlineOrdersOpenScreen() {
           limit: 50,
           min_rating: draftMinRating,
           voice_product: query.voiceProduct,
-          price_max: query.priceMax,
+          price_max: query.priceMax ?? undefined,
           max_distance_km: query.maxDistanceKm ?? undefined,
         });
         setAllItems(Array.isArray(res.items) ? res.items : []);
@@ -357,7 +357,7 @@ export default function OnlineOrdersOpenScreen() {
             <View style={styles.voiceResultTop}>
               <Text style={styles.voiceResultLabel}>Gastro Sipariş araması</Text>
               <Pressable onPress={() => setVoiceSheetOpen(true)}>
-                <Text style={styles.voiceResultEdit}>Düzenle</Text>
+                <Text style={styles.voiceResultEdit}>Tekrar ara</Text>
               </Pressable>
             </View>
             <Text style={styles.voiceResultText}>{formatVoiceOrderSummary(voiceQuery)}</Text>
@@ -396,7 +396,7 @@ export default function OnlineOrdersOpenScreen() {
               {voiceQuery ? (
                 <>
                   <Pressable style={styles.emptyBtn} onPress={() => setVoiceSheetOpen(true)}>
-                    <Text style={styles.emptyBtnText}>Aramayı düzenle</Text>
+                    <Text style={styles.emptyBtnText}>Tekrar ara</Text>
                   </Pressable>
                   <Pressable style={styles.emptyBtnGhost} onPress={clearVoiceSearch}>
                     <Text style={styles.emptyBtnGhostText}>Mutfak filtresine dön</Text>
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   ratingHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
   listBtn: {
     marginTop: 4,
-    backgroundColor: '#FFB635',
+    backgroundColor: GastroColors.accent,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',

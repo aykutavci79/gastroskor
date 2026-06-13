@@ -51,6 +51,12 @@ export const VOICE_CATALOG_PRODUCTS: VoiceCatalogProduct[] = [
   { slug: 'ayran', label: 'Ayran', searchGroup: 'ayran', aliases: ['ayran'] },
   { slug: 'kola', label: 'Kola', searchGroup: 'kola', aliases: ['kola', 'cola'] },
   { slug: 'su', label: 'Su', searchGroup: 'su', aliases: ['su', 'şişe su', 'sise su'] },
+  {
+    slug: 'kadayif',
+    label: 'Kadayıf',
+    searchGroup: 'kadayif',
+    aliases: ['kadayıf', 'kadayif', 'kadayifi', 'kadayıfı', 'sütlü kadayıf', 'sutlu kadayif'],
+  },
 ];
 
 const GROUP_LABELS: Record<string, string> = {

@@ -143,6 +143,13 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         aliases=("su", "sise su"),
         sort_order=72,
     ),
+    VoiceProduct(
+        slug="kadayif",
+        label="Kadayif",
+        search_group="kadayif",
+        aliases=("kadayif", "kadayifi", "sutlu kadayif", "kadayif tatlisi"),
+        sort_order=73,
+    ),
 )
 
 VALID_VOICE_PRODUCT_SLUGS = frozenset(p.slug for p in VOICE_PRODUCTS)

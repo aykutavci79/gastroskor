@@ -89,8 +89,16 @@ const SPOKEN_PRICE_PHRASES: Array<{ pattern: RegExp; value: number }> = [
   { pattern: /\byuz\s*yirmi\b/, value: 120 },
 ];
 
-function extractPriceMax(text: string): number | null {
+export function extractPriceMax(text: string): number | null {
   const folded = foldTrAscii(text);
+
+  const ceiling =
+    folded.match(/(\d+(?:[.,]\d+)?)\s*tl(?:yi|yi)?\s*gecmesin/) ??
+    folded.match(/gecmesin.*?(\d+(?:[.,]\d+)?)\s*tl/);
+  if (ceiling) {
+    const n = Number(ceiling[1].replace(',', '.'));
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
 
   for (const row of SPOKEN_PRICE_PHRASES) {
     if (row.pattern.test(folded)) return row.value;
@@ -200,11 +208,10 @@ export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
   const maxDistanceKm = extractDistanceKm(foldTrAscii(text));
 
   if (!product) issues.push('Ürün anlaşılamadı (ör. lahmacun, sütlaç, cantık).');
-  if (priceMax == null) issues.push('Bütçe tavanı anlaşılamadı (ör. 150 TL).');
 
   let confidence: VoiceOrderQuery['confidence'] = 'low';
-  if (product && priceMax != null) confidence = 'high';
-  else if (product || priceMax != null || maxDistanceKm != null) confidence = 'partial';
+  if (product) confidence = 'high';
+  else if (priceMax != null || maxDistanceKm != null) confidence = 'partial';
 
   return {
     rawText: rawText.trim(),

@@ -162,19 +162,21 @@ export function gastroSpeakVoiceSearchResults(count: number, topPlaces: VoiceSea
 
 type OrderConfirmSpeech = {
   restaurantName: string;
-  quantity: number;
-  productLabel: string;
+  lines: Array<{ quantity: number; productLabel: string }>;
   totalTl: string | null;
   paymentNote: string;
 };
 
 /** Siparis onay sheet — ozet + onay sorusu */
 export function gastroSpeakOrderConfirm(input: OrderConfirmSpeech, onDone?: () => void): void {
-  const totalPart = input.totalTl ? `${input.totalTl} lira` : '';
+  const linePart = input.lines
+    .map((row) => `${row.quantity} ${speakNameForTts(row.productLabel)}`)
+    .join(', ');
+  const totalPart = input.totalTl ? `Toplam ${input.totalTl} lira.` : '';
   gastroSpeakSequence(
     [
       `${speakNameForTts(input.restaurantName)}.`,
-      `${input.quantity} ${speakNameForTts(input.productLabel)}.`,
+      linePart,
       totalPart,
       input.paymentNote,
       'Onaylıyor musun? Evet dersen gönderirim.',

@@ -1,8 +1,31 @@
 import { getApiBase } from '@/lib/api-base';
 
+/** FastAPI / JSON hata govdesinden okunabilir mesaj cikarir. */
+export function parseHttpErrorText(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  try {
+    const parsed = JSON.parse(trimmed) as { detail?: unknown; message?: string };
+    const detail = parsed.detail;
+    if (typeof detail === 'string') return detail;
+    if (detail && typeof detail === 'object' && 'message' in detail) {
+      const message = (detail as { message?: string }).message;
+      if (typeof message === 'string' && message.trim()) return message.trim();
+    }
+    if (typeof parsed.message === 'string' && parsed.message.trim()) return parsed.message.trim();
+  } catch {
+    /* plain text */
+  }
+  return trimmed;
+}
+
 export function formatApiError(err: unknown, context?: string): string {
   const base = getApiBase();
   const prefix = context ? `${context}: ` : '';
+
+  if (typeof err === 'string') {
+    return `${prefix}${parseHttpErrorText(err) || 'Bilinmeyen hata'}`;
+  }
 
   if (err instanceof TypeError && /network request failed/i.test(err.message)) {
     if (/127\.0\.0\.1|localhost/i.test(base)) {

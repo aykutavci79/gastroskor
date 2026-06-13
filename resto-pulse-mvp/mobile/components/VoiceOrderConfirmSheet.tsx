@@ -34,7 +34,7 @@ import { applyOrderPhoneSendOtpResult, tryAutoVerifyOrderPhoneBypass } from '@/l
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
   formatVoiceOrderCommandSummary,
-  resolveVoiceMenuLine,
+  resolveVoiceMenuLines,
   type VoiceOrderCommand,
 } from '@/lib/parse-voice-order-command';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
@@ -67,7 +67,7 @@ export function VoiceOrderConfirmSheet({
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpInfo, setOtpInfo] = useState<string | null>(null);
-  const [selectedMatch, setSelectedMatch] = useState<VoiceMenuMatch | null>(null);
+  const [selectedByLine, setSelectedByLine] = useState<Record<number, VoiceMenuMatch>>({});
   const [submitting, setSubmitting] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -78,15 +78,35 @@ export function VoiceOrderConfirmSheet({
   const autoBypassAttemptRef = useRef<string | null>(null);
 
   const resolved = useMemo(() => {
-    if (!command || !restaurant) return { line: null, choices: [], issue: null };
-    return resolveVoiceMenuLine(restaurant.voice_menu_matches, command);
+    if (!command || !restaurant) return { rows: [], blockingIssue: null };
+    return resolveVoiceMenuLines(restaurant.voice_menu_matches, command);
   }, [command, restaurant]);
 
-  const activeLine = selectedMatch ?? resolved.line;
+  const activeRows = useMemo(
+    () =>
+      resolved.rows.map((row) => ({
+        ...row,
+        active: selectedByLine[row.index] ?? row.line,
+      })),
+    [resolved.rows, selectedByLine],
+  );
+
+  const allLinesReady = activeRows.length > 0 && activeRows.every((row) => row.active != null);
+
+  const orderTotal = useMemo(() => {
+    return activeRows.reduce((sum, row) => {
+      if (!row.active) return sum;
+      const unit = coercePriceTl(row.active.price_tl);
+      return unit != null ? sum + unit * row.intent.quantity : sum;
+    }, 0);
+  }, [activeRows]);
+
+  const budgetExceeded =
+    command?.priceMaxBudget != null && orderTotal > command.priceMaxBudget;
 
   useEffect(() => {
     if (!visible) {
-      setSelectedMatch(null);
+      setSelectedByLine({});
       setError(null);
       setOtpCode('');
       setOtpSent(false);
@@ -165,11 +185,9 @@ export function VoiceOrderConfirmSheet({
   }, [visible]);
 
   useEffect(() => {
-    setSelectedMatch(null);
+    setSelectedByLine({});
   }, [command?.rawText, restaurant?.id]);
 
-  const unitPrice = activeLine ? coercePriceTl(activeLine.price_tl) : null;
-  const lineTotal = unitPrice != null && command ? unitPrice * command.quantity : 0;
   const normalizedPhone = normalizeTrMobileInput(phone);
   const phoneOk = Boolean(phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164);
 
@@ -181,21 +199,23 @@ export function VoiceOrderConfirmSheet({
       gastroStopSpeaking();
       return;
     }
-    if (spokeConfirmRef.current || !command || !restaurant || !activeLine) return;
+    if (spokeConfirmRef.current || !command || !restaurant || !allLinesReady) return;
 
     setConfirmMicActive(false);
     gastroSpeakOrderConfirm(
       {
         restaurantName: restaurant.name,
-        quantity: command.quantity,
-        productLabel: activeLine.label,
-        totalTl: formatPriceTl(lineTotal, 0),
+        lines: activeRows.map((row) => ({
+          quantity: row.intent.quantity,
+          productLabel: row.active!.label,
+        })),
+        totalTl: formatPriceTl(orderTotal, 0),
         paymentNote: command.paymentNote,
       },
       () => setConfirmMicActive(true),
     );
     spokeConfirmRef.current = true;
-  }, [visible, command, restaurant, activeLine, lineTotal]);
+  }, [visible, command, restaurant, activeRows, allLinesReady, orderTotal]);
 
   async function onSendOtp() {
     if (!userEmail || !normalizedPhone) {
@@ -248,8 +268,14 @@ export function VoiceOrderConfirmSheet({
       Alert.alert('Giriş gerekli', 'Sipariş için önce hesabına giriş yap.');
       return;
     }
-    if (!restaurant || !command || !activeLine) {
-      setError(resolved.issue ?? 'Sipariş satırı seçilemedi.');
+    if (!restaurant || !command || !allLinesReady) {
+      setError(resolved.blockingIssue ?? 'Sipariş satırları seçilemedi.');
+      return;
+    }
+    if (budgetExceeded) {
+      setError(
+        `Toplam ${formatPriceTl(orderTotal, 0) ?? orderTotal} TL, ${command.priceMaxBudget} TL bütçeyi aşıyor.`,
+      );
       return;
     }
     if (!phoneOk) {
@@ -281,7 +307,10 @@ export function VoiceOrderConfirmSheet({
         customer_phone: phone.trim(),
         customer_address: address.trim(),
         note,
-        lines: [{ menu_item_id: activeLine.menu_item_id, quantity: command.quantity }],
+        lines: activeRows.map((row) => ({
+          menu_item_id: row.active!.menu_item_id,
+          quantity: row.intent.quantity,
+        })),
       });
       onSuccess();
       onClose();
@@ -333,32 +362,58 @@ export function VoiceOrderConfirmSheet({
               <Text style={styles.title}>{formatVoiceOrderCommandSummary(command)}</Text>
               <Text style={styles.sub}>{restaurant.name}</Text>
 
-              {activeLine ? (
-                <View style={styles.lineCard}>
-                  <Text style={styles.lineName}>
-                    {command.quantity}× {activeLine.label}
-                  </Text>
-                  <Text style={styles.linePrice}>{formatPriceTl(lineTotal, 0) ?? '—'} TL</Text>
-                  <Text style={styles.linePay}>{command.paymentNote}</Text>
-                </View>
-              ) : null}
-
-              {resolved.choices.length > 0 ? (
-                <View style={styles.choiceBox}>
-                  <Text style={styles.choiceLabel}>{resolved.issue}</Text>
-                  {resolved.choices.map((row) => {
-                    const on = selectedMatch?.menu_item_id === row.menu_item_id;
-                    return (
-                      <Pressable
-                        key={row.menu_item_id}
-                        style={[styles.choiceRow, on && styles.choiceRowOn]}
-                        onPress={() => setSelectedMatch(row)}>
-                        <Text style={[styles.choiceText, on && styles.choiceTextOn]}>
-                          {row.label} · {formatPriceTl(row.price_tl, 0) ?? '—'} TL
+              {activeRows.map((row) => {
+                const unit = row.active ? coercePriceTl(row.active.price_tl) : null;
+                const rowTotal = unit != null ? unit * row.intent.quantity : null;
+                return (
+                  <View key={row.index}>
+                    {row.active ? (
+                      <View style={styles.lineCard}>
+                        <Text style={styles.lineName}>
+                          {row.intent.quantity}× {row.active.label}
                         </Text>
-                      </Pressable>
-                    );
-                  })}
+                        <Text style={styles.linePrice}>
+                          {formatPriceTl(rowTotal, 0) ?? '—'} TL
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {row.choices.length > 0 ? (
+                      <View style={styles.choiceBox}>
+                        <Text style={styles.choiceLabel}>{row.issue}</Text>
+                        {row.choices.map((choice) => {
+                          const on = selectedByLine[row.index]?.menu_item_id === choice.menu_item_id;
+                          return (
+                            <Pressable
+                              key={choice.menu_item_id}
+                              style={[styles.choiceRow, on && styles.choiceRowOn]}
+                              onPress={() =>
+                                setSelectedByLine((prev) => ({ ...prev, [row.index]: choice }))
+                              }>
+                              <Text style={[styles.choiceText, on && styles.choiceTextOn]}>
+                                {choice.label} · {formatPriceTl(choice.price_tl, 0) ?? '—'} TL
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ) : row.issue && !row.active ? (
+                      <Text style={styles.error}>{row.issue}</Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+
+              {allLinesReady ? (
+                <View style={styles.lineCard}>
+                  <Text style={styles.lineName}>Toplam</Text>
+                  <Text style={styles.linePrice}>{formatPriceTl(orderTotal, 0) ?? '—'} TL</Text>
+                  <Text style={styles.linePay}>{command.paymentNote}</Text>
+                  {command.priceMaxBudget != null ? (
+                    <Text style={[styles.linePay, budgetExceeded && styles.error]}>
+                      Bütçe: ≤ {command.priceMaxBudget} TL
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -436,9 +491,9 @@ export function VoiceOrderConfirmSheet({
                   <Text style={styles.cancelText}>Vazgeç</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.confirmBtn, (!activeLine || submitting) && styles.confirmBtnDisabled]}
+                  style={[styles.confirmBtn, (!allLinesReady || submitting || budgetExceeded) && styles.confirmBtnDisabled]}
                   onPress={() => void onConfirm()}
-                  disabled={!activeLine || submitting}>
+                  disabled={!allLinesReady || submitting || budgetExceeded}>
                   {submitting ? (
                     <ActivityIndicator color="#141414" />
                   ) : (
