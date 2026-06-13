@@ -6,6 +6,9 @@ const BRAND_SUFFIX = ` | ${BRAND}`;
 /** SERP'te ~561px — kabaca 58 karakter (| GastroSkor dahil). */
 export const SEO_TITLE_MAX_LEN = 58;
 
+/** Screaming Frog / SERP alt sınırı — marka eki dahil. */
+export const SEO_TITLE_MIN_LEN = 30;
+
 const PLACEHOLDER_NAME = /^(blank|unknown|n\/a|yok|restoran|restaurant|mekan)$/i;
 
 export function sanitizeRestaurantDisplayName(name: string | null | undefined): string {
@@ -91,4 +94,26 @@ export function restaurantSeoTitle(
   if (withPlace.length <= maxPrimary) return withPlace;
 
   return trimSeoTitle(cleanName, maxPrimary);
+}
+
+/** Yöresel lezzet detay sayfaları — kısa ürün adlarında min. 30 karakter. */
+export function regionalFlavorSeoTitle(name: string, city: string): string {
+  const shortName = name.replace(/^Bursa\s+/i, '').replace(/^İnegöl\s+/i, '').trim();
+  const cityLabel = city.trim() || 'Bursa';
+  const maxPrimary = SEO_TITLE_MAX_LEN - BRAND_SUFFIX.length;
+
+  const candidates = [
+    `${shortName} nerede yenir · ${cityLabel}`,
+    `${shortName} · ${cityLabel} yöresel lezzet`,
+    `${shortName} · ${cityLabel}`,
+  ];
+
+  for (const candidate of candidates) {
+    const trimmed = trimSeoTitle(candidate, maxPrimary);
+    if (`${trimmed}${BRAND_SUFFIX}`.length >= SEO_TITLE_MIN_LEN) {
+      return trimmed;
+    }
+  }
+
+  return trimSeoTitle(candidates[0], maxPrimary);
 }

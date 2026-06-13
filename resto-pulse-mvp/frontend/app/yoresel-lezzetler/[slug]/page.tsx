@@ -18,7 +18,7 @@ import {
   buildItemListJsonLd,
   buildRegionalFlavorFoodJsonLd,
 } from '@/lib/structured-data';
-import { buildSeoTitle } from '@/lib/seo-title';
+import { buildSeoTitle, regionalFlavorSeoTitle } from '@/lib/seo-title';
 import type { RegionalProductDetailResponse } from '@/lib/types';
 
 type Props = {
@@ -45,8 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageContent = getRegionalFlavorPageContent(slug);
   if (pageContent) {
     const seo = resolveRegionalFlavorSeo(pageContent);
-    const shortName = pageContent.name.replace(/^Bursa\s+/i, '').replace(/^İnegöl\s+/i, '');
-    const titleText = `${shortName} · Bursa`;
+    const titleText = regionalFlavorSeoTitle(pageContent.name, pageContent.city);
     return {
       title: buildSeoTitle(titleText),
       description: seo.description,
@@ -61,7 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: buildSeoTitle('Yöresel lezzet') };
   }
   const { product } = data;
-  const titleText = `${product.name} · Bursa`;
+  const titleText = regionalFlavorSeoTitle(product.name, product.city);
   const description = `${product.name} (${product.city}): ${product.summary} GastroSkor ile mekan önerileri.`;
   return {
     title: buildSeoTitle(titleText),
