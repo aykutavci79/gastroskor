@@ -154,10 +154,19 @@ export function RestaurantDetailView({
     );
   }
 
+  const sectionHeading = (section: string) =>
+    restaurantSectionHeading(
+      restaurant.name,
+      section,
+      restaurant.district,
+      restaurant.city,
+      restaurant.address,
+    );
+
   return (
     <div className="space-y-8">
       {photoUrls.length > 0 || restaurant.google_place_id ? (
-        <RestaurantPhotoCarousel photos={photoUrls} />
+        <RestaurantPhotoCarousel photos={photoUrls} restaurantName={restaurant.name} />
       ) : null}
 
       <div>
@@ -209,7 +218,7 @@ export function RestaurantDetailView({
         <section id="menu" className="scroll-mt-24 rounded-2xl border border-border/70 bg-surface-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">
-              {restaurantSectionHeading(restaurant.name, 'menü')}
+              {sectionHeading('menü')}
             </h2>
             <a
               href={restaurant.promo.menu_image_url}
@@ -227,7 +236,9 @@ export function RestaurantDetailView({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={restaurant.promo.menu_image_url}
-              alt={`${restaurant.name} menu`}
+              alt={`${restaurant.name} menü fotoğrafı`}
+              width={800}
+              height={384}
               className="max-h-96 w-full object-contain"
             />
           </a>
@@ -239,14 +250,20 @@ export function RestaurantDetailView({
 
       {restaurant.menu && restaurant.menu.length > 0 ? (
         <div id="menu" className="scroll-mt-24">
-          <RestaurantPublicMenu items={restaurant.menu} restaurantName={restaurant.name} />
+          <RestaurantPublicMenu
+            items={restaurant.menu}
+            restaurantName={restaurant.name}
+            district={restaurant.district}
+            city={restaurant.city}
+            address={restaurant.address}
+          />
         </div>
       ) : null}
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-content-muted">
-            {restaurantSectionHeading(restaurant.name, 'konum ve tescilli ürünler')}
+            {sectionHeading('konum ve tescilli ürünler')}
           </h2>
           <MapsDirectionsButton
             mapsDirectionsUrl={restaurant.maps_directions_url ?? restaurant.maps_search_url}
@@ -264,20 +281,18 @@ export function RestaurantDetailView({
         summary={latestAnalysis?.summary}
         sentimentLabel={latestAnalysis?.sentiment_label}
         sentimentScore={latestAnalysis?.sentiment_score}
-        heading={restaurantSectionHeading(restaurant.name, 'GastroSkor skorları')}
+        heading={sectionHeading('GastroSkor skorları')}
       />
 
       <ReviewForm
         restaurantId={restaurantId}
         onReviewCreated={handleReviewCreated}
         onAnalyzed={handleAnalyzed}
-        heading={restaurantSectionHeading(restaurant.name, 'yorum yaz')}
+        heading={sectionHeading('yorum yaz')}
       />
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-content">
-          {restaurantSectionHeading(restaurant.name, 'yorumlar')}
-        </h2>
+        <h2 className="mb-4 text-xl font-semibold text-content">{sectionHeading('yorumlar')}</h2>
         <ReviewList
           reviews={reviews}
           viewerEmail={viewerEmail}

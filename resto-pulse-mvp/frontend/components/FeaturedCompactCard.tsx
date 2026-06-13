@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantShareButton } from '@/components/RestaurantShareButton';
-import { featuredCardClass } from '@/components/RestaurantPremiumFrame';
+import { restaurantImageAlt } from '@/lib/seo-title';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { trendingDetailHref } from '@/lib/live-place-card';
 import type { RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
@@ -71,7 +71,14 @@ export function FeaturedCompactCard({ restaurant, href, distanceLabel, googleRat
         <div className="relative shrink-0 bg-surface-input" style={{ height: PHOTO_H }}>
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={cover} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <img
+              src={cover}
+              alt={restaurantImageAlt(restaurant.name, 'restoran fotoğrafı')}
+              width={CARD_W}
+              height={PHOTO_H}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-4xl opacity-40">🍽️</div>
           )}

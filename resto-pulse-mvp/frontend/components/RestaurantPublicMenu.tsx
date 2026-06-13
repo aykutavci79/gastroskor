@@ -4,9 +4,12 @@ import { restaurantSectionHeading } from '@/lib/seo-title';
 type Props = {
   items: RestaurantMenuItem[];
   restaurantName?: string | null;
+  district?: string | null;
+  city?: string | null;
+  address?: string | null;
 };
 
-export function RestaurantPublicMenu({ items, restaurantName }: Props) {
+export function RestaurantPublicMenu({ items, restaurantName, district, city, address }: Props) {
   if (!items.length) return null;
 
   const byCategory = items.reduce<Record<string, RestaurantMenuItem[]>>((acc, item) => {
@@ -19,7 +22,7 @@ export function RestaurantPublicMenu({ items, restaurantName }: Props) {
   return (
     <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-surface-input p-6">
       <h2 className="text-lg font-semibold text-brand-gold">
-        {restaurantSectionHeading(restaurantName, 'menü ve fiyatlar')}
+        {restaurantSectionHeading(restaurantName, 'menü ve fiyatlar', district, city, address)}
       </h2>
       <p className="mt-1 text-xs text-content-muted">Isletme tarafindan girildi · Abonelik aktifken yayinda</p>
       <div className="mt-4 space-y-5">

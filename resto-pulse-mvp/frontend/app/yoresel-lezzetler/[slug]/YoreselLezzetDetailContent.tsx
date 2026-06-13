@@ -10,6 +10,7 @@ import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
 import { livePlaceDistanceLabel, livePlaceDetailHref, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import type { RegionalFlavorPageContent } from '@/lib/regional-flavor-page-content';
+import { trimImageAlt } from '@/lib/seo-title';
 import {
   resolveRegionalFlavorH1,
   resolveRegionalFlavorRestaurantTitle,
@@ -155,7 +156,9 @@ export function YoreselLezzetDetailContent({
                   <div className="relative h-52 w-full shrink-0 md:h-auto md:w-80 lg:w-96">
                     <img
                       src={product.image_url}
-                      alt={product.name}
+                      alt={trimImageAlt(`${product.name} — yöresel lezzet görseli`)}
+                      width={384}
+                      height={208}
                       className="h-full w-full object-cover"
                       referrerPolicy="no-referrer"
                     />
@@ -306,7 +309,9 @@ export function YoreselLezzetDetailContent({
               <div className="relative h-48 w-full shrink-0 border-t border-border/40 sm:h-auto sm:w-56 sm:border-l sm:border-t-0 md:w-72">
                 <img
                   src={product.image_url}
-                  alt={product.name}
+                  alt={trimImageAlt(`${product.name} — yöresel lezzet görseli`)}
+                  width={288}
+                  height={192}
                   className="h-full w-full object-cover"
                   referrerPolicy="no-referrer"
                 />

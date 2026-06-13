@@ -149,12 +149,30 @@ export function restaurantPageHeading(
   return location ? `${cleanName} · ${location}` : cleanName;
 }
 
-/** Bolum H2 — ayni metni farkli sayfalarda tekrarlamamak icin restoran adi ekler. */
+/** Bolum H2 — ayni metni farkli sayfalarda tekrarlamamak icin restoran + konum ekler. */
 export function restaurantSectionHeading(
   name: string | null | undefined,
   section: string,
+  district?: string | null,
+  city?: string | null,
+  address?: string | null,
 ): string {
   const cleanName = sanitizeRestaurantDisplayName(name);
-  if (!cleanName) return section;
+  const location = restaurantLocationLabel(district, city, address);
+  if (!cleanName) return location ? `${location} — ${section}` : section;
+  if (location) return `${cleanName} · ${location} — ${section}`;
   return `${cleanName} — ${section}`;
+}
+
+/** Gorsel alt metni — SF 100 karakter siniri. */
+export function trimImageAlt(text: string, maxLen = 100): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (clean.length <= maxLen) return clean;
+  const slice = clean.slice(0, maxLen - 1).replace(/\s+\S*$/, '').trim();
+  return slice.endsWith('…') ? slice : `${slice}…`;
+}
+
+export function restaurantImageAlt(name: string | null | undefined, suffix: string): string {
+  const cleanName = sanitizeRestaurantDisplayName(name);
+  return trimImageAlt(cleanName ? `${cleanName} — ${suffix}` : suffix);
 }

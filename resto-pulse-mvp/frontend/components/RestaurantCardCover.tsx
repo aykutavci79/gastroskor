@@ -1,4 +1,4 @@
-import { RestaurantCardCoverArt } from '@/components/RestaurantCardCoverArt';
+import { restaurantImageAlt } from '@/lib/seo-title';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import type { RestaurantMenuItem } from '@/lib/types';
 
@@ -30,7 +30,14 @@ export function RestaurantCardCover({
       aria-hidden>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+        <img
+          src={src}
+          alt={restaurantImageAlt(name, 'restoran görseli')}
+          width={480}
+          height={320}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
       ) : (
         <RestaurantCardCoverArt visual={visual} seed={name ?? category ?? ''} compact={compact} />
       )}

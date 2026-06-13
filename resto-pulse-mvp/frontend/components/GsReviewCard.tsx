@@ -250,7 +250,7 @@ export function GsReviewCard({ review, viewerEmail = null, viewerUserId = null, 
             <div className="mt-3 flex gap-2 overflow-x-auto">
               {review.image_urls!.map((uri) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={uri} src={uri} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+                <img key={uri} src={uri} alt="Yorum fotoğrafı" width={80} height={80} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
               ))}
             </div>
           ) : null}
