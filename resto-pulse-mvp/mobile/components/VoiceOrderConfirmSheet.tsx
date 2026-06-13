@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
+import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import {
   getOrderPhoneStatus,
@@ -23,8 +25,12 @@ import {
   verifyOrderPhoneOtp,
 } from '@/lib/api';
 import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
+import {
+  parseVoiceOrderConfirmIntent,
+  polishVoiceOrderCommandTranscript,
+} from '@/lib/voice-order-stt-fix';
 import { gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
-import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
+import { applyOrderPhoneSendOtpResult, tryAutoVerifyOrderPhoneBypass } from '@/lib/order-phone-otp';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
   formatVoiceOrderCommandSummary,
@@ -66,7 +72,10 @@ export function VoiceOrderConfirmSheet({
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmMicActive, setConfirmMicActive] = useState(false);
   const spokeConfirmRef = useRef(false);
+  const submittingRef = useRef(false);
+  const autoBypassAttemptRef = useRef<string | null>(null);
 
   const resolved = useMemo(() => {
     if (!command || !restaurant) return { line: null, choices: [], issue: null };
@@ -84,27 +93,76 @@ export function VoiceOrderConfirmSheet({
       setOtpInfo(null);
       return;
     }
-    AsyncStorage.getItem(ADDRESS_STORAGE_KEY)
-      .then((value) => {
-        if (value) setAddress(value);
-      })
-      .catch(() => undefined);
-    AsyncStorage.getItem(PHONE_STORAGE_KEY)
-      .then((value) => {
-        if (value) setPhone(value);
-      })
-      .catch(() => undefined);
     if (!userEmail) return;
-    void getOrderPhoneStatus(userEmail)
-      .then((status) => {
-        if (status.verified && status.phone_e164) {
-          setVerifiedPhoneE164(status.phone_e164);
-          setPhone(formatTrMobileDisplay(status.phone_e164));
-          setPhoneVerified(true);
-        }
-      })
-      .catch(() => undefined);
+
+    let cancelled = false;
+
+    void (async () => {
+      const [storedAddress, storedPhone] = await Promise.all([
+        AsyncStorage.getItem(ADDRESS_STORAGE_KEY).catch(() => null),
+        AsyncStorage.getItem(PHONE_STORAGE_KEY).catch(() => null),
+      ]);
+      if (cancelled) return;
+      if (storedAddress) setAddress(storedAddress);
+      if (storedPhone) setPhone(storedPhone);
+
+      const status = await getOrderPhoneStatus(userEmail).catch(() => null);
+      if (cancelled || !status) return;
+
+      if (status.verified && status.phone_e164) {
+        setVerifiedPhoneE164(status.phone_e164);
+        setPhone(formatTrMobileDisplay(status.phone_e164));
+        setPhoneVerified(true);
+        return;
+      }
+
+      const phoneCandidate = (storedPhone ?? phone).trim();
+      if (!phoneCandidate) return;
+
+      await tryAutoVerifyOrderPhoneBypass({
+        userEmail,
+        phoneInput: phoneCandidate,
+        storageKey: PHONE_STORAGE_KEY,
+        setVerifiedPhoneE164,
+        setPhoneVerified,
+        setOtpSent,
+        setOtpCode,
+        setOtpInfo,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [visible, userEmail]);
+
+  useEffect(() => {
+    if (!visible || !userEmail || phoneVerified) return;
+    const normalized = normalizeTrMobileInput(phone);
+    if (!normalized || normalized === autoBypassAttemptRef.current) return;
+
+    const timer = setTimeout(() => {
+      autoBypassAttemptRef.current = normalized;
+      void tryAutoVerifyOrderPhoneBypass({
+        userEmail,
+        phoneInput: phone,
+        storageKey: PHONE_STORAGE_KEY,
+        setVerifiedPhoneE164,
+        setPhoneVerified,
+        setOtpSent,
+        setOtpCode,
+        setOtpInfo,
+      }).then((verified) => {
+        if (!verified) autoBypassAttemptRef.current = null;
+      });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [visible, userEmail, phone, phoneVerified]);
+
+  useEffect(() => {
+    if (!visible) autoBypassAttemptRef.current = null;
+  }, [visible]);
 
   useEffect(() => {
     setSelectedMatch(null);
@@ -118,18 +176,24 @@ export function VoiceOrderConfirmSheet({
   useEffect(() => {
     if (!visible) {
       spokeConfirmRef.current = false;
+      submittingRef.current = false;
+      setConfirmMicActive(false);
       gastroStopSpeaking();
       return;
     }
     if (spokeConfirmRef.current || !command || !restaurant || !activeLine) return;
 
-    gastroSpeakOrderConfirm({
-      restaurantName: restaurant.name,
-      quantity: command.quantity,
-      productLabel: activeLine.label,
-      totalTl: formatPriceTl(lineTotal, 0),
-      paymentNote: command.paymentNote,
-    });
+    setConfirmMicActive(false);
+    gastroSpeakOrderConfirm(
+      {
+        restaurantName: restaurant.name,
+        quantity: command.quantity,
+        productLabel: activeLine.label,
+        totalTl: formatPriceTl(lineTotal, 0),
+        paymentNote: command.paymentNote,
+      },
+      () => setConfirmMicActive(true),
+    );
     spokeConfirmRef.current = true;
   }, [visible, command, restaurant, activeLine, lineTotal]);
 
@@ -179,6 +243,7 @@ export function VoiceOrderConfirmSheet({
   }
 
   async function onConfirm() {
+    if (submittingRef.current) return;
     if (!userEmail) {
       Alert.alert('Giriş gerekli', 'Sipariş için önce hesabına giriş yap.');
       return;
@@ -197,6 +262,7 @@ export function VoiceOrderConfirmSheet({
     }
 
     setSubmitting(true);
+    submittingRef.current = true;
     setError(null);
     try {
       const note = [
@@ -227,6 +293,20 @@ export function VoiceOrderConfirmSheet({
       setError(err instanceof Error ? err.message : 'Sipariş gönderilemedi.');
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
+    }
+  }
+
+  function handleConfirmVoice(text: string, isFinal: boolean) {
+    if (!isFinal || submitting) return;
+    const intent = parseVoiceOrderConfirmIntent(polishVoiceOrderCommandTranscript(text));
+    if (intent === 'cancel') {
+      setConfirmMicActive(false);
+      onClose();
+      return;
+    }
+    if (intent === 'confirm') {
+      void onConfirm();
     }
   }
 
@@ -336,6 +416,21 @@ export function VoiceOrderConfirmSheet({
               {otpInfo ? <Text style={styles.info}>{otpInfo}</Text> : null}
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
+              {Platform.OS === 'ios' && confirmMicActive && !submitting ? (
+                <View style={styles.voiceConfirmRow}>
+                  <Text style={styles.voiceConfirmHint}>Sesle: “Evet” veya “Onayla”</Text>
+                  <SpeechMicErrorBoundary compact>
+                    <GastroVoiceMicButton
+                      compact
+                      active={confirmMicActive}
+                      autoStart
+                      disabled={submitting}
+                      onTranscript={handleConfirmVoice}
+                    />
+                  </SpeechMicErrorBoundary>
+                </View>
+              ) : null}
+
               <View style={styles.actions}>
                 <Pressable style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
                   <Text style={styles.cancelText}>Vazgeç</Text>
@@ -433,6 +528,19 @@ const styles = StyleSheet.create({
   verified: { color: GastroColors.success, fontSize: 13, fontWeight: '700' },
   info: { color: GastroColors.muted, fontSize: 12 },
   error: { color: GastroColors.bad, fontSize: 12 },
+  voiceConfirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,53,0.35)',
+    backgroundColor: 'rgba(255,107,53,0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  voiceConfirmHint: { flex: 1, color: GastroColors.muted, fontSize: 12, lineHeight: 16 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   cancelBtn: {
     flex: 1,

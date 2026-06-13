@@ -24,8 +24,14 @@ export function formatApiError(err: unknown, context?: string): string {
   if (raw.includes('GOOGLE_PLACES_API_KEY')) {
     return `${prefix}Sunucuda Google Places anahtari eksik. Railway/backend .env icinde GOOGLE_PLACES_API_KEY tanimla.`;
   }
-  if (raw.includes('REQUEST_DENIED') || raw.includes('Google Places')) {
-    return `${prefix}Google Places reddetti. Cloud Console'da Places API acik mi ve API anahtari sunucu (IP/kisitsiz) icin mi?`;
+  if (raw.includes('REQUEST_DENIED') || raw.includes('This API project is not authorized')) {
+    return `${prefix}Google Places reddetti. Cloud Console'da Places API (Legacy) acik mi, faturalandirma aktif mi ve API anahtari Railway sunucusundan cagrilabilir mi?`;
+  }
+  if (raw.includes('StringDataRightTruncation') || raw.includes('value too long for type character varying')) {
+    return `${prefix}Sunucu veritabani guncel degil (photo_reference). Railway'de alembic upgrade head (0043) calistir.`;
+  }
+  if (raw.includes('Google Places')) {
+    return `${prefix}Google Places veya sunucu kayit hatasi. Backend loglarina bak; genelde migration veya API anahtari.`;
   }
   if (/^5\d{2}:/.test(raw) || raw.includes('Internal Server')) {
     return `${prefix}Sunucu hatasi (${base}). Backend loglarina bak; migration eksik olabilir.`;

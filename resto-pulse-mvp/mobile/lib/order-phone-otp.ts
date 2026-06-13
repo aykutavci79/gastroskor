@@ -44,3 +44,39 @@ export async function applyOrderPhoneSendOtpResult({
   }
   return false;
 }
+
+type AutoVerifyBypassArgs = Omit<ApplyAutoVerifyArgs, 'result'> & {
+  userEmail: string;
+};
+
+/** Test bypass numarasi: send-otp cagir, SMS adimini atla (Railway ORDER_PHONE_TEST_BYPASS). */
+export async function tryAutoVerifyOrderPhoneBypass({
+  userEmail,
+  phoneInput,
+  storageKey,
+  setVerifiedPhoneE164,
+  setPhoneVerified,
+  setOtpSent,
+  setOtpCode,
+  setOtpInfo,
+}: AutoVerifyBypassArgs): Promise<boolean> {
+  const trimmed = phoneInput.trim();
+  if (!trimmed || trimmed.replace(/\D/g, '').length < 10) return false;
+
+  const { sendOrderPhoneOtp } = await import('@/lib/api');
+  try {
+    const result = await sendOrderPhoneOtp(userEmail, trimmed);
+    return applyOrderPhoneSendOtpResult({
+      result,
+      phoneInput: trimmed,
+      storageKey,
+      setVerifiedPhoneE164,
+      setPhoneVerified,
+      setOtpSent,
+      setOtpCode,
+      setOtpInfo,
+    });
+  } catch {
+    return false;
+  }
+}

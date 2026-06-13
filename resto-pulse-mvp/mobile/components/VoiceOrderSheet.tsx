@@ -18,11 +18,13 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
 import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
+import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderSummary,
   parseVoiceOrderQuery,
   type VoiceOrderQuery,
 } from '@/lib/parse-voice-order-query';
+import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
 
 type Props = {
   visible: boolean;
@@ -50,7 +52,14 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   const canSearch = parsed.voiceProduct != null && parsed.priceMax != null && !searching;
 
   useEffect(() => {
-    if (visible) setMicActive(true);
+    if (!visible) {
+      setMicActive(false);
+      gastroStopSpeaking();
+      return;
+    }
+    setDraft('');
+    setMicActive(false);
+    gastroSpeakListening(() => setMicActive(true));
   }, [visible]);
 
   function applyExample(text: string) {
@@ -64,9 +73,11 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
   }
 
   function handleVoiceTranscript(text: string, isFinal: boolean) {
-    setDraft(text);
+    const polished = polishVoiceOrderQueryTranscript(text);
+    if (!polished) return;
+    setDraft(polished);
     if (!isFinal || searching) return;
-    const query = parseVoiceOrderQuery(text);
+    const query = parseVoiceOrderQuery(polished);
     if (query.voiceProduct && query.priceMax != null) {
       setMicActive(false);
       onSearch(query);
@@ -128,6 +139,7 @@ export function VoiceOrderSheet({ visible, searching = false, onClose, onSearch 
                   <GastroVoiceMicButton
                     compact
                     active={micActive}
+                    autoStart={Platform.OS === 'ios' && micActive}
                     disabled={searching}
                     onTranscript={handleVoiceTranscript}
                   />

@@ -1,4 +1,9 @@
 import type {
+  FoodcastFeedResponse,
+  FoodcastPhotoItem,
+  FoodcastReportReason,
+} from '@/lib/foodcast-types';
+import type {
   AiReportTrend,
   CompetitorAiReport,
   GoogleReviewLink,
@@ -24,6 +29,7 @@ import type {
   RestaurantFollowStatus,
   RestaurantTrendingItem,
   RegionalProductDetailResponse,
+  RegionalProductDiscoverResponse,
   RegionalProductListResponse,
   Review,
   ReviewAnalyzeResult,
@@ -224,6 +230,21 @@ export function getRegionalProduct(slug: string, params?: { city?: string }) {
   const query = search.toString();
   return request<RegionalProductDetailResponse>(
     `/regional-flavors/products/${encodeURIComponent(slug)}${query ? `?${query}` : ''}`,
+  );
+}
+
+export function discoverRegionalProduct(
+  slug: string,
+  params?: { city?: string; origin_lat?: number; origin_lng?: number; limit?: number },
+) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
+  if (params?.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<RegionalProductDiscoverResponse>(
+    `/regional-flavors/products/${encodeURIComponent(slug)}/discover${query ? `?${query}` : ''}`,
   );
 }
 
@@ -975,4 +996,59 @@ export function issuePanelReviewRemedyOffer(payload: {
       }),
     },
   );
+}
+
+export function getFoodcastFeed(params?: { city?: string; limit?: number; offset?: number }) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  if (params?.offset != null) search.set('offset', String(params.offset));
+  const query = search.toString();
+  return request<FoodcastFeedResponse>(`/foodcast/feed${query ? `?${query}` : ''}`);
+}
+
+export async function uploadFoodcastPhoto(params: {
+  author_email: string;
+  restaurant_id: string;
+  dish_name: string;
+  latitude: number;
+  longitude: number;
+  caption?: string;
+  localUri: string;
+  mimeType: string;
+  fileName: string;
+}) {
+  const form = new FormData();
+  form.append('author_email', params.author_email);
+  form.append('restaurant_id', params.restaurant_id);
+  form.append('dish_name', params.dish_name);
+  form.append('latitude', String(params.latitude));
+  form.append('longitude', String(params.longitude));
+  if (params.caption?.trim()) form.append('caption', params.caption.trim());
+  form.append('file', {
+    uri: params.localUri,
+    type: params.mimeType,
+    name: params.fileName,
+  } as unknown as Blob);
+
+  const response = await fetch(`${getApiV1Base()}/foodcast/photos`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: form,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(formatApiError(text || `Upload failed ${response.status}`));
+  }
+  return response.json() as Promise<{ photo: FoodcastPhotoItem }>;
+}
+
+export function reportFoodcastPhoto(
+  photoId: string,
+  payload: { reporter_email?: string; reason: FoodcastReportReason; note?: string },
+) {
+  return request<{ ok: boolean; message: string }>(`/foodcast/photos/${encodeURIComponent(photoId)}/report`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }

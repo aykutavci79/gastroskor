@@ -1,36 +1,34 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
+import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import { GastroColors } from '@/constants/theme';
-
-export type KesfetChipId = 'en-iyi' | 'sokak' | 'tescilli' | 'online';
-
-const CHIPS: { id: KesfetChipId; label: string }[] = [
-  { id: 'en-iyi', label: 'En iyisi' },
-  { id: 'sokak', label: 'Sokak' },
-  { id: 'tescilli', label: 'Tescilli' },
-  { id: 'online', label: 'Online sipariş' },
-];
+import { kitchenShortLabel } from '@/lib/kitchen-category-visual';
 
 type Props = {
-  active?: KesfetChipId;
-  onChange?: (id: KesfetChipId) => void;
+  activeSlug?: string | null;
+  onSelect: (slug: string) => void;
 };
 
-export function KesfetFilterChips({ active = 'en-iyi', onChange }: Props) {
+export function KesfetKitchenChips({ activeSlug = null, onSelect }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
-      style={styles.wrap}>
-      {CHIPS.map((chip) => {
-        const on = chip.id === active;
+      style={styles.wrap}
+      keyboardShouldPersistTaps="handled">
+      {ONLINE_ORDER_CATEGORIES.map((cat) => {
+        const on = cat.slug === activeSlug;
         return (
           <Pressable
-            key={chip.id}
+            key={cat.slug}
             style={[styles.chip, on && styles.chipOn]}
-            onPress={() => onChange?.(chip.id)}>
-            <Text style={[styles.chipText, on && styles.chipTextOn]}>{chip.label}</Text>
+            onPress={() => onSelect(cat.slug)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}>
+            <Text style={[styles.chipText, on && styles.chipTextOn]}>
+              {kitchenShortLabel(cat.label, 14)}
+            </Text>
           </Pressable>
         );
       })}

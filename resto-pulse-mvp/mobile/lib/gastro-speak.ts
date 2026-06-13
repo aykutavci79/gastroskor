@@ -169,15 +169,52 @@ type OrderConfirmSpeech = {
 };
 
 /** Siparis onay sheet — ozet + onay sorusu */
-export function gastroSpeakOrderConfirm(input: OrderConfirmSpeech): void {
+export function gastroSpeakOrderConfirm(input: OrderConfirmSpeech, onDone?: () => void): void {
   const totalPart = input.totalTl ? `${input.totalTl} lira` : '';
-  gastroSpeakSequence([
-    `${speakNameForTts(input.restaurantName)}.`,
-    `${input.quantity} ${speakNameForTts(input.productLabel)}.`,
-    totalPart,
-    input.paymentNote,
-    'Onaylıyor musun?',
-  ].filter(Boolean));
+  gastroSpeakSequence(
+    [
+      `${speakNameForTts(input.restaurantName)}.`,
+      `${input.quantity} ${speakNameForTts(input.productLabel)}.`,
+      totalPart,
+      input.paymentNote,
+      'Onaylıyor musun? Evet dersen gönderirim.',
+    ].filter(Boolean),
+    { onDone },
+  );
+}
+
+export type VoiceOrderRestaurantSpeech = {
+  letter: string;
+  name: string;
+};
+
+/** Online siparis aramasi sonrasi A/B/C secenekleri */
+export function gastroSpeakVoiceOrderRestaurantOptions(
+  options: VoiceOrderRestaurantSpeech[],
+  onDone?: () => void,
+): void {
+  if (!options.length) {
+    gastroSpeak('Uygun restoran bulamadım.', { onDone });
+    return;
+  }
+
+  const chunks: string[] = [
+    options.length === 1
+      ? '1 restoran buldum.'
+      : `${options.length} restoran buldum.`,
+    'Hangisinden sipariş vermek istersin?',
+  ];
+
+  options.slice(0, 3).forEach((row) => {
+    chunks.push(`${row.letter} harfi, ${speakNameForTts(row.name)}.`);
+  });
+
+  if (options.length > 3) {
+    chunks.push('Daha fazla seçenek ekranda.');
+  }
+
+  chunks.push("Örneğin B'den 3 lahmacun, kapıda kredi kartı de.");
+  gastroSpeakSequence(chunks, { onDone });
 }
 
 /** @deprecated gastroSpeakVoiceSearchResults kullan */

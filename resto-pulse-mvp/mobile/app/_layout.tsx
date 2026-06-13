@@ -82,6 +82,8 @@ function RootLayout() {
             <Stack.Screen name="dm" options={{ headerShown: false }} />
             <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
             <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
+            <Stack.Screen name="foodcast/index" options={{ headerShown: false }} />
+            <Stack.Screen name="foodcast/paylas" options={{ title: 'Tabak paylaş' }} />
             <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
             <Stack.Screen
               name="siparis-acik"

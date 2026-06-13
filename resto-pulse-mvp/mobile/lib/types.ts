@@ -31,6 +31,15 @@ export type RegionalProductDetailResponse = {
   discovery_note: string;
 };
 
+export type RegionalProductDiscoverResponse = {
+  product: RegionalProductItem;
+  discovery_note: string;
+  search_query: string;
+  places: LivePlaceSearchItem[];
+  places_count: number;
+  places_error?: string | null;
+};
+
 export type ReviewCategory = {
   category: string;
   score: number | null;

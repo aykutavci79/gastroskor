@@ -25,7 +25,21 @@ export function livePlaceToRestaurantCard(item: LivePlaceSearchItem): Restaurant
     geo_indications: [],
     has_geographical_indication: false,
     gi_product_name: null,
+    gastro_score: item.gastro_score,
+    distance_score: item.distance_score,
+    rating_score: item.rating_score,
+    popularity_score: item.popularity_score ?? null,
   };
+}
+
+/** Canli arama sonuclarini GastroSkor'a gore siralar (API sirasini korur). */
+export function sortLivePlacesByGastroScore(items: LivePlaceSearchItem[]): LivePlaceSearchItem[] {
+  return [...items].sort(
+    (a, b) =>
+      (b.gastro_score ?? 0) - (a.gastro_score ?? 0) ||
+      (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12) ||
+      (b.rating ?? 0) - (a.rating ?? 0),
+  );
 }
 
 export function livePlaceDistanceLabel(item: LivePlaceSearchItem): string | undefined {

@@ -40,6 +40,13 @@ function extractQuantity(text: string): number | null {
     const n = Number(digit[1]);
     return n > 0 && n <= 99 ? n : null;
   }
+  const bareProduct = text.match(
+    /\b(\d+)\s+(?:lahmacun|cantik|cantık|pide|doner|döner|kebap|adana|iskender|tantuni|burger)\b/i,
+  );
+  if (bareProduct) {
+    const n = Number(bareProduct[1]);
+    return n > 0 && n <= 99 ? n : null;
+  }
   for (const [word, qty] of Object.entries(WORD_QTY)) {
     if (new RegExp(`\\b${word}\\s*(?:adet|tane)\\b`).test(text)) return qty;
   }
@@ -67,6 +74,13 @@ function extractRestaurantIndex(
   const letterNearRest = text.match(/\b([a-z])\s*restoran/i);
   if (letterNearRest) {
     const letter = letterNearRest[1].toUpperCase();
+    const hit = options.find((row) => row.letter === letter);
+    if (hit) return { index: hit.index, letter: hit.letter, name: hit.name };
+  }
+
+  const letterHarfi = text.match(/\b([a-z])\s*harfi\b/i);
+  if (letterHarfi) {
+    const letter = letterHarfi[1].toUpperCase();
     const hit = options.find((row) => row.letter === letter);
     if (hit) return { index: hit.index, letter: hit.letter, name: hit.name };
   }

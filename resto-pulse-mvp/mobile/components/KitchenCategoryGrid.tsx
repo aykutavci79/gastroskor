@@ -6,7 +6,7 @@ import {
   KITCHEN_TILE_GRADIENT,
   kitchenCategoryImage,
 } from '@/constants/kitchen-category-images';
-import { GastroColors } from '@/constants/theme';
+import { GastroColors, GastroShadow } from '@/constants/theme';
 import { kitchenEmoji, type KitchenPickerItem } from '@/lib/kitchen-category-visual';
 
 type Props = {
@@ -19,6 +19,7 @@ type Props = {
 /** 11 mutfak → 4 sütun × 3 satır (- son satırda 3 kutu) */
 const COLS = 4;
 const GAP = 6;
+const TILE_RADIUS = 14;
 
 export function KitchenCategoryGrid({ categories, selectedSlugs, onToggle, onClear }: Props) {
   return (
@@ -71,16 +72,25 @@ function KitchenTile({
   const gradient = KITCHEN_TILE_GRADIENT[category.slug] ?? ['#3a3a3a', '#1a1a1a'];
 
   return (
-    <View style={[styles.tile, selected && styles.tileOn]}>
-      {image?.kind === 'local' ? (
-        <Image source={image.source} style={StyleSheet.absoluteFill} contentFit="cover" />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: gradient[0] }]}>
-          <View style={styles.emojiWrap}>
-            <Text style={styles.emoji}>{kitchenEmoji(category.slug)}</Text>
+    <View style={[styles.tileShell, selected && styles.tileShellOn]}>
+      <View style={[styles.tileInner, selected && styles.tileInnerOn]}>
+        {image?.kind === 'local' ? (
+          <Image
+            source={image.source}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            contentPosition="center"
+            cachePolicy="memory-disk"
+            transition={120}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: gradient[0] }]}>
+            <View style={styles.emojiWrap}>
+              <Text style={styles.emoji}>{kitchenEmoji(category.slug)}</Text>
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
       {selected ? (
         <View style={styles.check}>
@@ -111,19 +121,35 @@ const styles = StyleSheet.create({
     padding: GAP / 2,
     gap: 4,
   },
-  cellPressed: { opacity: 0.92 },
-  tile: {
+  cellPressed: { opacity: 0.94 },
+  tileShell: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: GastroColors.input,
+    borderRadius: TILE_RADIUS,
+    borderWidth: 1,
+    borderColor: '#3A3A3A',
+    backgroundColor: '#252525',
+    ...GastroShadow.card,
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
-  tileOn: {
+  tileShellOn: {
     borderColor: GastroColors.accent,
-    borderWidth: 2.5,
+    borderWidth: 2,
+    ...GastroShadow.featured,
+    shadowOpacity: 0.2,
+    elevation: 6,
+  },
+  tileInner: {
+    flex: 1,
+    borderRadius: TILE_RADIUS - 1,
+    overflow: 'hidden',
+    backgroundColor: '#252525',
+  },
+  tileInnerOn: {
+    borderRadius: TILE_RADIUS - 2,
   },
   labelBelow: {
     color: GastroColors.muted,

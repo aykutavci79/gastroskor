@@ -45,10 +45,12 @@ import {
 } from '@/lib/parse-voice-order-query';
 import { restaurantDetailHref } from '@/lib/uuid';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
+import { gastroSpeakVoiceOrderRestaurantOptions } from '@/lib/gastro-speak';
 
 import type { OnlineOrderCategoryOption, RestaurantListItem } from '@/lib/types';
 
 const MAX_DISTANCE_KM = 10;
+const DEFAULT_DISTANCE_KM = 5;
 const MAX_RATING = 5;
 
 type AppliedFilters = {
@@ -63,7 +65,7 @@ export default function OnlineOrdersOpenScreen() {
   const [allItems, setAllItems] = useState<RestaurantListItem[]>([]);
   const [categories, setCategories] = useState<OnlineOrderCategoryOption[]>(ONLINE_ORDER_CATEGORIES);
   const [draftSlugs, setDraftSlugs] = useState<string[]>([]);
-  const [draftMaxDistanceKm, setDraftMaxDistanceKm] = useState(MAX_DISTANCE_KM);
+  const [draftMaxDistanceKm, setDraftMaxDistanceKm] = useState(DEFAULT_DISTANCE_KM);
   const [draftMinRating, setDraftMinRating] = useState(ONLINE_ORDER_MIN_RATING);
   const [applied, setApplied] = useState<AppliedFilters | null>(null);
   const [hasListed, setHasListed] = useState(false);
@@ -214,6 +216,17 @@ export default function OnlineOrdersOpenScreen() {
         setAllItems(Array.isArray(res.items) ? res.items : []);
         if (Array.isArray(res.categories) && res.categories.length) setCategories(res.categories);
         setVoiceSheetOpen(false);
+
+        const resultItems = Array.isArray(res.items) ? res.items : [];
+        if (resultItems.length > 0) {
+          const speechOptions = buildVoiceOrderRestaurantOptions(
+            resultItems.map((row) => ({ id: row.id, name: row.name })),
+            8,
+          );
+          gastroSpeakVoiceOrderRestaurantOptions(speechOptions, () => {
+            setVoiceCommandOpen(true);
+          });
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Sesli arama basarisiz');
         setAllItems([]);
@@ -352,7 +365,7 @@ export default function OnlineOrdersOpenScreen() {
               <Pressable
                 style={styles.voiceOrderLink}
                 onPress={() => setVoiceCommandOpen(true)}>
-                <Text style={styles.voiceOrderLinkText}>Sipariş komutu yaz (A/B/C harfi)</Text>
+                <Text style={styles.voiceOrderLinkText}>Sipariş komutu (ses veya yaz)</Text>
               </Pressable>
             ) : null}
           </View>
@@ -588,7 +601,7 @@ const styles = StyleSheet.create({
   ratingHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
   listBtn: {
     marginTop: 4,
-    backgroundColor: GastroColors.gold,
+    backgroundColor: '#FFB635',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',

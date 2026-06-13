@@ -1,6 +1,5 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { KesfetFilterChips, type KesfetChipId } from '@/components/KesfetFilterChips';
+import { KesfetKitchenChips } from '@/components/KesfetKitchenChips';
 import { KesfetHomeChrome } from '@/components/KesfetHomeChrome';
 import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
 import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
@@ -27,7 +26,9 @@ import { formatApiError } from '@/lib/format-api-error';
 import {
   livePlaceDistanceLabel,
   livePlaceToRestaurantCard,
+  sortLivePlacesByGastroScore,
 } from '@/lib/live-place-card';
+import { kitchenChipLabel, kitchenChipSearchQuery } from '@/lib/kesfet-kitchen-search';
 import {
   consumePendingKesfetVoiceSearch,
   registerKesfetVoiceSearchListener,
@@ -47,7 +48,6 @@ type Coords = { lat: number; lng: number };
 const SEARCH_CITY = 'Bursa';
 
 export default function ExploreScreen() {
-  const router = useRouter();
   const navigation = useNavigation();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
@@ -57,7 +57,7 @@ export default function ExploreScreen() {
 
   const [inputQuery, setInputQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [activeChip, setActiveChip] = useState<KesfetChipId>('en-iyi');
+  const [activeKitchenSlug, setActiveKitchenSlug] = useState<string | null>(null);
 
   const [searchItems, setSearchItems] = useState<LivePlaceSearchItem[]>([]);
   const [searchCards, setSearchCards] = useState<RestaurantListItem[]>([]);
@@ -77,8 +77,11 @@ export default function ExploreScreen() {
     setSearchItems([]);
     setSearchCards([]);
     setLiveParsed(null);
+    setActiveKitchenSlug(null);
     setError(null);
   }, []);
+
+  const kitchenBrowseMode = activeKitchenSlug != null && !searchMode;
 
   useEffect(() => {
     let cancelled = false;
@@ -103,12 +106,12 @@ export default function ExploreScreen() {
   useEffect(() => {
     const unsub = navigation.addListener('tabPress', () => {
       if (!navigation.isFocused()) return;
-      if (searchMode || searchFocused) {
+      if (searchMode || searchFocused || kitchenBrowseMode) {
         resetKesfetVitrin();
       }
     });
     return unsub;
-  }, [navigation, resetKesfetVitrin, searchFocused, searchMode]);
+  }, [navigation, resetKesfetVitrin, searchFocused, searchMode, kitchenBrowseMode]);
 
   const ensureCoords = useCallback(async (): Promise<Coords | null> => {
     if (coordsRef.current) return coordsRef.current;
@@ -180,6 +183,36 @@ export default function ExploreScreen() {
     }
   }, [refreshCoordsIfStale, ensureCoords]);
 
+  const loadKitchenResults = useCallback(
+    async (slug: string) => {
+      const q = kitchenChipSearchQuery(slug);
+      setLoadingSearch(true);
+      setError(null);
+      try {
+        await refreshCoordsIfStale();
+        const coords = (await ensureCoords()) ?? coordsRef.current;
+        const result = await searchLivePlaces({
+          q,
+          city: SEARCH_CITY,
+          limit: 20,
+          origin_lat: coords?.lat,
+          origin_lng: coords?.lng,
+        });
+        const sorted = sortLivePlacesByGastroScore(result.items);
+        setSearchItems(sorted);
+        setSearchCards(sorted.map(livePlaceToRestaurantCard));
+        setLiveParsed(result.parsed);
+      } catch (err) {
+        setError(formatApiError(err, 'Mutfak araması'));
+        setSearchItems([]);
+        setSearchCards([]);
+      } finally {
+        setLoadingSearch(false);
+      }
+    },
+    [refreshCoordsIfStale, ensureCoords],
+  );
+
   const handleVoiceTranscript = useCallback(
     (text: string) => {
       const polished = polishVoiceSearchTranscript(text);
@@ -206,16 +239,33 @@ export default function ExploreScreen() {
   );
 
   useEffect(() => {
+    if (searchMode) {
+      setActiveKitchenSlug(null);
+    }
+  }, [searchMode]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
-      void loadSearchResults(inputQuery);
+      if (searchMode) {
+        void loadSearchResults(inputQuery);
+      }
     }, 500);
     return () => clearTimeout(timer);
-  }, [inputQuery, loadSearchResults]);
+  }, [inputQuery, loadSearchResults, searchMode]);
+
+  useEffect(() => {
+    if (!activeKitchenSlug || searchMode) return;
+    void loadKitchenResults(activeKitchenSlug);
+  }, [activeKitchenSlug, loadKitchenResults, searchMode]);
 
   async function onRefresh() {
-    if (!searchMode) return;
+    if (!searchMode && !kitchenBrowseMode) return;
     setRefreshing(true);
-    await loadSearchResults(trimmedQuery);
+    if (kitchenBrowseMode && activeKitchenSlug) {
+      await loadKitchenResults(activeKitchenSlug);
+    } else {
+      await loadSearchResults(trimmedQuery);
+    }
     setRefreshing(false);
   }
 
@@ -225,17 +275,21 @@ export default function ExploreScreen() {
     setSearchFocused(false);
   }
 
-  function handleChipChange(chip: KesfetChipId) {
+  function handleKitchenSelect(slug: string) {
     dismissKeyboard();
-    setActiveChip(chip);
-    if (chip === 'online') {
-      router.push('/siparis-acik' as never);
+    if (activeKitchenSlug === slug) {
+      setActiveKitchenSlug(null);
+      setSearchItems([]);
+      setSearchCards([]);
+      setLiveParsed(null);
+      setError(null);
       return;
     }
-    if (chip === 'tescilli') {
-      router.push('/yoresel' as never);
-    }
+    setInputQuery('');
+    setActiveKitchenSlug(slug);
   }
+
+  const listMode = searchMode || kitchenBrowseMode;
 
   const chrome = (
     <View style={styles.chromeWrap}>
@@ -253,8 +307,14 @@ export default function ExploreScreen() {
     </View>
   );
 
-  const searchBody = searchMode ? (
+  const searchBody = listMode ? (
     <View style={styles.searchBody}>
+      {kitchenBrowseMode && activeKitchenSlug ? (
+        <View style={styles.kitchenHeader}>
+          <Text style={styles.kitchenTitle}>{kitchenChipLabel(activeKitchenSlug)}</Text>
+          <Text style={styles.kitchenSub}>GastroSkor sıralı · {SEARCH_CITY}</Text>
+        </View>
+      ) : null}
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.error}>{error}</Text>
@@ -264,9 +324,11 @@ export default function ExploreScreen() {
         <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
       ) : searchCards.length === 0 ? (
         <Text style={styles.empty}>
-          {liveParsed?.min_rating != null
-            ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
-            : 'Canlı aramada sonuç bulunamadı.'}
+          {kitchenBrowseMode && activeKitchenSlug
+            ? `${kitchenChipLabel(activeKitchenSlug)} için sonuç bulunamadı.`
+            : liveParsed?.min_rating != null
+              ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
+              : 'Canlı aramada sonuç bulunamadı.'}
         </Text>
       ) : (
         searchCards.map((r, index) => {
@@ -301,10 +363,8 @@ export default function ExploreScreen() {
     </View>
   ) : null;
 
-  const vitrinBody = !searchMode ? (
-    <>
-      <KesfetFilterChips active={activeChip} onChange={handleChipChange} />
-      <View style={styles.vitrinFill}>
+  const vitrinBody = !listMode ? (
+    <View style={styles.vitrinFill}>
         <View style={styles.flexOnline}>
           <OnlineOrderEntryBanner variant="vitrin" style={styles.fillChild} />
         </View>
@@ -312,17 +372,17 @@ export default function ExploreScreen() {
           <RegionalFlavorsEntryBanner style={styles.fillChild} />
         </View>
         <RecentPhotosStrip style={styles.flexPhotos} onDismissKeyboard={dismissKeyboard} />
-      </View>
-    </>
+    </View>
   ) : null;
 
-  const showVitrinDismissOverlay = searchFocused && !searchMode;
+  const showVitrinDismissOverlay = searchFocused && !listMode;
 
   return (
     <Screen scroll={false} flush keyboardVerticalOffset={72} style={styles.page}>
       {chrome}
+      <KesfetKitchenChips activeSlug={activeKitchenSlug} onSelect={handleKitchenSelect} />
       <View style={styles.bodyHost}>
-        {searchMode ? (
+        {listMode ? (
           <ScrollView
             ref={scrollRef}
             style={styles.searchScrollHost}
@@ -382,6 +442,9 @@ const styles = StyleSheet.create({
   fillChild: { flex: 1, marginHorizontal: 0, alignSelf: 'stretch', width: '100%' },
   searchScroll: { paddingHorizontal: 12, gap: 12, paddingBottom: 24 },
   searchBody: { gap: 12, paddingHorizontal: 4 },
+  kitchenHeader: { gap: 2, paddingHorizontal: 4, paddingTop: 4 },
+  kitchenTitle: { color: GastroColors.text, fontSize: 17, fontWeight: '800' },
+  kitchenSub: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
   empty: { color: GastroColors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
   errorBox: {
     borderRadius: 12,

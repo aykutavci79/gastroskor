@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -6,10 +5,16 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
-import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
+import { discoverRegionalProduct } from '@/lib/api';
+import { BURSA_CENTER_COORDS, resolveDeviceCoords } from '@/lib/device-location';
 import { formatApiError } from '@/lib/format-api-error';
-import { livePlaceDistanceLabel, livePlaceGoogleId, livePlaceToRestaurantCard } from '@/lib/live-place-card';
+import {
+  livePlaceDistanceLabel,
+  livePlaceToRestaurantCard,
+  sortLivePlacesByGastroScore,
+} from '@/lib/live-place-card';
 import type { LivePlaceSearchItem, RegionalProductItem } from '@/lib/types';
+import { restaurantDetailHref } from '@/lib/uuid';
 
 export default function YoreselProductScreen() {
   const router = useRouter();
@@ -27,40 +32,28 @@ export default function YoreselProductScreen() {
     setLoading(true);
     setError(null);
     try {
-      let origin_lat: number | undefined;
-      let origin_lng: number | undefined;
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({});
-          origin_lat = pos.coords.latitude;
-          origin_lng = pos.coords.longitude;
-        }
-      } catch {
-        /* konum opsiyonel */
-      }
+      const coords = await resolveDeviceCoords({ requestPermission: true, timeoutMs: 12_000 });
+      const origin_lat = coords?.lat ?? BURSA_CENTER_COORDS.lat;
+      const origin_lng = coords?.lng ?? BURSA_CENTER_COORDS.lng;
 
-      const detail = await getRegionalProduct(slug, { city: 'Bursa' });
+      const detail = await discoverRegionalProduct(slug, {
+        city: 'Bursa',
+        origin_lat,
+        origin_lng,
+        limit: 20,
+      });
       setProduct(detail.product);
       setDiscoveryNote(detail.discovery_note);
 
-      try {
-        const live = await searchLivePlaces({
-          q: detail.product.live_search_query,
-          city: 'Bursa',
-          origin_lat,
-          origin_lng,
-          limit: 20,
-        });
-        setLiveItems(live.items);
-        setSearchNote(
-          live.items.length > 0
-            ? `Canlı arama: "${detail.product.live_search_query}"`
-            : 'Canlı arama sonucu bulunamadı.',
-        );
-      } catch {
-        setLiveItems([]);
-        setSearchNote('Canlı arama şu an kullanılamıyor.');
+      const sorted = sortLivePlacesByGastroScore(detail.places ?? []);
+      setLiveItems(sorted);
+
+      if (detail.places_error) {
+        setSearchNote(detail.places_error);
+      } else if (sorted.length > 0) {
+        setSearchNote(`${sorted.length} mekan · GastroSkor sıralaması`);
+      } else {
+        setSearchNote(`"${detail.search_query}" için canlı arama sonucu bulunamadı.`);
       }
     } catch (err) {
       setError(formatApiError(err));
@@ -82,7 +75,14 @@ export default function YoreselProductScreen() {
         </Pressable>
 
         {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 20 }} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable onPress={() => void load()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Tekrar dene</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {product ? (
           <>
@@ -97,19 +97,39 @@ export default function YoreselProductScreen() {
         <View style={styles.list}>
           {liveItems.map((item) => {
             const card = livePlaceToRestaurantCard(item);
+            const href = restaurantDetailHref({
+              id: card.id,
+              restaurant_id: card.restaurant_id,
+              google_place_id: item.place_id,
+              liveScores: {
+                gastro_score: item.gastro_score,
+                distance_score: item.distance_score,
+                rating_score: item.rating_score,
+                distance_meters: item.distance_meters,
+                distance_origin: item.distance_origin,
+                rating: item.rating,
+              },
+            });
             return (
               <RestaurantCard
                 key={item.place_id}
                 restaurant={card}
                 distanceLabel={livePlaceDistanceLabel(item)}
-                href={`/restaurant/${livePlaceGoogleId(item)}`}
+                href={href}
+                googleRating={item.rating}
+                googleReviewCount={item.user_ratings_total}
               />
             );
           })}
         </View>
 
         {!loading && liveItems.length === 0 && !error ? (
-          <Text style={styles.empty}>Bu lezzet için canlı arama sonucu bulunamadı.</Text>
+          <View style={styles.emptyBox}>
+            <Text style={styles.empty}>Bu lezzet için canlı arama sonucu bulunamadı.</Text>
+            <Pressable onPress={() => void load()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Yenile</Text>
+            </Pressable>
+          </View>
         ) : null}
       </ScrollView>
     </Screen>
@@ -125,6 +145,17 @@ const styles = StyleSheet.create({
   note: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
   searchNote: { color: GastroColors.gold, fontSize: 12, fontWeight: '600' },
   list: { marginTop: 8, gap: 12 },
-  error: { color: GastroColors.accent, marginTop: 12 },
-  empty: { color: GastroColors.muted, marginTop: 16, textAlign: 'center' },
+  errorBox: { marginTop: 12, gap: 8 },
+  error: { color: GastroColors.accent },
+  emptyBox: { marginTop: 16, gap: 12, alignItems: 'center' },
+  empty: { color: GastroColors.muted, textAlign: 'center' },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: GastroColors.gold,
+  },
+  retryText: { color: GastroColors.gold, fontSize: 13, fontWeight: '600' },
 });

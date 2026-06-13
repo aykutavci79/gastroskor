@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
+import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
   type VoiceOrderCommand,
 } from '@/lib/parse-voice-order-command';
+import { polishVoiceOrderCommandTranscript } from '@/lib/voice-order-stt-fix';
 import type { VoiceOrderRestaurantOption } from '@/lib/voice-order-letters';
 
 type Props = {
@@ -26,12 +28,19 @@ const EXAMPLES = [
 export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, onSubmit }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
-  const [micActive, setMicActive] = useState(true);
+  const [micActive, setMicActive] = useState(false);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
-    setMicActive(true);
-    return () => setMicActive(false);
-  }, []);
+    submittedRef.current = false;
+    setDraft('');
+    gastroStopSpeaking();
+    gastroSpeakListening(() => setMicActive(true));
+    return () => {
+      setMicActive(false);
+      gastroStopSpeaking();
+    };
+  }, [restaurants]);
 
   const parsed = useMemo(
     () => parseVoiceOrderCommand(draft, restaurants, defaultProductSearchGroup),
@@ -40,10 +49,36 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
 
   const canSubmit = parsed.confidence === 'high';
 
+  const trySubmit = useCallback(
+    (command: VoiceOrderCommand) => {
+      if (command.confidence !== 'high' || submittedRef.current) return;
+      submittedRef.current = true;
+      setMicActive(false);
+      onSubmit(command);
+    },
+    [onSubmit],
+  );
+
+  const handleTranscript = useCallback(
+    (text: string, isFinal: boolean) => {
+      const polished = polishVoiceOrderCommandTranscript(text);
+      if (!polished) return;
+      setDraft(polished);
+      if (!isFinal) return;
+      const command = parseVoiceOrderCommand(polished, restaurants, defaultProductSearchGroup);
+      trySubmit(command);
+    },
+    [defaultProductSearchGroup, restaurants, trySubmit],
+  );
+
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <Text style={styles.label}>Gastro Sipariş komutu</Text>
-      <Text style={styles.hint}>Listede A/B/C harflerine göre yaz veya konuş.</Text>
+      <Text style={styles.hint}>
+        {Platform.OS === 'ios'
+          ? 'Mikrofona konuş: B harfinden 3 lahmacun, kapıda kredi kartı.'
+          : 'A/B/C harfine göre yaz veya konuş.'}
+      </Text>
       <View style={styles.inputRow}>
         <TextInput
           value={draft}
@@ -58,7 +93,8 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
           <GastroVoiceMicButton
             compact
             active={micActive}
-            onTranscript={(text) => setDraft(text)}
+            autoStart={Platform.OS === 'ios' && micActive}
+            onTranscript={handleTranscript}
           />
         </SpeechMicErrorBoundary>
       </View>
@@ -76,10 +112,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       <Pressable
         style={[styles.btn, !canSubmit && styles.btnDisabled]}
         disabled={!canSubmit}
-        onPress={() => {
-          setMicActive(false);
-          onSubmit(parsed);
-        }}>
+        onPress={() => trySubmit(parsed)}>
         <Text style={styles.btnText}>Siparişi hazırla</Text>
       </Pressable>
     </View>
