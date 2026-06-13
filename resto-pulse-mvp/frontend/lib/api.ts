@@ -822,10 +822,9 @@ export function getRestaurantFollowerCoupon(restaurantId: string, userEmail: str
   );
 }
 
-export function getRestaurantFollowStatus(restaurantId: string, userEmail: string) {
-  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+export function getRestaurantFollowStatus(restaurantId: string) {
   return request<import('@/lib/types').RestaurantFollowStatus>(
-    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status?${query.toString()}`,
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status`,
   );
 }
 

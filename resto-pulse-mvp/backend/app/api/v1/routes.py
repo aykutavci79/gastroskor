@@ -1249,17 +1249,15 @@ def restaurant_follower_coupon(
 @router.get("/restaurants/{restaurant_id}/follow-status", response_model=RestaurantFollowStatus)
 def restaurant_follow_status(
     restaurant_id: UUID,
-    user_email: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     _require_restaurant_exists(db, restaurant_id)
     following = False
-    if user_email and user_email.strip():
-        verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
-        if verified:
-            user = db.scalar(select(User).where(User.email == verified))
-            if user:
-                following = is_following(db, user_id=user.id, restaurant_id=restaurant_id)
+    auth = get_request_auth()
+    if auth:
+        user = db.scalar(select(User).where(User.email == auth.email))
+        if user:
+            following = is_following(db, user_id=user.id, restaurant_id=restaurant_id)
     return RestaurantFollowStatus(
         following=following,
         follower_count=follower_count(db, restaurant_id=restaurant_id),

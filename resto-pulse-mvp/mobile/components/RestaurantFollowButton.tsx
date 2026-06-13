@@ -44,7 +44,7 @@ export function RestaurantFollowButton({
     let cancelled = false;
     setLoaded(false);
     setError(null);
-    getRestaurantFollowStatus(restaurantId, email)
+    getRestaurantFollowStatus(restaurantId)
       .then((status) => {
         if (!cancelled) {
           setFollowing(status.following);

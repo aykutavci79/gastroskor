@@ -558,10 +558,9 @@ export function listRestaurantFollows(userEmail: string, limit = 50) {
   return request<RestaurantFollowListResponse>(`/me/restaurant-follows?${query.toString()}`);
 }
 
-export function getRestaurantFollowStatus(restaurantId: string, userEmail: string) {
-  const query = new URLSearchParams({ user_email: userEmail.trim().toLowerCase() });
+export function getRestaurantFollowStatus(restaurantId: string) {
   return request<RestaurantFollowStatus>(
-    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status?${query.toString()}`,
+    `/restaurants/${encodeURIComponent(restaurantId)}/follow-status`,
   );
 }
 
