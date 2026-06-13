@@ -8,6 +8,15 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   htmlLimitedBots: /.*/,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ci.turkpatent.gov.tr',
+        pathname: '/Pictures/**',
+      },
+    ],
+  },
   async redirects() {
     return [
       {

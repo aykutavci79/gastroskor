@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { RegionalFlavorFaq } from '@/components/RegionalFlavorFaq';
+import { RegionalProductImage } from '@/components/RegionalProductImage';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
@@ -154,13 +155,13 @@ export function YoreselLezzetDetailContent({
               <div className="flex flex-col md:flex-row">
                 {product.image_url ? (
                   <div className="relative h-52 w-full shrink-0 md:h-auto md:w-80 lg:w-96">
-                    <img
+                    <RegionalProductImage
                       src={product.image_url}
                       alt={trimImageAlt(`${product.name} — yöresel lezzet görseli`)}
                       width={384}
                       height={208}
                       className="h-full w-full object-cover"
-                      referrerPolicy="no-referrer"
+                      sizes="(max-width: 768px) 100vw, 384px"
                     />
                   </div>
                 ) : null}
@@ -307,13 +308,13 @@ export function YoreselLezzetDetailContent({
             </div>
             {product.image_url ? (
               <div className="relative h-48 w-full shrink-0 border-t border-border/40 sm:h-auto sm:w-56 sm:border-l sm:border-t-0 md:w-72">
-                <img
+                <RegionalProductImage
                   src={product.image_url}
                   alt={trimImageAlt(`${product.name} — yöresel lezzet görseli`)}
                   width={288}
                   height={192}
                   className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
+                  sizes="(max-width: 640px) 100vw, 288px"
                 />
               </div>
             ) : null}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { RegionalProductImage } from '@/components/RegionalProductImage';
 import { trimImageAlt } from '@/lib/seo-title';
 import type { RegionalProductItem } from '@/lib/types';
 
@@ -26,14 +27,13 @@ export function RegionalProductCard({ item, href }: Props) {
       </div>
       {item.image_url ? (
         <div className="relative hidden w-28 shrink-0 border-l border-border/40 bg-surface-input sm:block md:w-36 lg:w-40">
-          <img
+          <RegionalProductImage
             src={item.image_url}
             alt={trimImageAlt(`${item.name} — yöresel lezzet görseli`)}
             width={160}
             height={144}
-            loading="lazy"
-            referrerPolicy="no-referrer"
             className="h-full min-h-[9rem] w-full object-cover"
+            sizes="160px"
           />
         </div>
       ) : null}
