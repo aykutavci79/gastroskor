@@ -82,3 +82,21 @@ def resolve_optional_viewer_email(*, viewer_email: str | None) -> str | None:
     if not viewer:
         return None
     return resolve_authenticated_email(claimed_email=viewer)
+
+
+def resolve_soft_optional_viewer_email(*, viewer_email: str | None) -> str | None:
+    """Oturum yoksa 401 yerine None — salt okunur durum uclari icin."""
+    viewer = normalize_email(viewer_email)
+    if not viewer:
+        return None
+    auth = get_request_auth()
+    if auth_require_bearer():
+        if auth is None:
+            return None
+        if viewer != auth.email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Oturum ile uyusmayan e-posta.",
+            )
+        return auth.email
+    return resolve_authenticated_email(claimed_email=viewer)

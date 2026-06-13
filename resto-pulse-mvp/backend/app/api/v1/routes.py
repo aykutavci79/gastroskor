@@ -238,6 +238,7 @@ from app.services.request_identity import (
     get_request_auth,
     resolve_authenticated_email,
     resolve_optional_viewer_email,
+    resolve_soft_optional_viewer_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -1236,7 +1237,7 @@ def restaurant_follower_coupon(
     db: Session = Depends(get_db),
 ):
     user = None
-    verified = resolve_optional_viewer_email(viewer_email=user_email)
+    verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
     if verified:
         user = db.scalar(select(User).where(User.email == verified))
     if not user:
@@ -1254,7 +1255,7 @@ def restaurant_follow_status(
     _require_restaurant_exists(db, restaurant_id)
     following = False
     if user_email and user_email.strip():
-        verified = resolve_optional_viewer_email(viewer_email=user_email)
+        verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
         if verified:
             user = db.scalar(select(User).where(User.email == verified))
             if user:

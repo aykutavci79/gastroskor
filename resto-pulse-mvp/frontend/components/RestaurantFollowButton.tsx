@@ -1,10 +1,14 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { followRestaurant, getRestaurantFollowStatus, unfollowRestaurant } from '@/lib/api';
+
+type SessionWithBackendToken = {
+  backendAccessToken?: string | null;
+};
 
 type Props = {
   restaurantId: string | null;
@@ -19,6 +23,8 @@ export function RestaurantFollowButton({
   compact = false,
   detailHref,
 }: Props) {
+  const { data: session } = useSession();
+  const backendToken = (session as SessionWithBackendToken | null)?.backendAccessToken ?? null;
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -27,6 +33,11 @@ export function RestaurantFollowButton({
 
   useEffect(() => {
     if (!email || !restaurantId) {
+      setFollowing(false);
+      setLoaded(true);
+      return;
+    }
+    if (!backendToken) {
       setFollowing(false);
       setLoaded(true);
       return;
@@ -49,7 +60,7 @@ export function RestaurantFollowButton({
     return () => {
       cancelled = true;
     };
-  }, [restaurantId, email]);
+  }, [restaurantId, email, backendToken]);
 
   const toggle = useCallback(async () => {
     if (!email) {
