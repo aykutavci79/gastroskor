@@ -91,7 +91,7 @@ export function FeaturedHighlightsSection() {
       lng,
       city: 'Bursa',
       limit: 12,
-      source: 'google',
+      source: 'gastroskor',
     })
       .then((raw) => setItems(filterFeaturedByRating(raw, 6)))
       .catch(() => setItems([]))

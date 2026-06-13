@@ -8,7 +8,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult, build_place_photo_url
+from app.integrations.google_places_live import GooglePlacesLiveClient
+from app.services.platform_profile_photo import google_photo_url_from_reference
 from app.integrations.maps_links import build_destination_label, build_google_maps_directions_url
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse, ParsedSearchIntent
@@ -245,11 +246,7 @@ def _ranked_to_items(
                     )
                     or ranked.place.name,
                 ),
-                google_photo_url=(
-                    build_place_photo_url(ranked.place.photo_reference)
-                    if ranked.place.photo_reference
-                    else None
-                ),
+                google_photo_url=google_photo_url_from_reference(ranked.place.photo_reference),
             )
         )
     return items

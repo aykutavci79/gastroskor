@@ -41,36 +41,16 @@ export function FeaturedHighlightsSection() {
   const loadFeatured = useCallback(async (coords: { lat: number; lng: number } | null) => {
     setLoading(true);
     try {
-      let raw = await listTrendingRestaurantsWeek({
+      const raw = await listTrendingRestaurantsWeek({
         lat: coords?.lat,
         lng: coords?.lng,
         city,
         limit: 12,
-        source: 'google',
+        source: 'gastroskor',
       });
-      if (raw.length === 0) {
-        raw = await listTrendingRestaurantsWeek({
-          lat: coords?.lat,
-          lng: coords?.lng,
-          city,
-          limit: 12,
-          source: 'gastroskor',
-        });
-      }
       setItems(filterFeaturedByRating(raw, 6));
     } catch {
-      try {
-        const fallback = await listTrendingRestaurantsWeek({
-          lat: coords?.lat,
-          lng: coords?.lng,
-          city,
-          limit: 12,
-          source: 'gastroskor',
-        });
-        setItems(filterFeaturedByRating(fallback, 6));
-      } catch {
-        setItems([]);
-      }
+      setItems([]);
     } finally {
       setLoading(false);
     }

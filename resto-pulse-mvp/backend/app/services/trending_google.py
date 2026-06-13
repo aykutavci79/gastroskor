@@ -4,6 +4,7 @@ import asyncio
 import math
 import re
 
+from app.core.config import settings
 from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult, build_place_photo_url
 from app.integrations.maps_links import build_google_maps_directions_url, build_destination_label
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
@@ -36,12 +37,14 @@ def _popularity_score(place: LivePlaceResult, recent_signal: int) -> float:
 async def _enrich_place(place: LivePlaceResult) -> tuple[LivePlaceResult, int, float, str | None]:
     recent_signal = 0
     google_photo_url = (
-        build_place_photo_url(place.photo_reference) if place.photo_reference else None
+        build_place_photo_url(place.photo_reference)
+        if settings.google_card_photos_enabled and place.photo_reference
+        else None
     )
     try:
         details = await google_client.get_place_details(place.place_id)
         recent_signal = _recent_review_signal(details.get("reviews", []))
-        if not google_photo_url:
+        if not google_photo_url and settings.google_card_photos_enabled:
             urls = details.get("photo_urls") or []
             google_photo_url = urls[0] if urls else None
     except Exception:

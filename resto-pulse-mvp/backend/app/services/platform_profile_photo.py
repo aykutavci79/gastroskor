@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from app.core.config import settings
 from app.integrations.google_places_live import build_place_photo_url
 from app.models.entities import RestaurantPlatformProfile
 
@@ -17,7 +18,15 @@ def photo_reference_from_place_details(details: dict) -> str | None:
     return None
 
 
+def google_photo_url_from_reference(photo_reference: str | None) -> str | None:
+    if not settings.google_card_photos_enabled or not photo_reference:
+        return None
+    return build_place_photo_url(photo_reference)
+
+
 def google_photo_url_for_profile(profile: RestaurantPlatformProfile | None) -> str | None:
+    if not settings.google_card_photos_enabled:
+        return None
     if not profile or not profile.photo_reference:
         return None
     return build_place_photo_url(profile.photo_reference)

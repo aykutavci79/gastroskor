@@ -50,6 +50,7 @@ import { averageGsRating, isOwnReview, renderStarRow, sortReviewsWithViewerFirst
 import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { coerceNumber, formatNumber } from '@/lib/coerce-number';
+import { googleCardPhotosEnabled } from '@/lib/google-card-photos';
 import { formatApiError } from '@/lib/format-api-error';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
@@ -195,13 +196,15 @@ export default function RestaurantDetailScreen() {
           if (cancelled) return;
 
           const gallery: string[] = [];
-          for (const url of live.photo_urls ?? []) {
-            if (!gallery.includes(url)) gallery.push(url);
-          }
           const cover =
             restaurantData.promo?.card_cover_image_url?.trim() ||
             restaurantData.promo?.menu_image_url?.trim();
-          if (cover && !gallery.includes(cover)) gallery.unshift(cover);
+          if (cover) gallery.push(cover);
+          if (googleCardPhotosEnabled()) {
+            for (const url of live.photo_urls ?? []) {
+              if (!gallery.includes(url)) gallery.push(url);
+            }
+          }
 
           setRestaurant({
             ...restaurantData,
@@ -240,8 +243,10 @@ export default function RestaurantDetailScreen() {
             const live = await getLivePlaceDetails(googlePlaceId);
             if (!cancelled) {
               applyLiveSnapshot(live);
-              for (const url of live.photo_urls ?? []) {
-                if (!gallery.includes(url)) gallery.push(url);
+              if (googleCardPhotosEnabled()) {
+                for (const url of live.photo_urls ?? []) {
+                  if (!gallery.includes(url)) gallery.push(url);
+                }
               }
               googleScore = coerceNumber(live.rating) ?? googleScore;
               googleCount = coerceNumber(live.user_ratings_total);

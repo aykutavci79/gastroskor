@@ -27,7 +27,7 @@ export function TrendingRestaurants() {
       setLoading(true);
       setError(null);
       setLocationLabel(label);
-      listTrendingRestaurantsWeek({ lat, lng, city: 'Bursa', limit: 6, source: 'google' })
+      listTrendingRestaurantsWeek({ lat, lng, city: 'Bursa', limit: 6, source: 'gastroskor' })
         .then((data) => {
           if (!cancelled) setItems(data);
         })

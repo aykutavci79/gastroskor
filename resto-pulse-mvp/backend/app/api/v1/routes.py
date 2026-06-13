@@ -862,7 +862,7 @@ async def get_live_place_details(
             place_id=details["place_id"],
             query=build_destination_label(name=details["name"], address=details.get("address"), city=city) or details["name"],
         ),
-        photo_urls=details.get("photo_urls") or [],
+        photo_urls=(details.get("photo_urls") or []) if settings.google_card_photos_enabled else [],
         analysis=analysis,
     )
 
@@ -875,8 +875,8 @@ async def trending_restaurants_week(
     limit: int = Query(default=6, ge=1, le=12),
     days: int = Query(default=7, ge=1, le=30),
     source: str = Query(
-        default="google",
-        description="google | gastroskor — baslangicta google onerilir",
+        default="gastroskor",
+        description="google | gastroskor — kart fotolari kapali iken google pahali",
     ),
     db: Session = Depends(get_db),
 ):

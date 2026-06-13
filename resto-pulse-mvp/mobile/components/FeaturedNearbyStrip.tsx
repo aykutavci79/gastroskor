@@ -45,22 +45,13 @@ export function FeaturedNearbyStrip({ style }: Props) {
   const loadFeatured = useCallback(async (coords: { lat: number; lng: number } | null) => {
     setLoading(true);
     try {
-      let raw = await listTrendingRestaurantsWeek({
+      const raw = await listTrendingRestaurantsWeek({
         lat: coords?.lat,
         lng: coords?.lng,
         city,
         limit: 12,
-        source: 'google',
+        source: 'gastroskor',
       });
-      if (raw.length === 0) {
-        raw = await listTrendingRestaurantsWeek({
-          lat: coords?.lat,
-          lng: coords?.lng,
-          city,
-          limit: 12,
-          source: 'gastroskor',
-        });
-      }
       setItems(filterFeaturedByRating(raw, 3).slice(0, MAX_ITEMS));
     } catch {
       setItems([]);

@@ -116,6 +116,9 @@ class Settings(BaseSettings):
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False
 
+    # Kart/liste Google foto — her img yuklemesi Places Photo ucreti. Varsayilan kapali.
+    google_card_photos_enabled: bool = False
+
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
 

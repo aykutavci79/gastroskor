@@ -17,6 +17,7 @@ import { OpenInAppLink } from '@/components/OpenInAppLink';
 import { ReviewForm } from '@/components/ReviewForm';
 import { ReviewList } from '@/components/ReviewList';
 import { getLivePlaceDetails, getRestaurant, listRestaurantReviews, syncUser } from '@/lib/api';
+import { googleCardPhotosEnabled } from '@/lib/google-card-photos';
 import { aggregateCategoryScores } from '@/lib/scores';
 import { restaurantPageHeading, restaurantSectionHeading } from '@/lib/seo-title';
 import type { Restaurant, Review, ReviewAnalyzeResult, UserProfile } from '@/lib/types';
@@ -51,7 +52,7 @@ export function RestaurantDetailView({
       restaurantData.promo?.menu_image_url?.trim();
     if (cover) gallery.push(cover);
 
-    if (restaurantData.google_place_id) {
+    if (googleCardPhotosEnabled() && restaurantData.google_place_id) {
       try {
         const live = await getLivePlaceDetails(restaurantData.google_place_id);
         for (const url of live.photo_urls ?? []) {
