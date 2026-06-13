@@ -51,6 +51,22 @@ function placeLabel(
   return '';
 }
 
+/** Meta description'da cift sayfa ayrimi icin mahalle + ilce + sehir. */
+export function restaurantLocationLabel(
+  district?: string | null,
+  city?: string | null,
+  address?: string | null,
+): string {
+  const cityLabel = city?.trim() || 'Bursa';
+  const districtLabel = district?.trim() || '';
+  const hint = addressPlaceHint(address);
+  const parts: string[] = [];
+  if (hint) parts.push(hint);
+  if (districtLabel) parts.push(districtLabel);
+  parts.push(cityLabel);
+  return parts.join(', ');
+}
+
 export function trimSeoTitle(text: string, maxLen: number): string {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (clean.length <= maxLen) return clean;

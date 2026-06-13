@@ -9,8 +9,8 @@ import {
   buildSeoTitle,
   isPlaceholderRestaurantName,
   restaurantSeoTitle,
-  sanitizeRestaurantDisplayName,
 } from '@/lib/seo-title';
+import { restaurantSeoDescription } from '@/lib/seo-description';
 import { isTesterSeedRestaurant, testerRestaurantRobots } from '@/lib/tester-restaurant';
 
 type Props = {
@@ -21,7 +21,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const restaurant = await getRestaurant(id);
-    const displayName = sanitizeRestaurantDisplayName(restaurant.name);
     const noindex =
       isTesterSeedRestaurant(restaurant) || isPlaceholderRestaurantName(restaurant.name);
     const titleText = restaurantSeoTitle(
@@ -30,9 +29,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       restaurant.city,
       restaurant.address,
     );
-    const rating =
-      restaurant.avg_rating != null ? ` GS puanı ${restaurant.avg_rating.toFixed(1)}.` : '';
-    const description = `${displayName || titleText} GastroSkor sayfası.${rating} Yorumlar, menü ve konum.`;
+    const description = restaurantSeoDescription({
+      name: restaurant.name,
+      district: restaurant.district,
+      city: restaurant.city,
+      address: restaurant.address,
+      category: restaurant.category,
+      avg_rating: restaurant.avg_rating,
+      gi_product_name: restaurant.gi_product_name,
+    });
     return {
       title: buildSeoTitle(titleText),
       description,
