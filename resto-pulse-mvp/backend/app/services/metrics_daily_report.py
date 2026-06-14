@@ -31,7 +31,9 @@ def _format_duration(seconds: float | None) -> str:
 
 def _format_day_row(row: dict) -> str:
     return (
-        f"  Aktif oturum: {row['unique_users']}\n"
+        f"  Web ziyaretçi: {row.get('web_visitors', 0)}\n"
+        f"  Mobil ziyaretçi: {row.get('mobile_visitors', 0)}\n"
+        f"  Toplam ziyaretçi: {row['unique_users']}\n"
         f"  Oturum sayısı: {row['sessions']}\n"
         f"  Ort. süre: {_format_duration(row.get('avg_session_seconds'))}\n"
         f"  Giriş (sync): {row['logins']}\n"
@@ -63,14 +65,16 @@ def build_metrics_daily_report_text(db: Session) -> tuple[str, str]:
     lines.extend(
         [
             "Son 7 gün (toplam):",
-            f"  Aktif oturum: {totals.get('unique_users', 0)}",
+            f"  Web ziyaretçi: {totals.get('web_visitors', 0)}",
+            f"  Mobil ziyaretçi: {totals.get('mobile_visitors', 0)}",
+            f"  Toplam ziyaretçi: {totals.get('unique_users', 0)}",
             f"  Oturum: {totals.get('sessions', 0)}",
             f"  Giriş: {totals.get('logins', 0)}",
             f"  Canlı arama: {totals.get('live_searches', 0)}",
             f"  Yorum: {totals.get('reviews', 0)}",
             f"  Kayıtlı kullanıcı: {totals.get('total_registered_users', 0)}",
             "",
-            "Not: Aktif oturum = cihaz açılışları dahil; giriş sayısı gerçek login'e daha yakın.",
+            "Not: Ziyaretçi = benzersiz oturum (web veya mobil). Panel sayfaları web sayacına dahil değil.",
         ]
     )
     return subject, "\n".join(lines)

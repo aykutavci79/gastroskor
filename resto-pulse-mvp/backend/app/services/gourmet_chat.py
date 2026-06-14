@@ -50,8 +50,9 @@ def resolve_gourmet_city(city: str) -> str:
     resolved = resolve_city_name(city)
     key = normalize_city_key(resolved)
     if key not in GOURMET_CHAT_CITY_KEYS:
-        raise GourmetChatError("Su an yalnizca Bursa destekleniyor.")
-    return "Bursa"
+        supported = ", ".join(c.capitalize() for c in sorted(GOURMET_CHAT_CITY_KEYS))
+        raise GourmetChatError(f"Su an yalnizca {supported} destekleniyor.")
+    return resolved
 
 
 def normalize_tag(tag: str | None) -> str:

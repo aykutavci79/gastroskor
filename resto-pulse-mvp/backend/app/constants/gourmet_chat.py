@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-GOURMET_CHAT_CITY_KEYS = frozenset({"bursa"})
+GOURMET_CHAT_CITY_KEYS = frozenset({"bursa", "istanbul"})
 
 QUESTION_BODY_MAX = 500
 ANSWER_BODY_MAX = 1200

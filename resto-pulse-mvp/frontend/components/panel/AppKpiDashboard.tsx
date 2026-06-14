@@ -5,7 +5,13 @@ import { useEffect, useState } from 'react';
 type MetricsTotals = {
   unique_users: number;
   sessions: number;
+  web_visitors: number;
+  web_sessions: number;
+  mobile_visitors: number;
+  mobile_sessions: number;
   avg_session_seconds: number | null;
+  web_avg_session_seconds: number | null;
+  mobile_avg_session_seconds: number | null;
   logins: number;
   live_searches: number;
   reviews: number;
@@ -16,7 +22,13 @@ type DailyRow = {
   date: string;
   unique_users: number;
   sessions: number;
+  web_visitors: number;
+  web_sessions: number;
+  mobile_visitors: number;
+  mobile_sessions: number;
   avg_session_seconds: number | null;
+  web_avg_session_seconds: number | null;
+  mobile_avg_session_seconds: number | null;
   logins: number;
   live_searches: number;
   reviews: number;
@@ -173,8 +185,8 @@ export function AppKpiDashboard() {
       <section className="rounded-2xl border border-brand-gold/30 bg-brand-gold/5 p-6">
         <h1 className="text-xl font-semibold text-brand-gold">Uygulama KPI (pazarlama)</h1>
         <p className="mt-2 text-sm text-content-muted">
-          Mobil oturum suresi, giris, canli arama ve yorumlar. Otomatik mail her gun ~08:00 (TR).
-          Web sayfa goruntulemesi degil — API/mobil olaylari.
+          Kendi sunucumuzda tutulan ziyaretci sayilari: web (gastroskor.com.tr) ve mobil (iOS/Android) ayri.
+          Google Analytics zorunlu degil — panel sayfalari web sayacina dahil edilmez.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="text-sm text-content">
@@ -204,16 +216,34 @@ export function AppKpiDashboard() {
       </section>
 
       {totals ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Aktif kullanici (oturum)', value: totals.unique_users },
-            { label: 'Oturum sayisi', value: totals.sessions },
-            { label: 'Ort. kalis suresi', value: formatDuration(totals.avg_session_seconds) },
-            { label: 'Giris (sync)', value: totals.logins },
-            { label: 'Canli arama', value: totals.live_searches },
-            { label: 'Yorum', value: totals.reviews },
-            { label: 'Kayitli kullanici', value: totals.total_registered_users },
-          ].map((card) => (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-5">
+              <p className="text-xs uppercase tracking-wide text-sky-200/80">Web ziyaretci</p>
+              <p className="mt-2 text-3xl font-semibold text-content">{totals.web_visitors}</p>
+              <p className="mt-2 text-sm text-content-muted">
+                {totals.web_sessions} oturum · ort. {formatDuration(totals.web_avg_session_seconds)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-violet-500/30 bg-violet-500/5 p-5">
+              <p className="text-xs uppercase tracking-wide text-violet-200/80">Mobil ziyaretci</p>
+              <p className="mt-2 text-3xl font-semibold text-content">{totals.mobile_visitors}</p>
+              <p className="mt-2 text-sm text-content-muted">
+                {totals.mobile_sessions} oturum · ort. {formatDuration(totals.mobile_avg_session_seconds)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Toplam ziyaretci', value: totals.unique_users },
+              { label: 'Toplam oturum', value: totals.sessions },
+              { label: 'Ort. kalis suresi', value: formatDuration(totals.avg_session_seconds) },
+              { label: 'Giris (sync)', value: totals.logins },
+              { label: 'Canli arama', value: totals.live_searches },
+              { label: 'Yorum', value: totals.reviews },
+              { label: 'Kayitli kullanici', value: totals.total_registered_users },
+            ].map((card) => (
             <div
               key={card.label}
               className="rounded-2xl border border-border bg-surface/80 p-4"
@@ -222,7 +252,8 @@ export function AppKpiDashboard() {
               <p className="mt-2 text-2xl font-semibold text-content">{card.value}</p>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       ) : null}
 
       <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
@@ -397,7 +428,9 @@ export function AppKpiDashboard() {
             <thead className="bg-surface/90 text-xs uppercase text-content-muted">
               <tr>
                 <th className="px-4 py-3">Tarih</th>
-                <th className="px-4 py-3">Aktif</th>
+                <th className="px-4 py-3">Web</th>
+                <th className="px-4 py-3">Mobil</th>
+                <th className="px-4 py-3">Toplam</th>
                 <th className="px-4 py-3">Oturum</th>
                 <th className="px-4 py-3">Ort. sure</th>
                 <th className="px-4 py-3">Giris</th>
@@ -409,6 +442,8 @@ export function AppKpiDashboard() {
               {[...data.daily].reverse().map((row) => (
                 <tr key={row.date} className="border-t border-border/60">
                   <td className="px-4 py-2 text-content">{formatDate(row.date)}</td>
+                  <td className="px-4 py-2">{row.web_visitors}</td>
+                  <td className="px-4 py-2">{row.mobile_visitors}</td>
                   <td className="px-4 py-2">{row.unique_users}</td>
                   <td className="px-4 py-2">{row.sessions}</td>
                   <td className="px-4 py-2">{formatDuration(row.avg_session_seconds)}</td>

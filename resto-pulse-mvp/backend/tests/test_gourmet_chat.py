@@ -46,9 +46,12 @@ def test_resolve_gourmet_city_bursa():
     assert resolve_gourmet_city("Bursa") == "Bursa"
 
 
+def test_resolve_gourmet_city_istanbul():
+    assert resolve_gourmet_city("istanbul") == "Istanbul"
+    assert resolve_gourmet_city("Istanbul") == "Istanbul"
+
+
 def test_resolve_gourmet_city_rejects_other():
-    with pytest.raises(GourmetChatError):
-        resolve_gourmet_city("Istanbul")
     with pytest.raises(GourmetChatError):
         resolve_gourmet_city("Ankara")
 

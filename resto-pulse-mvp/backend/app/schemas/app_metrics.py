@@ -14,7 +14,13 @@ class AppMetricsDailyRow(BaseModel):
     date: str
     unique_users: int
     sessions: int
+    web_visitors: int = 0
+    web_sessions: int = 0
+    mobile_visitors: int = 0
+    mobile_sessions: int = 0
     avg_session_seconds: float | None
+    web_avg_session_seconds: float | None = None
+    mobile_avg_session_seconds: float | None = None
     logins: int
     live_searches: int
     reviews: int
@@ -23,7 +29,13 @@ class AppMetricsDailyRow(BaseModel):
 class AppMetricsTotals(BaseModel):
     unique_users: int
     sessions: int
+    web_visitors: int = 0
+    web_sessions: int = 0
+    mobile_visitors: int = 0
+    mobile_sessions: int = 0
     avg_session_seconds: float | None
+    web_avg_session_seconds: float | None = None
+    mobile_avg_session_seconds: float | None = None
     logins: int
     live_searches: int
     reviews: int

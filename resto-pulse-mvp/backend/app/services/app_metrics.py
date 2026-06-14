@@ -5,12 +5,23 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import String, case, cast, func, select
+from sqlalchemy import String, and_, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.models import AppUsageEvent, Review, User
 
 ALLOWED_CLIENT_EVENTS = frozenset({"session_start", "session_end"})
+
+MOBILE_PLATFORMS = frozenset({"ios", "android"})
+
+
+def _platform_is_web(platform_col):
+    return func.lower(func.coalesce(platform_col, "")) == "web"
+
+
+def _platform_is_mobile(platform_col):
+    lowered = func.lower(func.coalesce(platform_col, ""))
+    return lowered.in_(tuple(MOBILE_PLATFORMS))
 
 
 def record_app_usage_event(
@@ -37,6 +48,37 @@ def record_app_usage_event(
     db.commit()
 
 
+def _visitor_key():
+    return func.coalesce(cast(AppUsageEvent.user_id, String), AppUsageEvent.session_id)
+
+
+def _platform_visitor_count(platform_filter):
+    return func.count(func.distinct(_visitor_key())).filter(
+        and_(AppUsageEvent.event_type == "session_start", platform_filter)
+    )
+
+
+def _platform_session_count(platform_filter):
+    return func.sum(
+        case(
+            (and_(AppUsageEvent.event_type == "session_start", platform_filter), 1),
+            else_=0,
+        )
+    )
+
+
+def _platform_avg_session(platform_filter):
+    return func.avg(
+        case(
+            (
+                and_(AppUsageEvent.event_type == "session_end", platform_filter),
+                AppUsageEvent.duration_seconds,
+            ),
+            else_=None,
+        )
+    )
+
+
 def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
     days = max(1, min(days, 365))
     now = datetime.now(timezone.utc)
@@ -45,18 +87,26 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
 
     day_col = func.date_trunc("day", AppUsageEvent.created_at).label("day")
     actor_key = func.coalesce(cast(AppUsageEvent.user_id, String), AppUsageEvent.session_id)
+    web_filter = _platform_is_web(AppUsageEvent.platform)
+    mobile_filter = _platform_is_mobile(AppUsageEvent.platform)
 
     session_users = (
         select(
             day_col,
             func.count(func.distinct(actor_key)).label("unique_users"),
             func.sum(case((AppUsageEvent.event_type == "session_start", 1), else_=0)).label("sessions"),
+            _platform_visitor_count(web_filter).label("web_visitors"),
+            _platform_session_count(web_filter).label("web_sessions"),
+            _platform_visitor_count(mobile_filter).label("mobile_visitors"),
+            _platform_session_count(mobile_filter).label("mobile_sessions"),
             func.avg(
                 case(
                     (AppUsageEvent.event_type == "session_end", AppUsageEvent.duration_seconds),
                     else_=None,
                 )
             ).label("avg_session_seconds"),
+            _platform_avg_session(web_filter).label("web_avg_session_seconds"),
+            _platform_avg_session(mobile_filter).label("mobile_avg_session_seconds"),
             func.sum(case((AppUsageEvent.event_type == "user_login", 1), else_=0)).label("logins"),
             func.sum(case((AppUsageEvent.event_type == "live_search", 1), else_=0)).label("live_searches"),
         )
@@ -86,9 +136,23 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
                 "date": key,
                 "unique_users": int(usage.unique_users if usage else 0),
                 "sessions": int(usage.sessions if usage else 0),
+                "web_visitors": int(usage.web_visitors if usage else 0),
+                "web_sessions": int(usage.web_sessions if usage else 0),
+                "mobile_visitors": int(usage.mobile_visitors if usage else 0),
+                "mobile_sessions": int(usage.mobile_sessions if usage else 0),
                 "avg_session_seconds": (
                     round(float(usage.avg_session_seconds), 1)
                     if usage and usage.avg_session_seconds is not None
+                    else None
+                ),
+                "web_avg_session_seconds": (
+                    round(float(usage.web_avg_session_seconds), 1)
+                    if usage and usage.web_avg_session_seconds is not None
+                    else None
+                ),
+                "mobile_avg_session_seconds": (
+                    round(float(usage.mobile_avg_session_seconds), 1)
+                    if usage and usage.mobile_avg_session_seconds is not None
                     else None
                 ),
                 "logins": int(usage.logins if usage else 0),
@@ -102,12 +166,18 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
         select(
             func.count(func.distinct(actor_key)).label("unique_users"),
             func.sum(case((AppUsageEvent.event_type == "session_start", 1), else_=0)).label("sessions"),
+            _platform_visitor_count(web_filter).label("web_visitors"),
+            _platform_session_count(web_filter).label("web_sessions"),
+            _platform_visitor_count(mobile_filter).label("mobile_visitors"),
+            _platform_session_count(mobile_filter).label("mobile_sessions"),
             func.avg(
                 case(
                     (AppUsageEvent.event_type == "session_end", AppUsageEvent.duration_seconds),
                     else_=None,
                 )
             ).label("avg_session_seconds"),
+            _platform_avg_session(web_filter).label("web_avg_session_seconds"),
+            _platform_avg_session(mobile_filter).label("mobile_avg_session_seconds"),
             func.sum(case((AppUsageEvent.event_type == "user_login", 1), else_=0)).label("logins"),
             func.sum(case((AppUsageEvent.event_type == "live_search", 1), else_=0)).label("live_searches"),
         ).where(AppUsageEvent.created_at >= since)
@@ -123,9 +193,23 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
         "totals": {
             "unique_users": int(totals_usage.unique_users or 0),
             "sessions": int(totals_usage.sessions or 0),
+            "web_visitors": int(totals_usage.web_visitors or 0),
+            "web_sessions": int(totals_usage.web_sessions or 0),
+            "mobile_visitors": int(totals_usage.mobile_visitors or 0),
+            "mobile_sessions": int(totals_usage.mobile_sessions or 0),
             "avg_session_seconds": (
                 round(float(totals_usage.avg_session_seconds), 1)
                 if totals_usage.avg_session_seconds is not None
+                else None
+            ),
+            "web_avg_session_seconds": (
+                round(float(totals_usage.web_avg_session_seconds), 1)
+                if totals_usage.web_avg_session_seconds is not None
+                else None
+            ),
+            "mobile_avg_session_seconds": (
+                round(float(totals_usage.mobile_avg_session_seconds), 1)
+                if totals_usage.mobile_avg_session_seconds is not None
                 else None
             ),
             "logins": int(totals_usage.logins or 0),
