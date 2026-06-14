@@ -56,10 +56,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <head>
-        <link rel="preconnect" href="https://maps.googleapis.com" />
-        <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
-      </head>
       <body>
         <GoogleAnalytics />
         <JsonLd data={[buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl)]} />
