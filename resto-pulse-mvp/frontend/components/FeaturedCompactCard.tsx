@@ -117,7 +117,7 @@ export function FeaturedCompactCard({
             </h3>
           )}
           {rating != null ? (
-            <p className="text-[10px] font-semibold leading-none text-brand-gold">★ {rating.toFixed(1)} Google</p>
+            <p className="text-[10px] font-semibold leading-none text-amber-200">★ {rating.toFixed(1)} Google</p>
           ) : null}
           {distanceLabel || location ? (
             <p className="truncate text-[10px] leading-none text-content-muted">

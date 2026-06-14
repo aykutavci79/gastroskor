@@ -7,7 +7,8 @@ export type RatingBandVisual = {
   softBackground: string;
 };
 
-const GOLD = '#FFB703';
+const GOLD_STRIPE = '#EAB308';
+const GOLD_TEXT = '#FDE68A';
 const SUCCESS = '#4CAF79';
 const SLATE = '#64748B';
 const SLATE_MUTED = '#475569';
@@ -29,9 +30,9 @@ export function resolveRatingBandVisual(rating: number | null | undefined): Rati
   if (rating >= 4.5) {
     return {
       band: 'elite',
-      stripe: GOLD,
-      accent: GOLD,
-      softBackground: hexToRgba(GOLD, 0.18),
+      stripe: GOLD_STRIPE,
+      accent: GOLD_TEXT,
+      softBackground: hexToRgba(GOLD_STRIPE, 0.22),
     };
   }
   if (rating >= 4.0) {

@@ -51,7 +51,7 @@ export function RestaurantCardScores({
             </span>
             {googleLabel} {googleRating!.toFixed(1)}
             {googleReviewCount != null && googleReviewCount > 0 ? (
-              <span className="font-medium text-content-muted">
+              <span className="font-medium opacity-80">
                 {' '}
                 · {googleReviewCount.toLocaleString('tr-TR')}
               </span>
