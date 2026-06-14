@@ -1,4 +1,8 @@
 import type { NextConfig } from 'next';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Next.js 15 "streaming metadata" — async generateMetadata tamamlaninca
@@ -8,6 +12,8 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   htmlLimitedBots: /.*/,
+  // Monorepo: ust dizindeki package-lock.json yanlis workspace root secilmesin.
+  outputFileTracingRoot: configDir,
   images: {
     remotePatterns: [
       {
