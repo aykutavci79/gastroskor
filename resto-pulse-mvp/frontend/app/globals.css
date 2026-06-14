@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+.dark {
   color-scheme: dark;
 
   --color-bg-primary: #141414;
@@ -17,7 +18,28 @@
   --color-border: #2e2e2e;
   --color-google: #4285f4;
   --color-placeholder: #666666;
+  --color-btn-primary-text: #141414;
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --transition-ui: 0.2s ease;
+}
+
+.light {
+  color-scheme: light;
+
+  --color-bg-primary: #fafafa;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #f0f0f0;
+  --color-accent-primary: #ff6b35;
+  --color-accent-primary-hover: #e55a25;
+  --color-accent-secondary: #d97706;
+  --color-success: #2e7d32;
+  --color-text-primary: #141414;
+  --color-text-secondary: #5c5c5c;
+  --color-border: #e0e0e0;
+  --color-google: #4285f4;
+  --color-placeholder: #8a8a8a;
+  --color-btn-primary-text: #141414;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
   --transition-ui: 0.2s ease;
 }
 
@@ -29,7 +51,7 @@
 
   ::selection {
     background-color: rgba(255, 107, 53, 0.35);
-    color: #ffffff;
+    color: var(--color-text-primary);
   }
 }
 
@@ -37,7 +59,7 @@
   .btn-primary {
     @apply inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2.5 font-bold;
     background-color: var(--color-accent-primary);
-    color: #141414;
+    color: var(--color-btn-primary-text);
     transition: background-color var(--transition-ui), opacity var(--transition-ui);
   }
 
@@ -70,6 +92,13 @@
 
   .card {
     @apply rounded-2xl border border-border bg-surface-card;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Gunduz modu: border-only kartlara da hafif golge */
+  .light .bg-surface-card.rounded-2xl,
+  .light .bg-surface-card.rounded-xl,
+  .light .bg-surface-card.rounded-\[10px\] {
     box-shadow: var(--shadow-card);
   }
 
@@ -229,5 +258,9 @@
       var(--color-bg-primary) 100%
     );
     opacity: 0.55;
+  }
+
+  .light .city-atmosphere-strip::after {
+    opacity: 0;
   }
 }

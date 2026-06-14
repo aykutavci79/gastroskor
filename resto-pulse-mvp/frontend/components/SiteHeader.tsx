@@ -1,9 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
 
+import { GastroSkorLogo } from '@/components/GastroSkorLogo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { cityDisplayName } from '@/lib/detect-city';
 
@@ -16,12 +17,10 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="group flex items-center gap-3">
-          <Image
-            src="/logo.png"
-            alt="GastroSkor"
+          <GastroSkorLogo
+            className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
             width={56}
             height={56}
-            className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
             priority
           />
           <div className="leading-tight">
@@ -49,6 +48,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          <ThemeToggle />
           <span
             className="rounded-full border border-border bg-surface-input px-3 py-1 text-xs font-medium text-content-muted"
             title={
