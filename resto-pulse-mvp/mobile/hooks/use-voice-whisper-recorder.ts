@@ -1,6 +1,8 @@
 import { Audio } from 'expo-av';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { releaseRecordingAudioForSpeech } from '@/lib/gastro-speak';
+
 import {
   createVoiceSilenceVadState,
   getVoiceVadConfig,
@@ -168,6 +170,7 @@ export function useVoiceWhisperRecorder() {
     setTranscribing(true);
     try {
       await active.stopAndUnloadAsync();
+      await releaseRecordingAudioForSpeech();
       const uri = active.getURI();
       if (!uri) {
         throw new Error('Kayit dosyasi bulunamadi.');
@@ -183,6 +186,7 @@ export function useVoiceWhisperRecorder() {
   const cancelRecording = useCallback(async () => {
     onAutoStopRef.current = null;
     await cleanupRecording();
+    await releaseRecordingAudioForSpeech();
     setRecording(false);
     setTranscribing(false);
   }, [cleanupRecording]);

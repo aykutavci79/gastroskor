@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 import { openKesfetVoiceOverlay } from '@/lib/kesfet-voice-bridge';
 
 const MIC_SIZE = 56;
@@ -25,13 +27,15 @@ function TabButton({
   entry,
   isFocused,
   navigation,
+  colors,
 }: {
   entry: TabEntry;
   isFocused: boolean;
   navigation: BottomTabBarProps['navigation'];
+  colors: GastroColorScheme;
 }) {
   const { route, index, options } = entry;
-  const color = isFocused ? GastroColors.accent : GastroColors.muted;
+  const color = isFocused ? colors.accent : colors.muted;
   const label =
     options.tabBarLabel !== undefined
       ? String(options.tabBarLabel)
@@ -62,7 +66,7 @@ function TabButton({
       {icon}
       <Text style={[styles.label, { color }, isFocused && styles.labelOn]}>{label}</Text>
       {options.tabBarBadge != null ? (
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: colors.accent }]}>
           <Text style={styles.badgeText}>{String(options.tabBarBadge)}</Text>
         </View>
       ) : null}
@@ -72,6 +76,8 @@ function TabButton({
 
 export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useGastroTheme();
+  const shellStyles = useMemo(() => createShellStyles(colors), [colors]);
 
   const tabs: TabEntry[] = state.routes
     .map((route, index) => ({
@@ -86,7 +92,7 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
   const rightTabs = tabs.slice(splitAt);
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+    <View style={[shellStyles.wrap, { paddingBottom: Math.max(insets.bottom, 6) }]}>
       <View style={styles.row}>
         <View style={styles.side}>
           {leftTabs.map((entry) => (
@@ -95,6 +101,7 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
               entry={entry}
               isFocused={state.index === entry.index}
               navigation={navigation}
+              colors={colors}
             />
           ))}
         </View>
@@ -106,6 +113,7 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
               entry={entry}
               isFocused={state.index === entry.index}
               navigation={navigation}
+              colors={colors}
             />
           ))}
         </View>
@@ -113,26 +121,41 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
 
       <View style={[styles.micSlot, { top: -MIC_LIFT }]}>
         <Pressable
-          style={({ pressed }) => [styles.micBtn, pressed && styles.micBtnPressed]}
+          style={({ pressed }) => [shellStyles.micBtn, pressed && styles.micBtnPressed]}
           onPress={openKesfetVoiceOverlay}
           accessibilityRole="button"
           accessibilityLabel="Sesli arama">
           <Ionicons name="mic" size={22} color="#fff" />
         </Pressable>
-        <Text style={styles.micLabel}>Ses</Text>
+        <Text style={[styles.micLabel, { color: colors.accent }]}>Ses</Text>
       </View>
     </View>
   );
 }
 
+function createShellStyles(colors: GastroColorScheme) {
+  return StyleSheet.create({
+    wrap: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.panel,
+      paddingTop: 8,
+      position: 'relative',
+    },
+    micBtn: {
+      width: MIC_SIZE,
+      height: MIC_SIZE,
+      borderRadius: MIC_SIZE / 2,
+      backgroundColor: colors.accent,
+      borderWidth: 3,
+      borderColor: colors.panel,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+}
+
 const styles = StyleSheet.create({
-  wrap: {
-    borderTopWidth: 1,
-    borderTopColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
-    paddingTop: 8,
-    position: 'relative',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -160,7 +183,6 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: GastroColors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -173,20 +195,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: MIC_SIZE,
   },
-  micBtn: {
-    width: MIC_SIZE,
-    height: MIC_SIZE,
-    borderRadius: MIC_SIZE / 2,
-    backgroundColor: GastroColors.accent,
-    borderWidth: 3,
-    borderColor: GastroColors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   micBtnPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   micLabel: {
     marginTop: 4,
-    color: GastroColors.accent,
     fontSize: 9,
     fontWeight: '800',
   },

@@ -1,16 +1,19 @@
 import { useRouter, type Href } from 'expo-router';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
 export default function YoreselLezzetlerScreen() {
   const { city, cityLabel } = useCity();
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const router = useRouter();
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +45,7 @@ export default function YoreselLezzetlerScreen() {
           vermez.
         </Text>
 
-        {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 24 }} /> : null}
+        {loading ? <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} /> : null}
 
         <View style={styles.list}>
           {items.map((item) => (
@@ -74,40 +77,43 @@ export default function YoreselLezzetlerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { paddingBottom: 32 },
-  kicker: {
-    color: GastroColors.gold,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  title: { color: GastroColors.text, fontSize: 24, fontWeight: '700', marginTop: 8 },
-  sub: { color: GastroColors.muted, marginTop: 8, lineHeight: 20, fontSize: 14 },
-  list: { marginTop: 20, gap: 12 },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    backgroundColor: GastroColors.panel,
-    overflow: 'hidden',
-  },
-  cardRow: { flexDirection: 'row', alignItems: 'stretch' },
-  cardBody: { flex: 1, padding: 16 },
-  thumb: {
-    width: 96,
-    minHeight: 120,
-    backgroundColor: GastroColors.input,
-  },
-  badge: {
-    color: GastroColors.gold,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  cardTitle: { color: GastroColors.text, fontSize: 18, fontWeight: '700', marginTop: 6 },
-  region: { color: GastroColors.muted, fontSize: 12, marginTop: 2 },
-  summary: { color: GastroColors.muted, fontSize: 13, marginTop: 8, lineHeight: 18 },
-  meta: { color: GastroColors.gold, fontSize: 12, fontWeight: '600', marginTop: 10 },
-});
+function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
+  return StyleSheet.create({
+    scroll: { paddingBottom: 32 },
+    kicker: {
+      color: colors.gold,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    title: { color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8 },
+    sub: { color: colors.muted, marginTop: 8, lineHeight: 20, fontSize: 14 },
+    list: { marginTop: 20, gap: 12 },
+    card: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.25)',
+      backgroundColor: colors.panel,
+      overflow: 'hidden',
+      ...shadow.card,
+    },
+    cardRow: { flexDirection: 'row', alignItems: 'stretch' },
+    cardBody: { flex: 1, padding: 16 },
+    thumb: {
+      width: 96,
+      minHeight: 120,
+      backgroundColor: colors.input,
+    },
+    badge: {
+      color: colors.gold,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+    cardTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 6 },
+    region: { color: colors.muted, fontSize: 12, marginTop: 2 },
+    summary: { color: colors.muted, fontSize: 13, marginTop: 8, lineHeight: 18 },
+    meta: { color: colors.gold, fontSize: 12, fontWeight: '600', marginTop: 10 },
+  });
+}

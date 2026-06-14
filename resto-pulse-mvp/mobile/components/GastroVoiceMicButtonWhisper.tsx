@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
+import { gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   useVoiceWhisperRecorder,
   type VoiceWhisperAutoStopReason,
@@ -98,6 +99,7 @@ export function GastroVoiceMicButtonWhisper({
   }, [active, cancelRecording]);
 
   const beginRecording = useCallback(async () => {
+    gastroStopSpeaking();
     updateHint(null);
     const started = await startRecording({ onAutoStop: handleAutoStop });
     if (!started) {

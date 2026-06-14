@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,8 +17,9 @@ import { VoiceOrderSheet } from '@/components/VoiceOrderSheet';
 import { OnlineOrderRestaurantCard } from '@/components/OnlineOrderRestaurantCard';
 import { OnlineOrderSortBar } from '@/components/OnlineOrderSortBar';
 import { Screen } from '@/components/ui/Screen';
-import { GastroColors } from '@/constants/theme';
+import { GastroStyles } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 import { fetchVoiceProductRestaurants } from '@/lib/online-order-voice-fetch';
@@ -46,6 +48,7 @@ import {
   gastroSpeak,
   gastroSpeakSmartCartProposal,
   gastroSpeakVoiceOrderRestaurantOptions,
+  gastroStopSpeaking,
 } from '@/lib/gastro-speak';
 import {
   enrichVoiceOrderCommandWithCandidate,
@@ -84,6 +87,8 @@ export default function OnlineOrderResultsScreen() {
   const routeParams = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const { user } = useSession();
   const { city, cityLabel, fallbackCoords } = useCity();
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createResultsStyles(colors, shadow), [colors, shadow]);
 
   const routeConfig = useMemo(
     () => parseOnlineOrderResultsRouteParams(routeParams),
@@ -111,6 +116,17 @@ export default function OnlineOrderResultsScreen() {
   const [voiceCartSelections, setVoiceCartSelections] = useState<Record<number, VoiceMenuMatch>>({});
   const loadedKeyRef = useRef<string | null>(null);
   const sortRefetchSkipRef = useRef(true);
+
+  const openVoiceSheet = useCallback(() => {
+    gastroStopSpeaking();
+    setVoiceSheetOpen(true);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => gastroStopSpeaking();
+    }, []),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -417,7 +433,7 @@ export default function OnlineOrderResultsScreen() {
     return (
       <View style={styles.root}>
         <Stack.Screen options={{ title: 'Sonuçlar' }} />
-        <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
       </View>
     );
   }
@@ -430,8 +446,8 @@ export default function OnlineOrderResultsScreen() {
           headerBackTitle: 'Geri',
           headerBackVisible: true,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
-          headerStyle: { backgroundColor: GastroColors.bg },
-          headerTintColor: GastroColors.text,
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
         }}
       />
       <Screen scroll edges={['left', 'right']} style={styles.page}>
@@ -439,7 +455,7 @@ export default function OnlineOrderResultsScreen() {
           <View style={styles.voiceResultBanner}>
             <View style={styles.voiceResultTop}>
               <Text style={styles.voiceResultLabel}>Gastro Sipariş araması</Text>
-              <Pressable onPress={() => setVoiceSheetOpen(true)}>
+              <Pressable onPress={openVoiceSheet}>
                 <Text style={styles.voiceResultEdit}>Tekrar ara</Text>
               </Pressable>
             </View>
@@ -487,7 +503,7 @@ export default function OnlineOrderResultsScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
+          <ActivityIndicator color={colors.accent} style={styles.loader} />
         ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -503,7 +519,7 @@ export default function OnlineOrderResultsScreen() {
             <View style={styles.emptyActions}>
               {voiceQuery ? (
                 <>
-                  <Pressable style={styles.emptyBtn} onPress={() => setVoiceSheetOpen(true)}>
+                  <Pressable style={styles.emptyBtn} onPress={openVoiceSheet}>
                     <Text style={styles.emptyBtnText}>Tekrar ara</Text>
                   </Pressable>
                   <Pressable style={styles.emptyBtnGhost} onPress={() => router.replace('/siparis-acik')}>
@@ -596,8 +612,12 @@ export default function OnlineOrderResultsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: GastroColors.bg },
+function createResultsStyles(
+  colors: import('@/constants/theme').GastroColorScheme,
+  shadow: import('@/constants/theme').GastroShadowScheme,
+) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   page: { gap: 8, paddingTop: 4 },
   loader: { marginVertical: 24 },
   commandModal: { flex: 1, justifyContent: 'flex-end' },
@@ -614,7 +634,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,107,53,0.35)',
-    backgroundColor: 'rgba(255,107,53,0.08)',
+    backgroundColor: colors.accentSoft,
     padding: 12,
     gap: 4,
   },
@@ -625,23 +645,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   voiceResultLabel: {
-    color: GastroColors.accent,
+    color: colors.accent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  voiceResultText: { color: GastroColors.text, fontSize: 15, fontWeight: '700' },
-  voiceResultHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 16, marginTop: 4 },
-  voiceResultEdit: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
+  voiceResultText: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  voiceResultHint: { color: colors.muted, fontSize: 12, lineHeight: 16, marginTop: 4 },
+  voiceResultEdit: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   voiceOrderLink: {
     marginTop: 2,
     alignSelf: 'flex-start',
     paddingVertical: 4,
   },
-  voiceOrderLinkText: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
+  voiceOrderLinkText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   voiceLegendInline: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
     marginTop: 2,
@@ -649,22 +669,23 @@ const styles = StyleSheet.create({
   filterSummary: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
     padding: 12,
     gap: 4,
+    ...shadow.card,
   },
   filterSummaryLabel: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  filterSummaryText: { color: GastroColors.text, fontSize: 14, fontWeight: '600' },
-  filterSummaryEdit: { color: GastroColors.gold, fontSize: 13, fontWeight: '700', marginTop: 2 },
+  filterSummaryText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  filterSummaryEdit: { color: colors.gold, fontSize: 13, fontWeight: '700', marginTop: 2 },
   sectionTitle: {
-    color: GastroColors.text,
+    color: colors.text,
     fontSize: 17,
     fontWeight: '800',
   },
@@ -674,33 +695,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  resultCount: { color: GastroColors.gold, fontSize: 13, fontWeight: '700' },
+  resultCount: { color: colors.gold, fontSize: 13, fontWeight: '700' },
   list: { gap: 6 },
-  error: { color: GastroColors.bad, fontSize: 13 },
+  error: { color: colors.bad, fontSize: 13 },
   emptyBox: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
     padding: 16,
     gap: 6,
+    ...shadow.card,
   },
-  emptyTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '700' },
-  emptySub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  emptySub: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   emptyActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   emptyBtn: {
     borderRadius: 12,
-    backgroundColor: GastroColors.gold,
+    backgroundColor: colors.gold,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  emptyBtnText: { color: '#141414', fontWeight: '800', fontSize: 13 },
+  emptyBtnText: { color: colors.accentDark, fontWeight: '800', fontSize: 13 },
   emptyBtnGhost: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: GastroColors.border,
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  emptyBtnGhostText: { color: GastroColors.muted, fontWeight: '700', fontSize: 13 },
-});
+  emptyBtnGhostText: { color: colors.muted, fontWeight: '700', fontSize: 13 },
+  });
+}

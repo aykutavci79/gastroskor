@@ -1,12 +1,8 @@
 import { useCallback, useMemo, useRef } from 'react';
-import {
-  PanResponder,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
 
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
   label: string;
@@ -26,6 +22,8 @@ function snapValue(raw: number, min: number, max: number, step: number): number 
 }
 
 export function FilterRangeBar({ label, value, min, max, step, formatValue, onChange }: Props) {
+  const { colors } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const trackRef = useRef<View>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -79,48 +77,50 @@ export function FilterRangeBar({ label, value, min, max, step, formatValue, onCh
 
 const THUMB = 22;
 
-const styles = StyleSheet.create({
-  wrap: { gap: 8 },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  label: { color: GastroColors.text, fontSize: 14, fontWeight: '700' },
-  value: { color: GastroColors.accent, fontSize: 14, fontWeight: '800' },
-  trackHit: {
-    height: 36,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  track: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: GastroColors.border,
-    overflow: 'hidden',
-  },
-  fill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: GastroColors.accent,
-    borderRadius: 4,
-  },
-  thumb: {
-    position: 'absolute',
-    width: THUMB,
-    height: THUMB,
-    marginLeft: -THUMB / 2,
-    top: (36 - THUMB) / 2,
-    borderRadius: THUMB / 2,
-    backgroundColor: GastroColors.accent,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  edgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  edge: { color: GastroColors.muted, fontSize: 11, fontWeight: '600' },
-});
+function createStyles(colors: GastroColorScheme) {
+  return StyleSheet.create({
+    wrap: { gap: 8 },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    label: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    value: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+    trackHit: {
+      height: 36,
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    track: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
+    },
+    fill: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      backgroundColor: colors.accent,
+      borderRadius: 4,
+    },
+    thumb: {
+      position: 'absolute',
+      width: THUMB,
+      height: THUMB,
+      marginLeft: -THUMB / 2,
+      top: (36 - THUMB) / 2,
+      borderRadius: THUMB / 2,
+      backgroundColor: colors.accent,
+      borderWidth: 2,
+      borderColor: colors.panel,
+    },
+    edgeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    edge: { color: colors.muted, fontSize: 11, fontWeight: '600' },
+  });
+}

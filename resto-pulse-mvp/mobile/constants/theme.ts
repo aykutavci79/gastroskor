@@ -4,7 +4,32 @@ import { StyleSheet } from 'react-native';
  * GastroSkor tasarim tokenlari — frontend/app/globals.css ile birebir.
  * @see resto-pulse-mvp/frontend/app/globals.css
  */
-export const GastroColors = {
+export type GastroThemeMode = 'light' | 'dark';
+
+export type GastroColorScheme = {
+  readonly bg: string;
+  readonly panel: string;
+  readonly input: string;
+  readonly border: string;
+  readonly text: string;
+  readonly muted: string;
+  readonly placeholder: string;
+  readonly accent: string;
+  readonly accentHover: string;
+  readonly gold: string;
+  readonly success: string;
+  readonly google: string;
+  readonly bad: string;
+  readonly amber: string;
+  readonly rose: string;
+  readonly sky: string;
+  readonly accentDark: string;
+  readonly overlayRipple: string;
+  readonly featuredGlow: string;
+  readonly accentSoft: string;
+};
+
+export const GastroColorsDark: GastroColorScheme = {
   bg: '#141414',
   panel: '#1E1E1E',
   input: '#2A2A2A',
@@ -18,20 +43,63 @@ export const GastroColors = {
   success: '#4CAF79',
   google: '#4285F4',
   bad: '#EF4444',
-  /** @deprecated use gold */
   amber: '#FFB703',
-  /** @deprecated use bad */
   rose: '#EF4444',
-  /** @deprecated use google */
   sky: '#4285F4',
-  /** Primary buton metni — web .btn-primary text-content */
   accentDark: '#FFFFFF',
   overlayRipple: 'rgba(255,255,255,0.08)',
   featuredGlow: 'rgba(255, 107, 53, 0.25)',
   accentSoft: 'rgba(255, 107, 53, 0.15)',
-} as const;
+};
 
-export const GastroShadow = {
+export const GastroColorsLight: GastroColorScheme = {
+  bg: '#FAFAFA',
+  panel: '#FFFFFF',
+  input: '#F0F0F0',
+  border: '#E0E0E0',
+  text: '#141414',
+  muted: '#5C5C5C',
+  placeholder: '#8A8A8A',
+  accent: '#FF6B35',
+  accentHover: '#E55A25',
+  gold: '#D97706',
+  success: '#2E7D32',
+  google: '#4285F4',
+  bad: '#EF4444',
+  amber: '#D97706',
+  rose: '#EF4444',
+  sky: '#4285F4',
+  accentDark: '#141414',
+  overlayRipple: 'rgba(0,0,0,0.06)',
+  featuredGlow: 'rgba(255, 107, 53, 0.18)',
+  accentSoft: 'rgba(255, 107, 53, 0.12)',
+};
+
+/** Geriye uyumluluk — koyu tokenlar */
+export const GastroColors = GastroColorsDark;
+
+export function gastroColorsFor(mode: GastroThemeMode): GastroColorScheme {
+  return mode === 'light' ? GastroColorsLight : GastroColorsDark;
+}
+
+export type GastroShadowScheme = {
+  readonly card: {
+    shadowColor: string;
+    shadowOffset: { width: number; height: number };
+    shadowOpacity: number;
+    shadowRadius: number;
+    elevation: number;
+  };
+  readonly featured: {
+    shadowColor: string;
+    shadowOffset: { width: number; height: number };
+    shadowOpacity: number;
+    shadowRadius: number;
+    elevation: number;
+  };
+};
+
+export const GastroShadowDark: GastroShadowScheme = {
   card: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
@@ -46,7 +114,31 @@ export const GastroShadow = {
     shadowRadius: 10,
     elevation: 8,
   },
-} as const;
+};
+
+export const GastroShadowLight: GastroShadowScheme = {
+  card: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  featured: {
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+};
+
+/** Geriye uyumluluk */
+export const GastroShadow = GastroShadowDark;
+
+export function gastroShadowFor(mode: GastroThemeMode): GastroShadowScheme {
+  return mode === 'light' ? GastroShadowLight : GastroShadowDark;
+}
 
 export const GastroStyles = StyleSheet.create({
   card: {

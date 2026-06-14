@@ -1,4 +1,6 @@
 /** Tab bar mic FAB ↔ Keşfet ses overlay + arama sonucu. */
+import { gastroStopSpeaking } from '@/lib/gastro-speak';
+
 let openVoiceOverlay: (() => void) | null = null;
 let voiceSearchListener: ((text: string) => void) | null = null;
 let pendingVoiceQuery: string | null = null;
@@ -19,6 +21,7 @@ export function unregisterKesfetVoiceOpener(fn: () => void) {
 }
 
 export function openKesfetVoiceOverlay() {
+  gastroStopSpeaking();
   openVoiceOverlay?.();
 }
 

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
+import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { GastroBrandMark } from '@/components/GastroBrandMark';
 import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
 import { Screen } from '@/components/ui/Screen';
@@ -74,6 +75,8 @@ export default function ProfilScreen() {
           {Constants.expoConfig?.android?.versionCode ?? '?'}
         </Text>
       </View>
+
+      <ThemeToggleButton />
 
       {isExpoGo ? (
         <View style={styles.debugCard}>

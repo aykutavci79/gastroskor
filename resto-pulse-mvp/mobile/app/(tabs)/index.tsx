@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -20,8 +20,9 @@ import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
 import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBanner';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
-import { GastroColors, GastroStyles } from '@/constants/theme';
+import { GastroStyles } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 import { searchLivePlaces } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import {
@@ -36,7 +37,7 @@ import {
   unregisterKesfetVoiceSearchListener,
 } from '@/lib/kesfet-voice-bridge';
 import { restaurantDetailHref } from '@/lib/uuid';
-import { gastroSpeakVoiceSearchResults } from '@/lib/gastro-speak';
+import { gastroSpeakVoiceSearchResults, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
 import type {
   LivePlaceSearchItem,
@@ -48,6 +49,8 @@ type Coords = { lat: number; lng: number };
 
 export default function ExploreScreen() {
   const { city, cityLabel } = useCity();
+  const { colors, mode } = useGastroTheme();
+  const styles = useMemo(() => createExploreStyles(colors, mode), [colors, mode]);
   const navigation = useNavigation();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
@@ -215,6 +218,7 @@ export default function ExploreScreen() {
 
   const handleVoiceTranscript = useCallback(
     (text: string) => {
+      gastroStopSpeaking();
       const polished = polishVoiceSearchTranscript(text);
       setInputQuery(polished);
       setSearchFocused(false);
@@ -305,7 +309,10 @@ export default function ExploreScreen() {
       <KesfetHomeChrome
         query={inputQuery}
         onQueryChange={setInputQuery}
-        onSearchFocus={() => setSearchFocused(true)}
+        onSearchFocus={() => {
+          gastroStopSpeaking();
+          setSearchFocused(true);
+        }}
         onSearchBlur={() => setSearchFocused(false)}
         onClear={resetKesfetVitrin}
         onDismiss={dismissKeyboard}
@@ -329,7 +336,7 @@ export default function ExploreScreen() {
         </View>
       ) : null}
       {loadingSearch ? (
-        <ActivityIndicator color={GastroColors.accent} style={{ marginVertical: 16 }} />
+        <ActivityIndicator color={colors.accent} style={{ marginVertical: 16 }} />
       ) : searchCards.length === 0 ? (
         <Text style={styles.empty}>
           {kitchenBrowseMode && activeKitchenSlug
@@ -402,7 +409,7 @@ export default function ExploreScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={GastroColors.accent}
+                tintColor={colors.accent}
               />
             }>
             {searchBody}
@@ -423,7 +430,8 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createExploreStyles(colors: import('@/constants/theme').GastroColorScheme, mode: 'light' | 'dark') {
+  return StyleSheet.create({
   page: { flex: 1 },
   chromeWrap: {
     zIndex: 20,
@@ -436,7 +444,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 15,
     elevation: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: mode === 'light' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.18)',
   },
   vitrinFill: {
     flex: 1,
@@ -451,9 +459,9 @@ const styles = StyleSheet.create({
   searchScroll: { paddingHorizontal: 12, gap: 12, paddingBottom: 24 },
   searchBody: { gap: 12, paddingHorizontal: 4 },
   kitchenHeader: { gap: 2, paddingHorizontal: 4, paddingTop: 4 },
-  kitchenTitle: { color: GastroColors.text, fontSize: 17, fontWeight: '800' },
-  kitchenSub: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
-  empty: { color: GastroColors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
+  kitchenTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  kitchenSub: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+  empty: { color: colors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
   errorBox: {
     borderRadius: 12,
     borderWidth: 1,
@@ -462,4 +470,5 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   error: GastroStyles.errorText,
-});
+  });
+}

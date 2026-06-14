@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,8 +15,9 @@ import {
 
 import { FoodCastTitle } from '@/components/FoodCastTitle';
 import { FoodcastReportSheet } from '@/components/FoodcastReportSheet';
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { getFoodcastFeed, reportFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
@@ -35,6 +36,8 @@ type Props = {
 
 export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
   const { city } = useCity();
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const router = useRouter();
   const { user } = useSession();
   const { width: screenWidth } = useWindowDimensions();
@@ -115,7 +118,7 @@ export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 8 }} />
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 8 }} />
         ) : (
           <View style={styles.stripHost}>
             <ScrollView
@@ -166,7 +169,8 @@ export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
+  return StyleSheet.create({
   section: {
     paddingLeft: 12,
     gap: 8,
@@ -180,8 +184,8 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     flexShrink: 0,
   },
-  sub: { color: GastroColors.muted, fontSize: 10, marginTop: 2 },
-  link: { color: GastroColors.accent, fontSize: 11, fontWeight: '700' },
+  sub: { color: colors.muted, fontSize: 10, marginTop: 2 },
+  link: { color: colors.accent, fontSize: 11, fontWeight: '700' },
   stripHost: { flex: 1, minHeight: 0 },
   stripScroll: { flex: 1 },
   strip: {
@@ -196,8 +200,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.input,
+    borderColor: colors.border,
+    backgroundColor: colors.input,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -211,30 +215,32 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   reportText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  dish: { color: GastroColors.text, fontSize: 11, fontWeight: '800', lineHeight: 14 },
-  place: { color: GastroColors.muted, fontSize: 10, fontWeight: '600', lineHeight: 13 },
-  ago: { color: GastroColors.placeholder, fontSize: 9 },
+  dish: { color: colors.text, fontSize: 11, fontWeight: '800', lineHeight: 14 },
+  place: { color: colors.muted, fontSize: 10, fontWeight: '600', lineHeight: 13 },
+  ago: { color: colors.placeholder, fontSize: 9 },
   emptyBox: {
     flex: 1,
     minHeight: 100,
     marginRight: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
     padding: 14,
     justifyContent: 'center',
     gap: 6,
+    ...shadow.card,
   },
-  emptyTitle: { color: GastroColors.text, fontSize: 13, fontWeight: '800' },
-  emptySub: { color: GastroColors.muted, fontSize: 11, lineHeight: 16 },
+  emptyTitle: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  emptySub: { color: colors.muted, fontSize: 11, lineHeight: 16 },
   emptyBtn: {
     alignSelf: 'flex-start',
     marginTop: 4,
     borderRadius: 10,
-    backgroundColor: GastroColors.accent,
+    backgroundColor: colors.accent,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   emptyBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-});
+  });
+}

@@ -8,7 +8,7 @@ import {
   registerKesfetVoiceOpener,
   unregisterKesfetVoiceOpener,
 } from '@/lib/kesfet-voice-bridge';
-import { gastroSpeak } from '@/lib/gastro-speak';
+import { gastroSpeak, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { parseKesfetVoiceNavigationIntent } from '@/lib/parse-kesfet-voice-intent';
 
 /** Tab bar mic → her zaman acik ses overlay (index mount olmasa da). */
@@ -17,6 +17,7 @@ export function KesfetVoiceOverlayRoot() {
   const [visible, setVisible] = useState(false);
 
   const openOverlay = useCallback(() => {
+    gastroStopSpeaking();
     router.navigate('/(tabs)');
     setVisible(true);
   }, [router]);

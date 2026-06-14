@@ -20,7 +20,7 @@ function scoreTurkishVoice(voice: SpeechVoice): number {
   if (voice.quality === 'Enhanced') score += 24;
 
   if (Platform.OS === 'android') {
-    // Google TTS neural / local Turkce sesleri
+    if (/tr-tr-x-.*-network/.test(id)) score += 48;
     if (/tr-tr-x-/.test(id)) score += 40;
     if (id.includes('trf') || id.includes('trd')) score += 18;
     if (id.includes('google')) score += 12;
@@ -68,8 +68,8 @@ export function prefetchTurkishTtsVoice(): void {
 }
 
 export function ttsSpeechRate(): number {
-  if (Platform.OS === 'android') return 0.88;
-  return 0.95;
+  if (Platform.OS === 'android') return 0.82;
+  return 0.92;
 }
 
 export function ttsSpeechPitch(): number {

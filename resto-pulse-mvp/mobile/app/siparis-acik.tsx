@@ -17,8 +17,8 @@ import { KitchenCategoryGrid } from '@/components/KitchenCategoryGrid';
 import { Screen } from '@/components/ui/Screen';
 import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
-import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 import { toggleKitchenSlug } from '@/lib/online-order-filter';
 import {
   buildOnlineOrderFilterResultsHref,
@@ -42,6 +42,8 @@ export default function OnlineOrdersOpenScreen() {
   const router = useRouter();
   const routeParams = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const { cityLabel, fallbackCoords } = useCity();
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const voiceLaunchHandledRef = useRef(false);
 
   const [categories] = useState<OnlineOrderCategoryOption[]>(ONLINE_ORDER_CATEGORIES);
@@ -185,8 +187,8 @@ export default function OnlineOrdersOpenScreen() {
           headerBackTitle: 'Geri',
           headerBackVisible: true,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
-          headerStyle: { backgroundColor: GastroColors.bg },
-          headerTintColor: GastroColors.text,
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
         }}
       />
       <Screen scroll edges={['left', 'right']} style={styles.page}>
@@ -282,32 +284,37 @@ export default function OnlineOrdersOpenScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: GastroColors.bg },
+function createStyles(
+  colors: import('@/constants/theme').GastroColorScheme,
+  shadow: import('@/constants/theme').GastroShadowScheme,
+) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   page: { gap: 16 },
   hero: {
     borderRadius: 18,
     padding: 20,
-    backgroundColor: '#1a1210',
+    backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: 'rgba(255,107,53,0.35)',
     gap: 6,
+    ...shadow.card,
   },
   heroKicker: {
-    color: GastroColors.accent,
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   heroTitle: {
-    color: GastroColors.text,
+    color: colors.text,
     fontSize: 26,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
   heroSub: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -319,36 +326,37 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,107,53,0.55)',
-    backgroundColor: 'rgba(255,107,53,0.12)',
+    backgroundColor: colors.accentSoft,
     padding: 14,
   },
   voiceHeroBtnPressed: { opacity: 0.92 },
   voiceHeroEmoji: { fontSize: 28 },
   voiceHeroTextWrap: { flex: 1, gap: 2 },
-  voiceHeroTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
-  voiceHeroSub: { color: GastroColors.muted, fontSize: 12, lineHeight: 16 },
+  voiceHeroTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  voiceHeroSub: { color: colors.muted, fontSize: 12, lineHeight: 16 },
   filterPanel: {
     borderRadius: 18,
     padding: 16,
     gap: 14,
-    backgroundColor: GastroColors.panel,
+    backgroundColor: colors.panel,
     borderWidth: 1,
-    borderColor: GastroColors.border,
+    borderColor: colors.border,
+    ...shadow.card,
   },
   sectionTitle: {
-    color: GastroColors.text,
+    color: colors.text,
     fontSize: 17,
     fontWeight: '800',
   },
   divider: {
     height: 1,
-    backgroundColor: GastroColors.border,
+    backgroundColor: colors.border,
   },
-  coordsHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17 },
-  ratingHint: { color: GastroColors.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
+  coordsHint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  ratingHint: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
   listBtn: {
     marginTop: 4,
-    backgroundColor: GastroColors.accent,
+    backgroundColor: colors.accent,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
@@ -357,7 +365,7 @@ const styles = StyleSheet.create({
   },
   listBtnPressed: { opacity: 0.92 },
   listBtnText: {
-    color: '#141414',
+    color: colors.accentDark,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 0.3,
@@ -365,11 +373,13 @@ const styles = StyleSheet.create({
   promptBox: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
     padding: 16,
     gap: 6,
+    ...shadow.card,
   },
-  promptTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
-  promptSub: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
-});
+  promptTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  promptSub: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  });
+}

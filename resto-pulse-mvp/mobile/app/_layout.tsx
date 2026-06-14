@@ -1,20 +1,20 @@
 import 'react-native-gesture-handler';
 
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { CityProvider } from '@/context/city-context';
+import { GastroThemeProvider, useGastroTheme } from '@/context/theme-context';
 import { SessionProvider } from '@/context/session-context';
-import { GastroColors } from '@/constants/theme';
 import { setupSslPinning } from '@/lib/ssl-pinning';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
@@ -29,17 +29,67 @@ if (sentryDsn) {
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
-const theme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: GastroColors.bg,
-    card: GastroColors.panel,
-    primary: GastroColors.accent,
-    text: GastroColors.text,
-    border: GastroColors.border,
-  },
-};
+function NavigationShell() {
+  const { colors, mode } = useGastroTheme();
+
+  const navTheme = useMemo(
+    () => ({
+      ...(mode === 'light' ? DefaultTheme : DarkTheme),
+      colors: {
+        ...(mode === 'light' ? DefaultTheme.colors : DarkTheme.colors),
+        background: colors.bg,
+        card: colors.panel,
+        primary: colors.accent,
+        text: colors.text,
+        border: colors.border,
+      },
+    }),
+    [colors, mode],
+  );
+
+  return (
+    <ThemeProvider value={navTheme}>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.text,
+          contentStyle: { backgroundColor: colors.bg },
+        }}>
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false, headerBackTitle: 'Geri', title: 'Keşfet' }}
+        />
+        <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />
+        <Stack.Screen name="gurme" options={{ headerShown: false }} />
+        <Stack.Screen name="dm" options={{ headerShown: false }} />
+        <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
+        <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
+        <Stack.Screen name="foodcast/index" options={{ headerShown: false }} />
+        <Stack.Screen name="foodcast/paylas" options={{ title: 'Tabak paylaş' }} />
+        <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
+        <Stack.Screen
+          name="siparis-acik"
+          options={{
+            title: 'Online Sipariş',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+          }}
+        />
+        <Stack.Screen
+          name="siparis-acik-sonuclar"
+          options={{
+            title: 'Sonuçlar',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+          }}
+        />
+      </Stack>
+      <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
+    </ThemeProvider>
+  );
+}
 
 function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -63,50 +113,13 @@ function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
-        <CityProvider>
-          <AppMetricsTracker />
-          <NotificationBootstrap />
-          <ThemeProvider value={theme}>
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: GastroColors.bg },
-              headerTintColor: GastroColors.text,
-              contentStyle: { backgroundColor: GastroColors.bg },
-            }}>
-            <Stack.Screen
-              name="(tabs)"
-              options={{ headerShown: false, headerBackTitle: 'Geri', title: 'Keşfet' }}
-            />
-            <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />
-            <Stack.Screen name="gurme" options={{ headerShown: false }} />
-            <Stack.Screen name="dm" options={{ headerShown: false }} />
-            <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
-            <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
-            <Stack.Screen name="foodcast/index" options={{ headerShown: false }} />
-            <Stack.Screen name="foodcast/paylas" options={{ title: 'Tabak paylaş' }} />
-            <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
-            <Stack.Screen
-              name="siparis-acik"
-              options={{
-                title: 'Online Sipariş',
-                headerBackTitle: 'Geri',
-                headerBackVisible: true,
-              }}
-            />
-            <Stack.Screen
-              name="siparis-acik-sonuclar"
-              options={{
-                title: 'Sonuçlar',
-                headerBackTitle: 'Geri',
-                headerBackVisible: true,
-              }}
-            />
-          </Stack>
-          <StatusBar style="light" />
-        </ThemeProvider>
-        </CityProvider>
+        <GastroThemeProvider>
+          <CityProvider>
+            <AppMetricsTracker />
+            <NotificationBootstrap />
+            <NavigationShell />
+          </CityProvider>
+        </GastroThemeProvider>
       </SessionProvider>
     </AppErrorBoundary>
   );

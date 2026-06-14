@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { CenterMicTabBar } from '@/components/CenterMicTabBar';
 import { KesfetVoiceOverlayRoot } from '@/components/KesfetVoiceOverlayRoot';
-import { GastroColors } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
 import { AppBadgesProvider, useAppBadges } from '@/context/app-badges-context';
 import { useSession } from '@/context/session-context';
@@ -18,6 +18,7 @@ function badgeLabel(count: number): string | undefined {
 
 function TabsWithBadges() {
   const { user, loading: sessionLoading } = useSession();
+  const { colors } = useGastroTheme();
   const { notificationUnread, takipPending, refresh } = useAppBadges();
   const [hasBusiness, setHasBusiness] = useState(false);
 
@@ -57,9 +58,9 @@ function TabsWithBadges() {
       tabBar={(props) => <CenterMicTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: GastroColors.accent,
-        tabBarInactiveTintColor: GastroColors.muted,
-        tabBarBadgeStyle: { backgroundColor: GastroColors.accent, color: '#fff', fontSize: 10 },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarBadgeStyle: { backgroundColor: colors.accent, color: '#fff', fontSize: 10 },
       }}>
       <Tabs.Screen
         name="index"

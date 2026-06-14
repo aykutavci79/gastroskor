@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FeaturedCardFrame } from '@/components/FeaturedCardFrame';
@@ -8,7 +9,8 @@ import { MahrecBadge } from '@/components/MahrecBadge';
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
 import { RestaurantShareButton } from '@/components/RestaurantShareButton';
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import {
@@ -54,6 +56,8 @@ export function RestaurantCard({
 }: Props) {
   const router = useRouter();
   const { user } = useSession();
+  const { colors } = useGastroTheme();
+  const styles = useMemo(() => createCardStyles(colors), [colors]);
   const isPaidPartner = Boolean(restaurant.is_premium_partner || restaurant.promo);
   const showFeatured = featuredBorder ?? isPaidPartner;
   const badgeLabel =
@@ -126,7 +130,7 @@ export function RestaurantCard({
     <Pressable
       style={styles.cardWrap}
       onPress={resolvedHref ? openDetail : undefined}
-      android_ripple={resolvedHref ? { color: GastroColors.overlayRipple } : undefined}>
+      android_ripple={resolvedHref ? { color: colors.overlayRipple } : undefined}>
       <FeaturedCardFrame featured={showFeatured} badge={badgeLabel}>
         <View style={styles.cardBody}>
           {ratingVisual ? (
@@ -299,7 +303,8 @@ export function RestaurantCard({
 
 const STRIPE_WIDTH = 5;
 
-const styles = StyleSheet.create({
+function createCardStyles(colors: GastroColorScheme) {
+  return StyleSheet.create({
   cardWrap: {
     marginVertical: 6,
   },
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 10,
-    backgroundColor: GastroColors.input,
+    backgroundColor: colors.input,
   },
   topRow: {
     flexDirection: 'row',
@@ -353,22 +358,22 @@ const styles = StyleSheet.create({
     minHeight: 16,
   },
   rankBadge: {
-    color: GastroColors.accent,
+    color: colors.accent,
     fontSize: 11,
     fontWeight: '800',
   },
   distance: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
   },
   name: {
-    color: GastroColors.text,
+    color: colors.text,
     fontSize: 16,
     fontWeight: '800',
     lineHeight: 20,
   },
   city: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
   },
   scoreRow: {
@@ -378,10 +383,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   star: {
-    color: GastroColors.gold,
+    color: colors.gold,
   },
   googleScore: {
-    color: GastroColors.google,
+    color: colors.google,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -397,32 +402,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   reviewCountInPill: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontWeight: '500',
   },
   reviewCount: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontWeight: '500',
   },
   gsScore: {
-    color: GastroColors.accent,
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '700',
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: GastroColors.input,
+    backgroundColor: colors.input,
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   categoryText: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '600',
   },
   checkInCount: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -448,16 +453,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  menuChipText: { color: GastroColors.gold, fontSize: 11, fontWeight: '700' },
+  menuChipText: { color: colors.gold, fontSize: 11, fontWeight: '700' },
   ghostBtn: {
     borderWidth: 1,
-    borderColor: GastroColors.border,
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   ghostBtnText: {
-    color: GastroColors.text,
+    color: colors.text,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -467,14 +472,14 @@ const styles = StyleSheet.create({
   },
   travelPill: {
     borderWidth: 1,
-    borderColor: GastroColors.border,
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: GastroColors.input,
+    backgroundColor: colors.input,
     paddingHorizontal: 6,
     paddingVertical: 3,
   },
   travelPillText: {
-    color: GastroColors.muted,
+    color: colors.muted,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -482,8 +487,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   reviewsLink: {
-    color: GastroColors.accent,
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '700',
   },
-});
+  });
+}

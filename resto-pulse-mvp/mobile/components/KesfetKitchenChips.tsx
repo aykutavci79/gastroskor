@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 import { kitchenShortLabel } from '@/lib/kitchen-category-visual';
 
 type Props = {
@@ -10,6 +12,9 @@ type Props = {
 };
 
 export function KesfetKitchenChips({ activeSlug = null, onSelect }: Props) {
+  const { colors } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <ScrollView
       horizontal
@@ -36,32 +41,33 @@ export function KesfetKitchenChips({ activeSlug = null, onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { flexGrow: 0, flexShrink: 0 },
-  row: {
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-    gap: 4,
-  },
-  chip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.panel,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  chipOn: {
-    borderColor: GastroColors.accent,
-    backgroundColor: GastroColors.accent,
-  },
-  chipText: {
-    color: GastroColors.muted,
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  chipTextOn: {
-    color: '#fff',
-    fontWeight: '800',
-  },
-});
+function createStyles(colors: GastroColorScheme) {
+  return StyleSheet.create({
+    wrap: { flexGrow: 0, flexShrink: 0, backgroundColor: colors.bg },
+    row: {
+      paddingHorizontal: 12,
+      paddingVertical: 3,
+      gap: 4,
+    },
+    chip: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.panel,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    chipOn: {
+      borderColor: colors.accent,
+      backgroundColor: colors.accentSoft,
+    },
+    chipText: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    chipTextOn: {
+      color: colors.accent,
+    },
+  });
+}

@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
 import { categoryLabel } from '@/constants/online-order-categories';
+import { useGastroTheme } from '@/context/theme-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { coerceNumber } from '@/lib/coerce-number';
 import { ensureArray } from '@/lib/ensure-array';
@@ -18,7 +20,6 @@ type Props = {
   googleRating?: number | null;
   voiceMatches?: VoiceMenuMatch[];
   voiceLetter?: string | null;
-  /** Ürün araması (lahmacun vb.) — kartta eşleşen ürün fiyatı göster */
   showProductPrice?: boolean;
 };
 
@@ -41,6 +42,8 @@ export function OnlineOrderRestaurantCard({
   showProductPrice = false,
 }: Props) {
   const router = useRouter();
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const cover = resolveCardCoverUrl(restaurant);
   const menuPreview = ensureArray(restaurant.menu_preview);
   const visual = resolveCategoryVisual({
@@ -69,7 +72,7 @@ export function OnlineOrderRestaurantCard({
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={openOrder}
-      android_ripple={{ color: GastroColors.overlayRipple }}>
+      android_ripple={{ color: colors.overlayRipple }}>
       <View style={styles.thumbWrap}>
         {cover ? (
           <Image source={{ uri: cover }} style={styles.thumb} contentFit="cover" />
@@ -110,77 +113,80 @@ export function OnlineOrderRestaurantCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: GastroColors.panel,
-    borderWidth: 1,
-    borderColor: GastroColors.border,
-  },
-  cardPressed: {
-    opacity: 0.92,
-  },
-  thumbWrap: {
-    flexShrink: 0,
-  },
-  thumb: {
-    width: THUMB,
-    height: THUMB,
-    borderRadius: 8,
-    backgroundColor: GastroColors.input,
-  },
-  thumbFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fallbackEmoji: { fontSize: 20 },
-  content: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  letter: {
-    color: GastroColors.gold,
-    fontSize: 13,
-    fontWeight: '900',
-    flexShrink: 0,
-  },
-  name: {
-    flex: 1,
-    color: GastroColors.text,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
-  },
-  metaLine: {
-    color: GastroColors.muted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  subLine: {
-    color: GastroColors.muted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  productPriceLine: {
-    color: GastroColors.gold,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  cta: {
-    color: GastroColors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    flexShrink: 0,
-  },
-});
+function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
+  return StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadow.card,
+    },
+    cardPressed: {
+      opacity: 0.92,
+    },
+    thumbWrap: {
+      flexShrink: 0,
+    },
+    thumb: {
+      width: THUMB,
+      height: THUMB,
+      borderRadius: 8,
+      backgroundColor: colors.input,
+    },
+    thumbFallback: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fallbackEmoji: { fontSize: 20 },
+    content: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    letter: {
+      color: colors.gold,
+      fontSize: 13,
+      fontWeight: '900',
+      flexShrink: 0,
+    },
+    name: {
+      flex: 1,
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+      lineHeight: 17,
+    },
+    metaLine: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    subLine: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    productPriceLine: {
+      color: colors.gold,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    cta: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '800',
+      flexShrink: 0,
+    },
+  });
+}

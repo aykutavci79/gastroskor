@@ -1,4 +1,4 @@
-import { ReactNode, RefObject } from 'react';
+import { ReactNode, RefObject, useMemo } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { GastroColors } from '@/constants/theme';
+import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
   children: ReactNode;
@@ -38,6 +38,8 @@ export function Screen({
   flush = false,
   edges = ['top', 'left', 'right'],
 }: Props) {
+  const { colors } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors.bg), [colors.bg]);
   const contentStyle = [flush ? styles.flush : styles.scroll, style];
 
   const body = scroll ? (
@@ -52,7 +54,7 @@ export function Screen({
           <RefreshControl
             refreshing={Boolean(refreshing)}
             onRefresh={onRefresh}
-            tintColor={GastroColors.accent}
+            tintColor={colors.accent}
           />
         ) : undefined
       }>
@@ -74,10 +76,12 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: GastroColors.bg },
-  flex: { flex: 1 },
-  scroll: { padding: 16, paddingBottom: 32, gap: 16 },
-  flush: { paddingBottom: 8, gap: 0 },
-  flushBody: { flex: 1, paddingBottom: 0 },
-});
+function createStyles(bg: string) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: bg },
+    flex: { flex: 1 },
+    scroll: { padding: 16, paddingBottom: 32, gap: 16 },
+    flush: { paddingBottom: 8, gap: 0 },
+    flushBody: { flex: 1, paddingBottom: 0 },
+  });
+}

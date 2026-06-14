@@ -14,13 +14,13 @@ export type VoiceVadPlatformConfig = {
 };
 
 const IOS_VAD: VoiceVadPlatformConfig = {
-  graceMs: 1400,
-  silenceMs: 3200,
-  maxWaitSpeechMs: 12000,
-  fallbackUtteranceMs: Number.POSITIVE_INFINITY,
+  graceMs: 900,
+  silenceMs: 2600,
+  maxWaitSpeechMs: 10000,
+  fallbackUtteranceMs: 6200,
   speechThresholdDb: -50,
-  minSpeechMs: 650,
-  minOpenMs: 2400,
+  minSpeechMs: 500,
+  minOpenMs: 1800,
   statusPollMs: 120,
 };
 

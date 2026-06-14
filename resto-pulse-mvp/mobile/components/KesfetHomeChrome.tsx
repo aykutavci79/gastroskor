@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { RefObject } from 'react';
 
+import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
 import { CityPickerModal } from '@/components/CityPickerModal';
 import { DmAvatarButton } from '@/components/DmAvatarButton';
-import { GastroColors } from '@/constants/theme';
+import type { GastroColorScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
   query: string;
@@ -29,9 +31,13 @@ export function KesfetHomeChrome({
   searchInputRef,
   searchFocused = false,
 }: Props) {
+  const { colors, shadow } = useGastroTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const { city, cityLabel, manual, setCity, refreshFromLocation } = useCity();
   const [pickerOpen, setPickerOpen] = useState(false);
   const showClear = query.trim().length > 0;
+
+  const statusLine = manual ? 'Şehir seçimin geçerli' : 'Konumuna göre';
 
   return (
     <View style={styles.wrap}>
@@ -54,11 +60,9 @@ export function KesfetHomeChrome({
           manual ? `${cityLabel} — elle seçili, değiştirmek için dokun` : `${cityLabel} — konumdan, yenilemek için dokun`
         }>
         <View style={styles.cityRow}>
-          {!manual ? (
-            <Ionicons name="location-sharp" size={11} color={GastroColors.accent} />
-          ) : null}
+          {!manual ? <Ionicons name="location-sharp" size={11} color={colors.accent} /> : null}
           <Text style={styles.city}>{cityLabel}</Text>
-          <Ionicons name="chevron-down" size={14} color={GastroColors.muted} />
+          <Ionicons name="chevron-down" size={14} color={colors.muted} />
         </View>
       </Pressable>
       <CityPickerModal
@@ -71,110 +75,140 @@ export function KesfetHomeChrome({
           void refreshFromLocation();
         }}
       />
-      <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
-        <Text style={styles.searchIcon}>⌕</Text>
-        <TextInput
-          ref={searchInputRef}
-          value={query}
-          onChangeText={onQueryChange}
-          onFocus={onSearchFocus}
-          onBlur={onSearchBlur}
-          placeholder="İskender, cantık, pideli köfte…"
-          placeholderTextColor={GastroColors.placeholder}
-          style={styles.searchInput}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-          blurOnSubmit={false}
-        />
-        {showClear ? (
-          <Pressable
-            onPress={onClear}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Aramayı temizle">
-            <Ionicons name="close-circle" size={18} color={GastroColors.muted} />
-          </Pressable>
-        ) : searchFocused && onDismiss ? (
-          <Pressable
-            onPress={onDismiss}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Aramadan vazgeç">
-            <Text style={styles.cancel}>Vazgeç</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.clearSlot} />
-        )}
+      <View style={[styles.searchCard, searchFocused && styles.searchCardFocused]}>
+        <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
+        <Text style={styles.searchSub}>{cityLabel} · Google Haritalar ile anlık mekan araması</Text>
+        <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
+          <Text style={styles.searchIcon}>⌕</Text>
+          <TextInput
+            ref={searchInputRef}
+            value={query}
+            onChangeText={onQueryChange}
+            onFocus={onSearchFocus}
+            onBlur={onSearchBlur}
+            placeholder="İskender, cantık, pideli köfte…"
+            placeholderTextColor={colors.placeholder}
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            blurOnSubmit={false}
+          />
+          {showClear ? (
+            <Pressable
+              onPress={onClear}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Aramayı temizle">
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </Pressable>
+          ) : searchFocused && onDismiss ? (
+            <Pressable
+              onPress={onDismiss}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Aramadan vazgeç">
+              <Text style={styles.cancel}>Vazgeç</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.clearSlot} />
+          )}
+        </View>
       </View>
+      <CityAtmosphereStrip city={city} statusLine={statusLine} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: GastroColors.border,
-    gap: 5,
-    flexShrink: 0,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    alignSelf: 'flex-start',
-  },
-  city: {
-    color: GastroColors.muted,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  brand: {
-    color: GastroColors.text,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: GastroColors.border,
-    backgroundColor: GastroColors.input,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  searchBoxFocused: {
-    borderColor: GastroColors.accent,
-  },
-  searchIcon: {
-    color: GastroColors.muted,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  searchInput: {
-    flex: 1,
-    color: GastroColors.text,
-    fontSize: 12,
-    padding: 0,
-  },
-  clearSlot: {
-    width: 18,
-    height: 18,
-  },
-  cancel: {
-    color: GastroColors.accent,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-});
+function createStyles(colors: GastroColorScheme, shadow: ReturnType<typeof import('@/constants/theme').gastroShadowFor>) {
+  return StyleSheet.create({
+    wrap: {
+      paddingHorizontal: 12,
+      paddingTop: 6,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: 8,
+      flexShrink: 0,
+      backgroundColor: colors.bg,
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    cityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      alignSelf: 'flex-start',
+    },
+    city: {
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    brand: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    searchCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.panel,
+      padding: 12,
+      gap: 8,
+      ...shadow.card,
+    },
+    searchCardFocused: {
+      borderColor: colors.accent,
+    },
+    searchHeading: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    searchSub: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.input,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    searchBoxFocused: {
+      borderColor: colors.accent,
+    },
+    searchIcon: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.text,
+      fontSize: 12,
+      padding: 0,
+    },
+    clearSlot: {
+      width: 18,
+      height: 18,
+    },
+    cancel: {
+      color: colors.accent,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+  });
+}
