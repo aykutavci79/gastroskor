@@ -1,15 +1,16 @@
 {
-  "_comment": "Play Console / App Store Connect'teki CANLI surumler. Build oncesi guncelle.",
+  "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Alpha",
-    "versionName": "1.0.42",
-    "versionCode": 51,
-    "lastUpdated": "2026-06-13"
+    "versionName": "1.0.44",
+    "versionCode": 53,
+    "lastUpdated": "2026-06-14",
+    "_note": "Son EAS Android production: 1.0.44 / versionCode 53 (14 Haz 2026)"
   },
   "appStore": {
     "version": "1.0.42",
     "buildNumber": 44,
-    "lastUpdated": "2026-06-13",
-    "_note": "TestFlight/App Store son build — teyit et"
+    "lastUpdated": "2026-06-14",
+    "_note": "Son EAS iOS production: 1.0.42 / build 44. 1.0.44 iOS henuz build alinmadi."
   }
 }
