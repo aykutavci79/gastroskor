@@ -7,6 +7,7 @@ import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { searchLivePlaces } from '@/lib/api';
 import { livePlaceDetailHref, livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
+import { cityDisplayName } from '@/lib/detect-city';
 import type { LivePlaceSearchItem, ParsedSearchIntent } from '@/lib/types';
 
 type Props = {
@@ -115,6 +116,12 @@ export function LivePlaceSearch({
     }
   }
 
+  const cityLabel = cityDisplayName(city);
+  const searchPlaceholder =
+    cityStatus === 'ready'
+      ? `Örn: İskender 4.5+ yıldız ${cityLabel}`
+      : 'Örn: İskender 4.5+ yıldız';
+
   return (
     <section
       id="canli-ara"
@@ -126,7 +133,11 @@ export function LivePlaceSearch({
           </h2>
           <p className="text-xs text-content-muted">
             {embedded
-              ? 'Google Haritalar ile anlık mekan araması'
+              ? cityStatus === 'loading'
+                ? 'Konumun alınıyor — şehir buna göre ayarlanacak'
+                : cityStatus === 'ready'
+                  ? `${cityLabel} · Google Haritalar ile anlık mekan araması`
+                  : 'Konum kapalı — yöresel bölümden şehir seçebilirsin'
               : 'Canli Google Places + akilli filtre'}
             {locationStatus === 'loading' ? ' · Konum aliniyor…' : null}
             {locationStatus === 'denied' && !embedded
@@ -147,7 +158,7 @@ export function LivePlaceSearch({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Örn: Döner 4 yıldız Bursa"
+          placeholder={searchPlaceholder}
           className="input-field flex-1"
         />
         <button type="submit" disabled={loading} className="btn-primary shrink-0">

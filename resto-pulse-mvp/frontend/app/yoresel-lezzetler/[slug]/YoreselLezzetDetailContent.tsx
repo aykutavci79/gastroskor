@@ -5,41 +5,31 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { RegionalFlavorFaq } from '@/components/RegionalFlavorFaq';
+import { RegionalFlavorRestaurantSection } from '@/components/RegionalFlavorRestaurantSection';
 import { RegionalProductImage } from '@/components/RegionalProductImage';
-import { RestaurantCard } from '@/components/RestaurantCard';
-import { useDetectedCity } from '@/hooks/useDetectedCity';
-import { getRegionalProduct, searchLivePlaces } from '@/lib/api';
-import { livePlaceDistanceLabel, livePlaceDetailHref, livePlaceToRestaurantCard } from '@/lib/live-place-card';
+import { getRegionalProduct } from '@/lib/api';
 import type { RegionalFlavorPageContent } from '@/lib/regional-flavor-page-content';
+import { resolveRegionalFlavorH1 } from '@/lib/regional-flavor-page-content';
 import { trimImageAlt } from '@/lib/seo-title';
-import {
-  resolveRegionalFlavorH1,
-  resolveRegionalFlavorRestaurantTitle,
-} from '@/lib/regional-flavor-page-content';
-import type { LivePlaceSearchItem, RegionalProductItem, RestaurantListItem } from '@/lib/types';
+import type { RegionalProductItem } from '@/lib/types';
 
 type Props = {
   pageContent?: RegionalFlavorPageContent | null;
   initialProduct?: RegionalProductItem | null;
-  gastroRestaurants?: RestaurantListItem[];
-  gastroMatchedByTag?: boolean;
 };
 
 export function YoreselLezzetDetailContent({
   pageContent = null,
   initialProduct = null,
-  gastroRestaurants = [],
-  gastroMatchedByTag = false,
 }: Props) {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const slug = params.slug;
-  const city = useMemo(() => searchParams.get('city')?.trim() || pageContent?.city || 'Bursa', [searchParams, pageContent?.city]);
-  const { coords } = useDetectedCity();
+  const city = useMemo(
+    () => searchParams.get('city')?.trim() || pageContent?.city || 'Bursa',
+    [searchParams, pageContent?.city],
+  );
   const [product, setProduct] = useState<RegionalProductItem | null>(initialProduct);
-  const [discoveryNote, setDiscoveryNote] = useState<string | null>(null);
-  const [liveItems, setLiveItems] = useState<LivePlaceSearchItem[]>([]);
-  const [searchNote, setSearchNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialProduct);
 
@@ -61,7 +51,6 @@ export function YoreselLezzetDetailContent({
       .then((detail) => {
         if (cancelled) return;
         setProduct(detail.product);
-        setDiscoveryNote(detail.discovery_note);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -77,49 +66,6 @@ export function YoreselLezzetDetailContent({
       cancelled = true;
     };
   }, [slug, city, initialProduct]);
-
-  const gastroGooglePlaceIds = useMemo(() => {
-    return new Set(
-      gastroRestaurants.map((restaurant) => restaurant.google_place_id).filter((id): id is string => Boolean(id)),
-    );
-  }, [gastroRestaurants]);
-
-  const googleLiveItems = useMemo(() => {
-    return liveItems.filter((item) => !gastroGooglePlaceIds.has(item.place_id));
-  }, [liveItems, gastroGooglePlaceIds]);
-
-  useEffect(() => {
-    if (!product) return;
-    let cancelled = false;
-    setSearchNote(null);
-    setLiveItems([]);
-
-    searchLivePlaces({
-      q: product.live_search_query,
-      city,
-      limit: 20,
-      origin_lat: coords?.lat,
-      origin_lng: coords?.lng,
-    })
-      .then((live) => {
-        if (cancelled) return;
-        setLiveItems(live.items);
-        setSearchNote(
-          live.items.length > 0
-            ? `Google canlı arama: "${product.live_search_query}" · puana, yorum sayısına ve mesafeye göre sıralı.`
-            : `"${product.live_search_query}" için sonuç bulunamadı.`,
-        );
-      })
-      .catch((liveErr) => {
-        if (cancelled) return;
-        setLiveItems([]);
-        setSearchNote(liveErr instanceof Error ? liveErr.message : 'Canlı arama şu an kullanılamıyor.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product, city, coords?.lat, coords?.lng]);
 
   if (useTemplate && pageContent) {
     return (
@@ -196,80 +142,7 @@ export function YoreselLezzetDetailContent({
               <p className="mt-2 text-sm leading-relaxed text-content-muted">{pageContent.urunBilgisi}</p>
             </section>
 
-            <section className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-content">
-                    {resolveRegionalFlavorRestaurantTitle(pageContent)}
-                  </h2>
-                  <p className="mt-1 text-sm text-content-muted">
-                    GastroSkor veritabanındaki mekanlar — gastro skoruna göre sıralı.
-                    {!gastroMatchedByTag && gastroRestaurants.length > 0
-                      ? ' Bu lezzet için doğrudan eşleşme az; genel Bursa listesi gösteriliyor.'
-                      : null}
-                  </p>
-                </div>
-                <Link
-                  href={pageContent.seeAllHref}
-                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
-                  Tümünü Gör
-                </Link>
-              </div>
-
-              {gastroRestaurants.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {gastroRestaurants.map((restaurant, index) => (
-                    <RestaurantCard
-                      key={restaurant.id}
-                      restaurant={restaurant}
-                      rank={index + 1}
-                      compact
-                      href={`/restaurants/${restaurant.id}`}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-2xl border border-border/70 bg-surface-card p-6 text-sm text-content-muted">
-                  Henüz bu lezzet için kayıtlı restoran bulunamadı. Yakında yeni mekanlar eklenecek.
-                </p>
-              )}
-            </section>
-
-            <section className="space-y-4 border-t border-border/50 pt-8">
-              <div>
-                <h2 className="text-xl font-semibold text-content">
-                  {pageContent.name} — Google&apos;da daha fazla mekan
-                </h2>
-                <p className="mt-1 text-sm text-content-muted">
-                  GastroSkor veritabanına henüz eklenmemiş mekanlar — Google canlı arama ile
-                  &quot;{product.live_search_query}&quot; sorgusu.
-                </p>
-              </div>
-
-              {searchNote ? <p className="text-xs text-brand-gold">{searchNote}</p> : null}
-
-              {googleLiveItems.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {googleLiveItems.map((item) => (
-                    <RestaurantCard
-                      key={item.place_id}
-                      restaurant={livePlaceToRestaurantCard(item)}
-                      compact={false}
-                      distanceLabel={livePlaceDistanceLabel(item)}
-                      googleRating={item.rating}
-                      googleReviewCount={item.user_ratings_total}
-                      distanceMeters={item.distance_meters}
-                      mapsDirectionsUrl={item.maps_directions_url}
-                      href={livePlaceDetailHref(item)}
-                    />
-                  ))}
-                </div>
-              ) : !loading && product ? (
-                <p className="rounded-2xl border border-border/70 bg-surface-card p-6 text-sm text-content-muted">
-                  Bu sorgu için Google canlı arama sonucu bulunamadı. Ana sayfadaki aramayı da deneyebilirsiniz.
-                </p>
-              ) : null}
-            </section>
+            <RegionalFlavorRestaurantSection product={product} city={city} />
 
             <RegionalFlavorFaq items={pageContent.faq} heading={`${pageContent.name} — sık sorulan sorular`} />
           </div>
@@ -290,8 +163,8 @@ export function YoreselLezzetDetailContent({
       {error ? <p className="mt-6 text-sm text-rose-400">{error}</p> : null}
 
       {product ? (
-        <>
-          <div className="mt-4 flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/70 bg-surface-card sm:flex-row">
+        <div className="mt-4 space-y-8">
+          <div className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/70 bg-surface-card sm:flex-row">
             <div className="min-w-0 flex-1 p-5 sm:p-6">
               <span className="self-start rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold">
                 TÜRKPATENT tescilli ürün
@@ -323,36 +196,8 @@ export function YoreselLezzetDetailContent({
             ) : null}
           </div>
 
-          {discoveryNote ? (
-            <p className="mt-4 rounded-xl border border-border/60 bg-surface-input/40 p-4 text-xs text-content-muted">
-              {discoveryNote}
-            </p>
-          ) : null}
-
-          {searchNote ? <p className="mt-4 text-xs text-brand-gold">{searchNote}</p> : null}
-
-          {liveItems.length === 0 && !loading ? (
-            <p className="mt-8 rounded-2xl border border-border/70 bg-surface-card p-6 text-sm text-content-muted">
-              Bu lezzet için canlı arama sonucu bulunamadı. Ana sayfadaki aramayı da deneyebilirsiniz.
-            </p>
-          ) : (
-            <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {liveItems.map((item) => (
-                <RestaurantCard
-                  key={item.place_id}
-                  restaurant={livePlaceToRestaurantCard(item)}
-                  compact={false}
-                  distanceLabel={livePlaceDistanceLabel(item)}
-                  googleRating={item.rating}
-                  googleReviewCount={item.user_ratings_total}
-                  distanceMeters={item.distance_meters}
-                  mapsDirectionsUrl={item.maps_directions_url}
-                  href={livePlaceDetailHref(item)}
-                />
-              ))}
-            </div>
-          )}
-        </>
+          <RegionalFlavorRestaurantSection product={product} city={city} />
+        </div>
       ) : null}
     </main>
   );

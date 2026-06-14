@@ -3,29 +3,31 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { RegionalProductCard } from '@/components/RegionalProductCard';
+import {
+  RegionalFlavorScrollGrid,
+  RegionalFlavorScrollSkeleton,
+} from '@/components/RegionalFlavorScrollGrid';
+import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { listRegionalProducts } from '@/lib/api';
+import { SUPPORTED_CITIES } from '@/lib/detect-city';
 import type { RegionalProductItem } from '@/lib/types';
 
-const CITY = 'Bursa';
-
 type Props = {
-  /** Ana sayfada bölüm yalnızca kullanıcı arama yaptıktan sonra gösterilir. */
-  showProducts?: boolean;
+  city: string;
+  cityStatus?: CityDetectStatus;
+  onCityChange: (city: string) => void;
 };
 
-export function RegionalFlavorTeaser({ showProducts = false }: Props) {
+export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange }: Props) {
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!showProducts) return;
-
     let cancelled = false;
     setReady(false);
-    listRegionalProducts({ city: CITY })
+    listRegionalProducts({ city })
       .then((data) => {
-        if (!cancelled) setItems(data.items.slice(0, 4));
+        if (!cancelled) setItems(data.items);
       })
       .catch(() => {
         if (!cancelled) setItems([]);
@@ -36,47 +38,51 @@ export function RegionalFlavorTeaser({ showProducts = false }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [showProducts]);
-
-  if (!showProducts) return null;
+  }, [city]);
 
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-content sm:text-2xl">🏺 Yöresel Lezzetler</h2>
-          <p className="mt-1 text-sm text-content-muted">
-            Seçtiğiniz ilin coğrafi işaretli ürünleri
-          </p>
+          <h2 className="text-base font-extrabold text-content sm:text-lg">Yöresel Lezzetler</h2>
+          <p className="mt-1 text-sm text-content-muted">Tescilli ürünler — isim + görsel</p>
         </div>
-        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-brand-gold">
-          {CITY}
-        </span>
+        <div className="flex items-center gap-2">
+          {cityStatus === 'loading' ? (
+            <span className="text-[11px] text-content-muted">Konum…</span>
+          ) : null}
+          <label className="sr-only" htmlFor="regional-teaser-city">
+            İl seçin
+          </label>
+          <select
+            id="regional-teaser-city"
+            value={city}
+            onChange={(event) => onCityChange(event.target.value)}
+            className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-brand-gold outline-none focus:border-amber-500/60">
+            {SUPPORTED_CITIES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {!ready ? <div className="h-24 animate-pulse rounded-2xl bg-surface-input" /> : null}
+      {!ready ? <RegionalFlavorScrollSkeleton /> : null}
 
       {ready && items.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 gap-3">
-            {items.map((item) => (
-              <RegionalProductCard
-                key={item.slug}
-                item={item}
-                href={`/yoresel-lezzetler/${item.slug}?city=${CITY}`}
-              />
-            ))}
-          </div>
+          <RegionalFlavorScrollGrid items={items} city={city} />
           <Link
-            href="/yoresel-lezzetler"
-            className="inline-flex rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-brand-gold hover:bg-amber-500/20">
-            Tüm Bursa lezzetleri
+            href={`/yoresel-lezzetler?city=${encodeURIComponent(city)}`}
+            className="inline-flex text-sm font-semibold text-brand-gold hover:underline">
+            Tüm {city} lezzetleri →
           </Link>
         </>
       ) : null}
 
       {ready && items.length === 0 ? (
-        <p className="text-sm text-content-muted">Bu il için yöresel ürün bulunamadı.</p>
+        <p className="text-sm text-content-muted">{city} için yöresel ürün bulunamadı.</p>
       ) : null}
     </section>
   );

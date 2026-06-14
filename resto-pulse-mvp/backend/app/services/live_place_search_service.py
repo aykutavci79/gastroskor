@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.integrations.google_places_live import GooglePlacesLiveClient
+from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult
 from app.services.platform_profile_photo import google_photo_url_from_reference
 from app.integrations.maps_links import build_destination_label, build_google_maps_directions_url
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review

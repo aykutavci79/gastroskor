@@ -215,4 +215,19 @@
   .card-touch-target {
     @apply inline-flex min-h-[44px] min-w-[44px] items-center justify-center;
   }
+
+  .city-atmosphere-strip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-primary) 0%,
+      transparent 6%,
+      transparent 94%,
+      var(--color-bg-primary) 100%
+    );
+    opacity: 0.55;
+  }
 }

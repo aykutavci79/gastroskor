@@ -1,33 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
-import { FeaturedHighlightsSection } from '@/components/FeaturedHighlightsSection';
-import { HomeDbRestaurants } from '@/components/HomeDbRestaurants';
+import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
+import { FoodCastHomeSection } from '@/components/FoodCastHomeSection';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
 import { RegionalFlavorTeaser } from '@/components/RegionalFlavorTeaser';
-import { SloganBanner } from '@/components/SloganBanner';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
+import { citySearchHeading } from '@/lib/detect-city';
 
 export function HomePageContent() {
-  const { city, status, coords } = useDetectedCity();
-  const [hasSearched, setHasSearched] = useState(false);
+  const pathname = usePathname();
+  const prevPathRef = useRef(pathname);
+  const { city, setCity, status, coords, refreshFromLocation } = useDetectedCity();
+
+  useEffect(() => {
+    if (pathname === '/' && prevPathRef.current !== '/') {
+      refreshFromLocation();
+    }
+    prevPathRef.current = pathname;
+  }, [pathname, refreshFromLocation]);
 
   return (
     <div className="flex flex-col gap-6">
-      <SloganBanner />
-      <FeaturedHighlightsSection />
-      <LivePlaceSearch
-        city={city}
-        cityStatus={status}
-        userCoords={coords}
-        embedded
-        heading="Ana sayfa — canlı restoran arama"
-        onSearchPerformed={() => setHasSearched(true)}
-      />
-      <RegionalFlavorTeaser showProducts={hasSearched} />
-      <HomeDbRestaurants />
+      <h2 className="text-lg font-extrabold text-content sm:text-xl">Restoran ara, keşfet</h2>
+      <div className="flex flex-col gap-2">
+        <LivePlaceSearch
+          city={city}
+          cityStatus={status}
+          userCoords={coords}
+          embedded
+          heading={citySearchHeading(city, status)}
+        />
+        <CityAtmosphereStrip city={city} status={status} />
+      </div>
+      <RegionalFlavorTeaser city={city} cityStatus={status} onCityChange={setCity} />
+      <FoodCastHomeSection city={city} />
       <NewMemberRestaurants />
     </div>
   );

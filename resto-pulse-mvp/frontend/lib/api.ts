@@ -22,6 +22,7 @@ import type {
   VoiceMenuOfferingState,
   VoiceProductCatalogGroup,
 } from '@/lib/types';
+import type { FoodcastFeedResponse } from '@/lib/foodcast-types';
 
 import { getApiBase, getApiV1Base } from '@/lib/api-base';
 import { backendAuthHeaders } from '@/lib/backend-auth-token';
@@ -126,6 +127,15 @@ export function listRegionalProducts(params?: { city?: string }) {
   if (params?.city) search.set('city', params.city);
   const query = search.toString();
   return request<RegionalProductListResponse>(`/regional-flavors/products${query ? `?${query}` : ''}`);
+}
+
+export function getFoodcastFeed(params?: { city?: string; limit?: number; offset?: number }) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  if (params?.offset != null) search.set('offset', String(params.offset));
+  const query = search.toString();
+  return request<FoodcastFeedResponse>(`/foodcast/feed${query ? `?${query}` : ''}`);
 }
 
 export function getRegionalProduct(slug: string, params?: { city?: string }) {

@@ -32,3 +32,27 @@ export function resolveCityFromCoords(lat: number, lng: number): string {
 }
 
 export const SUPPORTED_CITIES = ['Bursa', 'Istanbul', 'Ankara', 'Izmir', 'Antalya'] as const;
+
+const CITY_LABELS: Record<string, string> = {
+  Bursa: 'Bursa',
+  Istanbul: 'İstanbul',
+  Ankara: 'Ankara',
+  Izmir: 'İzmir',
+  Antalya: 'Antalya',
+};
+
+/** API slug → Türkçe görünen ad */
+export function cityDisplayName(city: string): string {
+  return CITY_LABELS[city] ?? city;
+}
+
+/** Canlı arama başlığı — konum yokken şehir uydurmaz */
+export function citySearchHeading(
+  city: string,
+  status: 'loading' | 'ready' | 'denied',
+): string {
+  if (status !== 'ready') return 'Ne yesek?';
+  const name = cityDisplayName(city);
+  const suffix = city === 'Izmir' ? 'de' : 'da';
+  return `${name}'${suffix} ne yesek?`;
+}

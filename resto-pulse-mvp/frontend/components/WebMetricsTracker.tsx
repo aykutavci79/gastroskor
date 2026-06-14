@@ -6,6 +6,14 @@ import { useEffect } from 'react';
 
 import { setWebMetricsUserId, startWebMetrics, stopWebMetrics } from '@/lib/web-metrics';
 
+type SessionWithUserId = {
+  user?: { id?: string | null } | null;
+};
+
+function sessionUserId(session: SessionWithUserId | null | undefined): string | null {
+  return session?.user?.id ?? null;
+}
+
 function isPublicSitePath(pathname: string | null): boolean {
   if (!pathname) return false;
   if (pathname.startsWith('/panel')) return false;
@@ -19,8 +27,8 @@ export function WebMetricsTracker() {
   const track = isPublicSitePath(pathname);
 
   useEffect(() => {
-    setWebMetricsUserId(session?.user?.id ?? null);
-  }, [session?.user?.id]);
+    setWebMetricsUserId(sessionUserId(session as SessionWithUserId | null));
+  }, [session]);
 
   useEffect(() => {
     if (!track) {

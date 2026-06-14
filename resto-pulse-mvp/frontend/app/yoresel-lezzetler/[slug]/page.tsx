@@ -6,16 +6,13 @@ import { JsonLd } from '@/components/JsonLd';
 import { getApiV1Base } from '@/lib/api-base';
 import {
   getRegionalFlavorPageContent,
-  resolveRegionalFlavorH1,
   resolveRegionalFlavorSchemaDescription,
   resolveRegionalFlavorSeo,
 } from '@/lib/regional-flavor-page-content';
-import { fetchRegionalFlavorRestaurants } from '@/lib/regional-flavor-restaurants';
 import { getSiteUrl } from '@/lib/site-url';
 import {
   buildBreadcrumbJsonLd,
   buildFaqJsonLd,
-  buildItemListJsonLd,
   buildRegionalFlavorFoodJsonLd,
 } from '@/lib/structured-data';
 import { buildSeoTitle, regionalFlavorSeoTitle } from '@/lib/seo-title';
@@ -74,9 +71,6 @@ export default async function YoreselLezzetDetailPage({ params }: Props) {
   const { slug } = await params;
   const pageContent = getRegionalFlavorPageContent(slug);
   const productData = await fetchProduct(slug);
-  const gastroResult = pageContent
-    ? await fetchRegionalFlavorRestaurants(pageContent.city, pageContent.searchTag)
-    : null;
 
   const jsonLd =
     pageContent && productData?.product
@@ -92,14 +86,6 @@ export default async function YoreselLezzetDetailPage({ params }: Props) {
             path: `/yoresel-lezzetler/${slug}`,
             areaServed: `${pageContent.city}, Türkiye`,
           }),
-          ...(gastroResult && gastroResult.items.length > 0
-            ? [
-                buildItemListJsonLd(siteUrl, gastroResult.items, {
-                  name: resolveRegionalFlavorH1(pageContent),
-                  path: `/yoresel-lezzetler/${slug}`,
-                }),
-              ]
-            : []),
           ...(buildFaqJsonLd(pageContent.faq) ? [buildFaqJsonLd(pageContent.faq)!] : []),
         ]
       : null;
@@ -116,8 +102,6 @@ export default async function YoreselLezzetDetailPage({ params }: Props) {
         <YoreselLezzetDetailContent
           pageContent={pageContent}
           initialProduct={productData?.product ?? null}
-          gastroRestaurants={gastroResult?.items ?? []}
-          gastroMatchedByTag={gastroResult?.matchedByTag ?? false}
         />
       </Suspense>
     </>

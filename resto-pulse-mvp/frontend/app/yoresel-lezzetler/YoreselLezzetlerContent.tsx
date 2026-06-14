@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
-import { RegionalProductCard } from '@/components/RegionalProductCard';
+import {
+  RegionalFlavorScrollGrid,
+  RegionalFlavorScrollSkeleton,
+} from '@/components/RegionalFlavorScrollGrid';
 import { listRegionalProducts } from '@/lib/api';
 import type { RegionalProductItem } from '@/lib/types';
 
@@ -37,20 +40,16 @@ export function YoreselLezzetlerContent({ city }: Props) {
 
   return (
     <>
-      {loading ? <p className="mt-8 text-sm text-content-muted">Yükleniyor...</p> : null}
+      {loading ? <RegionalFlavorScrollSkeleton /> : null}
 
-      {!loading ? (
+      {!loading && items.length > 0 ? (
         <section className="mt-4">
-          <div className="grid grid-cols-1 gap-4">
-            {items.map((item) => (
-              <RegionalProductCard
-                key={item.slug}
-                item={item}
-                href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
-              />
-            ))}
-          </div>
+          <RegionalFlavorScrollGrid items={items} city={city} />
         </section>
+      ) : null}
+
+      {!loading && items.length === 0 ? (
+        <p className="mt-8 text-sm text-content-muted">{city} için yöresel ürün bulunamadı.</p>
       ) : null}
 
       {note ? (
