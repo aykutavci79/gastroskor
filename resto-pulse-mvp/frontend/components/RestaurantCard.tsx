@@ -145,7 +145,7 @@ export function RestaurantCard({
               {resolvedHref ? (
                 <Link
                   href={resolvedHref}
-                  className={`font-semibold text-content group-hover:text-accent ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}
+                  className={`inline-block min-h-[44px] py-1 font-semibold text-content group-hover:text-accent ${compact ? 'line-clamp-2 text-sm leading-snug' : 'line-clamp-2 text-base leading-snug'}`}
                   onClick={(e) => e.stopPropagation()}>
                   {restaurant.name}
                 </Link>
@@ -202,7 +202,7 @@ export function RestaurantCard({
             distanceMeters={travelDistance}
             compact={compact}
           />
-          <div className="card-btn-group flex flex-wrap gap-1.5">
+          <div className="card-btn-group flex flex-wrap">
             <RestaurantFollowButton
               restaurantId={followId}
               userEmail={session?.user?.email}
@@ -227,14 +227,6 @@ export function RestaurantCard({
     <article
       className={`${shellClass}${resolvedHref ? ' cursor-pointer' : ''}`}
       onClick={onCardClick}
-      onKeyDown={(event) => {
-        if (!resolvedHref) return;
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        router.push(resolvedHref);
-      }}
-      tabIndex={resolvedHref ? 0 : undefined}
-      role={resolvedHref ? 'link' : undefined}
       aria-label={resolvedHref ? `${restaurant.name} detay` : undefined}>
       {inner}
     </article>

@@ -33,10 +33,11 @@ export function RestaurantShareButton({ restaurant, googleRating, gastroRating, 
   return (
     <button
       type="button"
+      aria-label="Paylaş"
       className={
         compact
-          ? 'rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-xs font-bold text-accent'
-          : 'rounded-xl border border-accent bg-accent/15 px-3 py-2 text-sm font-bold text-accent'
+          ? 'card-touch-target rounded-lg border border-accent/40 bg-accent/10 px-3 text-sm font-bold text-accent'
+          : 'inline-flex min-h-[44px] items-center rounded-xl border border-accent bg-accent/15 px-3 py-2 text-sm font-bold text-accent'
       }
       onClick={(e) => {
         e.preventDefault();

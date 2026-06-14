@@ -156,20 +156,30 @@ export function LivePlaceSearch({
       </form>
 
       <div className="grid gap-2 sm:grid-cols-2">
+        <label htmlFor="live-search-distance" className="sr-only">
+          Mesafe filtresi
+        </label>
         <select
+          id="live-search-distance"
           value={distanceBand}
           onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
-          className="input-field text-sm">
+          className="input-field text-sm"
+          aria-label="Mesafe filtresi">
           {DISTANCE_BAND_OPTIONS.map((option) => (
             <option key={option.value || 'all'} value={option.value}>
               {option.label}
             </option>
           ))}
         </select>
+        <label htmlFor="live-search-rating" className="sr-only">
+          Yıldız filtresi
+        </label>
         <select
+          id="live-search-rating"
           value={ratingBand}
           onChange={(e) => setRatingBand(e.target.value as RatingBand)}
-          className="input-field text-sm">
+          className="input-field text-sm"
+          aria-label="Yıldız filtresi">
           {RATING_BAND_OPTIONS.map((option) => (
             <option key={option.value || 'all'} value={option.value}>
               {option.label}

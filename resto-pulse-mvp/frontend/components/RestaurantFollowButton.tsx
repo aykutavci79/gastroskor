@@ -82,14 +82,14 @@ export function RestaurantFollowButton({
   if (!restaurantId && !detailHref) return null;
 
   const cls = compact
-    ? 'inline-flex min-h-[28px] items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold'
+    ? 'card-touch-target rounded-lg border px-3 text-xs font-bold'
     : 'inline-flex min-h-[44px] items-center rounded-xl border px-4 py-2 text-sm font-bold';
 
   if (!restaurantId && detailHref) {
     return (
       <Link
         href={detailHref}
-        className={`${cls} border-accent bg-accent text-white hover:bg-accent-hover`}
+        className={`${cls} border-accent bg-accent text-neutral-950 hover:bg-accent-hover`}
         onClick={(e) => e.stopPropagation()}>
         Takip et
       </Link>
@@ -109,7 +109,7 @@ export function RestaurantFollowButton({
       className={
         following
           ? `${cls} border-border bg-transparent text-content hover:bg-surface-input`
-          : `${cls} border-accent bg-accent text-white hover:bg-accent-hover`
+          : `${cls} border-accent bg-accent text-neutral-950 hover:bg-accent-hover`
       }
       onClick={(e) => {
         e.stopPropagation();

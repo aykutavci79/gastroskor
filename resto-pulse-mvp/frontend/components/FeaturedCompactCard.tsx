@@ -68,14 +68,6 @@ export function FeaturedCompactCard({
         className={`featured-compact-card flex flex-col overflow-hidden rounded-2xl bg-surface-card ${featuredCardClass(isPartner)}${detailHref ? ' cursor-pointer' : ''}`}
         style={{ width: CARD_W, height: CARD_H }}
         onClick={onCardClick}
-        onKeyDown={(event) => {
-          if (!detailHref) return;
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          event.preventDefault();
-          router.push(detailHref);
-        }}
-        tabIndex={detailHref ? 0 : undefined}
-        role={detailHref ? 'link' : undefined}
         aria-label={detailHref ? `${restaurant.name} detay` : undefined}>
         <div className="relative shrink-0 bg-surface-input" style={{ height: PHOTO_H }}>
           {cover ? (
@@ -114,7 +106,7 @@ export function FeaturedCompactCard({
           {detailHref ? (
             <Link
               href={detailHref}
-              className="line-clamp-2 text-xs font-bold leading-snug text-content hover:text-accent"
+              className="inline-block min-h-[44px] py-2 text-xs font-bold leading-snug text-content hover:text-accent line-clamp-2"
               onClick={(e) => e.stopPropagation()}
               title={restaurant.name}>
               {restaurant.name}
@@ -134,8 +126,8 @@ export function FeaturedCompactCard({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-2 px-2.5 pb-2.5 pt-0.5">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-2.5 pb-2.5 pt-0.5">
+          <div className="card-btn-group flex flex-wrap items-center">
             <RestaurantFollowButton
               restaurantId={followId}
               userEmail={session?.user?.email}
@@ -147,7 +139,7 @@ export function FeaturedCompactCard({
           {detailHref ? (
             <Link
               href={detailHref}
-              className="rounded-lg border border-border px-2.5 py-1 text-[11px] font-bold text-content-muted hover:border-accent hover:text-accent"
+              className="card-touch-target rounded-lg border border-border px-3 text-xs font-bold text-content-muted hover:border-accent hover:text-accent"
               onClick={(e) => e.stopPropagation()}>
               Detay
             </Link>

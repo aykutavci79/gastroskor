@@ -34,7 +34,15 @@ export function SearchForm({ initialQ = '', initialCity = '' }: Props) {
         placeholder="Restoran adi ara (en az 2 harf → Google)..."
         className="input-field"
       />
-      <select value={city} onChange={(e) => setCity(e.target.value)} className="input-field">
+      <label htmlFor="search-form-city" className="sr-only">
+        Şehir
+      </label>
+      <select
+        id="search-form-city"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        className="input-field"
+        aria-label="Şehir">
         <option value="">Tum sehirler</option>
         {CITIES.map((item) => (
           <option key={item} value={item}>
