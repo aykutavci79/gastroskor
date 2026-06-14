@@ -13,15 +13,24 @@ export function buildOrganizationJsonLd(siteUrl: string) {
   };
 }
 
-export function buildWebSiteJsonLd(siteUrl: string) {
+export function buildWebSiteJsonLd(homeUrl: string) {
+  const siteUrl = homeUrl.replace(/\/$/, '');
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': `${homeUrl}#website`,
     name: 'GastroSkor',
-    alternateName: ['gastroskor', 'Gastro Skor'],
-    url: siteUrl,
+    alternateName: ['Gastro Skor', 'gastroskor.com.tr', 'www.gastroskor.com.tr'],
+    url: homeUrl,
     inLanguage: 'tr-TR',
     description: 'Restoran ara, gastro skor oku ve yorum bırak.',
+    publisher: {
+      '@type': 'Organization',
+      '@id': `${homeUrl}#organization`,
+      name: 'GastroSkor',
+      url: homeUrl,
+      logo: `${siteUrl}/logo.png`,
+    },
     potentialAction: {
       '@type': 'SearchAction',
       target: {

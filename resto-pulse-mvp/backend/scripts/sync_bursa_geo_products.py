@@ -106,7 +106,8 @@ def scrape_group(page, group_id: str) -> list[dict]:
                 "indication_type": indication,
                 "detail_url": str(row["href"]),
                 "list_url": url,
-                "image_url": row.get("image_url"),
+                "reference_image_url": row.get("image_url"),
+                "image_url": f"/images/regional-flavors/{slug}.jpg",
             }
         )
     return items
@@ -134,6 +135,9 @@ def main() -> int:
         "city_id": int(CITY_ID),
         "scope": "GastroSkor ic turizm — Bursa yemek ve firin/pastane urun gruplari",
         "product_groups": FOOD_GROUP_IDS,
+        "image_policy": (
+            "Görseller GastroSkor özgün illüstrasyonudur; ürün tescil bilgisi TÜRKPATENT portalından."
+        ),
         "items": items,
     }
     OUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -6,7 +6,7 @@ import { Providers } from '@/components/Providers';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { getSiteUrl } from '@/lib/site-url';
-import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/structured-data';
+import { buildOrganizationJsonLd } from '@/lib/structured-data';
 
 const siteUrl = getSiteUrl();
 const siteDescription =
@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     images: ['/logo.png'],
   },
   robots: { index: true, follow: true },
+  applicationName: 'GastroSkor',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { title: 'GastroSkor' },
   icons: { icon: '/logo.png', apple: '/logo.png' },
   ...(process.env.GOOGLE_SITE_VERIFICATION
     ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
@@ -58,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body>
         <GoogleAnalytics />
-        <JsonLd data={[buildOrganizationJsonLd(siteUrl), buildWebSiteJsonLd(siteUrl)]} />
+        <JsonLd data={buildOrganizationJsonLd(siteUrl)} />
         <Providers>
           <SiteHeader />
           <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>

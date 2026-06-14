@@ -48,3 +48,6 @@ scripts/check_sqlite_story_count.cjs
 scripts/check_sqlite_story_count.js
 scripts/bootstrap-admin.js
 .vercel
+
+# TÜRKPATENT referans görselleri (yerel pipeline; commit edilmez)
+resto-pulse-mvp/backend/app/data/turkpatent_refs/

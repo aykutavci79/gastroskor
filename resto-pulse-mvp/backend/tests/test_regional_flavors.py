@@ -55,6 +55,14 @@ def test_kebab_restaurant_does_not_serve_cantik():
     assert not restaurant_serves_product(restaurant, product)
 
 
+def test_regional_product_image_url_resolved():
+    from app.services.regional_flavors import list_regional_products
+
+    payload = list_regional_products(city="Bursa")
+    cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
+    assert cantik["image_url"] == "https://www.gastroskor.com.tr/images/regional-flavors/bursa-cantik.jpg"
+
+
 def test_regional_product_includes_live_search_query():
     from app.services.regional_flavors import list_regional_products
 

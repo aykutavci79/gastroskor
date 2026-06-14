@@ -163,6 +163,9 @@ export function YoreselLezzetDetailContent({
                       className="h-full w-full object-cover"
                       sizes="(max-width: 768px) 100vw, 384px"
                     />
+                    <p className="absolute bottom-0 left-0 right-0 bg-black/55 px-3 py-1 text-[10px] text-white/90">
+                      Temsili GastroSkor illüstrasyonu
+                    </p>
                   </div>
                 ) : null}
                 <div className="min-w-0 flex-1 p-5 sm:p-6">

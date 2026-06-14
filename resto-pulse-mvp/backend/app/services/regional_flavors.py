@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app.core.config import settings
 from app.data.bursa_geo_products import (
     RegionalProductCatalogItem,
     catalog_for_city,
@@ -12,6 +13,18 @@ from app.data.bursa_geo_products import (
 )
 from app.models import Restaurant
 from app.schemas.geo_indication import GeoIndicationRead
+
+
+def _resolve_product_image_url(raw: str | None) -> str | None:
+    """Yerel /images/... yollarini mobil icin tam site URL'sine cevirir."""
+    if not raw or not raw.strip():
+        return None
+    url = raw.strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    base = settings.public_site_base_url.rstrip("/")
+    path = url if url.startswith("/") else f"/{url}"
+    return f"{base}{path}"
 
 DISCOVERY_NOTE = (
     "Aşağıdaki mekanlar Google canlı araması ile listelenir. "
@@ -134,7 +147,7 @@ def _product_payload(product: RegionalProductCatalogItem) -> dict:
         "indication_type": product.indication_type,
         "product_group": product.product_group,
         "detail_url": product.detail_url,
-        "image_url": product.image_url,
+        "image_url": _resolve_product_image_url(product.image_url),
         "live_search_query": live_search_query_for(product),
     }
 

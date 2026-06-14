@@ -48,13 +48,13 @@
         "keywords": "bursa cevizli lokum, cevizli lokum bursa, bursa lokum nerede yenir, en iyi lokum bursa, bursa tatlıcı"
       },
       "restaurantSectionTitle": "Bursa'nın En İyi Cevizli Lokum Mekanları",
-      "kisaTarih": "Osmanlı saray mutfağından gelen lokum geleneği Bursa'da cevizle buluşarak kendine özgü bir form kazanmıştır. İri Bursa cevizinin eklendiği bu tatlı, şehrin hediyelik ve günlük tatlı kültürünün simgelerinden biridir. TÜRKPATENT tarafından 2021'de coğrafi işaret tescili almıştır.",
-      "urunBilgisi": "Nişasta ve şekerden hazırlanan lokum hamuruna iri Bursa cevizi eklenerek üzeri hindistan cevizi veya pudra şekeriyle kaplanır. Yumuşak dokusu ve ceviz aromasıyla çay saatlerinin ve misafir ağırlamanın vazgeçilmezidir.",
-      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli cevizli lokumu hakkında bilgi ve en iyi mekan önerileri.",
+      "kisaTarih": "Osmanlı saray mutfağından gelen lokum geleneği Bursa'da cevizle buluşarak kendine özgü bir form kazanmıştır. Klasik lokumdan farklı olarak mayalı hamura ceviz konularak rulo yapılır, tepsiye dizilir; üzerine şeker ve tarçın sürülüp fırında pişirilir. TÜRKPATENT tarafından 2021'de coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Mayalı ekmek hamuruna iri Bursa cevizi yerleştirilerek rulo halinde sarılır, tepsiye dizilir. Üzerine şeker ve tarçın sürülerek fırında pişirilir; susam serpilerek servis edilir. Çay saatlerinin ve misafir ağırlamanın vazgeçilmez fırın tatlısıdır.",
+      "schemaDescription": "Bursa'nın TÜRKPATENT tescilli cevizli lokumu (fırın hamur işi) hakkında bilgi ve en iyi mekan önerileri.",
       "faq": [
         {
           "question": "Bursa cevizli lokum nedir?",
-          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir lokum çeşididir. Klasik lokum hamuruna iri ceviz parçaları eklenerek üretilir; hindistan cevizi veya pudra şekeriyle kaplanarak servis edilir."
+          "answer": "Bursa'ya özgü, TÜRKPATENT tescilli bir fırın tatlısıdır. Mayalı hamura ceviz konularak rulo yapılır, şeker-tarçın ile fırınlanır; jel lokumdan farklı bir hamur işidir."
         },
         {
           "question": "Bursa'da cevizli lokum nereden alınır?",
@@ -62,7 +62,7 @@
         },
         {
           "question": "Cevizli lokum ile klasik lokum arasındaki fark nedir?",
-          "answer": "Klasik lokum düz ve sade lokum iken Bursa cevizli lokumda iri ceviz parçaları hamurun içine gömülür; daha tok bir doku ve belirgin ceviz aroması verir. Bursa dışındaki sade lokumlardan coğrafi işaret ve üretim usulüyle ayrılır."
+          "answer": "Klasik jel lokumdan farklıdır: mayalı hamur rulo fırınlanır. İçinde iri ceviz vardır; üzeri şeker, tarçın ve susamla kaplanır."
         }
       ]
     },
@@ -312,13 +312,13 @@
         "keywords": "inegöl büryanı, inegöl büryan, büryani bursa, inegöl et yemeği, mişörizi"
       },
       "restaurantSectionTitle": "Bursa'nın En İyi İnegöl Büryanı Restoranları",
-      "kisaTarih": "İnegöl'e özgü büryani, toprağa gömülen tandırda saatlerce pişirilen bir kuzu yemeğidir. Yörede mişörizi olarak da bilinen bu lezzet, yavaş pişirme geleneğinin en özel örneklerindendir. TÜRKPATENT tarafından 2024'te coğrafi işaret tescili almıştır.",
-      "urunBilgisi": "Kuzu eti toprak altındaki tandırda kendi suyu ve buharıyla 6-8 saat pişirilir; lavaş veya pide eşliğinde servis edilir.",
-      "schemaDescription": "İnegöl büryanı hakkında bilgi ve en iyi restoran önerileri.",
+      "kisaTarih": "İnegöl'e özgü büryani (mişörizi), fırında pişirilen pilav üzerine dizilen tavuk budu veya but etiyle hazırlanan geleneksel bir yemektir. TÜRKPATENT tarafından 2024'te coğrafi işaret tescili almıştır.",
+      "urunBilgisi": "Domatesli-biberli pilav tepsiye yayılır; üzerine dairesel düzende tavuk budu veya but eti yerleştirilip fırında pişirilir. Tepsi usulü sunum İnegöl büryanının ayırt edici özelliğidir.",
+      "schemaDescription": "İnegöl büryanı (tavuklu tepsi pilav) hakkında bilgi ve en iyi restoran önerileri.",
       "faq": [
         {
           "question": "İnegöl büryanı nedir?",
-          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli bir kuzu yemeğidir. Et toprak altındaki tandırda saatlerce kendi suyu ve buharıyla pişirilir; yörede mişörizi adıyla da bilinir."
+          "answer": "İnegöl yöresine özgü, TÜRKPATENT tescilli tepsi yemeğidir. Pilav üzerine tavuk budu/but dizilerek fırında pişirilir; yörede mişörizi adıyla da bilinir."
         },
         {
           "question": "İnegöl büryanı nerede yenir?",

@@ -7,3 +7,8 @@ export function getSiteUrl(): string {
   const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   return withProtocol.replace(/\/$/, '');
 }
+
+/** Schema.org WebSite.url — Google site name docs prefer trailing slash. */
+export function getSiteHomeUrl(): string {
+  return `${getSiteUrl()}/`;
+}

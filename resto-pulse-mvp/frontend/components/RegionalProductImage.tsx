@@ -1,5 +1,7 @@
 import Image from 'next/image';
 
+import { regionalProductImageSrc } from '@/lib/regional-product-image';
+
 type Props = {
   src: string;
   alt: string;
@@ -10,7 +12,7 @@ type Props = {
   sizes?: string;
 };
 
-/** TURKPATENT ve diger dis kaynakli urun gorselleri — Vercel uzerinden optimize. */
+/** GastroSkor yoresel urun gorselleri — yerel /public veya cozulmus tam URL. */
 export function RegionalProductImage({
   src,
   alt,
@@ -22,7 +24,7 @@ export function RegionalProductImage({
 }: Props) {
   return (
     <Image
-      src={src}
+      src={regionalProductImageSrc(src)}
       alt={alt}
       width={width}
       height={height}
