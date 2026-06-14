@@ -158,7 +158,7 @@ export function FeaturedHighlightsSection() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="featured-compact-scroll-item h-[212px] animate-pulse rounded-2xl bg-surface-input"
+              className="featured-compact-scroll-item h-[236px] animate-pulse rounded-2xl bg-surface-input"
             />
           ))}
         </FeaturedScrollRow>

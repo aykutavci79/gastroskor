@@ -14,8 +14,9 @@ import { trendingDetailHref } from '@/lib/live-place-card';
 import type { RestaurantListItem, RestaurantTrendingItem } from '@/lib/types';
 
 const CARD_W = 260;
-const CARD_H = 212;
+const CARD_H = 236;
 const PHOTO_H = 108;
+const PHOTO_H_EMPTY = 64;
 
 type Props = {
   restaurant: RestaurantListItem & Partial<RestaurantTrendingItem>;
@@ -65,11 +66,13 @@ export function FeaturedCompactCard({
   return (
     <div className="featured-compact-scroll-item shrink-0 snap-start">
       <div
-        className={`featured-compact-card flex flex-col overflow-hidden rounded-2xl bg-surface-card ${featuredCardClass(isPartner)}${detailHref ? ' cursor-pointer' : ''}`}
-        style={{ width: CARD_W, height: CARD_H }}
+        className={`featured-compact-card flex min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-card ${featuredCardClass(isPartner)}${detailHref ? ' cursor-pointer' : ''}`}
+        style={{ width: CARD_W, minHeight: CARD_H }}
         onClick={onCardClick}
         aria-label={detailHref ? `${restaurant.name} detay` : undefined}>
-        <div className="relative shrink-0 bg-surface-input" style={{ height: PHOTO_H }}>
+        <div
+          className="relative shrink-0 bg-surface-input"
+          style={{ height: cover ? PHOTO_H : PHOTO_H_EMPTY }}>
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -102,11 +105,11 @@ export function FeaturedCompactCard({
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5 px-2.5 py-1">
+        <div className="flex flex-col gap-1 px-2.5 pt-2 pb-1">
           {detailHref ? (
             <Link
               href={detailHref}
-              className="inline-block min-h-[44px] py-2 text-xs font-bold leading-snug text-content hover:text-accent line-clamp-2"
+              className="line-clamp-2 text-xs font-bold leading-snug text-content hover:text-accent"
               onClick={(e) => e.stopPropagation()}
               title={restaurant.name}>
               {restaurant.name}
@@ -126,7 +129,7 @@ export function FeaturedCompactCard({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-2.5 pb-2.5 pt-0.5">
+        <div className="mt-auto flex shrink-0 flex-wrap items-center justify-between gap-2 px-2.5 pb-2.5 pt-1">
           <div className="card-btn-group flex flex-wrap items-center">
             <RestaurantFollowButton
               restaurantId={followId}
