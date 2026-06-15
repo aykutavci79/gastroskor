@@ -37,7 +37,7 @@ import {
   unregisterKesfetVoiceSearchListener,
 } from '@/lib/kesfet-voice-bridge';
 import { restaurantDetailHref } from '@/lib/uuid';
-import { gastroSpeakVoiceSearchResults, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroSpeakVoiceSearchResults, gastroStopSpeaking, ensureGastroPlaybackReady } from '@/lib/gastro-speak';
 import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
 import type {
   LivePlaceSearchItem,
@@ -164,6 +164,7 @@ export default function ExploreScreen() {
       setLiveParsed(result.parsed);
       if (voiceSearchAnnounceRef.current) {
         voiceSearchAnnounceRef.current = false;
+        await ensureGastroPlaybackReady();
         gastroSpeakVoiceSearchResults(
           result.items.length,
           result.items.slice(0, 3).map((item) => ({
@@ -179,6 +180,7 @@ export default function ExploreScreen() {
       setSearchCards([]);
       if (voiceSearchAnnounceRef.current) {
         voiceSearchAnnounceRef.current = false;
+        await ensureGastroPlaybackReady();
         gastroSpeakVoiceSearchResults(0, []);
       }
     } finally {

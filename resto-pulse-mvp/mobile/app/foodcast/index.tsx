@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,6 +34,8 @@ export default function FoodcastFeedScreen() {
   const [error, setError] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<FoodcastPhotoItem | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const hasItemsRef = useRef(false);
+  hasItemsRef.current = items.length > 0;
 
   const load = useCallback(async (opts?: { refresh?: boolean }) => {
     if (opts?.refresh) setRefreshing(true);
@@ -53,6 +56,12 @@ export default function FoodcastFeedScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load({ refresh: hasItemsRef.current });
+    }, [load]),
+  );
 
   async function submitReport(reason: FoodcastReportReason) {
     if (!reportTarget) return;

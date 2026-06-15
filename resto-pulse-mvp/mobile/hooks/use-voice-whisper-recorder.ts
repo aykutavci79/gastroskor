@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { applyRecordingAudioMode } from '@/lib/gastro-audio-session';
 import { releaseRecordingAudioForSpeech } from '@/lib/gastro-speak';
 import { usesIosManualMicFinish } from '@/lib/voice-mic-copy';
 
@@ -122,13 +123,7 @@ export function useVoiceWhisperRecorder() {
       if (!granted) return false;
 
       await cleanupRecording();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-        staysActiveInBackground: false,
-      });
+      await applyRecordingAudioMode();
 
       const created = new Audio.Recording();
       await created.prepareToRecordAsync(getVoiceWhisperRecordingOptions());

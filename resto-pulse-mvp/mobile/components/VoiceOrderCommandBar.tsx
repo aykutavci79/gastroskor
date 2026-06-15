@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroPrepareVoiceInput, gastroSpeakRetry, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroPrepareVoiceInput, gastroSpeakRetry, gastroStopSpeaking, ensureGastroPlaybackReady } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
@@ -36,17 +36,25 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
     transcribing: false,
   });
   const submittedRef = useRef(false);
+  const voicePrepCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     submittedRef.current = false;
     setDraft('');
     setMicHint(null);
     setMicUiState({ listening: false, transcribing: false });
-    gastroStopSpeaking();
     setMicActive(false);
-    const cancelPrep = gastroPrepareVoiceInput(() => setMicActive(true));
+    let cancelled = false;
+    const mountDelayMs = Platform.OS === 'ios' ? 420 : 180;
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      voicePrepCancelRef.current = gastroPrepareVoiceInput(() => setMicActive(true));
+    }, mountDelayMs);
     return () => {
-      cancelPrep();
+      cancelled = true;
+      clearTimeout(timer);
+      voicePrepCancelRef.current?.();
+      voicePrepCancelRef.current = null;
       setMicActive(false);
       gastroStopSpeaking();
     };
@@ -91,7 +99,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         return;
       }
       if (command.issues.length) {
-        gastroSpeakRetry();
+        void ensureGastroPlaybackReady().then(() => gastroSpeakRetry());
       }
     },
     [defaultProductSearchGroup, restaurants, trySubmit],

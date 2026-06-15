@@ -1,6 +1,7 @@
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import { Platform } from 'react-native';
+import { Audio } from 'expo-av';
 
+import { applySpeakerPlaybackMode } from '@/lib/gastro-audio-session';
 import type { GastroTtsPhraseKey } from '@/lib/gastro-tts-phrases';
 
 /** ElevenLabs Gamze — sabit bildirim sesleri. */
@@ -13,31 +14,6 @@ const GASTRO_AUDIO_FILES: Record<GastroTtsPhraseKey, number> = {
 };
 
 let activeSound: Audio.Sound | null = null;
-
-function playbackSettleDelayMs(): number {
-  if (Platform.OS === 'android') return 180;
-  return 150;
-}
-
-async function ensureCuePlaybackMode(): Promise<void> {
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
-    });
-    const delay = playbackSettleDelayMs();
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  } catch {
-    /* opsiyonel */
-  }
-}
 
 export async function stopGastroAudioCue(): Promise<void> {
   const sound = activeSound;
@@ -57,11 +33,12 @@ export async function stopGastroAudioCue(): Promise<void> {
 
 export async function playGastroAudioCue(key: GastroTtsPhraseKey): Promise<boolean> {
   await stopGastroAudioCue();
-  await ensureCuePlaybackMode();
+  await applySpeakerPlaybackMode();
 
   try {
     const { sound } = await Audio.Sound.createAsync(GASTRO_AUDIO_FILES[key], {
       volume: 1,
+      isMuted: false,
       shouldPlay: false,
     });
     activeSound = sound;
@@ -78,8 +55,7 @@ export async function playGastroAudioCue(key: GastroTtsPhraseKey): Promise<boole
         resolve(ok);
       };
 
-      const safetyMs =
-        Platform.OS === 'android' ? 4_500 : 3_500;
+      const safetyMs = Platform.OS === 'android' ? 4_500 : 3_500;
       const safetyTimer = setTimeout(() => finish(true), safetyMs);
 
       sound.setOnPlaybackStatusUpdate((status) => {

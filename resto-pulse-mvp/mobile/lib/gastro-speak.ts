@@ -1,8 +1,13 @@
 import * as Speech from 'expo-speech';
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import { Platform } from 'react-native';
 
 import { isGastroAudioCuePlaying, playGastroAudioCue, stopGastroAudioCue } from '@/lib/gastro-audio-cues';
+import {
+  applyRecordingAudioMode,
+  applySpeakerPlaybackMode,
+  awaitIosNavigationSettled,
+  handoffRecordingToPlayback,
+} from '@/lib/gastro-audio-session';
 import { GASTRO_TTS, type GastroTtsPhraseKey } from '@/lib/gastro-tts-phrases';
 import {
   prefetchTurkishTtsVoice,
@@ -23,9 +28,6 @@ type SpeakOptions = {
 };
 
 let speaking = false;
-let playbackAudioModeReady = false;
-/** gastroStopSpeaking sonrasi kuyruktaki cumleler calinmasin */
-let speakSequenceGeneration = 0;
 
 /** iOS ozel harfleri harf harf okuyabiliyor; rakamlar kelimeye cevrilir. */
 function prepareSpeechText(text: string): string {
@@ -46,72 +48,21 @@ function iosTtsSpeakOptions(): Pick<Speech.SpeechOptions, 'useApplicationAudioSe
   return { useApplicationAudioSession: false };
 }
 
-async function ensureSpeechAudioMode(): Promise<void> {
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
-    });
-    playbackAudioModeReady = true;
-    if (Platform.OS === 'ios') {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    }
-  } catch {
-    /* ses modu opsiyonel */
-  }
-}
-
 /** Kayit bittikten sonra Gamze/TTS icin ses oturumunu serbest birak. */
 export async function releaseRecordingAudioForSpeech(): Promise<void> {
-  gastroStopSpeaking();
-  playbackAudioModeReady = false;
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
-    });
-    const delay = Platform.OS === 'ios' ? 180 : 220;
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  } catch {
-    /* kayit oturumu zaten kapali olabilir */
-  }
-  await ensureSpeechAudioMode();
+  await handoffRecordingToPlayback();
 }
 
 /** STT baslamadan once — TTS ile mikrofon cakismasini onler. */
 export async function prepareSpeechRecognitionAudioMode(): Promise<void> {
   gastroStopSpeaking();
-  try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
-    });
-    playbackAudioModeReady = false;
-  } catch {
-    /* ses modu opsiyonel */
-  }
+  await applyRecordingAudioMode();
 }
 
 prefetchTurkishTtsVoice();
 
 /** Yalnizca cihaz TTS — Gamze mp3 cue'yu kesmez. */
 export function gastroStopTtsOnly(): void {
-  speakSequenceGeneration += 1;
   Speech.stop();
   speaking = false;
 }
@@ -121,9 +72,11 @@ export function gastroStopSpeaking(): void {
   void stopGastroAudioCue();
 }
 
-/** Kayit oturumundan sonra hoparlorden oynatma (iOS kulaklik/ahize yonlendirmesini sifirlar). */
+/** Kayit / navigasyon sonrasi hoparlorden oynatma. */
 export async function ensureGastroPlaybackReady(): Promise<void> {
-  await releaseRecordingAudioForSpeech();
+  gastroStopSpeaking();
+  await handoffRecordingToPlayback();
+  await awaitIosNavigationSettled();
 }
 
 export async function gastroIsSpeaking(): Promise<boolean> {
@@ -146,11 +99,11 @@ function playGastroPhrase(key: GastroTtsPhraseKey, options?: SpeakOptions): void
       options?.onDone?.();
       return;
     }
-    speakChunk(GASTRO_TTS[key], options?.onDone);
+    await speakChunk(GASTRO_TTS[key], options?.onDone);
   })();
 }
 
-function speakChunk(text: string, onDone?: () => void): void {
+async function speakChunk(text: string, onDone?: () => void): Promise<void> {
   const trimmed = prepareSpeechText(text);
   if (!trimmed) {
     onDone?.();
@@ -158,29 +111,27 @@ function speakChunk(text: string, onDone?: () => void): void {
   }
 
   speaking = true;
-  void (async () => {
-    await ensureSpeechAudioMode();
-    const voiceId = await resolveTurkishTtsVoiceId();
-    Speech.speak(trimmed, {
-      language: TR_LOCALE,
-      ...(voiceId ? { voice: voiceId } : {}),
-      pitch: ttsSpeechPitch(),
-      rate: ttsSpeechRate(),
-      volume: 1,
-      ...iosTtsSpeakOptions(),
-      onDone: () => {
-        speaking = false;
-        onDone?.();
-      },
-      onStopped: () => {
-        speaking = false;
-      },
-      onError: () => {
-        speaking = false;
-        onDone?.();
-      },
-    });
-  })();
+  await applySpeakerPlaybackMode();
+  const voiceId = await resolveTurkishTtsVoiceId();
+  Speech.speak(trimmed, {
+    language: TR_LOCALE,
+    ...(voiceId ? { voice: voiceId } : {}),
+    pitch: ttsSpeechPitch(),
+    rate: ttsSpeechRate(),
+    volume: 1,
+    ...iosTtsSpeakOptions(),
+    onDone: () => {
+      speaking = false;
+      onDone?.();
+    },
+    onStopped: () => {
+      speaking = false;
+    },
+    onError: () => {
+      speaking = false;
+      onDone?.();
+    },
+  });
 }
 
 /** Tek parca konusma */
@@ -191,7 +142,10 @@ export function gastroSpeak(text: string, options?: SpeakOptions): void {
     return;
   }
   gastroStopSpeaking();
-  speakChunk(trimmed, options?.onDone);
+  void (async () => {
+    await ensureGastroPlaybackReady();
+    await speakChunk(trimmed, options?.onDone);
+  })();
 }
 
 export function gastroSpeakListening(onDone?: () => void): void {
@@ -231,7 +185,7 @@ export function gastroPrepareWhisperInput(onReady?: () => void): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   void prepareSpeechRecognitionAudioMode().then(() => {
     if (cancelled) return;
-    const delay = Platform.OS === 'ios' ? 420 : 480;
+    const delay = Platform.OS === 'ios' ? 460 : 480;
     timer = setTimeout(() => {
       if (!cancelled) onReady?.();
     }, delay);
@@ -255,7 +209,7 @@ export function gastroPrepareVoiceInput(onReady?: () => void): () => void {
   playGastroPhrase('listening', {
     onDone: () => {
       if (!cancelled) {
-        setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 280 : 320);
+        setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 300 : 360);
       }
     },
   });
@@ -297,7 +251,6 @@ export function gastroSpeakOrderConfirm(_input: OrderConfirmSpeech, onDone?: () 
 export type VoiceOrderRestaurantSpeech = {
   letter: string;
   name: string;
-  /** İlk eşleşen ürün fiyatı — sesli okuma */
   priceHint?: string | null;
 };
 

@@ -7,11 +7,12 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.entities import FoodcastPhoto, FoodcastPhotoReport, Restaurant, User
 from app.services.foodcast_image_storage import save_foodcast_image
+from app.services.city_resolver import resolve_city_name
 from app.services.gastro_score_ranking import haversine_meters
 from app.services.restaurant_check_in import CHECK_IN_MAX_DISTANCE_M
 
@@ -70,7 +71,7 @@ def list_foodcast_feed(
     limit: int = FOODCAST_STRIP_LIMIT,
     offset: int = 0,
 ) -> dict:
-    city_norm = city.strip()
+    city_norm = resolve_city_name(city)
     limit = min(FOODCAST_FEED_MAX_LIMIT, max(1, limit))
     offset = max(0, offset)
 
@@ -79,7 +80,13 @@ def list_foodcast_feed(
         Restaurant.is_active.is_(True),
     ]
     if city_norm:
-        filters.append(func.lower(Restaurant.city) == city_norm.lower())
+        city_folded = city_norm.lower()
+        filters.append(
+            or_(
+                func.lower(Restaurant.city) == city_folded,
+                func.lower(FoodcastPhoto.city) == city_folded,
+            )
+        )
 
     total_visible = (
         db.scalar(
@@ -176,6 +183,7 @@ async def create_foodcast_photo(
             _assert_location_near_restaurant(restaurant, latitude=latitude, longitude=longitude)
 
     image_url = await save_foodcast_image(file)
+    photo_city = resolve_city_name(restaurant.city or "Bursa")
     row = FoodcastPhoto(
         author_id=user.id,
         restaurant_id=restaurant.id,
@@ -184,7 +192,7 @@ async def create_foodcast_photo(
         image_url=image_url,
         latitude=latitude,
         longitude=longitude,
-        city=restaurant.city,
+        city=photo_city,
         is_visible=True,
         created_at=_utcnow(),
     )

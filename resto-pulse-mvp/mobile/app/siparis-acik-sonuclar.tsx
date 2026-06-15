@@ -246,8 +246,7 @@ export default function OnlineOrderResultsScreen() {
           );
           const candidate = pickBestSmartCartCandidate(resultItems, command, options);
           if (!candidate) {
-            gastroSpeakNoResults();
-            setVoiceCommandOpen(true);
+            gastroSpeakNoResults(() => setVoiceCommandOpen(true));
             return;
           }
           const enriched = enrichVoiceOrderCommandWithCandidate(command, candidate);
@@ -441,8 +440,7 @@ export default function OnlineOrderResultsScreen() {
         );
         const candidate = pickBestSmartCartCandidate(cartItems, command, options);
         if (!candidate) {
-          gastroSpeakNoResults();
-          setVoiceCommandOpen(true);
+          gastroSpeakNoResults(() => setVoiceCommandOpen(true));
           return;
         }
 

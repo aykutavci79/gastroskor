@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -47,22 +48,30 @@ export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<FoodcastPhotoItem | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const hasItemsRef = useRef(false);
+  hasItemsRef.current = items.length > 0;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { background?: boolean }) => {
+    if (!opts?.background) setLoading(true);
     try {
       const feed = await getFoodcastFeed({ city, limit: STRIP_LIMIT });
       setItems(feed.items);
     } catch {
-      setItems([]);
+      if (!opts?.background) setItems([]);
     } finally {
-      setLoading(false);
+      if (!opts?.background) setLoading(false);
     }
   }, [city]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load({ background: hasItemsRef.current });
+    }, [load]),
+  );
 
   async function submitReport(reason: FoodcastReportReason) {
     if (!reportTarget) return;

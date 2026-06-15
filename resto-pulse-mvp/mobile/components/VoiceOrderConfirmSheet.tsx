@@ -29,7 +29,7 @@ import {
   parseVoiceOrderConfirmIntent,
   polishVoiceOrderCommandTranscript,
 } from '@/lib/voice-order-stt-fix';
-import { gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { ensureGastroPlaybackReady, gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { applyOrderPhoneSendOtpResult, tryAutoVerifyOrderPhoneBypass } from '@/lib/order-phone-otp';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
@@ -204,18 +204,20 @@ export function VoiceOrderConfirmSheet({
     if (spokeConfirmRef.current || !command || !restaurant || !allLinesReady) return;
 
     setConfirmMicActive(false);
-    gastroSpeakOrderConfirm(
-      {
-        restaurantName: restaurant.name,
-        lines: activeRows.map((row) => ({
-          quantity: row.intent.quantity,
-          productLabel: row.active!.label,
-        })),
-        totalTl: formatPriceTl(orderTotal, 0),
-        paymentNote: command.paymentNote,
-      },
-      () => setConfirmMicActive(true),
-    );
+    void ensureGastroPlaybackReady().then(() => {
+      gastroSpeakOrderConfirm(
+        {
+          restaurantName: restaurant.name,
+          lines: activeRows.map((row) => ({
+            quantity: row.intent.quantity,
+            productLabel: row.active!.label,
+          })),
+          totalTl: formatPriceTl(orderTotal, 0),
+          paymentNote: command.paymentNote,
+        },
+        () => setConfirmMicActive(true),
+      );
+    });
     spokeConfirmRef.current = true;
   }, [visible, command, restaurant, activeRows, allLinesReady, orderTotal]);
 
