@@ -9,6 +9,8 @@ $ErrorActionPreference = "Stop"
 $env:NODE_OPTIONS = "--use-system-ca"
 Set-Location $PSScriptRoot\..
 
+& "$PSScriptRoot\run-code-preflight.ps1"
+
 $argsList = @("build", "--profile", "production", "--platform", $Platform, "--non-interactive", "--wait")
 if ($args.Count -gt 0) {
   $argsList += $args

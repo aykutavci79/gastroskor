@@ -11,6 +11,8 @@ $ErrorActionPreference = "Stop"
 $env:NODE_OPTIONS = "--use-system-ca"
 Set-Location $PSScriptRoot\..
 
+& "$PSScriptRoot\run-code-preflight.ps1"
+
 function Invoke-PlatformBuild([string]$Platform) {
   Write-Host ""
   Write-Host ">> eas build --profile production --platform $Platform --non-interactive --wait"

@@ -41,7 +41,7 @@ export default function YoreselLezzetlerScreen() {
         <Text style={styles.kicker}>İç turizm · {cityLabel}</Text>
         <Text style={styles.title}>Yöresel lezzetler</Text>
         <Text style={styles.sub}>
-          TÜRKPATENT'te tescilli ürünler. Tıklayınca Google canlı araması açılır — GastroSkor restoran onayı
+          TÜRKPATENT’te tescilli ürünler. Tıklayınca Google canlı araması açılır — GastroSkor restoran onayı
           vermez.
         </Text>
 
