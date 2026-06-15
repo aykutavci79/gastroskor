@@ -19,9 +19,9 @@ import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
-import { listRestaurants, uploadFoodcastPhoto } from '@/lib/api';
+import { searchLivePlaces, uploadFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
-import type { RestaurantListItem } from '@/lib/types';
+import type { LivePlaceSearchItem } from '@/lib/types';
 
 type PhotoAsset = { uri: string; fileName: string; mimeType: string };
 
@@ -33,8 +33,8 @@ export default function FoodcastShareScreen() {
   const [dishName, setDishName] = useState('');
   const [caption, setCaption] = useState('');
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<RestaurantListItem[]>([]);
-  const [selected, setSelected] = useState<RestaurantListItem | null>(null);
+  const [results, setResults] = useState<LivePlaceSearchItem[]>([]);
+  const [selected, setSelected] = useState<LivePlaceSearchItem | null>(null);
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -75,8 +75,22 @@ export default function FoodcastShareScreen() {
     if (q.length < 2) return;
     setSearching(true);
     try {
-      const rows = await listRestaurants({ q, city });
-      setResults(rows.slice(0, 8));
+      let origin_lat: number | undefined;
+      let origin_lng: number | undefined;
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const pos = await Location.getCurrentPositionAsync({});
+        origin_lat = pos.coords.latitude;
+        origin_lng = pos.coords.longitude;
+      }
+      const response = await searchLivePlaces({
+        q,
+        city,
+        limit: 8,
+        origin_lat,
+        origin_lng,
+      });
+      setResults(response.items.slice(0, 8));
     } catch (err) {
       Alert.alert('Arama', formatApiError(err));
       setResults([]);
@@ -94,7 +108,7 @@ export default function FoodcastShareScreen() {
       Alert.alert('FoodCast', 'Yemek adı zorunlu (ör. İskender, cantık).');
       return;
     }
-    if (!selected?.id) {
+    if (!selected?.place_id) {
       Alert.alert('FoodCast', 'Restoran seç.');
       return;
     }
@@ -109,7 +123,9 @@ export default function FoodcastShareScreen() {
       const pos = await Location.getCurrentPositionAsync({});
       await uploadFoodcastPhoto({
         author_email: user.email,
-        restaurant_id: selected.id,
+        restaurant_id: selected.restaurant_id ?? undefined,
+        google_place_id: selected.restaurant_id ? undefined : selected.place_id,
+        city,
         dish_name: dishName.trim(),
         caption: caption.trim() || undefined,
         latitude: pos.coords.latitude,
@@ -169,7 +185,7 @@ export default function FoodcastShareScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Restoran ara"
+            placeholder="Restoran ara (canlı Google)"
             placeholderTextColor={GastroColors.placeholder}
             style={[styles.input, styles.searchInput]}
             onSubmitEditing={() => void searchRestaurants()}
@@ -182,7 +198,7 @@ export default function FoodcastShareScreen() {
         {selected ? (
           <View style={styles.selectedBox}>
             <Text style={styles.selectedTitle}>{selected.name}</Text>
-            <Text style={styles.selectedSub}>{selected.district ?? selected.city ?? cityLabel}</Text>
+            <Text style={styles.selectedSub}>{selected.address ?? cityLabel}</Text>
             <Pressable onPress={() => setSelected(null)}>
               <Text style={styles.clear}>Seçimi temizle</Text>
             </Pressable>
@@ -191,9 +207,9 @@ export default function FoodcastShareScreen() {
 
         <View style={styles.results}>
           {results.map((row) => (
-            <Pressable key={row.id} style={styles.resultRow} onPress={() => setSelected(row)}>
+            <Pressable key={row.place_id} style={styles.resultRow} onPress={() => setSelected(row)}>
               <Text style={styles.resultName}>{row.name}</Text>
-              <Text style={styles.resultSub}>{row.district ?? row.city ?? ''}</Text>
+              <Text style={styles.resultSub}>{row.address ?? ''}</Text>
             </Pressable>
           ))}
         </View>

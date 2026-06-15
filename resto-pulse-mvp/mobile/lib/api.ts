@@ -1048,7 +1048,9 @@ export function getFoodcastFeed(params?: { city?: string; limit?: number; offset
 
 export async function uploadFoodcastPhoto(params: {
   author_email: string;
-  restaurant_id: string;
+  restaurant_id?: string;
+  google_place_id?: string;
+  city?: string;
   dish_name: string;
   latitude: number;
   longitude: number;
@@ -1057,9 +1059,14 @@ export async function uploadFoodcastPhoto(params: {
   mimeType: string;
   fileName: string;
 }) {
+  if (!params.restaurant_id?.trim() && !params.google_place_id?.trim()) {
+    throw new Error('Restoran seçimi gerekli.');
+  }
   const form = new FormData();
   form.append('author_email', params.author_email);
-  form.append('restaurant_id', params.restaurant_id);
+  if (params.restaurant_id?.trim()) form.append('restaurant_id', params.restaurant_id.trim());
+  if (params.google_place_id?.trim()) form.append('google_place_id', params.google_place_id.trim());
+  if (params.city?.trim()) form.append('city', params.city.trim());
   form.append('dish_name', params.dish_name);
   form.append('latitude', String(params.latitude));
   form.append('longitude', String(params.longitude));

@@ -27,6 +27,7 @@ from app.services.foodcast import (
     serialize_foodcast_photo,
 )
 from app.services.request_identity import get_request_auth
+from app.services.restaurant_claim import ensure_restaurant_for_place
 
 router = APIRouter(prefix="/foodcast", tags=["foodcast"])
 
@@ -63,7 +64,9 @@ def foodcast_feed(
 @router.post("/photos", response_model=FoodcastPhotoCreateResponse, status_code=status.HTTP_201_CREATED)
 async def upload_foodcast_photo(
     author_email: str = Form(...),
-    restaurant_id: str = Form(...),
+    restaurant_id: str | None = Form(default=None),
+    google_place_id: str | None = Form(default=None),
+    city: str = Form(default="Bursa"),
     dish_name: str = Form(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
@@ -71,10 +74,23 @@ async def upload_foodcast_photo(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    try:
-        restaurant_uuid = UUID(restaurant_id.strip())
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Gecersiz restoran id.") from exc
+    rid = (restaurant_id or "").strip()
+    place_id = (google_place_id or "").strip()
+    if place_id and not rid:
+        restaurant = await ensure_restaurant_for_place(db, place_id=place_id, city=city.strip() or "Bursa")
+        db.commit()
+        db.refresh(restaurant)
+        restaurant_uuid = restaurant.id
+    elif rid:
+        try:
+            restaurant_uuid = UUID(rid)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Gecersiz restoran id.") from exc
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Restoran secimi veya Google mekan kimligi gerekli.",
+        )
 
     user = _resolve_upload_user(db, author_email)
     skip_location = user.role == "admin"
