@@ -126,7 +126,14 @@ function detectCartOrder(
 }
 
 export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
-  const text = normalizeTrSpeechText(rawText);
+  let text = normalizeTrSpeechText(rawText);
+  const folded = foldTrAscii(text);
+  const onlineTail = folded.match(
+    /^(?:online\s+siparis(?:\s+ver)?|gastro\s+siparis(?:\s+ver)?|siparis\s+ver(?:\s+online)?)\s+(.+)$/,
+  );
+  if (onlineTail?.[1]?.trim()) {
+    text = onlineTail[1].trim();
+  }
   const issues: string[] = [];
   const cartLines = extractVoiceOrderLines(text);
   const budgetCeiling = isVoiceBudgetCeiling(text);

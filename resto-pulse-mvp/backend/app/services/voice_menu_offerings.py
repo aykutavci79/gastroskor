@@ -13,6 +13,7 @@ from app.constants.voice_product_catalog import (
     catalog_groups_payload,
     catalog_payload,
     get_voice_product,
+    infer_voice_product_slug_from_menu_name,
     is_valid_voice_product_slug,
 )
 from app.models import RestaurantMenuItem, RestaurantOwnership
@@ -33,6 +34,8 @@ def voice_menu_matches_for_ownership(
     matches: list[dict] = []
     for item in active_menu_items(ownership):
         slug = (item.voice_product_slug or "").strip().lower()
+        if not slug:
+            slug = infer_voice_product_slug_from_menu_name(item.name) or ""
         if not slug or slug not in product_slugs:
             continue
         price = float(item.price_tl)

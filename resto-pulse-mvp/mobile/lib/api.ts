@@ -182,7 +182,10 @@ export async function listOnlineOrderRestaurants(params: {
     return await request<OnlineOrderOpenListResponse>(
       `/restaurants/online-orders-open${query ? `?${query}` : ''}`,
     );
-  } catch {
+  } catch (err) {
+    if (params.voice_product || params.voice_products) {
+      throw err;
+    }
     const fallback = await listRestaurants({
       city: params.city,
       origin_lat: params.origin_lat,

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from app.constants.voice_product_catalog import resolve_voice_search_token
+from app.constants.voice_product_catalog import resolve_voice_search_token, infer_voice_product_slug_from_menu_name
 from app.services.voice_menu_offerings import (
     list_voice_offerings_state,
     ownership_sells_voice_products,
@@ -104,6 +104,37 @@ def test_voice_menu_matches_respect_price_max():
         product_slugs={"lahmacun", "acili-lahmacun"},
         price_max=150,
     )
+
+
+def test_infer_lahmacun_slug_from_menu_name():
+    assert infer_voice_product_slug_from_menu_name("Lahmacun") == "lahmacun"
+    assert infer_voice_product_slug_from_menu_name("Acili Lahmacun") == "acili-lahmacun"
+
+
+def test_resolve_voice_search_token_substring_phrase():
+    token, slugs = resolve_voice_search_token("online siparis 150 tl lahmacun")
+    assert token == "lahmacun"
+    assert "lahmacun" in slugs
+
+
+def test_voice_menu_matches_infers_slug_from_menu_name():
+    ownership = SimpleNamespace(
+        menu_items=[
+            SimpleNamespace(
+                id="1",
+                voice_product_slug=None,
+                name="Lahmacun",
+                price_tl=120,
+                is_active=True,
+            ),
+        ]
+    )
+    matches = voice_menu_matches_for_ownership(
+        ownership,
+        product_slugs={"lahmacun", "acili-lahmacun"},
+    )
+    assert len(matches) == 1
+    assert matches[0]["voice_product_slug"] == "lahmacun"
 
 
 def test_list_voice_offerings_state_marks_enabled_rows():

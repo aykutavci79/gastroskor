@@ -30,6 +30,27 @@ ONLINE_ORDER_SORT_RATING = "rating"
 ONLINE_ORDER_SORT_POPULARITY = "popularity"
 
 
+def _visit_avg_rating(db: Session, restaurant_id) -> float | None:
+    try:
+        avg_gs = db.scalar(
+            select(func.avg(Review.rating)).where(
+                Review.restaurant_id == restaurant_id,
+                visit_review_filter(),
+            )
+        )
+        return float(avg_gs) if avg_gs else None
+    except Exception:
+        db.rollback()
+        try:
+            avg_gs = db.scalar(
+                select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant_id)
+            )
+            return float(avg_gs) if avg_gs else None
+        except Exception:
+            db.rollback()
+            return None
+
+
 def _attach_gastro_scores(items: list[dict]) -> None:
     for row in items:
         distance_m = row.get("distance_meters")
@@ -174,13 +195,7 @@ def list_online_order_restaurants(
         )
         google_review_count = int(google_profile.review_count) if google_profile and google_profile.review_count else None
 
-        avg_gs = db.scalar(
-            select(func.avg(Review.rating)).where(
-                Review.restaurant_id == restaurant.id,
-                visit_review_filter(),
-            )
-        )
-        avg_rating = float(avg_gs) if avg_gs else None
+        avg_rating = _visit_avg_rating(db, restaurant.id)
 
         rating_for_filter = google_rating if google_rating is not None else avg_rating
         if rating_for_filter is None or rating_for_filter < rating_floor:
@@ -249,7 +264,11 @@ def list_online_order_restaurants(
 
     _attach_gastro_scores(items)
     restaurant_ids = [UUID(row["id"]) for row in items if row.get("id")]
-    summaries = batch_order_rating_summaries(db, restaurant_ids)
+    try:
+        summaries = batch_order_rating_summaries(db, restaurant_ids)
+    except Exception:
+        db.rollback()
+        summaries = {}
     for row in items:
         summary = summaries.get(row["id"])
         if summary:

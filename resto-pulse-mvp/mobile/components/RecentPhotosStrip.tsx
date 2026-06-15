@@ -138,30 +138,32 @@ export function RecentPhotosStrip({ style, onDismissKeyboard }: Props) {
               style={styles.stripScroll}
               contentContainerStyle={styles.strip}>
               {items.map((row) => (
-                <Pressable
-                  key={row.id}
-                  style={[styles.tileCol, { width: tileWidth }]}
-                  onPress={() => router.push(`/restaurant/${row.restaurant_id}` as Href)}>
-                  <View style={styles.tileImage}>
+                <View key={row.id} style={[styles.tileCol, { width: tileWidth }]}>
+                  <Pressable
+                    style={styles.tileImage}
+                    onPress={() => router.push('/foodcast' as Href)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${row.dish_name} FoodCast paylaşımı`}>
                     <Image source={{ uri: row.image_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
                     <Pressable
                       style={styles.reportBtn}
                       hitSlop={6}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setReportTarget(row);
-                      }}>
+                      onPress={() => setReportTarget(row)}>
                       <Text style={styles.reportText}>!</Text>
                     </Pressable>
-                  </View>
+                  </Pressable>
                   <Text style={styles.dish} numberOfLines={1}>
                     {row.dish_name}
                   </Text>
-                  <Text style={styles.place} numberOfLines={1}>
-                    {row.restaurant_name}
-                  </Text>
+                  <Pressable
+                    hitSlop={4}
+                    onPress={() => router.push(`/restaurant/${row.restaurant_id}` as Href)}>
+                    <Text style={styles.place} numberOfLines={1}>
+                      {row.restaurant_name}
+                    </Text>
+                  </Pressable>
                   <Text style={styles.ago}>{formatRelativeTimeTr(row.created_at)}</Text>
-                </Pressable>
+                </View>
               ))}
             </ScrollView>
           </View>

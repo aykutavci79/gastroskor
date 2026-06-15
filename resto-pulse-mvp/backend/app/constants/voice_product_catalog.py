@@ -213,6 +213,43 @@ def is_valid_voice_product_slug(slug: str | None) -> bool:
     return slug.strip().lower() in VALID_VOICE_PRODUCT_SLUGS
 
 
+def _menu_name_matches_alias(folded_menu: str, alias_key: str) -> bool:
+    if folded_menu == alias_key:
+        return True
+    if len(alias_key) > len(folded_menu):
+        return False
+    padded = f" {folded_menu} "
+    needle = f" {alias_key} "
+    return needle in padded
+
+
+def infer_voice_product_slug_from_menu_name(name: str | None) -> str | None:
+    """Menu adindan sesli urun slug tahmini — panel slug bos kaldiginda."""
+    folded = _normalize_query(name or "")
+    if len(folded) < 3:
+        return None
+
+    best_slug: str | None = None
+    best_len = 0
+    for alias_key, mapped in _ALIAS_INDEX.items():
+        if len(alias_key) < 3:
+            continue
+        if not _menu_name_matches_alias(folded, alias_key):
+            continue
+        if len(alias_key) <= best_len:
+            continue
+        best_len = len(alias_key)
+        best_slug = mapped
+
+    if not best_slug:
+        return None
+    if best_slug in _BY_SLUG:
+        return best_slug
+    if best_slug in _BY_SEARCH_GROUP:
+        return _BY_SEARCH_GROUP[best_slug][0]
+    return None
+
+
 def resolve_voice_search_token(raw: str | None) -> tuple[str | None, list[str]]:
     """Kullanici ifadesini coz: (token, eslesen urun slug listesi).
 
@@ -240,6 +277,18 @@ def resolve_voice_search_token(raw: str | None) -> tuple[str | None, list[str]]:
     if key in _BY_SLUG:
         product = _BY_SLUG[key]
         return product.search_group, list(_BY_SEARCH_GROUP.get(product.search_group, [key]))
+
+    for alias_key, mapped in sorted(_ALIAS_INDEX.items(), key=lambda row: -len(row[0])):
+        if len(alias_key) < 3 or alias_key not in key:
+            continue
+        if mapped in _BY_SLUG:
+            product = _BY_SLUG[mapped]
+            group = product.search_group
+            slugs = _expand_group_slugs(group, list(_BY_SEARCH_GROUP.get(group, [mapped])))
+            return group, slugs
+        if mapped in _BY_SEARCH_GROUP:
+            slugs = _expand_group_slugs(mapped, list(_BY_SEARCH_GROUP[mapped]))
+            return mapped, slugs
 
     return None, []
 
