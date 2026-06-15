@@ -97,7 +97,27 @@ def prefers_open_text_search(query: str) -> bool:
     folded = _folded_query(query)
     if any(hint in folded for hint in BAKERY_QUERY_HINTS):
         return True
-    return len(folded.split()) >= 2
+    tokens = [token for token in folded.split() if token]
+    if len(tokens) >= 2:
+        return True
+    # Tek kelime marka: "rojen", "cantik" (mobil GPS nearby restaurant bunlari kacirir).
+    if len(tokens) == 1 and len(tokens[0]) >= 4 and tokens[0].isalpha():
+        return True
+    return False
+
+
+def merge_live_place_rows(
+    *groups: list[LivePlaceResult],
+) -> list[LivePlaceResult]:
+    seen: set[str] = set()
+    merged: list[LivePlaceResult] = []
+    for group in groups:
+        for row in group:
+            if not row.place_id or row.place_id in seen:
+                continue
+            seen.add(row.place_id)
+            merged.append(row)
+    return merged
 
 
 class GooglePlacesLiveClient:
@@ -211,6 +231,28 @@ class GooglePlacesLiveClient:
         payload = await self._fetch_google_payload(self.TEXT_SEARCH_URL, params)
         return self._parse_results(payload, limit=limit)
 
+    async def _search_nearby_then_text(
+        self,
+        query: str,
+        *,
+        lat: float,
+        lng: float,
+        city: str,
+        fetch_limit: int,
+        nearby_type: str,
+    ) -> list[LivePlaceResult]:
+        nearby_rows = await self._nearby_search(
+            query,
+            lat=lat,
+            lng=lng,
+            limit=fetch_limit,
+            place_type=nearby_type,
+        )
+        if len(nearby_rows) >= fetch_limit:
+            return nearby_rows[:fetch_limit]
+        text_rows = await self._text_search(query, city=city, limit=fetch_limit, place_type=None)
+        return merge_live_place_rows(nearby_rows, text_rows)[:fetch_limit]
+
     async def search_places(
         self,
         query: str,
@@ -234,28 +276,28 @@ class GooglePlacesLiveClient:
         # Maliyet: tek Google istegi. Oncelik: kullanici konumu → sehir merkezi (Nearby) → Text Search.
         # Text Search az sonuc dondurur; "doner 4.5 yildiz" gibi puan filtreleri bos kalabiliyordu.
         if origin_lat is not None and origin_lng is not None:
-            return (
-                await self._nearby_search(
-                    query,
-                    lat=origin_lat,
-                    lng=origin_lng,
-                    limit=fetch_limit,
-                    place_type=nearby_type,
-                )
-            )[:fetch_limit]
+            return await self._search_nearby_then_text(
+                query,
+                lat=origin_lat,
+                lng=origin_lng,
+                city=city,
+                fetch_limit=fetch_limit,
+                nearby_type=nearby_type,
+            )
 
         city_bias = CITY_SEARCH_BIAS.get(city.strip().lower())
         if city_bias:
             lat, lng, _radius_m = city_bias
-            nearby_rows = await self._nearby_search(
+            merged_rows = await self._search_nearby_then_text(
                 query,
                 lat=lat,
                 lng=lng,
-                limit=fetch_limit,
-                place_type=nearby_type,
+                city=city,
+                fetch_limit=fetch_limit,
+                nearby_type=nearby_type,
             )
-            if nearby_rows:
-                return nearby_rows[:fetch_limit]
+            if merged_rows:
+                return merged_rows[:fetch_limit]
 
         return (await self._text_search(query, city=city, limit=fetch_limit, place_type=None))[:fetch_limit]
 
