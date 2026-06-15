@@ -66,7 +66,9 @@ export default function RestaurantDetailScreen() {
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [liveDetails, setLiveDetails] = useState<LivePlaceDetails | null>(null);
-  const [reviews, setReviews] = useState<DisplayReview[]>([]);
+  const [visitReviews, setVisitReviews] = useState<DisplayReview[]>([]);
+  const [orderReviews, setOrderReviews] = useState<DisplayReview[]>([]);
+  const [reviewKind, setReviewKind] = useState<'visit' | 'online_order'>('visit');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [googleRating, setGoogleRating] = useState<number | null>(null);
   const [googleReviewCount, setGoogleReviewCount] = useState<number | null>(null);
@@ -189,9 +191,10 @@ export default function RestaurantDetailScreen() {
           restaurantId = live.restaurant_id;
           googlePlaceId = live.place_id ?? id;
 
-          const [restaurantData, reviewData] = await Promise.all([
+          const [restaurantData, visitReviewData, orderReviewData] = await Promise.all([
             getRestaurant(restaurantId),
             listRestaurantReviews(restaurantId, user?.email, { kind: 'visit' }),
+            listRestaurantReviews(restaurantId, user?.email, { kind: 'online_order' }),
           ]);
           if (cancelled) return;
 
@@ -211,7 +214,8 @@ export default function RestaurantDetailScreen() {
             maps_directions_url:
               restaurantData.maps_directions_url?.trim() || live.maps_directions_url || null,
           });
-          setReviews(sortReviewsWithViewerFirst(reviewData, user?.email, user?.id));
+          setVisitReviews(sortReviewsWithViewerFirst(visitReviewData, user?.email, user?.id));
+          setOrderReviews(orderReviewData);
           setPhotoUrls(gallery);
           setGoogleRating(coerceNumber(live.rating) ?? coerceNumber(restaurantData.google_rating));
           setGoogleReviewCount(live.user_ratings_total ?? null);
@@ -219,14 +223,16 @@ export default function RestaurantDetailScreen() {
           return;
         }
 
-        const [restaurantData, reviewData] = await Promise.all([
+        const [restaurantData, visitReviewData, orderReviewData] = await Promise.all([
           getRestaurant(restaurantId),
           listRestaurantReviews(restaurantId, user?.email, { kind: 'visit' }),
+          listRestaurantReviews(restaurantId, user?.email, { kind: 'online_order' }),
         ]);
         if (cancelled) return;
 
         setRestaurant(restaurantData);
-        setReviews(sortReviewsWithViewerFirst(reviewData, user?.email, user?.id));
+        setVisitReviews(sortReviewsWithViewerFirst(visitReviewData, user?.email, user?.id));
+        setOrderReviews(orderReviewData);
 
         const gallery: string[] = [];
         const cover =
@@ -309,15 +315,26 @@ export default function RestaurantDetailScreen() {
     });
   }, [loading, restaurant, focus]);
 
-  const gsRating = useMemo(() => {
-    const avg = averageGsRating(reviews);
+  const visitRating = useMemo(() => {
+    const fromApi = coerceNumber(restaurant?.avg_rating);
+    if (fromApi != null) return fromApi;
+    const avg = averageGsRating(visitReviews);
     return avg != null ? coerceNumber(avg) : null;
-  }, [reviews]);
+  }, [restaurant?.avg_rating, visitReviews]);
+  const orderRatings = restaurant?.order_ratings;
+  const deliveryRating = coerceNumber(orderRatings?.lezzet_avg);
+  const showDeliveryChannel = Boolean(
+    restaurant?.online_orders_available ||
+      (orderRatings?.review_count ?? 0) > 0 ||
+      orderReviews.length > 0,
+  );
+  const activeReviews = reviewKind === 'visit' ? visitReviews : orderReviews;
   const googleRatingLabel = formatNumber(googleRating);
-  const gsRatingLabel = formatNumber(gsRating);
+  const visitRatingLabel = formatNumber(visitRating);
+  const deliveryRatingLabel = formatNumber(deliveryRating);
   const hasOwnReview = useMemo(
-    () => reviews.some((row) => isOwnReview(row, user?.email, user?.id)),
-    [reviews, user?.email, user?.id],
+    () => visitReviews.some((row) => isOwnReview(row, user?.email, user?.id)),
+    [visitReviews, user?.email, user?.id],
   );
   const visual = restaurant
     ? resolveCategoryVisual({
@@ -416,7 +433,7 @@ export default function RestaurantDetailScreen() {
         viewer_can_edit: saved.viewer_can_edit ?? true,
         created_at: saved.created_at ?? new Date().toISOString(),
       };
-      setReviews((prev) => sortReviewsWithViewerFirst([withMeta, ...prev], user?.email, user?.id));
+      setVisitReviews((prev) => sortReviewsWithViewerFirst([withMeta, ...prev], user?.email, user?.id));
       setText('');
       setPhotos([]);
       setRating(0);
@@ -502,13 +519,68 @@ export default function RestaurantDetailScreen() {
                   : ''}
               </Text>
             ) : null}
-            {gsRatingLabel != null ? (
-              <Text style={styles.gsScore}>
-                <Text style={styles.star}>★ </Text>
-                GS {gsRatingLabel}
-              </Text>
-            ) : null}
           </View>
+
+          {showDeliveryChannel ? (
+            <View style={styles.dualScoreRow}>
+              <Pressable
+                style={[styles.scoreCard, reviewKind === 'visit' && styles.scoreCardActive]}
+                onPress={() => setReviewKind('visit')}>
+                <Text style={styles.scoreCardLabel}>Mekan</Text>
+                <Text style={styles.scoreCardValue}>
+                  {visitRatingLabel != null ? (
+                    <>
+                      <Text style={styles.star}>★ </Text>
+                      {visitRatingLabel}
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </Text>
+                <Text style={styles.scoreCardMeta}>
+                  {visitReviews.length > 0
+                    ? `${visitReviews.length} yorum`
+                    : 'Ziyaret puanı'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.scoreCard, reviewKind === 'online_order' && styles.scoreCardActive]}
+                onPress={() => setReviewKind('online_order')}>
+                <Text style={styles.scoreCardLabel}>Teslimat</Text>
+                <Text style={styles.scoreCardValue}>
+                  {deliveryRatingLabel != null ? (
+                    <>
+                      <Text style={styles.star}>★ </Text>
+                      {deliveryRatingLabel}
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </Text>
+                <Text style={styles.scoreCardMeta} numberOfLines={2}>
+                  {orderRatings?.servis_avg != null || orderRatings?.kurye_avg != null
+                    ? [
+                        orderRatings?.servis_avg != null
+                          ? `S ${orderRatings.servis_avg.toFixed(1)}`
+                          : null,
+                        orderRatings?.kurye_avg != null
+                          ? `K ${orderRatings.kurye_avg.toFixed(1)}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : orderReviews.length > 0
+                      ? `${orderReviews.length} siparis yorumu`
+                      : 'L·S·K puan'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : visitRatingLabel != null ? (
+            <Text style={styles.gsScore}>
+              <Text style={styles.star}>★ </Text>
+              GS Mekan {visitRatingLabel}
+            </Text>
+          ) : null}
 
           {visual ? (
             <View style={styles.categoryBadge}>
@@ -578,7 +650,7 @@ export default function RestaurantDetailScreen() {
               <RestaurantShareButton
                 restaurant={restaurant}
                 googleRating={googleRating}
-                gastroRating={gsRating}
+                gastroRating={visitRating}
               />
             </View>
           ) : null}
@@ -612,14 +684,46 @@ export default function RestaurantDetailScreen() {
           <PlaceDetailInfo live={liveDetails} gastroScores={gastroScores} />
         </View>
 
-        {!restaurant?.online_orders_available ? (
-          <>
+        <View
+          style={styles.section}
+          onLayout={(event) => {
+            reviewsSectionY.current = event.nativeEvent.layout.y;
+          }}>
+          <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
+
+          {showDeliveryChannel ? (
+            <View style={styles.reviewTabs}>
+              <Pressable
+                style={[styles.reviewTab, reviewKind === 'visit' && styles.reviewTabActive]}
+                onPress={() => setReviewKind('visit')}>
+                <Text
+                  style={[
+                    styles.reviewTabText,
+                    reviewKind === 'visit' && styles.reviewTabTextActive,
+                  ]}>
+                  Mekan
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.reviewTab, reviewKind === 'online_order' && styles.reviewTabActive]}
+                onPress={() => setReviewKind('online_order')}>
+                <Text
+                  style={[
+                    styles.reviewTabText,
+                    reviewKind === 'online_order' && styles.reviewTabTextActive,
+                  ]}>
+                  Teslimat
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {reviewKind === 'visit' && isUuid(restaurant.id) ? (
             <View
-              style={styles.section}
               onLayout={(event) => {
                 reviewFormOffsetY.current = event.nativeEvent.layout.y;
               }}>
-              <Text style={styles.sectionTitle}>Yorum yap</Text>
+              <Text style={styles.subsectionTitle}>Yorum yap</Text>
               {!user ? (
                 <Pressable onPress={() => router.push('/(tabs)/profil')}>
                   <Text style={styles.loginHint}>Yorum ve isim gizleme için giriş yap →</Text>
@@ -676,46 +780,48 @@ export default function RestaurantDetailScreen() {
                 </>
               )}
             </View>
+          ) : null}
 
-            <View
-              style={styles.section}
-              onLayout={(event) => {
-                reviewsSectionY.current = event.nativeEvent.layout.y;
-              }}>
-              <Text style={styles.sectionTitle}>GastroSkor yorumları</Text>
-              {hasOwnReview ? (
-                <View style={styles.visitedHint}>
-                  <Text style={styles.visitedHintText}>
-                    Daha önce bu restorana gitmişsin — puanın ve yorumun en üstte.
-                  </Text>
-                </View>
-              ) : null}
-              {reviews.length === 0 ? (
-                <Text style={styles.emptyReviews}>Henüz üye yorumu yok — ilk yorumu sen yaz.</Text>
-              ) : (
-                reviews.map((rev) => (
-                  <GsReviewCard
-                    key={rev.id}
-                    review={rev}
-                    viewerEmail={user?.email ?? null}
-                    viewerUserId={user?.id ?? null}
-                    viewerName={user?.fullName ?? null}
+          {reviewKind === 'visit' && hasOwnReview ? (
+            <View style={styles.visitedHint}>
+              <Text style={styles.visitedHintText}>
+                Daha önce bu restorana gitmişsin — puanın ve yorumun en üstte.
+              </Text>
+            </View>
+          ) : null}
+
+          {activeReviews.length === 0 ? (
+            <Text style={styles.emptyReviews}>
+              {reviewKind === 'online_order'
+                ? 'Henuz teslimat yorumu yok.'
+                : 'Henüz üye yorumu yok — ilk yorumu sen yaz.'}
+            </Text>
+          ) : (
+            activeReviews.map((rev) => (
+              <GsReviewCard
+                key={rev.id}
+                review={rev}
+                viewerEmail={user?.email ?? null}
+                viewerUserId={user?.id ?? null}
+                viewerName={user?.fullName ?? null}
                 onCardLayout={(cardY) => {
                   reviewCardY.current[rev.id] = cardY;
                 }}
                 onInputFocus={() =>
                   scrollToY(reviewsSectionY.current + (reviewCardY.current[rev.id] ?? 0) + 140)
                 }
-                onChange={(updated) =>
-                  setReviews((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
-                }
-                onDelete={(reviewId) => setReviews((prev) => prev.filter((row) => row.id !== reviewId))}
-                  />
-                ))
-              )}
-            </View>
-          </>
-        ) : null}
+                onChange={(updated) => {
+                  const setter = reviewKind === 'visit' ? setVisitReviews : setOrderReviews;
+                  setter((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+                }}
+                onDelete={(reviewId) => {
+                  const setter = reviewKind === 'visit' ? setVisitReviews : setOrderReviews;
+                  setter((prev) => prev.filter((row) => row.id !== reviewId));
+                }}
+              />
+            ))
+          )}
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
       <GoogleReviewsModal
@@ -756,6 +862,24 @@ const styles = StyleSheet.create({
   title: { color: GastroColors.text, fontSize: 22, fontWeight: '800' },
   location: { color: GastroColors.muted, fontSize: 13, lineHeight: 18 },
   scoreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  dualScoreRow: { flexDirection: 'row', gap: 10 },
+  scoreCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+    backgroundColor: GastroColors.input,
+  },
+  scoreCardActive: {
+    borderColor: GastroColors.accent,
+    backgroundColor: 'rgba(255, 107, 0, 0.08)',
+  },
+  scoreCardLabel: { color: GastroColors.muted, fontSize: 11, fontWeight: '700' },
+  scoreCardValue: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
+  scoreCardMeta: { color: GastroColors.muted, fontSize: 11, fontWeight: '600' },
   star: { color: GastroColors.gold },
   googleScore: { color: GastroColors.google, fontSize: 14, fontWeight: '600' },
   gsScore: { color: GastroColors.accent, fontSize: 14, fontWeight: '700' },
@@ -798,6 +922,25 @@ const styles = StyleSheet.create({
   },
   travelPillText: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
   sectionTitle: { color: GastroColors.text, fontSize: 18, fontWeight: '800' },
+  subsectionTitle: { color: GastroColors.text, fontSize: 15, fontWeight: '700' },
+  reviewTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reviewTab: {
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: GastroColors.input,
+  },
+  reviewTabActive: {
+    borderColor: GastroColors.accent,
+    backgroundColor: 'rgba(255, 107, 0, 0.12)',
+  },
+  reviewTabText: { color: GastroColors.muted, fontSize: 13, fontWeight: '700' },
+  reviewTabTextActive: { color: GastroColors.accent },
   visitedHint: {
     marginTop: 10,
     paddingHorizontal: 12,

@@ -205,15 +205,15 @@ export default function SiparislerimScreen() {
       ) : (
         <View style={styles.list}>
           {items.map((order) => {
-            const href = restaurantDetailHref({ id: order.restaurant_id, restaurant_id: order.restaurant_id });
+            const restaurantHref = restaurantDetailHref({
+              id: order.restaurant_id,
+              restaurant_id: order.restaurant_id,
+            });
             return (
               <View key={order.id} style={styles.card}>
                 <Pressable
                   style={({ pressed }) => [pressed && styles.cardPressed]}
-                  disabled={!href}
-                  onPress={() => {
-                    if (href) router.push(href as never);
-                  }}>
+                  onPress={() => router.push(`/siparis/${order.id}` as never)}>
                   <View style={styles.cardTop}>
                     <Text style={styles.restaurantName} numberOfLines={1}>
                       {order.restaurant_name ?? 'Restoran'}
@@ -239,7 +239,7 @@ export default function SiparislerimScreen() {
                     <Text style={styles.total}>
                       {formatPriceTl(order.total_tl, 0) ?? '—'} TL
                     </Text>
-                    {href ? <Text style={styles.link}>Restorani ac</Text> : null}
+                    <Text style={styles.link}>Detay</Text>
                   </View>
                   {order.status === 'rejected' && order.reject_message ? (
                     <Text style={styles.rejectNote} numberOfLines={2}>
@@ -247,13 +247,22 @@ export default function SiparislerimScreen() {
                     </Text>
                   ) : null}
                 </Pressable>
-                {order.can_review ? (
-                  <Pressable style={styles.rateBtn} onPress={() => setRatingOrder(order)}>
-                    <Text style={styles.rateBtnText}>Puan ver</Text>
-                  </Pressable>
-                ) : order.has_review ? (
-                  <Text style={styles.ratedHint}>Puanlandi</Text>
-                ) : null}
+                <View style={styles.cardActions}>
+                  {restaurantHref ? (
+                    <Pressable
+                      style={styles.secondaryLink}
+                      onPress={() => router.push(restaurantHref as never)}>
+                      <Text style={styles.secondaryLinkText}>Restorani ac</Text>
+                    </Pressable>
+                  ) : null}
+                  {order.can_review ? (
+                    <Pressable style={styles.rateBtn} onPress={() => setRatingOrder(order)}>
+                      <Text style={styles.rateBtnText}>Puan ver</Text>
+                    </Pressable>
+                  ) : order.has_review ? (
+                    <Text style={styles.ratedHint}>Puanlandi</Text>
+                  ) : null}
+                </View>
               </View>
             );
           })}
@@ -346,6 +355,15 @@ function createStyles(colors: GastroColorScheme) {
     total: { color: colors.text, fontWeight: '800', fontSize: 15 },
     link: { ...GastroStyles.linkText, fontSize: 12 },
     rejectNote: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      marginTop: 4,
+    },
+    secondaryLink: { paddingVertical: 6 },
+    secondaryLinkText: { ...GastroStyles.linkText, fontSize: 12 },
     expoNote: { color: colors.accent, fontSize: 12, lineHeight: 18 },
     btn: {
       ...GastroStyles.btnPrimary,

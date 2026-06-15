@@ -31,23 +31,23 @@ ONLINE_ORDER_SORT_POPULARITY = "popularity"
 
 
 def _visit_avg_rating(db: Session, restaurant_id) -> float | None:
+    """Visit ortalamasi — review_kind yoksa savepoint ile ana oturumu bozma."""
+
+    def _scalar(*, visit_only: bool) -> float | None:
+        stmt = select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant_id)
+        if visit_only:
+            stmt = stmt.where(visit_review_filter())
+        avg_gs = db.scalar(stmt)
+        return float(avg_gs) if avg_gs is not None else None
+
     try:
-        avg_gs = db.scalar(
-            select(func.avg(Review.rating)).where(
-                Review.restaurant_id == restaurant_id,
-                visit_review_filter(),
-            )
-        )
-        return float(avg_gs) if avg_gs else None
+        with db.begin_nested():
+            return _scalar(visit_only=True)
     except Exception:
-        db.rollback()
         try:
-            avg_gs = db.scalar(
-                select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant_id)
-            )
-            return float(avg_gs) if avg_gs else None
+            with db.begin_nested():
+                return _scalar(visit_only=False)
         except Exception:
-            db.rollback()
             return None
 
 
@@ -264,11 +264,13 @@ def list_online_order_restaurants(
 
     _attach_gastro_scores(items)
     restaurant_ids = [UUID(row["id"]) for row in items if row.get("id")]
-    try:
-        summaries = batch_order_rating_summaries(db, restaurant_ids)
-    except Exception:
-        db.rollback()
-        summaries = {}
+    summaries: dict[str, dict] = {}
+    if restaurant_ids:
+        try:
+            with db.begin_nested():
+                summaries = batch_order_rating_summaries(db, restaurant_ids)
+        except Exception:
+            summaries = {}
     for row in items:
         summary = summaries.get(row["id"])
         if summary:

@@ -421,6 +421,29 @@ def list_user_orders(
     return items, pending_count, total
 
 
+def get_user_order(
+    db: Session,
+    *,
+    user_id: UUID,
+    order_id: UUID,
+) -> dict | None:
+    row = db.scalar(
+        select(RestaurantOrder)
+        .where(RestaurantOrder.id == order_id, RestaurantOrder.user_id == user_id)
+        .options(selectinload(RestaurantOrder.lines), selectinload(RestaurantOrder.restaurant))
+        .limit(1)
+    )
+    if not row:
+        return None
+
+    linked = db.scalar(select(Review).where(Review.restaurant_order_id == row.id).limit(1))
+    payload = order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None)
+    payload["has_review"] = linked is not None
+    payload["can_review"] = order_can_be_reviewed(row) and linked is None
+    payload["review_id"] = str(linked.id) if linked else None
+    return payload
+
+
 def list_panel_orders(
     db: Session,
     *,

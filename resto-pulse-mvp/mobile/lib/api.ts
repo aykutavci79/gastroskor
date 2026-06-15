@@ -186,39 +186,15 @@ export async function listOnlineOrderRestaurants(params: {
     if (params.voice_product || params.voice_products) {
       throw err;
     }
-    const fallback = await listRestaurants({
-      city: params.city,
-      origin_lat: params.origin_lat,
-      origin_lng: params.origin_lng,
-    });
-    let items = fallback.filter((row) => row.online_orders_available);
-    if (params.category) {
-      items = items.filter((row) => (row.online_order_categories ?? []).includes(params.category!));
-    }
-    items = items.filter((row) => {
-      const rating = row.google_rating ?? row.avg_rating;
-      return rating != null && rating >= minRating;
-    });
-    if (params.sort === 'rating') {
-      items.sort((a, b) => (b.google_rating ?? b.avg_rating ?? 0) - (a.google_rating ?? a.avg_rating ?? 0));
-    } else if (params.sort === 'popularity') {
-      items.sort(
-        (a, b) =>
-          (b.google_review_count ?? 0) - (a.google_review_count ?? 0) ||
-          (b.google_rating ?? b.avg_rating ?? 0) - (a.google_rating ?? a.avg_rating ?? 0),
-      );
-    } else if (params.sort === 'distance' && params.origin_lat != null) {
-      items.sort(
-        (a, b) => (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12),
-      );
-    } else {
-      items.sort(
-        (a, b) =>
-          (b.gastro_score ?? 0) - (a.gastro_score ?? 0) ||
-          (b.google_review_count ?? 0) - (a.google_review_count ?? 0),
+    const raw = err instanceof Error ? err.message : String(err ?? '');
+    if (/500|Internal Server|sunucu/i.test(raw)) {
+      throw new Error(
+        'Online siparis listesi sunucuda gecici olarak acilamiyor. Birkac dakika sonra tekrar dene veya panelden Deneme restoranlarini yeniden seed et.',
       );
     }
-    return { items: items.slice(0, params.limit ?? 50), categories: [] };
+    throw new Error(
+      raw.trim() || 'Online siparis listesi su an yuklenemedi. Interneti kontrol edip tekrar dene.',
+    );
   }
 }
 
@@ -297,6 +273,15 @@ export function listUserOrders(
   return request<import('@/lib/types').UserOrderListResponse>(`/users/me/orders?${params.toString()}`);
 }
 
+export function getUserOrder(userEmail: string, orderId: string) {
+  const params = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+  });
+  return request<import('@/lib/types').RestaurantOrderRead>(
+    `/users/me/orders/${encodeURIComponent(orderId)}?${params.toString()}`,
+  );
+}
+
 export function submitRestaurantOrder(
   restaurantId: string,
   payload: {
@@ -363,11 +348,12 @@ export function decidePanelOrder(
 export function listRestaurantReviews(
   restaurantId: string,
   viewerEmail?: string | null,
-  options?: { kind?: 'visit' | 'online_order' },
+  options?: { kind?: 'visit' | 'online_order'; limit?: number },
 ) {
   const params = new URLSearchParams();
   if (viewerEmail?.trim()) params.set('viewer_email', viewerEmail.trim());
   if (options?.kind) params.set('review_kind', options.kind);
+  if (options?.limit != null) params.set('limit', String(options.limit));
   const query = params.toString() ? `?${params.toString()}` : '';
   return request<Review[]>(`/restaurants/${restaurantId}/reviews${query}`);
 }
@@ -1047,6 +1033,30 @@ export function getFoodcastFeed(params?: { city?: string; limit?: number; offset
   if (params?.offset != null) search.set('offset', String(params.offset));
   const query = search.toString();
   return request<FoodcastFeedResponse>(`/foodcast/feed${query ? `?${query}` : ''}`);
+}
+
+export type DiscoverReviewTickerItem = {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  rating: number;
+  review_text: string;
+  snippet: string;
+  author_label?: string | null;
+};
+
+export type DiscoverReviewTickerResponse = {
+  city: string;
+  items: DiscoverReviewTickerItem[];
+};
+
+export function getDiscoverReviewTicker(params?: { city?: string; min_rating?: number; limit?: number }) {
+  const search = new URLSearchParams();
+  if (params?.city) search.set('city', params.city);
+  if (params?.min_rating != null) search.set('min_rating', String(params.min_rating));
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  const query = search.toString();
+  return request<DiscoverReviewTickerResponse>(`/discover/review-ticker${query ? `?${query}` : ''}`);
 }
 
 export async function uploadFoodcastPhoto(params: {

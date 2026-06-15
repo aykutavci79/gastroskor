@@ -93,6 +93,14 @@ function NavigationShell() {
             headerBackVisible: true,
           }}
         />
+        <Stack.Screen
+          name="siparis/[id]"
+          options={{
+            title: 'Sipariş detayı',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+          }}
+        />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

@@ -25,6 +25,18 @@ import {
 import { formatReviewDate, isOwnReview, renderStarRow } from '@/lib/review-display';
 import type { DisplayReview, ReviewReply } from '@/lib/types';
 
+function orderReviewSubline(review: DisplayReview): string | null {
+  if (review.review_kind !== 'online_order') return null;
+  const byCategory = Object.fromEntries(
+    (review.categories ?? []).map((row) => [row.category, row.score]),
+  );
+  const lezzet = byCategory.lezzet ?? review.rating;
+  const servis = byCategory.servis;
+  const kurye = byCategory.kurye;
+  if (servis == null && kurye == null) return null;
+  return `L ${Number(lezzet).toFixed(1)} · S ${servis != null ? Number(servis).toFixed(1) : '—'} · K ${kurye != null ? Number(kurye).toFixed(1) : '—'}`;
+}
+
 type Props = {
   review: DisplayReview;
   viewerEmail: string | null;
@@ -199,6 +211,8 @@ export function GsReviewCard({
     ]);
   }
 
+  const orderSubline = orderReviewSubline(review);
+
   return (
     <View
       style={styles.card}
@@ -251,6 +265,7 @@ export function GsReviewCard({
       ) : (
         <>
           <Text style={styles.stars}>{renderStarRow(review.rating)}</Text>
+          {orderSubline ? <Text style={styles.orderSubline}>{orderSubline}</Text> : null}
           {review.review_text.trim() ? <Text style={styles.text}>{review.review_text}</Text> : null}
           {(review.image_urls?.length ?? 0) > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -404,6 +419,7 @@ const styles = StyleSheet.create({
   ownBadgeText: { color: GastroColors.accent, fontSize: 10, fontWeight: '700' },
   date: { color: GastroColors.muted, fontSize: 11 },
   stars: { color: GastroColors.gold, fontSize: 14, letterSpacing: 1 },
+  orderSubline: { color: GastroColors.muted, fontSize: 12, fontWeight: '700', marginTop: 2 },
   text: { color: GastroColors.text, fontSize: 14, lineHeight: 20 },
   photo: { width: 72, height: 72, borderRadius: 8, marginRight: 8 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },

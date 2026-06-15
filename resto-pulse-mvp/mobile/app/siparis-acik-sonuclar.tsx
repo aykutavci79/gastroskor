@@ -566,7 +566,7 @@ export default function OnlineOrderResultsScreen() {
             <Text style={styles.emptySub}>
               {voiceQuery
                 ? `“${formatVoiceOrderSummary(voiceQuery)}” için online menüsünde eşleşen mekan bulunamadı. Bütçe veya mesafe sınırını gevşet; deneme restoranları Bursa’da — şehri Bursa yapmayı dene.`
-                : 'Mutfak seçimini genişlet, mesafeyi artır veya puanı düşür. Pilot işletmeler panelden siparişi açmalı.'}
+                : 'Mutfak seçimini genişlet veya mesafeyi 10 km yap. Deneme restoranları yalnızca Bursa’da — Keşfet şehrinin Bursa olduğundan emin ol.'}
             </Text>
             <View style={styles.emptyActions}>
               {voiceQuery ? (

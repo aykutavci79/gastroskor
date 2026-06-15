@@ -40,6 +40,7 @@ from app.models import (
     User,
 )
 from app.schemas.check_in import CheckInPayload, CheckInResult, CheckInStatus
+from app.schemas.discover import DiscoverReviewTickerResponse
 from app.schemas.geo_indication import GeoIndicationRead
 from app.schemas.regional_flavors import (
     RegionalProductDetailResponse,
@@ -104,6 +105,7 @@ from app.services.restaurant_orders import (
     get_ownership_for_restaurant,
     get_pending_order_for_user,
     get_recent_rejected_order_for_user,
+    get_user_order,
     list_user_orders,
     notify_new_restaurant_order,
     online_orders_available,
@@ -124,11 +126,13 @@ from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
 from app.services.regional_flavors import discover_regional_product_places, get_regional_product, list_regional_products
+from app.services.discover_review_ticker import list_discover_review_ticker
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.constants.online_order_categories import normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
 from app.services.order_review import (
     OrderReviewError,
+    batch_order_rating_summaries,
     create_order_review,
     online_order_review_filter,
     raise_order_review_http,
@@ -322,6 +326,20 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         else (restaurant_should_seo_noindex(db, restaurant.id, google_place_id=place_id) if db is not None else False)
     )
 
+    avg_rating = None
+    order_ratings = None
+    if db is not None:
+        visit_avg = db.scalar(
+            select(func.avg(Review.rating)).where(
+                Review.restaurant_id == restaurant.id,
+                visit_review_filter(),
+            )
+        )
+        avg_rating = round(float(visit_avg), 1) if visit_avg is not None else None
+        summary = batch_order_rating_summaries(db, [restaurant.id]).get(str(restaurant.id))
+        if summary and summary.get("review_count", 0) > 0:
+            order_ratings = summary
+
     return RestaurantRead(
         id=str(restaurant.id),
         name=restaurant.name,
@@ -344,6 +362,8 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu_item_count=int(partner.get("menu_item_count") or 0),
         online_orders_available=bool(partner.get("online_orders_available")),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
+        avg_rating=avg_rating,
+        order_ratings=order_ratings,
         seo_noindex=seo_noindex,
     )
 
@@ -985,6 +1005,17 @@ def new_member_restaurants(
     return NewMemberRestaurantsResponse(items=items)
 
 
+@router.get("/discover/review-ticker", response_model=DiscoverReviewTickerResponse)
+def discover_review_ticker(
+    city: str = Query(default="Bursa", min_length=2, max_length=120),
+    min_rating: int = Query(default=4, ge=1, le=5),
+    limit: int = Query(default=16, ge=1, le=40),
+    db: Session = Depends(get_db),
+):
+    items = list_discover_review_ticker(db, city=city, min_rating=min_rating, limit=limit)
+    return DiscoverReviewTickerResponse(city=city, items=items)
+
+
 @router.get("/regional-flavors/products", response_model=RegionalProductListResponse)
 def regional_flavor_products(
     city: str = Query(default="Bursa", min_length=2, max_length=120),
@@ -1395,6 +1426,19 @@ def get_user_orders(
         pending_count=pending_count,
         total=total,
     )
+
+
+@router.get("/users/me/orders/{order_id}", response_model=RestaurantOrderRead)
+def get_user_order_detail(
+    order_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = load_authenticated_user_by_email(db, user_email)
+    payload = get_user_order(db, user_id=user.id, order_id=order_id)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siparis bulunamadi.")
+    return RestaurantOrderRead.model_validate(payload)
 
 
 @router.post(

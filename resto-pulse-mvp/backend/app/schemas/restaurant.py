@@ -44,6 +44,13 @@ class RestaurantPromoPublic(BaseModel):
     instagram_url: str | None = None
 
 
+class OrderRatingSummary(BaseModel):
+    lezzet_avg: float | None = None
+    servis_avg: float | None = None
+    kurye_avg: float | None = None
+    review_count: int = 0
+
+
 class RestaurantRead(RestaurantCreate):
     id: str
     google_place_id: str | None = None
@@ -56,6 +63,8 @@ class RestaurantRead(RestaurantCreate):
     menu_item_count: int = 0
     online_orders_available: bool = False
     online_order_categories: list[str] = Field(default_factory=list)
+    avg_rating: float | None = None
+    order_ratings: OrderRatingSummary | None = None
     check_in_visitor_count: int = Field(ge=0, default=0)
     seo_noindex: bool = False
     model_config = ConfigDict(from_attributes=True)
@@ -76,13 +85,6 @@ class OnlineOrderOpenListResponse(BaseModel):
 class VoiceProductCatalogResponse(BaseModel):
     groups: list[dict]
     products: list[dict]
-
-
-class OrderRatingSummary(BaseModel):
-    lezzet_avg: float | None = None
-    servis_avg: float | None = None
-    kurye_avg: float | None = None
-    review_count: int = 0
 
 
 class RestaurantListItem(BaseModel):
