@@ -49,8 +49,8 @@ type Coords = { lat: number; lng: number };
 
 export default function ExploreScreen() {
   const { city, cityLabel } = useCity();
-  const { colors, mode } = useGastroTheme();
-  const styles = useMemo(() => createExploreStyles(colors, mode), [colors, mode]);
+  const { colors } = useGastroTheme();
+  const styles = useMemo(() => createExploreStyles(colors), [colors]);
   const navigation = useNavigation();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
@@ -430,7 +430,7 @@ export default function ExploreScreen() {
   );
 }
 
-function createExploreStyles(colors: import('@/constants/theme').GastroColorScheme, mode: 'light' | 'dark') {
+function createExploreStyles(colors: import('@/constants/theme').GastroColorScheme) {
   return StyleSheet.create({
   page: { flex: 1 },
   chromeWrap: {
@@ -444,7 +444,7 @@ function createExploreStyles(colors: import('@/constants/theme').GastroColorSche
     ...StyleSheet.absoluteFillObject,
     zIndex: 15,
     elevation: 15,
-    backgroundColor: mode === 'light' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
   },
   vitrinFill: {
     flex: 1,

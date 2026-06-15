@@ -1,42 +1,9 @@
 import { normalizeTrSpeechText } from '@/lib/turkish-text-fold';
 import { isJunkSpeechTranscript } from '@/lib/speech-transcript-quality';
-
-/** STT'nin sik yanlis duydugu yemek / arama ifadeleri. */
-const PHRASE_FIXES: Array<[RegExp, string]> = [
-  [/\bkazandi\s*bi\b/gi, 'kazandibi'],
-  [/\bkazandibi\b/gi, 'kazandibi'],
-  [/\btatli\s*ci\b/gi, 'tatlıcı'],
-  [/\btatlici\b/gi, 'tatlıcı'],
-  [/\bkebap\s*ci\b/gi, 'kebapçı'],
-  [/\bkebapci\b/gi, 'kebapçı'],
-  [/\blahmacun\s*cu\b/gi, 'lahmacuncu'],
-  [/\blahmacuncu\b/gi, 'lahmacuncu'],
-  [/\bdoner\s*ci\b/gi, 'dönerci'],
-  [/\bdonerci\b/gi, 'dönerci'],
-  [/\bpide\s*li\b/gi, 'pideli'],
-  [/\bpideli\s*köfte\b/gi, 'pideli köfte'],
-  [/\bpideli\s*kofte\b/gi, 'pideli köfte'],
-  [/\bcantic\b/gi, 'cantık'],
-  [/\bcantik\b/gi, 'cantık'],
-  [/\bkünefe\b/gi, 'künefe'],
-  [/\bkunefe\b/gi, 'künefe'],
-  [/\bis\s*kender\b/gi, 'iskender'],
-  [/\byildiz\b/gi, 'yıldız'],
-  [/\byildiz\b/gi, 'yıldız'],
-  [/\bdort\s*bucuk\b/gi, '4.5'],
-  [/\bdört\s*buçuk\b/gi, '4.5'],
-  [/\bdort\s*bucuk\b/gi, '4.5'],
-  [/\bdört\s*yıldız\s*üstü\b/gi, '4 yıldız üstü'],
-  [/\bdort\s*yildiz\s*ustu\b/gi, '4 yıldız üstü'],
-  [/\bdört\s*yıldız\b/gi, '4 yıldız'],
-  [/\bdort\s*yildiz\b/gi, '4 yıldız'],
-  [/\b4\s*buçuk\b/gi, '4.5'],
-  [/\byorum\s*üstü\b/gi, 'yorum üstü'],
-  [/\byorum\s*ustu\b/gi, 'yorum üstü'],
-  [/\ben\s*yakin\b/gi, 'en yakın'],
-  [/\ben\s*yakin\b/gi, 'en yakın'],
-  [/\bkonumuma\s*yakin\b/gi, 'konumuma en yakın'],
-];
+import {
+  applyVoiceSttPhraseFixes,
+  VOICE_WHISPER_CONTEXT_PHRASES,
+} from '@/lib/voice-stt-phrase-fixes';
 
 /** "lahmacun satan restoranlari siralas" -> "lahmacun" */
 const SEARCH_BOILERPLATE: RegExp[] = [
@@ -58,17 +25,13 @@ function stripVoiceSearchBoilerplate(text: string): string {
 export function polishVoiceSearchTranscript(raw: string): string {
   let text = normalizeTrSpeechText(raw);
   if (!text || isJunkSpeechTranscript(text)) return '';
-
-  for (const [pattern, replacement] of PHRASE_FIXES) {
-    text = text.replace(pattern, replacement);
-  }
-
-  text = text.replace(/\s{2,}/g, ' ').trim();
+  text = applyVoiceSttPhraseFixes(text);
   return stripVoiceSearchBoilerplate(text);
 }
 
 /** Android/iOS STT oneri listesi — kesfet arama cumleleri. */
 export const KESFET_SEARCH_CONTEXT_PHRASES: string[] = [
+  ...VOICE_WHISPER_CONTEXT_PHRASES,
   'en yakın lahmacuncu',
   'en yakın kebapçı',
   'en yakın tatlıcı',
@@ -77,15 +40,6 @@ export const KESFET_SEARCH_CONTEXT_PHRASES: string[] = [
   '200 yorum üstü',
   'yorum üstü lahmacun',
   'konumuma en yakın',
-  'pideli köfte',
-  'iskender',
-  'cantık',
-  'künefe',
-  'sütlaç',
-  'dönerci',
-  'lahmacun',
-  'kebapçı',
-  'tatlıcı',
   'yıldız üstü',
   'online sipariş',
   'gastro sipariş',

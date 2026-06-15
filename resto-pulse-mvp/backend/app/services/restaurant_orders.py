@@ -20,6 +20,7 @@ from app.models.entities import (
     RestaurantOrderLine,
     RestaurantOrderStatus,
     RestaurantOwnership,
+    Review,
     User,
 )
 from app.constants.order_reject_reasons import (
@@ -28,6 +29,7 @@ from app.constants.order_reject_reasons import (
     validate_rejection_reason,
 )
 from app.services.order_phone_verification import user_has_verified_order_phone
+from app.services.order_review import order_can_be_reviewed
 from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.phone_tr import normalize_tr_mobile
 from app.services.restaurant_menu import active_menu_items
@@ -364,6 +366,59 @@ def decide_restaurant_order(
     db.commit()
     db.refresh(order)
     return order
+
+
+def count_pending_orders_for_user(db: Session, *, user_id: UUID) -> int:
+    return int(
+        db.scalar(
+            select(func.count(RestaurantOrder.id)).where(
+                RestaurantOrder.user_id == user_id,
+                RestaurantOrder.status == RestaurantOrderStatus.pending,
+            )
+        )
+        or 0
+    )
+
+
+def list_user_orders(
+    db: Session,
+    *,
+    user_id: UUID,
+    limit: int = 30,
+    offset: int = 0,
+) -> tuple[list[dict], int, int]:
+    safe_limit = max(1, min(int(limit), 50))
+    safe_offset = max(0, int(offset))
+    base_filter = RestaurantOrder.user_id == user_id
+
+    total = int(db.scalar(select(func.count(RestaurantOrder.id)).where(base_filter)) or 0)
+    pending_count = count_pending_orders_for_user(db, user_id=user_id)
+
+    rows = db.scalars(
+        select(RestaurantOrder)
+        .where(base_filter)
+        .options(selectinload(RestaurantOrder.lines), selectinload(RestaurantOrder.restaurant))
+        .order_by(RestaurantOrder.created_at.desc())
+        .offset(safe_offset)
+        .limit(safe_limit)
+    ).all()
+
+    order_ids = [row.id for row in rows]
+    review_by_order: dict[UUID, Review] = {}
+    if order_ids:
+        for review in db.scalars(select(Review).where(Review.restaurant_order_id.in_(order_ids))).all():
+            if review.restaurant_order_id:
+                review_by_order[review.restaurant_order_id] = review
+
+    items = []
+    for row in rows:
+        linked = review_by_order.get(row.id)
+        payload = order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None)
+        payload["has_review"] = linked is not None
+        payload["can_review"] = order_can_be_reviewed(row) and linked is None
+        payload["review_id"] = str(linked.id) if linked else None
+        items.append(payload)
+    return items, pending_count, total
 
 
 def list_panel_orders(

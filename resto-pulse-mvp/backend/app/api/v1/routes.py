@@ -29,6 +29,7 @@ from app.models import (
     PlatformName,
     Restaurant,
     RestaurantOwnership,
+    RestaurantOrder,
     RestaurantPlatformProfile,
     Review,
     ReviewCategoryScore,
@@ -82,6 +83,7 @@ from app.schemas.restaurant_order import (
     RestaurantOrderActiveResponse,
     RestaurantOrderCreate,
     RestaurantOrderRead,
+    UserOrderListResponse,
 )
 from app.services.gastro_score_ranking import haversine_meters
 from app.services.restaurant_check_in import (
@@ -102,6 +104,7 @@ from app.services.restaurant_orders import (
     get_ownership_for_restaurant,
     get_pending_order_for_user,
     get_recent_rejected_order_for_user,
+    list_user_orders,
     notify_new_restaurant_order,
     online_orders_available,
     customer_online_orders_available,
@@ -124,7 +127,13 @@ from app.services.regional_flavors import discover_regional_product_places, get_
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
 from app.constants.online_order_categories import normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
-from app.services.online_orders_discovery import categories_payload, list_online_order_restaurants
+from app.services.order_review import (
+    OrderReviewError,
+    create_order_review,
+    online_order_review_filter,
+    raise_order_review_http,
+    visit_review_filter,
+)
 from app.constants.voice_product_catalog import resolve_voice_search_token
 from app.services.voice_menu_offerings import voice_catalog_response
 from app.services.trending_google import get_trending_google_places
@@ -154,6 +163,7 @@ from app.schemas.review import (
     ReviewTextModerateRequest,
     ReviewTextModerateResponse,
     ReviewUpdate,
+    OrderReviewCreate,
 )
 from app.schemas.review_remedy import (
     ReviewRemedyOfferRead,
@@ -489,6 +499,8 @@ def serialize_review(review: Review, *, viewer_user_id: UUID | None = None) -> R
     return ReviewRead(
         id=str(review.id),
         restaurant_id=str(review.restaurant_id),
+        review_kind=review.review_kind.value if getattr(review, "review_kind", None) else "visit",
+        restaurant_order_id=str(review.restaurant_order_id) if review.restaurant_order_id else None,
         author_id=str(review.author_id) if review.author_id else None,
         author_email=review.author.email if review.author else None,
         author_name=author_name,
@@ -1068,7 +1080,10 @@ def list_restaurants(
         if is_tester_seed_place_id(place_id):
             continue
         avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
+            select(func.avg(Review.rating)).where(
+                Review.restaurant_id == restaurant.id,
+                visit_review_filter(),
+            )
         )
         google_profile = google_profiles.get(rid)
         destination_query = build_destination_label(
@@ -1361,6 +1376,73 @@ async def post_restaurant_check_in(
     return CheckInResult(**result)
 
 
+@router.get("/users/me/orders", response_model=UserOrderListResponse)
+def get_user_orders(
+    user_email: str = Query(..., min_length=3),
+    limit: int = Query(30, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    user = load_authenticated_user_by_email(db, user_email)
+    items, pending_count, total = list_user_orders(
+        db,
+        user_id=user.id,
+        limit=limit,
+        offset=offset,
+    )
+    return UserOrderListResponse(
+        items=[RestaurantOrderRead.model_validate(row) for row in items],
+        pending_count=pending_count,
+        total=total,
+    )
+
+
+@router.post(
+    "/restaurant-orders/{order_id}/review",
+    response_model=ReviewRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_order_review(order_id: UUID, payload: OrderReviewCreate, db: Session = Depends(get_db)):
+    user = load_authenticated_user_by_email(db, payload.user_email)
+    order = db.get(RestaurantOrder, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siparis bulunamadi.")
+
+    try:
+        enforce_review_author_policy(user, payload.review_text or "")
+    except ReviewModerationError as exc:
+        _raise_review_moderation_error(exc)
+
+    name_display = normalize_author_name_display(payload.author_name_display)
+    if name_display == "nickname" and not user.nickname:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Yorumlarda takma ad icin once Gurme profilinizden takma ad secmelisiniz.",
+        )
+    user.default_review_name_display = name_display
+    db.add(user)
+
+    try:
+        review = create_order_review(
+            db,
+            order=order,
+            user=user,
+            lezzet=payload.lezzet,
+            servis=payload.servis,
+            kurye=payload.kurye,
+            review_text=payload.review_text,
+            author_name_display=name_display,
+        )
+    except OrderReviewError as exc:
+        raise_order_review_http(exc)
+
+    maybe_init_review_remedy(db, review=review)
+    db.commit()
+    db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
+    record_app_usage_event(db, event_type="order_review_created", user_id=user.id, platform="api")
+    return serialize_review(review, viewer_user_id=user.id)
+
+
 @router.get("/restaurants/{restaurant_id}/orders/active", response_model=RestaurantOrderActiveResponse)
 def get_active_restaurant_order(
     restaurant_id: UUID,
@@ -1468,6 +1550,7 @@ def create_restaurant(payload: RestaurantCreate, db: Session = Depends(get_db)):
 def list_restaurant_reviews(
     restaurant_id: UUID,
     limit: int = Query(default=50, ge=1, le=200),
+    review_kind: str = Query(default="visit", pattern="^(visit|online_order)$"),
     viewer_id: str | None = Query(default=None),
     viewer_email: str | None = Query(default=None),
     db: Session = Depends(get_db),
@@ -1492,6 +1575,10 @@ def list_restaurant_reviews(
             selectinload(Review.replies).selectinload(ReviewReply.author),
         )
     )
+    if review_kind == "online_order":
+        stmt = stmt.where(online_order_review_filter())
+    else:
+        stmt = stmt.where(visit_review_filter())
     if viewer_user_id:
         own_first = case((Review.author_id == viewer_user_id, 0), else_=1)
         stmt = stmt.order_by(own_first, Review.created_at.desc())

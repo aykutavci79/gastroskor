@@ -48,6 +48,9 @@ class RestaurantOrderRead(BaseModel):
     reject_reason_label: str | None = None
     reject_reason_text: str | None = None
     reject_message: str | None = None
+    has_review: bool = False
+    can_review: bool = False
+    review_id: str | None = None
 
 
 class OrderPhoneStatus(BaseModel):
@@ -110,3 +113,9 @@ class PanelOrderRejectReasonsResponse(BaseModel):
 
 class PanelOrderListResponse(BaseModel):
     items: list[RestaurantOrderRead] = Field(default_factory=list)
+
+
+class UserOrderListResponse(BaseModel):
+    items: list[RestaurantOrderRead] = Field(default_factory=list)
+    pending_count: int = 0
+    total: int = 0

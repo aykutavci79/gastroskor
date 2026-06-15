@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,13 +30,13 @@ if (sentryDsn) {
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function NavigationShell() {
-  const { colors, mode } = useGastroTheme();
+  const { colors } = useGastroTheme();
 
   const navTheme = useMemo(
     () => ({
-      ...(mode === 'light' ? DefaultTheme : DarkTheme),
+      ...DarkTheme,
       colors: {
-        ...(mode === 'light' ? DefaultTheme.colors : DarkTheme.colors),
+        ...DarkTheme.colors,
         background: colors.bg,
         card: colors.panel,
         primary: colors.accent,
@@ -44,7 +44,7 @@ function NavigationShell() {
         border: colors.border,
       },
     }),
-    [colors, mode],
+    [colors],
   );
 
   return (
@@ -85,8 +85,16 @@ function NavigationShell() {
             headerBackVisible: true,
           }}
         />
+        <Stack.Screen
+          name="siparislerim"
+          options={{
+            title: 'Siparişlerim',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+          }}
+        />
       </Stack>
-      <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

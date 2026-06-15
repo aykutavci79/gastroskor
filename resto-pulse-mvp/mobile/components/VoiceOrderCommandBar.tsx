@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroPrepareVoiceInput, gastroStopSpeaking, gastroSpeak } from '@/lib/gastro-speak';
+import { gastroSpeakRetry, gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
@@ -77,7 +77,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         return;
       }
       if (command.issues.length) {
-        gastroSpeak(command.issues[0]);
+        gastroSpeakRetry();
       }
     },
     [defaultProductSearchGroup, restaurants, trySubmit],

@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 GROQ_TRANSCRIBE_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 OPENAI_TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions"
 
+# Whisper prompt — Turkce yemek / siparis kelime dagilimini yonlendirir (max ~224 token).
+WHISPER_TR_FOOD_PROMPT = (
+    "lahmacun, cantık, cantık ara, pideli köfte, iskender, künefe, sütlaç, kadayıf, "
+    "baklava, adana kebap, döner, dürüm, ayran, kebapçı, tatlıcı, en yakın, yakınımda, "
+    "online sipariş, 3 lahmacun 1 ayran, geçmesin, yüz elli lira, iki yüz lira."
+)
+
 ProviderName = Literal["groq", "openai"]
 
 
@@ -52,6 +59,7 @@ def _transcribe_with_provider(
         "language": language,
         "response_format": "json",
         "temperature": "0",
+        "prompt": WHISPER_TR_FOOD_PROMPT,
     }
 
     with httpx.Client(timeout=timeout_sec) as client:

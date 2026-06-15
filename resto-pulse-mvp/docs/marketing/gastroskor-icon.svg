@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- GastroSkor marka ikonu  vektör, 4K export için -->
+  <path
+    fill="#FF6B35"
+    d="M256 32c-88.4 0-160 71.6-160 160 0 120 160 288 160 288s160-168 160-288C416 103.6 344.4 32 256 32zm0 72a88 88 0 1 1 0 176 88 88 0 0 1 0-176z"
+  />
+  <circle cx="256" cy="264" r="72" fill="#141414" />
+  <ellipse cx="256" cy="278" rx="46" ry="18" fill="#FFB703" />
+  <path
+    fill="#FFB703"
+    d="M210 268c0-22 20.6-40 46-40s46 18 46 40v6c0 4.4-3.6 8-8 8h-76c-4.4 0-8-3.6-8-8v-6z"
+  />
+  <path
+    stroke="#FFFFFF"
+    stroke-width="10"
+    stroke-linecap="round"
+    fill="none"
+    d="M232 228c8-18 24-18 24-18s16 0 24 18"
+  />
+  <path
+    stroke="#FFFFFF"
+    stroke-width="10"
+    stroke-linecap="round"
+    fill="none"
+    d="M244 212c6-14 18-14 24 0"
+  />
+</svg>

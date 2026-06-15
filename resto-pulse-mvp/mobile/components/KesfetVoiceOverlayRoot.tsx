@@ -8,7 +8,7 @@ import {
   registerKesfetVoiceOpener,
   unregisterKesfetVoiceOpener,
 } from '@/lib/kesfet-voice-bridge';
-import { gastroSpeak, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroStopSpeaking } from '@/lib/gastro-speak';
 import { parseKesfetVoiceNavigationIntent } from '@/lib/parse-kesfet-voice-intent';
 
 /** Tab bar mic → her zaman acik ses overlay (index mount olmasa da). */
@@ -32,7 +32,6 @@ export function KesfetVoiceOverlayRoot() {
     if (intent?.kind === 'online_order') {
       setVisible(false);
       emitKesfetOnlineOrderVoice({ orderText: intent.orderText });
-      gastroSpeak('Online siparişe geçiyorum.');
       router.push('/siparis-acik' as never);
       return;
     }

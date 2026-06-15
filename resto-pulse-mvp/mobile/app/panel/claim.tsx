@@ -1,11 +1,13 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { searchLivePlaces, startRestaurantClaim } from '@/lib/api';
+
+const PANEL_WEB_URL = `${(process.env.EXPO_PUBLIC_SITE_URL ?? 'https://www.gastroskor.com.tr').replace(/\/$/, '')}/panel`;
 
 export default function ClaimScreen() {
   const { user } = useSession();
@@ -29,10 +31,10 @@ export default function ClaimScreen() {
       <Screen>
         <Text style={styles.title}>Onay bekleniyor</Text>
         <Text style={styles.sub}>
-          {placeName} talebi alindi. GastroSkor ekibi onayladiginda panel acilacak.
+          {placeName} talebi alindi. Onay sonrasi isletme islemlerini web panelden surdurun.
         </Text>
-        <Pressable style={styles.btn} onPress={() => router.replace('/(tabs)/panel')}>
-          <Text style={styles.btnText}>Panele don</Text>
+        <Pressable style={styles.btn} onPress={() => void WebBrowser.openBrowserAsync(PANEL_WEB_URL)}>
+          <Text style={styles.btnText}>Web paneli ac</Text>
         </Pressable>
       </Screen>
     );

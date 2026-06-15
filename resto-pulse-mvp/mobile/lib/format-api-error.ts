@@ -72,9 +72,7 @@ export function formatApiError(err: unknown, context?: string): string {
     );
   }
   if (raw === 'Not Found' || raw.includes('"detail":"Not Found"') || /^404:/.test(raw)) {
-    return (
-      `${prefix}API ucu bulunamadi (${base}). Backend guncel deploy edildi mi kontrol et.`
-    );
+    return `${prefix}Bu ozellik sunucuda henuz aktif degil. Uygulama guncel; backend guncellemesi bekleniyor.`;
   }
   return `${prefix}${raw}`;
 }

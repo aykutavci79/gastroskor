@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 
 /**
- * GastroSkor tasarim tokenlari — frontend/app/globals.css ile birebir.
+ * GastroSkor tasarim tokenlari — frontend/app/globals.css ile birebir (koyu).
+ * Mobil gunduz modu devre disi; web'de light/dark aktif.
  * @see resto-pulse-mvp/frontend/app/globals.css
  */
 export type GastroThemeMode = 'light' | 'dark';
@@ -78,8 +79,8 @@ export const GastroColorsLight: GastroColorScheme = {
 /** Geriye uyumluluk — koyu tokenlar */
 export const GastroColors = GastroColorsDark;
 
-export function gastroColorsFor(mode: GastroThemeMode): GastroColorScheme {
-  return mode === 'light' ? GastroColorsLight : GastroColorsDark;
+export function gastroColorsFor(_mode: GastroThemeMode): GastroColorScheme {
+  return GastroColorsDark;
 }
 
 export type GastroShadowScheme = {
@@ -136,8 +137,8 @@ export const GastroShadowLight: GastroShadowScheme = {
 /** Geriye uyumluluk */
 export const GastroShadow = GastroShadowDark;
 
-export function gastroShadowFor(mode: GastroThemeMode): GastroShadowScheme {
-  return mode === 'light' ? GastroShadowLight : GastroShadowDark;
+export function gastroShadowFor(_mode: GastroThemeMode): GastroShadowScheme {
+  return GastroShadowDark;
 }
 
 export const GastroStyles = StyleSheet.create({

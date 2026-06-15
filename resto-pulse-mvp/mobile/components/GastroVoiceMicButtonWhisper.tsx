@@ -10,6 +10,12 @@ import {
 } from '@/hooks/use-voice-whisper-recorder';
 
 import type { VoiceMicUiState } from '@/components/GastroVoiceMicButton';
+import {
+  voiceMicCompactRecordingHint,
+  voiceMicIdleAccessibilityHint,
+  voiceMicRecordingAccessibilityHint,
+  voiceMicRecordingLabel,
+} from '@/lib/voice-mic-copy';
 
 const AUTO_START_DELAY_MS = Platform.OS === 'android' ? 520 : 380;
 
@@ -162,9 +168,7 @@ export function GastroVoiceMicButtonWhisper({
         accessibilityRole="button"
         accessibilityLabel="Sesli arama"
         accessibilityHint={
-          recording
-            ? 'Dinlemeyi bitirmek icin tekrar dokun veya sus'
-            : 'Konusmak icin dokun; susunca otomatik biter'
+          recording ? voiceMicRecordingAccessibilityHint() : voiceMicIdleAccessibilityHint()
         }>
         {transcribing ? (
           <ActivityIndicator color="#141414" size="small" />
@@ -178,14 +182,14 @@ export function GastroVoiceMicButtonWhisper({
             {transcribing
               ? 'Cevriliyor…'
               : recording
-                ? 'Dinleniyor… (susunca biter)'
+                ? voiceMicRecordingLabel()
                 : 'Konus'}
           </Text>
         ) : null}
       </Pressable>
       {showInlineHint ? <Text style={styles.hint}>{hint}</Text> : null}
       {showCompactHint ? (
-        <Text style={styles.hintCompact}>Susunca otomatik biter</Text>
+        <Text style={styles.hintCompact}>{voiceMicCompactRecordingHint()}</Text>
       ) : null}
     </>
   );

@@ -282,6 +282,18 @@ export function getActiveRestaurantOrder(restaurantId: string, userEmail: string
   );
 }
 
+export function listUserOrders(
+  userEmail: string,
+  options?: { limit?: number; offset?: number },
+) {
+  const params = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+  });
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.offset != null) params.set('offset', String(options.offset));
+  return request<import('@/lib/types').UserOrderListResponse>(`/users/me/orders?${params.toString()}`);
+}
+
 export function submitRestaurantOrder(
   restaurantId: string,
   payload: {
@@ -345,11 +357,37 @@ export function decidePanelOrder(
   });
 }
 
-export function listRestaurantReviews(restaurantId: string, viewerEmail?: string | null) {
-  const query = viewerEmail?.trim()
-    ? `?viewer_email=${encodeURIComponent(viewerEmail.trim())}`
-    : '';
+export function listRestaurantReviews(
+  restaurantId: string,
+  viewerEmail?: string | null,
+  options?: { kind?: 'visit' | 'online_order' },
+) {
+  const params = new URLSearchParams();
+  if (viewerEmail?.trim()) params.set('viewer_email', viewerEmail.trim());
+  if (options?.kind) params.set('review_kind', options.kind);
+  const query = params.toString() ? `?${params.toString()}` : '';
   return request<Review[]>(`/restaurants/${restaurantId}/reviews${query}`);
+}
+
+export function createOrderReview(
+  orderId: string,
+  payload: {
+    user_email: string;
+    lezzet: number;
+    servis: number;
+    kurye: number;
+    review_text?: string;
+    author_name_display?: 'full' | 'masked' | 'nickname';
+  },
+) {
+  return request<Review>(`/restaurant-orders/${orderId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      user_email: payload.user_email.trim().toLowerCase(),
+      review_text: payload.review_text ?? '',
+    }),
+  });
 }
 
 export function createReview(payload: {

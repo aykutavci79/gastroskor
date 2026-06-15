@@ -25,6 +25,7 @@ import {
   type VoiceOrderQuery,
 } from '@/lib/parse-voice-order-query';
 import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
+import { voiceMicSheetSubcopy } from '@/lib/voice-mic-copy';
 
 type Props = {
   visible: boolean;
@@ -60,7 +61,7 @@ export function VoiceOrderSheet({
   const [micHint, setMicHint] = useState<string | null>(null);
 
   const parsed = useMemo(() => parseVoiceOrderQuery(draft), [draft]);
-  const canSearch = parsed.voiceProduct != null && !searching;
+  const canSearch = (parsed.isCartOrder || parsed.voiceProduct != null) && !searching;
 
   useEffect(() => {
     if (!visible) {
@@ -84,7 +85,7 @@ export function VoiceOrderSheet({
     setMicActive(false);
     setDraft(text);
     const query = parseVoiceOrderQuery(text);
-    if (query.voiceProduct && !searching) {
+    if ((query.voiceProduct || query.isCartOrder) && !searching) {
       onSearch(query);
     }
   }
@@ -101,7 +102,7 @@ export function VoiceOrderSheet({
     setDraft(polished);
     if (!isFinal || searching) return;
     const query = parseVoiceOrderQuery(polished);
-    if (query.voiceProduct) {
+    if (query.voiceProduct || query.isCartOrder) {
       setMicActive(false);
       onSearch(query);
     }
@@ -137,10 +138,7 @@ export function VoiceOrderSheet({
               <View style={styles.handle} />
               <Text style={styles.kicker}>Gastro Sipariş</Text>
               <Text style={styles.title}>Ne arıyorsun?</Text>
-              <Text style={styles.sub}>
-                Mikrofon açılır, ürünü söyle. 2–3 sn susunca otomatik arar; istersen bitirmek için
-                mikrofona tekrar dokun. Bütçe şart değil.
-              </Text>
+              <Text style={styles.sub}>{voiceMicSheetSubcopy()}</Text>
 
               <View
                 style={styles.inputRow}

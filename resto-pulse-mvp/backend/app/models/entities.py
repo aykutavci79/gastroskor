@@ -44,6 +44,11 @@ class FriendRequestStatus(str, enum.Enum):
     blocked = "blocked"
 
 
+class ReviewKind(str, enum.Enum):
+    visit = "visit"
+    online_order = "online_order"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -836,6 +841,16 @@ class Review(Base):
     )
     author_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+
+    review_kind: Mapped[ReviewKind] = mapped_column(
+        Enum(ReviewKind), default=ReviewKind.visit, index=True
+    )
+    restaurant_order_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("restaurant_orders.id", ondelete="SET NULL"),
+        unique=True,
+        index=True,
     )
 
     source_platform: Mapped[PlatformName | None] = mapped_column(Enum(PlatformName), index=True)

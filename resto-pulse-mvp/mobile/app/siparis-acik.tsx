@@ -89,7 +89,7 @@ export default function OnlineOrdersOpenScreen() {
   const navigateVoiceSearch = useCallback(
     (orderText: string) => {
       const query = parseVoiceOrderQuery(orderText);
-      if (!query.voiceProduct) return false;
+      if (!query.voiceProduct && !query.isCartOrder) return false;
       setVoiceSheetOpen(false);
       router.push(
         buildOnlineOrderVoiceResultsHref(query, {

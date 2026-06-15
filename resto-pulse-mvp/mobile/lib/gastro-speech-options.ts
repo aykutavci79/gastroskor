@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { VOICE_CONTEXT_PHRASES } from '@/constants/voice-product-catalog';
+import { VOICE_WHISPER_CONTEXT_PHRASES } from '@/lib/voice-stt-phrase-fixes';
 import { KESFET_SEARCH_CONTEXT_PHRASES } from '@/lib/voice-search-stt-fix';
 import { supportsContinuousListening } from '@/lib/speech-recognition-native';
 
@@ -16,7 +17,11 @@ export function buildGastroSpeechStartOptions(): Record<string, unknown> {
     interimResults: true,
     continuous: supportsContinuousListening(),
     maxAlternatives: 1,
-    contextualStrings: [...VOICE_CONTEXT_PHRASES, ...KESFET_SEARCH_CONTEXT_PHRASES].slice(0, 80),
+    contextualStrings: [
+      ...VOICE_CONTEXT_PHRASES,
+      ...KESFET_SEARCH_CONTEXT_PHRASES,
+      ...VOICE_WHISPER_CONTEXT_PHRASES,
+    ].slice(0, 80),
   };
 
   if (Platform.OS === 'ios') {

@@ -94,6 +94,9 @@ export type RestaurantOrderRead = {
   reject_reason_label?: string | null;
   reject_reason_text?: string | null;
   reject_message?: string | null;
+  has_review?: boolean;
+  can_review?: boolean;
+  review_id?: string | null;
 };
 
 export type OrderPhoneStatus = {
@@ -118,6 +121,19 @@ export type RestaurantOrderActiveResponse = {
   pending_order: RestaurantOrderRead | null;
   recent_rejected_order?: RestaurantOrderRead | null;
   order_phone?: OrderPhoneStatus | null;
+};
+
+export type UserOrderListResponse = {
+  items: RestaurantOrderRead[];
+  pending_count: number;
+  total: number;
+};
+
+export type OrderRatingSummary = {
+  lezzet_avg: number | null;
+  servis_avg: number | null;
+  kurye_avg: number | null;
+  review_count: number;
 };
 
 export type RestaurantPromoPublic = {
@@ -166,6 +182,7 @@ export type RestaurantListItem = {
   popularity_score?: number | null;
   voice_menu_matches?: VoiceMenuMatch[];
   voice_search_token?: string | null;
+  order_ratings?: OrderRatingSummary | null;
 };
 
 export type OnlineOrderCategoryOption = {
@@ -473,6 +490,8 @@ export type ReviewRemedyPendingItem = {
 export type Review = {
   id: string;
   restaurant_id: string;
+  review_kind?: 'visit' | 'online_order';
+  restaurant_order_id?: string | null;
   author_id: string | null;
   author_email: string | null;
   author_name: string | null;

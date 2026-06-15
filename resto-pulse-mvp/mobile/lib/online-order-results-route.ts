@@ -15,6 +15,7 @@ export type OnlineOrderVoiceResultsParams = {
   mode: 'voice';
   voiceProduct: string;
   priceMax: number | null;
+  priceMaxBudget?: number | null;
   maxDistanceKm: number | null;
   minRating: number;
   sort?: OnlineOrderSortMode;
@@ -59,13 +60,14 @@ export function buildOnlineOrderVoiceResultsHref(
   query: VoiceOrderQuery,
   extras?: { minRating?: number; sort?: OnlineOrderSortMode },
 ): Href {
-  if (!query.voiceProduct) {
-    throw new Error('voiceProduct required');
+  if (!query.voiceProduct && !query.isCartOrder) {
+    throw new Error('voiceProduct or cart order required');
   }
   const q = new URLSearchParams();
   q.set('mode', 'voice');
-  q.set('voiceProduct', query.voiceProduct);
-  if (query.priceMax != null) q.set('priceMax', String(query.priceMax));
+  if (query.voiceProduct) q.set('voiceProduct', query.voiceProduct);
+  if (query.priceMax != null && !query.isCartOrder) q.set('priceMax', String(query.priceMax));
+  if (query.priceMaxBudget != null) q.set('priceMaxBudget', String(query.priceMaxBudget));
   if (query.maxDistanceKm != null) q.set('maxDistanceKm', String(query.maxDistanceKm));
   q.set('minRating', String(extras?.minRating ?? 3));
   if (extras?.sort) q.set('sort', extras.sort);
@@ -85,6 +87,7 @@ export function parseOnlineOrderResultsRouteParams(
       mode: 'voice',
       voiceProduct,
       priceMax: routeNumber(routeParam(params.priceMax)),
+      priceMaxBudget: routeNumber(routeParam(params.priceMaxBudget)),
       maxDistanceKm: routeNumber(routeParam(params.maxDistanceKm)),
       minRating: routeNumber(routeParam(params.minRating)) ?? 3,
       sort: parseSort(routeParam(params.sort)),

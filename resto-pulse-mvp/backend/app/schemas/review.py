@@ -71,6 +71,8 @@ class ReviewRemedyOfferSummary(BaseModel):
 
 class ReviewRead(ReviewCreate):
     id: str
+    review_kind: str = "visit"
+    restaurant_order_id: str | None = None
     publication_status: str | None = "published"
     remedy_offer: ReviewRemedyOfferSummary | None = None
     created_at: str | None = None
@@ -109,3 +111,12 @@ class ReviewTextModerateResponse(BaseModel):
     allowed: bool
     message: str | None = None
     highlights: list[str] = Field(default_factory=list)
+
+
+class OrderReviewCreate(BaseModel):
+    user_email: str = Field(min_length=3)
+    lezzet: int = Field(ge=1, le=5)
+    servis: int = Field(ge=1, le=5)
+    kurye: int = Field(ge=1, le=5)
+    review_text: str = Field(default="", max_length=5000)
+    author_name_display: AuthorNameDisplayMode = "full"

@@ -51,18 +51,36 @@ export function OnlineOrderRestaurantCard({
     name: restaurant.name,
     menuItems: menuPreview,
   });
-  const rating = coerceNumber(googleRating ?? restaurant.google_rating ?? restaurant.avg_rating);
+  const orderRatings = restaurant.order_ratings;
+  const lezzetAvg = orderRatings?.lezzet_avg;
+  const rating = coerceNumber(
+    lezzetAvg ?? googleRating ?? restaurant.google_rating ?? restaurant.avg_rating,
+  );
+  const deliverySubline =
+    orderRatings && orderRatings.review_count > 0
+      ? [
+          orderRatings.servis_avg != null ? `Servis ${orderRatings.servis_avg.toFixed(1)}` : null,
+          orderRatings.kurye_avg != null ? `Kurye ${orderRatings.kurye_avg.toFixed(1)}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : null;
+
+  const metaParts = [
+    rating != null && rating > 0
+      ? lezzetAvg != null
+        ? `★ ${rating.toFixed(1)} lezzet`
+        : `★ ${rating.toFixed(1)}`
+      : null,
+    distanceLabel ?? null,
+  ].filter(Boolean);
+
   const voiceList = ensureArray<VoiceMenuMatch>(voiceMatches);
   const productPriceLine = showProductPrice ? formatProductPriceLine(voiceList) : null;
   const kitchens = ensureArray<string>(restaurant.online_order_categories)
     .slice(0, 2)
     .map((slug) => categoryLabel(slug))
     .join(' · ');
-
-  const metaParts = [
-    rating != null && rating > 0 ? `★ ${rating.toFixed(1)}` : null,
-    distanceLabel ?? null,
-  ].filter(Boolean);
 
   function openOrder() {
     router.push(href as Href);
@@ -94,6 +112,12 @@ export function OnlineOrderRestaurantCard({
         {metaParts.length ? (
           <Text style={styles.metaLine} numberOfLines={1}>
             {metaParts.join(' · ')}
+          </Text>
+        ) : null}
+
+        {deliverySubline ? (
+          <Text style={styles.subLine} numberOfLines={1}>
+            {deliverySubline}
           </Text>
         ) : null}
 

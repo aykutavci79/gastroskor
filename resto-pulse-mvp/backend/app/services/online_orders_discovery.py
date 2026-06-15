@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
+from app.services.order_review import batch_order_rating_summaries, visit_review_filter
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
     haversine_meters,
@@ -173,7 +174,12 @@ def list_online_order_restaurants(
         )
         google_review_count = int(google_profile.review_count) if google_profile and google_profile.review_count else None
 
-        avg_gs = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id))
+        avg_gs = db.scalar(
+            select(func.avg(Review.rating)).where(
+                Review.restaurant_id == restaurant.id,
+                visit_review_filter(),
+            )
+        )
         avg_rating = float(avg_gs) if avg_gs else None
 
         rating_for_filter = google_rating if google_rating is not None else avg_rating
@@ -242,6 +248,13 @@ def list_online_order_restaurants(
         )
 
     _attach_gastro_scores(items)
+    restaurant_ids = [UUID(row["id"]) for row in items if row.get("id")]
+    summaries = batch_order_rating_summaries(db, restaurant_ids)
+    for row in items:
+        summary = summaries.get(row["id"])
+        if summary:
+            row["order_ratings"] = summary
+
     sort_key = sort if sort in {
         ONLINE_ORDER_SORT_GASTRO,
         ONLINE_ORDER_SORT_DISTANCE,

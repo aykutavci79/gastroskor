@@ -1,19 +1,16 @@
 import {
   matchVoiceProductDetail,
   normalizeVoiceText,
-  extractPriceMax,
 } from '@/lib/parse-voice-order-query';
+import { extractPriceMax, isVoiceBudgetCeiling } from '@/lib/voice-order-price';
 import { VOICE_CATALOG_PRODUCTS, menuSlugMatchesSearchGroup, voiceSearchGroupLabel, type VoiceCatalogProduct } from '@/constants/voice-product-catalog';
 import { foldTrAscii } from '@/lib/turkish-text-fold';
 import type { VoiceOrderRestaurantOption } from '@/lib/voice-order-letters';
 import type { VoiceMenuMatch } from '@/lib/types';
 
-export type VoiceOrderLineIntent = {
-  productSearchGroup: string;
-  productSlug: string | null;
-  productLabel: string;
-  quantity: number;
-};
+import type { VoiceOrderLineIntent } from '@/lib/voice-order-lines';
+
+export type { VoiceOrderLineIntent };
 
 export type VoiceOrderCommand = {
   rawText: string;
@@ -273,7 +270,7 @@ export function parseVoiceOrderCommand(
   const issues: string[] = [];
   const restaurant = extractRestaurantIndex(text, options);
   const paymentNote = extractPaymentNote(text);
-  const priceMaxBudget = extractPriceMax(text);
+  const priceMaxBudget = isVoiceBudgetCeiling(text) ? extractPriceMax(text) : null;
   const lines = buildLines(text, fallbackProductSearchGroup);
   const first = lines[0];
 

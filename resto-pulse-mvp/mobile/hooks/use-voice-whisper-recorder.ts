@@ -2,6 +2,7 @@ import { Audio } from 'expo-av';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { releaseRecordingAudioForSpeech } from '@/lib/gastro-speak';
+import { usesIosManualMicFinish } from '@/lib/voice-mic-copy';
 
 import {
   createVoiceSilenceVadState,
@@ -87,6 +88,8 @@ export function useVoiceWhisperRecorder() {
   const handleRecordingStatus = useCallback(
     (status: Audio.RecordingStatus) => {
       if (!status.isRecording || autoStopInFlightRef.current) return;
+      // iOS metering guvenilir degil — kullanici dokunarak bitirir.
+      if (usesIosManualMicFinish()) return;
 
       const nowMs = Date.now();
       const elapsedMs = status.durationMillis ?? nowMs - vadStateRef.current.startedAtMs;

@@ -34,6 +34,7 @@ import {
   type OnlineOrderSortMode,
 } from '@/lib/online-order-sort';
 import type { VoiceOrderCommand } from '@/lib/parse-voice-order-command';
+import { parseVoiceOrderCommand } from '@/lib/parse-voice-order-command';
 import { buildVoiceOrderRestaurantOptions } from '@/lib/voice-order-letters';
 import { resolveDeviceCoords } from '@/lib/device-location';
 import {
@@ -45,7 +46,8 @@ import {
 import { restaurantDetailHref } from '@/lib/uuid';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import {
-  gastroSpeak,
+  gastroSpeakNoResults,
+  gastroSpeakRetry,
   gastroSpeakSmartCartProposal,
   gastroSpeakVoiceOrderRestaurantOptions,
   gastroStopSpeaking,
@@ -54,7 +56,6 @@ import {
   enrichVoiceOrderCommandWithCandidate,
   isSmartCartCommand,
   pickBestSmartCartCandidate,
-  explainSmartCartFailure,
   smartCartProductGroups,
 } from '@/lib/smart-voice-cart';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
@@ -68,13 +69,16 @@ type AppliedFilters = {
 function voiceQueryFromParams(params: Extract<OnlineOrderResultsParams, { mode: 'voice' }>): VoiceOrderQuery {
   if (params.voiceText) {
     const parsed = parseVoiceOrderQuery(params.voiceText);
-    if (parsed.voiceProduct) return parsed;
+    if (parsed.voiceProduct || parsed.isCartOrder) return parsed;
   }
   return {
-    rawText: params.voiceText ?? params.voiceProduct,
+    rawText: params.voiceText ?? params.voiceProduct ?? '',
     voiceProduct: params.voiceProduct,
     voiceProductLabel: null,
     priceMax: params.priceMax,
+    priceMaxBudget: params.priceMaxBudget ?? null,
+    isCartOrder: false,
+    cartLines: [],
     maxDistanceKm: params.maxDistanceKm,
     confidence: 'high',
     issues: [],
@@ -211,6 +215,9 @@ export default function OnlineOrderResultsScreen() {
       setVoiceQuery(query);
       setVoiceSearchExpanded(false);
       try {
+        const cartGroups = query.isCartOrder
+          ? [...new Set(query.cartLines.map((row) => row.productSearchGroup))]
+          : [];
         const { response: res, expandedSearch } = await fetchVoiceProductRestaurants({
           origin_lat: coords.lat,
           origin_lng: coords.lng,
@@ -218,14 +225,54 @@ export default function OnlineOrderResultsScreen() {
           sort: config.sort ?? 'gastro_score',
           limit: 50,
           min_rating: config.minRating,
-          voice_product: config.voiceProduct,
-          price_max: config.priceMax ?? undefined,
+          voice_product: query.isCartOrder ? undefined : config.voiceProduct,
+          voice_products: query.isCartOrder && cartGroups.length ? cartGroups.join(',') : undefined,
+          price_max: query.isCartOrder ? undefined : (config.priceMax ?? undefined),
           max_distance_km: config.maxDistanceKm ?? undefined,
         });
         if (cancelled) return;
         setVoiceSearchExpanded(expandedSearch);
         const resultItems = Array.isArray(res.items) ? res.items : [];
         setAllItems(resultItems);
+
+        if (query.isCartOrder) {
+          const command = parseVoiceOrderCommand(query.rawText, [], null);
+          const options = buildVoiceOrderRestaurantOptions(
+            resultItems.map((row) => ({ id: row.id, name: row.name })),
+            8,
+          );
+          const candidate = pickBestSmartCartCandidate(resultItems, command, options);
+          if (!candidate) {
+            gastroSpeakNoResults();
+            setVoiceCommandOpen(true);
+            return;
+          }
+          const enriched = enrichVoiceOrderCommandWithCandidate(command, candidate);
+          const restaurant = resultItems[candidate.restaurantIndex];
+          if (!restaurant) {
+            setVoiceCommandOpen(true);
+            return;
+          }
+          setVoiceCartSelections(candidate.selectedByLine);
+          setVoiceOrderCommand(enriched);
+          setVoiceConfirmRestaurant(restaurant);
+          gastroSpeakSmartCartProposal(
+            {
+              letter: candidate.letter,
+              restaurantName: candidate.restaurantName,
+              lines: candidate.lines.map((row) => ({
+                quantity: row.intent.quantity,
+                label: row.match.label,
+                unitPriceTl: row.match.price_tl,
+                lineTotalTl: row.lineTotal,
+              })),
+              orderTotal: candidate.orderTotal,
+              budgetMax: command.priceMaxBudget,
+            },
+            () => setVoiceConfirmOpen(true),
+          );
+          return;
+        }
 
         if (resultItems.length > 0) {
           const speechOptions = buildVoiceOrderRestaurantOptions(
@@ -265,7 +312,8 @@ export default function OnlineOrderResultsScreen() {
       sortRefetchSkipRef.current = false;
       return;
     }
-    if (!voiceQuery?.voiceProduct || routeKey === 'null') return;
+    if (!voiceQuery || routeKey === 'null') return;
+    if (voiceQuery.isCartOrder) return;
 
     const config = JSON.parse(routeKey) as OnlineOrderResultsParams;
     if (config.mode !== 'voice') return;
@@ -336,7 +384,7 @@ export default function OnlineOrderResultsScreen() {
 
   const onVoiceSearch = useCallback(
     async (query: VoiceOrderQuery) => {
-      if (!query.voiceProduct) return;
+      if (!query.voiceProduct && !query.isCartOrder) return;
       setVoiceSearching(true);
       setVoiceSheetOpen(false);
       router.replace(
@@ -388,7 +436,7 @@ export default function OnlineOrderResultsScreen() {
         );
         const candidate = pickBestSmartCartCandidate(cartItems, command, options);
         if (!candidate) {
-          gastroSpeak(explainSmartCartFailure(cartItems, command, options));
+          gastroSpeakNoResults();
           setVoiceCommandOpen(true);
           return;
         }
@@ -420,7 +468,7 @@ export default function OnlineOrderResultsScreen() {
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Akıllı sepet araması başarısız');
-        gastroSpeak('Sepet hesaplanamadı, tekrar dene.');
+        gastroSpeakRetry();
         setVoiceCommandOpen(true);
       } finally {
         setLoading(false);

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, RestaurantPlatformProfile, Review
+from app.services.order_review import visit_review_filter
 
 
 def resolve_restaurant_trust_rating(db: Session, restaurant_id: UUID) -> float | None:
@@ -23,7 +24,12 @@ def resolve_restaurant_trust_rating(db: Session, restaurant_id: UUID) -> float |
         if google_profile and google_profile.avg_rating is not None
         else None
     )
-    avg_gs = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant_id))
+    avg_gs = db.scalar(
+        select(func.avg(Review.rating)).where(
+            Review.restaurant_id == restaurant_id,
+            visit_review_filter(),
+        )
+    )
     avg_rating = float(avg_gs) if avg_gs is not None else None
     if google_rating is not None:
         return google_rating

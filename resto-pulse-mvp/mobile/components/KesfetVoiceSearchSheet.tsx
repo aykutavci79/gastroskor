@@ -14,6 +14,7 @@ import { GastroColors } from '@/constants/theme';
 import { isExpoGo } from '@/lib/google-signin-config';
 import { gastroPrepareVoiceInput, gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
+import { usesIosManualMicFinish, voiceMicCompactRecordingHint } from '@/lib/voice-mic-copy';
 
 const DEMO_PHRASE = '150 TL lik lahmacun';
 
@@ -124,10 +125,12 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     : uiState.transcribing
       ? 'Cevriliyor…'
       : uiState.listening
-        ? 'Dinliyorum… Susunca otomatik biter'
+        ? `Dinliyorum… ${voiceMicCompactRecordingHint()}`
         : isExpoGo
           ? 'Dokun — ses önizlemesi'
-          : 'Konuş — 2–3 sn susunca otomatik arar';
+          : usesIosManualMicFinish()
+            ? 'Konuş — bitirince mikrofona tekrar dokun'
+            : 'Konuş — 2–3 sn susunca otomatik arar';
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>

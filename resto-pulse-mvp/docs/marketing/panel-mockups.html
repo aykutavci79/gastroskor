@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>GastroSkor Panel Mockups</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      padding: 24px;
+    }
+    .export-hint {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 20px;
+      max-width: 1200px;
+    }
+    .screen {
+      width: 1280px;
+      min-height: 800px;
+      background: #141414;
+      border: 1px solid #2e2e2e;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .screen-label {
+      font-size: 11px;
+      color: #ffb703;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: #1e1e1e;
+      border-bottom: 1px solid #2e2e2e;
+    }
+    .logo { font-weight: 900; font-size: 18px; }
+    .logo span { color: #ff6b35; }
+    .nav { display: flex; gap: 8px; }
+    .nav a {
+      color: #a0a0a0;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+    .nav a.active { background: #2a2a2a; color: #fff; }
+    .content { padding: 24px; }
+    .panel-header {
+      background: #2a2a2e;
+      border: 1px solid #2e2e2e;
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4caf79;
+      font-weight: 700;
+    }
+    .panel-header h1 { font-size: 26px; margin-top: 4px; }
+    .muted { color: #a0a0a0; font-size: 13px; margin-top: 6px; }
+    .btn-outline {
+      border: 1.5px solid #ff6b35;
+      color: #ff6b35;
+      background: transparent;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-primary {
+      background: #ff6b35;
+      color: #141414;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .btn-success {
+      background: #4caf79;
+      color: #141414;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .btn-ghost {
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #2e2e2e;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: #2a2a2a;
+      border: 1px solid #2e2e2e;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .stat label { font-size: 11px; color: #a0a0a0; display: block; }
+    .stat strong { font-size: 28px; margin-top: 6px; display: block; }
+    .card {
+      background: #2a2a2a;
+      border: 1px solid #2e2e2e;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 17px; margin-bottom: 12px; }
+    .gold-banner {
+      border: 1px solid rgba(255, 183, 3, 0.35);
+      background: rgba(255, 183, 3, 0.08);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .order-pending {
+      border: 1px solid rgba(255, 183, 3, 0.35);
+      background: #1e1e1e;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 0 0 1px rgba(255, 183, 3, 0.15);
+    }
+    .order-no { font-size: 11px; font-weight: 800; color: #ffb703; letter-spacing: 0.06em; }
+    .order-total { font-size: 18px; font-weight: 700; margin: 4px 0; }
+    .phone { color: #ffb703; font-weight: 700; font-size: 14px; }
+    .lines {
+      background: #2a2a2a;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    .lines li {
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      color: #ddd;
+    }
+    .lines li span:last-child { color: #a0a0a0; }
+    .actions { display: flex; gap: 10px; margin-top: 14px; }
+    .menu-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #2e2e2e;
+      font-size: 14px;
+    }
+    .menu-row:last-child { border-bottom: none; }
+    .price { color: #ffb703; font-weight: 700; }
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(76, 175, 121, 0.2);
+      color: #4caf79;
+      border: 1px solid rgba(76, 175, 121, 0.4);
+    }
+    .toggle-on {
+      width: 44px; height: 24px; background: #4caf79; border-radius: 999px; position: relative;
+    }
+    .toggle-on::after {
+      content: ''; position: absolute; right: 3px; top: 3px;
+      width: 18px; height: 18px; background: #fff; border-radius: 50%;
+    }
+    .promo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .thumb {
+      width: 100%; height: 120px; background: #1e1e1e; border-radius: 10px;
+      border: 1px dashed #444; display: flex; align-items: center; justify-content: center;
+      color: #666; font-size: 12px;
+    }
+    .watermark {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.05em;
+    }
+    .screen-inner { position: relative; min-height: 720px; }
+  </style>
+</head>
+<body>
+  <p class="export-hint">
+    GastroSkor panel tanıtım mockup'ları — örnek veri. CapCut / reklam için ekran görüntüsü alın.
+  </p>
+
+  <!-- 1 Dashboard -->
+  <p class="screen-label">01 — Dashboard</p>
+  <div class="screen" id="dashboard">
+    <div class="topbar">
+      <div class="logo">Gastro<span>Skor</span> Panel</div>
+      <div class="nav">
+        <a href="#" class="active">Özet</a>
+        <a href="#">Siparişler</a>
+        <a href="#">Menü</a>
+        <a href="#">Takipçiler</a>
+      </div>
+    </div>
+    <div class="content screen-inner">
+      <div class="panel-header">
+        <div>
+          <div class="badge">Restoran Paneli</div>
+          <h1>Urfalı Kebap — Osmangazi</h1>
+          <p class="muted">Deneme: 12 gün kaldı · Sonra 499 TL/ay</p>
+        </div>
+        <button class="btn-outline">Çıkış</button>
+      </div>
+      <div class="grid4">
+        <div class="stat"><label>Harita tık (hafta)</label><strong>148</strong></div>
+        <div class="stat"><label>Profil görüntüleme</label><strong>892</strong></div>
+        <div class="stat"><label>Google puan</label><strong>4.6</strong></div>
+        <div class="stat"><label>Açık şikâyet</label><strong>0</strong></div>
+      </div>
+      <div class="gold-banner">
+        GastroSkor online sipariş: toplam <strong>127</strong> onaylı (son 6 ay: 89).
+      </div>
+      <div class="card">
+        <h2>Puan özeti</h2>
+        <p class="muted">Google: 4.6 · 312 yorum &nbsp;|&nbsp; GastroSkor: 4.4 · 18 yorum</p>
+      </div>
+      <span class="watermark">ÖRNEK EKRAN · gastroskor.com.tr/panel</span>
+    </div>
+  </div>
+
+  <!-- 2 Orders -->
+  <p class="screen-label">02 — Sipariş onayı</p>
+  <div class="screen" id="orders">
+    <div class="topbar">
+      <div class="logo">Gastro<span>Skor</span> Panel</div>
+      <div class="nav">
+        <a href="#">Özet</a>
+        <a href="#" class="active">Siparişler</a>
+        <a href="#">Menü</a>
+        <a href="#">Takipçiler</a>
+      </div>
+    </div>
+    <div class="content screen-inner">
+      <div class="panel-header">
+        <div>
+          <div class="badge">Online sipariş</div>
+          <h1>Yeni sipariş</h1>
+          <p class="muted">Sesli bildirim açık · 10 sn'de yenilenir</p>
+        </div>
+        <span class="tag">1 bekliyor</span>
+      </div>
+      <div class="order-pending">
+        <div class="order-no">NO 14.06.2026-0042</div>
+        <div class="order-total">Gamze Y. · 485 TL</div>
+        <div class="phone">+90 532 *** ** 67</div>
+        <p class="muted" style="margin-top:8px">Osmangazi, Altıparmak Mah. — Kapıda ödeme</p>
+        <p class="muted">Sipariş: 14.06.2026 21:34</p>
+        <ul class="lines">
+          <li><span><strong>2x</strong> Adana dürüm</span><span>280 TL</span></li>
+          <li><span><strong>1x</strong> Ayran (1 L)</span><span>45 TL</span></li>
+          <li><span><strong>1x</strong> Lahmacun</span><span>160 TL</span></li>
+        </ul>
+        <p class="muted">Not: Acı sos olmasın lütfen</p>
+        <div class="actions">
+          <button class="btn-success">Onayla</button>
+          <button class="btn-ghost">Reddet</button>
+          <button class="btn-ghost">Yazdır</button>
+        </div>
+      </div>
+      <span class="watermark">ÖRNEK EKRAN · gastroskor.com.tr/panel</span>
+    </div>
+  </div>
+
+  <!-- 3 Menu -->
+  <p class="screen-label">03 — Menü editörü</p>
+  <div class="screen" id="menu">
+    <div class="topbar">
+      <div class="logo">Gastro<span>Skor</span> Panel</div>
+      <div class="nav">
+        <a href="#">Özet</a>
+        <a href="#">Siparişler</a>
+        <a href="#" class="active">Menü</a>
+        <a href="#">Takipçiler</a>
+      </div>
+    </div>
+    <div class="content screen-inner">
+      <div class="panel-header">
+        <div>
+          <div class="badge">Dijital menü</div>
+          <h1>Menü ve fiyatlar</h1>
+          <p class="muted">Sesli sipariş bu listeden fiyat okur</p>
+        </div>
+        <button class="btn-primary">+ Ürün ekle</button>
+      </div>
+      <div class="card">
+        <div class="menu-row">
+          <div><strong>Adana dürüm</strong><br><span class="muted">Dürümler · sesli: adana</span></div>
+          <span class="price">140 TL</span>
+        </div>
+        <div class="menu-row">
+          <div><strong>Lahmacun</strong><br><span class="muted">Pideler · sesli: lahmacun</span></div>
+          <span class="price">160 TL</span>
+        </div>
+        <div class="menu-row">
+          <div><strong>Urfa kebap porsiyon</strong><br><span class="muted">Kebaplar</span></div>
+          <span class="price">320 TL</span>
+        </div>
+        <div class="menu-row">
+          <div><strong>Ayran (1 L)</strong><br><span class="muted">İçecekler</span></div>
+          <span class="price">45 TL</span>
+        </div>
+        <div class="menu-row">
+          <div><strong>Künefe</strong><br><span class="muted">Tatlılar</span></div>
+          <span class="price">180 TL</span>
+        </div>
+      </div>
+      <span class="watermark">ÖRNEK EKRAN · gastroskor.com.tr/panel</span>
+    </div>
+  </div>
+
+  <!-- 4 Promo -->
+  <p class="screen-label">04 — Online sipariş ayarları</p>
+  <div class="screen" id="promo">
+    <div class="topbar">
+      <div class="logo">Gastro<span>Skor</span> Panel</div>
+      <div class="nav">
+        <a href="#" class="active">Vitrin</a>
+        <a href="#">Siparişler</a>
+        <a href="#">Menü</a>
+      </div>
+    </div>
+    <div class="content screen-inner">
+      <div class="panel-header">
+        <div>
+          <div class="badge">Vitrin & teslimat</div>
+          <h1>Online sipariş ayarları</h1>
+          <p class="muted">Kendi kuryeniz · doğrudan sipariş kanalı</p>
+        </div>
+      </div>
+      <div class="promo-grid">
+        <div class="card">
+          <h2>Kendi kuryem var</h2>
+          <p class="muted" style="margin-bottom:12px">Müşteri uygulamadan sipariş verir, teslimat sizde.</p>
+          <div class="toggle-on"></div>
+        </div>
+        <div class="card">
+          <h2>Kart kapağı</h2>
+          <div class="thumb">İşletme fotoğrafı</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:0">
+        <h2>Menü görseli</h2>
+        <p class="muted">Müşteri restoran sayfasında "Menüyü görüntüle" ile açar.</p>
+        <div class="thumb" style="margin-top:12px; height:80px">Menü fotoğrafı yüklendi</div>
+      </div>
+      <span class="watermark">ÖRNEK EKRAN · gastroskor.com.tr/panel</span>
+    </div>
+  </div>
+
+  <!-- 5 Mobile frame -->
+  <p class="screen-label">05 — Mobil uygulama (müşteri tarafı)</p>
+  <div class="screen" id="mobile" style="width:390px; min-height:844px;">
+    <div style="background:#141414; padding:48px 16px 16px; min-height:844px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-weight:800; font-size:15px;">Online Sipariş</span>
+        <span style="color:#ff6b35; font-size:12px; font-weight:700;">Bursa</span>
+      </div>
+      <div style="background:#1e1e1e; border:1px solid #2e2e2e; border-radius:12px; padding:12px; display:flex; gap:10px; margin-bottom:10px;">
+        <div style="width:48px;height:48px;background:#2a2a2a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;">🥙</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:13px;">Urfalı Kebap</div>
+          <div style="color:#a0a0a0;font-size:11px;margin-top:2px;">★ 4.4 lezzet · 1,2 km</div>
+          <div style="color:#a0a0a0;font-size:11px;">Servis 4.6 · Kurye 4.5</div>
+        </div>
+        <div style="color:#ff6b35;font-size:12px;font-weight:800;align-self:center;">Sipariş →</div>
+      </div>
+      <div style="background:#1e1e1e; border:1px solid #2e2e2e; border-radius:12px; padding:14px; margin-top:20px;">
+        <div style="font-size:11px;color:#ffb703;font-weight:800;">NO 14.06.2026-0042</div>
+        <div style="font-weight:800;margin-top:4px;">Siparişin onaylandı</div>
+        <div style="color:#a0a0a0;font-size:12px;margin-top:6px;">2x Adana dürüm · 485 TL</div>
+        <button style="margin-top:12px;width:100%;background:#ff6b35;color:#141414;border:none;border-radius:12px;padding:12px;font-weight:800;">Puan ver</button>
+      </div>
+      <p style="text-align:center;color:#555;font-size:10px;margin-top:24px;">ÖRNEK EKRAN · GastroSkor mobil</p>
+    </div>
+  </div>
+</body>
+</html>

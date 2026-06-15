@@ -1,15 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 import { CenterMicTabBar } from '@/components/CenterMicTabBar';
 import { KesfetVoiceOverlayRoot } from '@/components/KesfetVoiceOverlayRoot';
 import { useGastroTheme } from '@/context/theme-context';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
 import { AppBadgesProvider, useAppBadges } from '@/context/app-badges-context';
-import { useSession } from '@/context/session-context';
-import { getPanelAccess } from '@/lib/api';
 
 function badgeLabel(count: number): string | undefined {
   if (count <= 0) return undefined;
@@ -17,40 +15,14 @@ function badgeLabel(count: number): string | undefined {
 }
 
 function TabsWithBadges() {
-  const { user, loading: sessionLoading } = useSession();
   const { colors } = useGastroTheme();
   const { notificationUnread, takipPending, refresh } = useAppBadges();
-  const [hasBusiness, setHasBusiness] = useState(false);
-
-  useEffect(() => {
-    if (!user?.email) {
-      setHasBusiness(false);
-      return;
-    }
-    let cancelled = false;
-    getPanelAccess(user.email)
-      .then((access) => {
-        if (!cancelled) setHasBusiness(Boolean(access.has_ownership));
-      })
-      .catch(() => {
-        if (!cancelled) setHasBusiness(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.email]);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
-      if (!user?.email) return;
-      getPanelAccess(user.email)
-        .then((access) => setHasBusiness(Boolean(access.has_ownership)))
-        .catch(() => setHasBusiness(false));
-    }, [refresh, user?.email]),
+    }, [refresh]),
   );
-
-  const showBusinessTab = Boolean(user?.email && hasBusiness && !sessionLoading);
 
   return (
     <>
@@ -88,7 +60,7 @@ function TabsWithBadges() {
         name="panel"
         options={{
           title: 'İşletme',
-          href: showBusinessTab ? '/panel' : null,
+          href: null,
           tabBarIcon: ({ color, size }) => <Ionicons name="storefront" size={size} color={color} />,
         }}
       />

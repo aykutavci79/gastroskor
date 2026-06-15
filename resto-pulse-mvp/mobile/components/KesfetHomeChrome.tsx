@@ -6,6 +6,7 @@ import type { RefObject } from 'react';
 import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
 import { CityPickerModal } from '@/components/CityPickerModal';
 import { DmAvatarButton } from '@/components/DmAvatarButton';
+import { OrdersHeaderButton } from '@/components/OrdersHeaderButton';
 import type { GastroColorScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useGastroTheme } from '@/context/theme-context';
@@ -43,7 +44,10 @@ export function KesfetHomeChrome({
     <View style={styles.wrap}>
       <View style={styles.topRow}>
         <Text style={styles.brand}>GastroSkor</Text>
-        <DmAvatarButton />
+        <View style={styles.topActions}>
+          <OrdersHeaderButton />
+          <DmAvatarButton />
+        </View>
       </View>
       <Pressable
         onPress={() => {
@@ -136,6 +140,11 @@ function createStyles(colors: GastroColorScheme, shadow: ReturnType<typeof impor
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 8,
+    },
+    topActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 8,
     },
     cityRow: {

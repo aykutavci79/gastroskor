@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useGastroTheme } from '@/context/theme-context';
 import { getCityAtmosphere } from '@/lib/city-atmosphere';
 
 type Props = {
@@ -9,10 +8,8 @@ type Props = {
 };
 
 export function CityAtmosphereStrip({ city, statusLine = 'Konumuna göre' }: Props) {
-  const { mode } = useGastroTheme();
   const theme = getCityAtmosphere(city);
-  const isLight = mode === 'light';
-  const palette = isLight ? theme.light : theme.darkStrip;
+  const palette = theme.darkStrip;
 
   return (
     <View
@@ -20,7 +17,7 @@ export function CityAtmosphereStrip({ city, statusLine = 'Konumuna göre' }: Pro
         styles.wrap,
         {
           backgroundColor: palette.background,
-          borderColor: isLight ? `${theme.light.text}22` : `${theme.darkStrip.accent}44`,
+          borderColor: `${theme.darkStrip.accent}44`,
         },
       ]}
       accessibilityLabel={`${theme.label} atmosfer şeridi`}>
@@ -30,13 +27,11 @@ export function CityAtmosphereStrip({ city, statusLine = 'Konumuna göre' }: Pro
           <Text style={[styles.city, { color: palette.text }]} numberOfLines={1}>
             {theme.label}
           </Text>
-          <Text style={[styles.status, { color: isLight ? `${theme.light.text}CC` : theme.darkStrip.muted }]} numberOfLines={1}>
+          <Text style={[styles.status, { color: theme.darkStrip.muted }]} numberOfLines={1}>
             {statusLine}
           </Text>
         </View>
-        <Text
-          style={[styles.hint, { color: isLight ? `${theme.light.text}CC` : theme.darkStrip.muted }]}
-          numberOfLines={1}>
+        <Text style={[styles.hint, { color: theme.darkStrip.muted }]} numberOfLines={1}>
           {theme.hint}
         </Text>
       </View>

@@ -78,6 +78,13 @@ class VoiceProductCatalogResponse(BaseModel):
     products: list[dict]
 
 
+class OrderRatingSummary(BaseModel):
+    lezzet_avg: float | None = None
+    servis_avg: float | None = None
+    kurye_avg: float | None = None
+    review_count: int = 0
+
+
 class RestaurantListItem(BaseModel):
     id: str
     name: str
@@ -109,6 +116,7 @@ class RestaurantListItem(BaseModel):
     popularity_score: float | None = None
     voice_menu_matches: list[VoiceMenuMatchPublic] = Field(default_factory=list)
     voice_search_token: str | None = None
+    order_ratings: OrderRatingSummary | None = None
     seo_noindex: bool = False
     model_config = ConfigDict(from_attributes=True)
 

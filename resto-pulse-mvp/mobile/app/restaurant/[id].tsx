@@ -191,7 +191,7 @@ export default function RestaurantDetailScreen() {
 
           const [restaurantData, reviewData] = await Promise.all([
             getRestaurant(restaurantId),
-            listRestaurantReviews(restaurantId, user?.email),
+            listRestaurantReviews(restaurantId, user?.email, { kind: 'visit' }),
           ]);
           if (cancelled) return;
 
@@ -221,7 +221,7 @@ export default function RestaurantDetailScreen() {
 
         const [restaurantData, reviewData] = await Promise.all([
           getRestaurant(restaurantId),
-          listRestaurantReviews(restaurantId, user?.email),
+          listRestaurantReviews(restaurantId, user?.email, { kind: 'visit' }),
         ]);
         if (cancelled) return;
 
