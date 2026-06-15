@@ -16,6 +16,8 @@ type MetricsTotals = {
   live_searches: number;
   reviews: number;
   total_registered_users: number;
+  new_registrations: number;
+  new_registrations_today: number;
 };
 
 type DailyRow = {
@@ -32,12 +34,20 @@ type DailyRow = {
   logins: number;
   live_searches: number;
   reviews: number;
+  new_registrations: number;
+};
+
+type NewUserRow = {
+  email: string;
+  full_name: string | null;
+  created_at: string;
 };
 
 type MetricsSummary = {
   period_days: number;
   totals: MetricsTotals;
   daily: DailyRow[];
+  new_users_today: NewUserRow[];
 };
 
 type PlaceCatalogStats = {
@@ -79,6 +89,18 @@ function formatDuration(seconds: number | null): string {
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
+}
+
+function formatDateTimeTr(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('tr-TR', {
+    timeZone: 'Europe/Istanbul',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function AppKpiDashboard() {
@@ -217,6 +239,42 @@ export function AppKpiDashboard() {
 
       {totals ? (
         <>
+          <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
+            <h2 className="text-lg font-semibold text-amber-200">Bugun yeni kayit (TR)</h2>
+            <p className="mt-2 text-sm text-content-muted">
+              Google ile ilk kez hesap acan kullanicilar — reklam tiklamasi degil, gercek kayit.
+              &quot;Giris (sync)&quot; tekrar girisleri de sayar; bu kart sadece yeni hesaplari gosterir.
+            </p>
+            <p className="mt-4 text-4xl font-semibold text-content">{totals.new_registrations_today}</p>
+            <p className="mt-1 text-sm text-content-muted">
+              Son {days} gunde toplam yeni kayit: {totals.new_registrations}
+            </p>
+            {data?.new_users_today?.length ? (
+              <div className="mt-4 overflow-x-auto rounded-xl border border-border/70">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-surface/90 text-xs uppercase text-content-muted">
+                    <tr>
+                      <th className="px-4 py-3">E-posta</th>
+                      <th className="px-4 py-3">Ad</th>
+                      <th className="px-4 py-3">Saat (TR)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.new_users_today.map((row) => (
+                      <tr key={`${row.email}-${row.created_at}`} className="border-t border-border/60">
+                        <td className="px-4 py-2 text-content">{row.email}</td>
+                        <td className="px-4 py-2">{row.full_name ?? '—'}</td>
+                        <td className="px-4 py-2 text-content-muted">{formatDateTimeTr(row.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-content-muted">Bugun henuz yeni kayit yok.</p>
+            )}
+          </section>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-5">
               <p className="text-xs uppercase tracking-wide text-sky-200/80">Web ziyaretci</p>
@@ -240,6 +298,7 @@ export function AppKpiDashboard() {
               { label: 'Toplam oturum', value: totals.sessions },
               { label: 'Ort. kalis suresi', value: formatDuration(totals.avg_session_seconds) },
               { label: 'Giris (sync)', value: totals.logins },
+              { label: 'Yeni kayit (donem)', value: totals.new_registrations },
               { label: 'Canli arama', value: totals.live_searches },
               { label: 'Yorum', value: totals.reviews },
               { label: 'Kayitli kullanici', value: totals.total_registered_users },
@@ -434,6 +493,7 @@ export function AppKpiDashboard() {
                 <th className="px-4 py-3">Oturum</th>
                 <th className="px-4 py-3">Ort. sure</th>
                 <th className="px-4 py-3">Giris</th>
+                <th className="px-4 py-3">Yeni kayit</th>
                 <th className="px-4 py-3">Arama</th>
                 <th className="px-4 py-3">Yorum</th>
               </tr>
@@ -448,6 +508,7 @@ export function AppKpiDashboard() {
                   <td className="px-4 py-2">{row.sessions}</td>
                   <td className="px-4 py-2">{formatDuration(row.avg_session_seconds)}</td>
                   <td className="px-4 py-2">{row.logins}</td>
+                  <td className="px-4 py-2">{row.new_registrations}</td>
                   <td className="px-4 py-2">{row.live_searches}</td>
                   <td className="px-4 py-2">{row.reviews}</td>
                 </tr>

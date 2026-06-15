@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import String, and_, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.models import AppUsageEvent, Review, User
+
+TZ_TR = ZoneInfo("Europe/Istanbul")
 
 ALLOWED_CLIENT_EVENTS = frozenset({"session_start", "session_end"})
 
@@ -125,6 +128,35 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
         ).all()
     }
 
+    user_day_col = func.date_trunc("day", User.created_at).label("day")
+    registrations_by_day = {
+        row.day.date().isoformat(): int(row.cnt)
+        for row in db.execute(
+            select(user_day_col, func.count(User.id).label("cnt"))
+            .where(User.created_at >= since)
+            .group_by(user_day_col)
+        ).all()
+    }
+
+    now_tr = datetime.now(TZ_TR)
+    today_tr_start = now_tr.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_tr_end = today_tr_start + timedelta(days=1)
+    new_registrations_today = (
+        db.scalar(
+            select(func.count(User.id)).where(
+                User.created_at >= today_tr_start,
+                User.created_at < today_tr_end,
+            )
+        )
+        or 0
+    )
+    new_users_today_rows = db.execute(
+        select(User.email, User.full_name, User.created_at)
+        .where(User.created_at >= today_tr_start, User.created_at < today_tr_end)
+        .order_by(User.created_at.desc())
+        .limit(100)
+    ).all()
+
     daily: list[dict] = []
     cursor = since.date()
     end_date = now.date()
@@ -158,6 +190,7 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
                 "logins": int(usage.logins if usage else 0),
                 "live_searches": int(usage.live_searches if usage else 0),
                 "reviews": reviews_by_day.get(key, 0),
+                "new_registrations": registrations_by_day.get(key, 0),
             }
         )
         cursor += timedelta(days=1)
@@ -187,6 +220,9 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
         select(func.count(Review.id)).where(Review.created_at >= since, Review.is_demo.is_(False))
     )
     total_users = db.scalar(select(func.count(User.id))) or 0
+    period_new_registrations = (
+        db.scalar(select(func.count(User.id)).where(User.created_at >= since)) or 0
+    )
 
     return {
         "period_days": days,
@@ -216,6 +252,16 @@ def build_metrics_summary(db: Session, *, days: int = 30) -> dict:
             "live_searches": int(totals_usage.live_searches or 0),
             "reviews": int(total_reviews or 0),
             "total_registered_users": int(total_users),
+            "new_registrations": int(period_new_registrations),
+            "new_registrations_today": int(new_registrations_today),
         },
         "daily": daily,
+        "new_users_today": [
+            {
+                "email": row.email,
+                "full_name": row.full_name,
+                "created_at": row.created_at.astimezone(TZ_TR).isoformat(),
+            }
+            for row in new_users_today_rows
+        ],
     }

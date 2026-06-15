@@ -37,6 +37,7 @@ def _format_day_row(row: dict) -> str:
         f"  Oturum sayısı: {row['sessions']}\n"
         f"  Ort. süre: {_format_duration(row.get('avg_session_seconds'))}\n"
         f"  Giriş (sync): {row['logins']}\n"
+        f"  Yeni kayıt: {row.get('new_registrations', 0)}\n"
         f"  Canlı arama: {row['live_searches']}\n"
         f"  Yorum: {row['reviews']}"
     )
@@ -70,6 +71,8 @@ def build_metrics_daily_report_text(db: Session) -> tuple[str, str]:
             f"  Toplam ziyaretçi: {totals.get('unique_users', 0)}",
             f"  Oturum: {totals.get('sessions', 0)}",
             f"  Giriş: {totals.get('logins', 0)}",
+            f"  Yeni kayıt (dönem): {totals.get('new_registrations', 0)}",
+            f"  Bugün yeni kayıt (TR): {totals.get('new_registrations_today', 0)}",
             f"  Canlı arama: {totals.get('live_searches', 0)}",
             f"  Yorum: {totals.get('reviews', 0)}",
             f"  Kayıtlı kullanıcı: {totals.get('total_registered_users', 0)}",
