@@ -15,6 +15,14 @@
 | `gastroskor-laptop-screen-4k.png` | Aynı, 4K (3840×2160) |
 | `gastroskor-logo-icon-2048.png` | Sadece ikon, 2048×2048 |
 | `gastroskor-logo-icon-4096.png` | Sadece ikon, 4096×4096 (en net) |
+| `gastroskor-logo-tagline-2048.png` | Logo + **Tek Tıkla Gastro** (şeffaf arka plan, 2048 genişlik) |
+| `gastroskor-logo-tagline-4096.png` | Logo + slogan, 4K (4096 genişlik) |
+| `gastroskor-logo-tagline-dark-2048.png` | Koyu zemin (#141414) + logo + slogan |
+| `gastroskor-logo-tagline-dark-4096.png` | Aynı, 4K |
+
+Kaynak: `mobile/assets/logo.png` (uygulama ikonu). Yeniden üretmek: `node export-logo-from-asset.mjs` (önce `npm install sharp`).
+
+Vektor yedek: `../gastroskor-logo-with-tagline.svg` — `node export-logo-with-tagline.mjs`.
 
 ## Yeniden üretmek
 
