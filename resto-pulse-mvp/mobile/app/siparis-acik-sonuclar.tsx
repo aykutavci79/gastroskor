@@ -46,6 +46,7 @@ import {
 import { restaurantDetailHref } from '@/lib/uuid';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import {
+  ensureGastroPlaybackReady,
   gastroSpeakNoResults,
   gastroSpeakRetry,
   gastroSpeakSmartCartProposal,
@@ -234,6 +235,8 @@ export default function OnlineOrderResultsScreen() {
         setVoiceSearchExpanded(expandedSearch);
         const resultItems = Array.isArray(res.items) ? res.items : [];
         setAllItems(resultItems);
+
+        await ensureGastroPlaybackReady();
 
         if (query.isCartOrder) {
           const command = parseVoiceOrderCommand(query.rawText, [], null);
@@ -430,6 +433,8 @@ export default function OnlineOrderResultsScreen() {
         const cartItems = Array.isArray(res.items) ? res.items : [];
         setAllItems(cartItems);
 
+        await ensureGastroPlaybackReady();
+
         const options = buildVoiceOrderRestaurantOptions(
           cartItems.map((row) => ({ id: row.id, name: row.name })),
           8,
@@ -468,6 +473,7 @@ export default function OnlineOrderResultsScreen() {
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Akıllı sepet araması başarısız');
+        await ensureGastroPlaybackReady();
         gastroSpeakRetry();
         setVoiceCommandOpen(true);
       } finally {

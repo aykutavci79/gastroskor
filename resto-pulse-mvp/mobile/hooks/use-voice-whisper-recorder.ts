@@ -15,7 +15,12 @@ import { transcribeVoiceAudio } from '@/lib/voice-whisper-transcribe';
 
 const MAX_RECORDING_MS = 45_000;
 
-export type VoiceWhisperAutoStopReason = 'silence' | 'no_speech' | 'fallback_utterance' | 'max_duration';
+export type VoiceWhisperAutoStopReason =
+  | 'silence'
+  | 'no_speech'
+  | 'fallback_utterance'
+  | 'post_speech_cap'
+  | 'max_duration';
 
 function mimeFromRecordingUri(uri: string): { mimeType: string; fileName: string } {
   const lower = uri.toLowerCase();

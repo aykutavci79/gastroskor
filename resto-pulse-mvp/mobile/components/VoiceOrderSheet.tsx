@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
+import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
@@ -59,27 +59,46 @@ export function VoiceOrderSheet({
   const [draft, setDraft] = useState('');
   const [micActive, setMicActive] = useState(true);
   const [micHint, setMicHint] = useState<string | null>(null);
+  const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
+    listening: false,
+    transcribing: false,
+  });
+  const [sheetShown, setSheetShown] = useState(false);
 
   const parsed = useMemo(() => parseVoiceOrderQuery(draft), [draft]);
   const canSearch = (parsed.isCartOrder || parsed.voiceProduct != null) && !searching;
 
   useEffect(() => {
     if (!visible) {
+      setSheetShown(false);
       setMicActive(false);
       setMicHint(null);
+      setMicUiState({ listening: false, transcribing: false });
       gastroStopSpeaking();
       return;
     }
     setDraft(initialDraft?.trim() ?? '');
     setMicHint(null);
-    if (startMicImmediately) {
-      setMicActive(false);
-      const timer = setTimeout(() => setMicActive(true), Platform.OS === 'ios' ? 900 : 520);
-      return () => clearTimeout(timer);
-    }
     setMicActive(false);
-    return gastroPrepareVoiceInput(() => setMicActive(true));
-  }, [visible, initialDraft, startMicImmediately]);
+  }, [visible, initialDraft]);
+
+  useEffect(() => {
+    if (!visible || !sheetShown) return;
+    let cancelled = false;
+    const cancelPrep = gastroPrepareVoiceInput(() => {
+      if (!cancelled) setMicActive(true);
+    });
+    return () => {
+      cancelled = true;
+      cancelPrep();
+    };
+  }, [visible, sheetShown]);
+
+  useEffect(() => {
+    if (micUiState.transcribing || searching) {
+      setMicActive(false);
+    }
+  }, [micUiState.transcribing, searching]);
 
   function applyExample(text: string) {
     setMicActive(false);
@@ -100,7 +119,11 @@ export function VoiceOrderSheet({
     const polished = polishVoiceOrderQueryTranscript(text);
     if (!polished) return;
     setDraft(polished);
-    if (!isFinal || searching) return;
+    if (!isFinal) {
+      setMicActive(false);
+      return;
+    }
+    if (searching) return;
     const query = parseVoiceOrderQuery(polished);
     if (query.voiceProduct || query.isCartOrder) {
       setMicActive(false);
@@ -113,6 +136,7 @@ export function VoiceOrderSheet({
       visible={visible}
       animationType="slide"
       transparent
+      onShow={() => setSheetShown(true)}
       onRequestClose={onClose}
       statusBarTranslucent={false}>
       {visible ? (
@@ -159,10 +183,11 @@ export function VoiceOrderSheet({
                   <SpeechMicErrorBoundary compact>
                     <GastroVoiceMicButton
                       compact
-                      active={micActive}
-                      autoStart={micActive}
+                      active={micActive && !micUiState.transcribing && !searching}
+                      autoStart={micActive && !searching}
                       disabled={searching}
                       onTranscript={handleVoiceTranscript}
+                      onUiStateChange={setMicUiState}
                       onHintChange={setMicHint}
                     />
                   </SpeechMicErrorBoundary>

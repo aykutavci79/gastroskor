@@ -109,11 +109,21 @@ export async function prepareSpeechRecognitionAudioMode(): Promise<void> {
 
 prefetchTurkishTtsVoice();
 
-export function gastroStopSpeaking(): void {
+/** Yalnizca cihaz TTS — Gamze mp3 cue'yu kesmez. */
+export function gastroStopTtsOnly(): void {
   speakSequenceGeneration += 1;
   Speech.stop();
   speaking = false;
+}
+
+export function gastroStopSpeaking(): void {
+  gastroStopTtsOnly();
   void stopGastroAudioCue();
+}
+
+/** Kayit oturumundan sonra hoparlorden oynatma (iOS kulaklik/ahize yonlendirmesini sifirlar). */
+export async function ensureGastroPlaybackReady(): Promise<void> {
+  await releaseRecordingAudioForSpeech();
 }
 
 export async function gastroIsSpeaking(): Promise<boolean> {
@@ -129,7 +139,7 @@ function playGastroPhrase(key: GastroTtsPhraseKey, options?: SpeakOptions): void
   gastroStopSpeaking();
   speaking = true;
   void (async () => {
-    await ensureSpeechAudioMode();
+    await ensureGastroPlaybackReady();
     const played = await playGastroAudioCue(key);
     if (played) {
       speaking = false;
@@ -245,7 +255,7 @@ export function gastroPrepareVoiceInput(onReady?: () => void): () => void {
   playGastroPhrase('listening', {
     onDone: () => {
       if (!cancelled) {
-        setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 280 : 200);
+        setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 280 : 320);
       }
     },
   });

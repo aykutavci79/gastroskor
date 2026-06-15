@@ -37,6 +37,14 @@ def test_accepts_chocolate_cafe_tagged_as_store() -> None:
     )
 
 
+def test_accepts_pastane_tagged_as_bakery() -> None:
+    assert is_food_related_place(
+        name="Rojen Pastanesi",
+        address="Osmangazi Bursa",
+        types=["bakery", "food", "point_of_interest", "establishment"],
+    )
+
+
 def test_db_rows_always_allowed_flag() -> None:
     assert is_food_related_place(
         name="Herhangi Sokak 12",

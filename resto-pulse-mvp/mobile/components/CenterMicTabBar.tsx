@@ -18,8 +18,11 @@ type TabEntry = {
   options: BottomTabBarProps['descriptors'][string]['options'];
 };
 
-function isHiddenTab(options: TabEntry['options']) {
-  const href = (options as { href?: string | null }).href;
+const HIDDEN_TAB_ROUTES = new Set(['panel']);
+
+function isHiddenTab(entry: TabEntry) {
+  if (HIDDEN_TAB_ROUTES.has(entry.route.name)) return true;
+  const href = (entry.options as { href?: string | null }).href;
   return href === null;
 }
 
@@ -85,7 +88,7 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
       index,
       options: descriptors[route.key].options,
     }))
-    .filter(({ options }) => !isHiddenTab(options));
+    .filter((entry) => !isHiddenTab(entry));
 
   const splitAt = Math.ceil(tabs.length / 2);
   const leftTabs = tabs.slice(0, splitAt);

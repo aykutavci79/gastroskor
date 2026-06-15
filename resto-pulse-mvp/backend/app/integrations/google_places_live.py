@@ -6,6 +6,7 @@ import httpx
 
 from app.core.config import settings
 from app.services.food_place_filter import is_food_related_place
+from app.services.profanity_tr import normalize_review_text
 
 try:
     import certifi
@@ -50,6 +51,53 @@ CITY_SEARCH_BIAS: dict[str, tuple[float, float, int]] = {
     "ankara": (39.9334, 32.8597, 60_000),
     "izmir": (38.4237, 27.1428, 60_000),
 }
+
+BAKERY_QUERY_HINTS = (
+    "pastane",
+    "baklava",
+    "tatli",
+    "tatlı",
+    "pasta",
+    "muhallebi",
+    "helva",
+    "kunefe",
+    "künefe",
+    "dondurma",
+    "cikolata",
+    "çikolata",
+    "kurabiye",
+    "borek",
+    "börek",
+    "sutlac",
+    "sütlac",
+    "lokum",
+    "tatlici",
+    "tatlıcı",
+)
+
+CAFE_QUERY_HINTS = ("kahve", "kafe", "coffee", "cafe", "çay", "cay")
+
+
+def _folded_query(query: str) -> str:
+    return normalize_review_text(query).strip().lower()
+
+
+def resolve_google_nearby_place_type(query: str) -> str:
+    """Google Nearby tek type alir — pastane/bakery ayri etiketlenir."""
+    folded = _folded_query(query)
+    if any(hint in folded for hint in BAKERY_QUERY_HINTS):
+        return "bakery"
+    if any(hint in folded for hint in CAFE_QUERY_HINTS):
+        return "cafe"
+    return "restaurant"
+
+
+def prefers_open_text_search(query: str) -> bool:
+    """Isim veya pastane aramasi — type=restaurant daraltmasin."""
+    folded = _folded_query(query)
+    if any(hint in folded for hint in BAKERY_QUERY_HINTS):
+        return True
+    return len(folded.split()) >= 2
 
 
 class GooglePlacesLiveClient:
@@ -116,13 +164,14 @@ class GooglePlacesLiveClient:
         lat: float,
         lng: float,
         limit: int,
+        place_type: str = "restaurant",
     ) -> list[LivePlaceResult]:
         """Kullanici konumuna gore en yakin mekanlar (rankby=distance)."""
         params: dict[str, str | int] = {
             "location": f"{lat},{lng}",
             "rankby": "distance",
             "keyword": query.strip(),
-            "type": "restaurant",
+            "type": place_type,
             "language": "tr",
             "key": settings.google_places_api_key or "",
         }
@@ -138,15 +187,17 @@ class GooglePlacesLiveClient:
         bias_lat: float | None = None,
         bias_lng: float | None = None,
         bias_radius_m: int | None = None,
+        place_type: str | None = "restaurant",
     ) -> list[LivePlaceResult]:
         merged_query = f"{query.strip()} {city}".strip()
         params: dict[str, str | int] = {
             "query": merged_query,
-            "type": "restaurant",
             "language": "tr",
             "region": "tr",
             "key": settings.google_places_api_key or "",
         }
+        if place_type:
+            params["type"] = place_type
         if bias_lat is not None and bias_lng is not None and bias_radius_m is not None:
             params["location"] = f"{bias_lat},{bias_lng}"
             params["radius"] = bias_radius_m
@@ -173,22 +224,40 @@ class GooglePlacesLiveClient:
             raise ValueError("GOOGLE_PLACES_API_KEY is not configured.")
 
         fetch_limit = min(20, max(limit, 8))
+        nearby_type = resolve_google_nearby_place_type(query)
+
+        if prefers_open_text_search(query):
+            text_rows = await self._text_search(query, city=city, limit=fetch_limit, place_type=None)
+            if text_rows:
+                return text_rows[:fetch_limit]
 
         # Maliyet: tek Google istegi. Oncelik: kullanici konumu → sehir merkezi (Nearby) → Text Search.
         # Text Search az sonuc dondurur; "doner 4.5 yildiz" gibi puan filtreleri bos kalabiliyordu.
         if origin_lat is not None and origin_lng is not None:
-            return (await self._nearby_search(query, lat=origin_lat, lng=origin_lng, limit=fetch_limit))[
-                :fetch_limit
-            ]
+            return (
+                await self._nearby_search(
+                    query,
+                    lat=origin_lat,
+                    lng=origin_lng,
+                    limit=fetch_limit,
+                    place_type=nearby_type,
+                )
+            )[:fetch_limit]
 
         city_bias = CITY_SEARCH_BIAS.get(city.strip().lower())
         if city_bias:
             lat, lng, _radius_m = city_bias
-            nearby_rows = await self._nearby_search(query, lat=lat, lng=lng, limit=fetch_limit)
+            nearby_rows = await self._nearby_search(
+                query,
+                lat=lat,
+                lng=lng,
+                limit=fetch_limit,
+                place_type=nearby_type,
+            )
             if nearby_rows:
                 return nearby_rows[:fetch_limit]
 
-        return (await self._text_search(query, city=city, limit=fetch_limit))[:fetch_limit]
+        return (await self._text_search(query, city=city, limit=fetch_limit, place_type=None))[:fetch_limit]
 
     async def get_place_details(self, place_id: str) -> dict:
         if not settings.google_places_api_key:

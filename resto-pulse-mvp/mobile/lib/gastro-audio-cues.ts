@@ -14,8 +14,9 @@ const GASTRO_AUDIO_FILES: Record<GastroTtsPhraseKey, number> = {
 
 let activeSound: Audio.Sound | null = null;
 
-function androidPlaybackDelayMs(): number {
-  return Platform.OS === 'android' ? 180 : 0;
+function playbackSettleDelayMs(): number {
+  if (Platform.OS === 'android') return 180;
+  return 150;
 }
 
 async function ensureCuePlaybackMode(): Promise<void> {
@@ -29,7 +30,7 @@ async function ensureCuePlaybackMode(): Promise<void> {
       shouldDuckAndroid: false,
       playThroughEarpieceAndroid: false,
     });
-    const delay = androidPlaybackDelayMs();
+    const delay = playbackSettleDelayMs();
     if (delay > 0) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -101,4 +102,20 @@ export async function playGastroAudioCue(key: GastroTtsPhraseKey): Promise<boole
 
 export function isGastroAudioCuePlaying(): boolean {
   return activeSound != null;
+}
+
+/** Kayit baslamadan once Gamze dosyasinin bitmesini bekle. */
+export function waitForGastroAudioCueIdle(timeoutMs = 6_000): Promise<void> {
+  if (!activeSound) return Promise.resolve();
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const poll = () => {
+      if (!activeSound || Date.now() - startedAt >= timeoutMs) {
+        resolve();
+        return;
+      }
+      setTimeout(poll, 40);
+    };
+    poll();
+  });
 }

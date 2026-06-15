@@ -61,6 +61,7 @@ function TabsWithBadges() {
         options={{
           title: 'İşletme',
           href: null,
+          tabBarButton: () => null,
           tabBarIcon: ({ color, size }) => <Ionicons name="storefront" size={size} color={color} />,
         }}
       />

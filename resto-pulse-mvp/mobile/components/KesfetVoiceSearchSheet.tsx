@@ -50,6 +50,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
   const [uiState, setUiState] = useState<VoiceMicUiState>({ listening: false, transcribing: false });
   const [liveDraft, setLiveDraft] = useState('');
   const [micHint, setMicHint] = useState<string | null>(null);
+  const [overlayShown, setOverlayShown] = useState(false);
   const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearDemoTimers = useCallback(() => {
@@ -64,6 +65,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
 
   useEffect(() => {
     if (!visible) {
+      setOverlayShown(false);
       gastroStopSpeaking();
       clearDemoTimers();
       setMicActive(false);
@@ -76,6 +78,10 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     setLiveDraft('');
     setMicHint(null);
     setMicActive(false);
+  }, [visible, clearDemoTimers]);
+
+  useEffect(() => {
+    if (!visible || !overlayShown) return;
     let cancelled = false;
     const cancelPrep = gastroPrepareVoiceInput(() => {
       if (!cancelled) setMicActive(true);
@@ -83,9 +89,14 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     return () => {
       cancelled = true;
       cancelPrep();
-      clearDemoTimers();
     };
-  }, [visible, clearDemoTimers]);
+  }, [visible, overlayShown]);
+
+  useEffect(() => {
+    if (uiState.transcribing) {
+      setMicActive(false);
+    }
+  }, [uiState.transcribing]);
 
   const runVoiceDemo = useCallback(() => {
     if (uiState.listening || uiState.transcribing) {
@@ -114,7 +125,10 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     const trimmed = polishVoiceSearchTranscript(text);
     if (!trimmed) return;
     setLiveDraft(trimmed);
-    if (!isFinal) return;
+    if (!isFinal) {
+      setMicActive(false);
+      return;
+    }
     setMicActive(false);
     onTranscript(trimmed);
     onClose();
@@ -133,7 +147,12 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
             : 'Konuş — 2–3 sn susunca otomatik arar';
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onShow={() => setOverlayShown(true)}
+      onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Kapat" />
 
@@ -176,7 +195,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
                   <GastroVoiceMicButton
                     overlayCompact
                     autoStart
-                    active={micActive}
+                    active={micActive && !uiState.transcribing}
                     onTranscript={handleTranscript}
                     onUiStateChange={setUiState}
                     onHintChange={setMicHint}

@@ -13,7 +13,6 @@ import { Screen } from '@/components/ui/Screen';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { GastroStyles } from '@/constants/theme';
 import type { GastroColorScheme } from '@/constants/theme';
-import { useAppBadges } from '@/context/app-badges-context';
 import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { listUserOrders } from '@/lib/api';
@@ -74,7 +73,6 @@ export default function SiparislerimScreen() {
   const { user } = useSession();
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { refresh: refreshBadges } = useAppBadges();
 
   const [items, setItems] = useState<RestaurantOrderRead[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -84,6 +82,8 @@ export default function SiparislerimScreen() {
   const [error, setError] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<RestaurantOrderRead | null>(null);
   const firstFocus = useRef(true);
+  const loadSeq = useRef(0);
+  const hasItemsRef = useRef(false);
 
   const load = useCallback(
     (opts?: { silent?: boolean }) => {
@@ -91,21 +91,34 @@ export default function SiparislerimScreen() {
         setLoading(false);
         return;
       }
-      if (!opts?.silent) setLoading(true);
-      setError(null);
+      const seq = ++loadSeq.current;
+      const silent = Boolean(opts?.silent);
+      if (!silent && !hasItemsRef.current) {
+        setLoading(true);
+      }
+      if (!silent) {
+        setError(null);
+      }
       listUserOrders(user.email, { limit: 40 })
         .then((data) => {
+          if (seq !== loadSeq.current) return;
+          hasItemsRef.current = data.items.length > 0;
           setItems(data.items);
           setPendingCount(data.pending_count);
           setTotal(data.total);
+          setError(null);
         })
         .catch((err) => {
-          setItems([]);
-          setPendingCount(0);
-          setTotal(0);
-          setError(friendlyOrdersError(err));
+          if (seq !== loadSeq.current) return;
+          if (!hasItemsRef.current) {
+            setItems([]);
+            setPendingCount(0);
+            setTotal(0);
+            setError(friendlyOrdersError(err));
+          }
         })
         .finally(() => {
+          if (seq !== loadSeq.current) return;
           setLoading(false);
           setRefreshing(false);
         });
@@ -117,8 +130,7 @@ export default function SiparislerimScreen() {
     useCallback(() => {
       load({ silent: !firstFocus.current });
       firstFocus.current = false;
-      void refreshBadges();
-    }, [load, refreshBadges]),
+    }, [load]),
   );
 
   if (!user?.email) {
@@ -158,7 +170,6 @@ export default function SiparislerimScreen() {
       onRefresh={() => {
         setRefreshing(true);
         load({ silent: true });
-        void refreshBadges();
       }}>
       <View style={styles.hero}>
         <Text style={styles.title}>Siparislerim</Text>
@@ -171,9 +182,9 @@ export default function SiparislerimScreen() {
         </Text>
       </View>
 
-      {loading ? (
+      {loading && items.length === 0 ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
-      ) : error ? (
+      ) : error && items.length === 0 ? (
         <View style={styles.errorCard}>
           <Text style={styles.errorTitle}>Liste su an acilamiyor</Text>
           <Text style={styles.error}>{error}</Text>

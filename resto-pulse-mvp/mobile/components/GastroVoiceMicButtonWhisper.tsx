@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { GastroColors } from '@/constants/theme';
-import { gastroStopSpeaking } from '@/lib/gastro-speak';
+import { waitForGastroAudioCueIdle } from '@/lib/gastro-audio-cues';
+import { gastroStopTtsOnly } from '@/lib/gastro-speak';
 import {
   useVoiceWhisperRecorder,
   type VoiceWhisperAutoStopReason,
@@ -62,6 +63,7 @@ export function GastroVoiceMicButtonWhisper({
   const finishRecording = useCallback(async () => {
     if (finishingRef.current || transcribing) return;
     finishingRef.current = true;
+    autoStartedRef.current = true;
     try {
       updateHint('Cevriliyor…');
       const text = await stopAndTranscribe();
@@ -105,7 +107,8 @@ export function GastroVoiceMicButtonWhisper({
   }, [active, cancelRecording]);
 
   const beginRecording = useCallback(async () => {
-    gastroStopSpeaking();
+    await waitForGastroAudioCueIdle();
+    gastroStopTtsOnly();
     updateHint(null);
     const started = await startRecording({ onAutoStop: handleAutoStop });
     if (!started) {
@@ -115,16 +118,35 @@ export function GastroVoiceMicButtonWhisper({
   }, [handleAutoStop, startRecording, updateHint]);
 
   useEffect(() => {
-    if (!autoStart || !active || disabled || isExpoGo || autoStartedRef.current || recording) return;
+    if (
+      !autoStart ||
+      !active ||
+      disabled ||
+      isExpoGo ||
+      autoStartedRef.current ||
+      recording ||
+      transcribing ||
+      finishingRef.current
+    ) {
+      return;
+    }
 
     const timer = setTimeout(() => {
-      if (autoStartedRef.current || recording) return;
+      if (
+        autoStartedRef.current ||
+        recording ||
+        transcribing ||
+        finishingRef.current ||
+        !active
+      ) {
+        return;
+      }
       autoStartedRef.current = true;
       void beginRecording();
     }, AUTO_START_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [active, autoStart, beginRecording, disabled, recording]);
+  }, [active, autoStart, beginRecording, disabled, recording, transcribing]);
 
   const handlePress = useCallback(async () => {
     if (disabled || isExpoGo) {

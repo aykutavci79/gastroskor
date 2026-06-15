@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GastroVoiceMicButton } from '@/components/GastroVoiceMicButton';
+import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroSpeakRetry, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroPrepareVoiceInput, gastroSpeakRetry, gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
@@ -31,12 +31,17 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
   const [draft, setDraft] = useState('');
   const [micActive, setMicActive] = useState(false);
   const [micHint, setMicHint] = useState<string | null>(null);
+  const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
+    listening: false,
+    transcribing: false,
+  });
   const submittedRef = useRef(false);
 
   useEffect(() => {
     submittedRef.current = false;
     setDraft('');
     setMicHint(null);
+    setMicUiState({ listening: false, transcribing: false });
     gastroStopSpeaking();
     setMicActive(false);
     const cancelPrep = gastroPrepareVoiceInput(() => setMicActive(true));
@@ -46,6 +51,12 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       gastroStopSpeaking();
     };
   }, [restaurants]);
+
+  useEffect(() => {
+    if (micUiState.transcribing) {
+      setMicActive(false);
+    }
+  }, [micUiState.transcribing]);
 
   const parsed = useMemo(
     () => parseVoiceOrderCommand(draft, restaurants, defaultProductSearchGroup),
@@ -70,7 +81,10 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       const polished = polishVoiceOrderCommandTranscript(text);
       if (!polished) return;
       setDraft(polished);
-      if (!isFinal) return;
+      if (!isFinal) {
+        setMicActive(false);
+        return;
+      }
       const command = parseVoiceOrderCommand(polished, restaurants, defaultProductSearchGroup);
       if (command.confidence === 'high' || isSmartCartCommand(command)) {
         trySubmit(command);
@@ -104,9 +118,10 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         <SpeechMicErrorBoundary compact>
           <GastroVoiceMicButton
             compact
-            active={micActive}
+            active={micActive && !micUiState.transcribing}
             autoStart={micActive}
             onTranscript={handleTranscript}
+            onUiStateChange={setMicUiState}
             onHintChange={setMicHint}
           />
         </SpeechMicErrorBoundary>
