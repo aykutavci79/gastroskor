@@ -1,14 +1,14 @@
 """Review kind + siparis baglantisi
 
 Revision ID: 20260620_0043
-Revises: 20260619_0042
+Revises: 20260613_0043
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "20260620_0043"
-down_revision = "20260619_0042"
+down_revision = "20260613_0043"
 branch_labels = None
 depends_on = None
 
