@@ -329,16 +329,30 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
     avg_rating = None
     order_ratings = None
     if db is not None:
-        visit_avg = db.scalar(
-            select(func.avg(Review.rating)).where(
-                Review.restaurant_id == restaurant.id,
-                visit_review_filter(),
-            )
-        )
-        avg_rating = round(float(visit_avg), 1) if visit_avg is not None else None
-        summary = batch_order_rating_summaries(db, [restaurant.id]).get(str(restaurant.id))
-        if summary and summary.get("review_count", 0) > 0:
-            order_ratings = summary
+        try:
+            with db.begin_nested():
+                visit_avg = db.scalar(
+                    select(func.avg(Review.rating)).where(
+                        Review.restaurant_id == restaurant.id,
+                        visit_review_filter(),
+                    )
+                )
+                if visit_avg is None:
+                    visit_avg = db.scalar(
+                        select(func.avg(Review.rating)).where(
+                            Review.restaurant_id == restaurant.id,
+                        )
+                    )
+                avg_rating = round(float(visit_avg), 1) if visit_avg is not None else None
+        except Exception:
+            avg_rating = None
+        try:
+            with db.begin_nested():
+                summary = batch_order_rating_summaries(db, [restaurant.id]).get(str(restaurant.id))
+                if summary and summary.get("review_count", 0) > 0:
+                    order_ratings = summary
+        except Exception:
+            order_ratings = None
 
     return RestaurantRead(
         id=str(restaurant.id),
