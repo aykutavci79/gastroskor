@@ -65,6 +65,8 @@ class User(Base):
     avatar_preset: Mapped[str | None] = mapped_column(String(32))
     order_phone_e164: Mapped[str | None] = mapped_column(String(32))
     order_phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    kvkk_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    kvkk_consent_version: Mapped[str | None] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")

@@ -8,6 +8,7 @@ from app.schemas.auth import GoogleMobileAuthPayload, GoogleMobileAuthResponse
 from app.services.access_token import create_token_pair
 from app.services.app_metrics import record_app_usage_event
 from app.services.google_id_token import GoogleIdTokenError, verify_google_id_token
+from app.services.kvkk_consent import require_and_record_kvkk_consent
 
 router = APIRouter(prefix="/auth/google", tags=["auth"])
 
@@ -52,6 +53,7 @@ def _authenticate_google_id_token(payload: GoogleMobileAuthPayload, db: Session,
         avatar_url=claims.get("picture"),
         google_sub=google_sub,
     )
+    require_and_record_kvkk_consent(db, user, accepted=payload.kvkk_consent_accepted)
     return _google_auth_response(user, db, platform=platform)
 
 

@@ -12,6 +12,7 @@ class UserSyncPayload(BaseModel):
     google_sub: str | None = None
     record_login: bool = False
     default_review_name_display: AuthorNameDisplayMode | None = None
+    kvkk_consent_accepted: bool = False
 
 
 class UserProfile(BaseModel):

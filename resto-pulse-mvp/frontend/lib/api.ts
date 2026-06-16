@@ -265,6 +265,7 @@ export function syncUser(payload: {
   google_sub?: string | null;
   record_login?: boolean;
   default_review_name_display?: 'full' | 'masked' | 'nickname';
+  kvkk_consent_accepted?: boolean;
 }) {
   return request<UserProfile>('/users/sync', {
     method: 'POST',

@@ -7,10 +7,11 @@ import { useGoogleSignIn } from '@/hooks/use-google-sign-in';
 
 type Props = {
   busy?: boolean;
+  consentAccepted: boolean;
   onError: (message: string) => void;
 };
 
-export function GoogleSignInButton({ busy, onError }: Props) {
+export function GoogleSignInButton({ busy, consentAccepted, onError }: Props) {
   const setupHint = getGoogleSignInSetupHint();
 
   if (isExpoGo) {
@@ -25,11 +26,11 @@ export function GoogleSignInButton({ busy, onError }: Props) {
     return <Text style={styles.warn}>{setupHint ?? 'Google girisi yapilandirilmamis.'}</Text>;
   }
 
-  return <GoogleSignInNativeButton busy={busy} onError={onError} />;
+  return <GoogleSignInNativeButton busy={busy} consentAccepted={consentAccepted} onError={onError} />;
 }
 
-function GoogleSignInNativeButton({ busy, onError }: Props) {
-  const { ready, signIn } = useGoogleSignIn(onError);
+function GoogleSignInNativeButton({ busy, consentAccepted, onError }: Props) {
+  const { ready, signIn } = useGoogleSignIn(onError, consentAccepted);
   const [pending, setPending] = useState(false);
 
   async function onPress() {
@@ -41,7 +42,7 @@ function GoogleSignInNativeButton({ busy, onError }: Props) {
     }
   }
 
-  const disabled = busy || pending || !ready;
+  const disabled = busy || pending || !ready || !consentAccepted;
 
   return (
     <Pressable style={[styles.googleBtn, disabled && styles.btnDisabled]} disabled={disabled} onPress={() => void onPress()}>

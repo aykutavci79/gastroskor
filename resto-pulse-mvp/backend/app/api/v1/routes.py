@@ -246,6 +246,7 @@ from app.api.v1.panel_routes import panel_router
 from app.api.v1.social_routes import router as social_router
 from app.api.v1.voice_routes import router as voice_router
 from app.services.user_accounts import get_or_create_user, serialize_user
+from app.services.kvkk_consent import record_kvkk_consent, user_needs_kvkk_consent
 from app.services.app_metrics import record_app_usage_event
 from app.services.live_search_metrics import record_live_search_metric
 from app.services.request_identity import (
@@ -1693,6 +1694,8 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
         google_sub=payload.google_sub,
         default_review_name_display=payload.default_review_name_display,
     )
+    if payload.kvkk_consent_accepted and user_needs_kvkk_consent(user):
+        record_kvkk_consent(db, user)
     if payload.record_login:
         record_app_usage_event(db, event_type="user_login", user_id=user.id, platform="api")
     return serialize_user(user, db)

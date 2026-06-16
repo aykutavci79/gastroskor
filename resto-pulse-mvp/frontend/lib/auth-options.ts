@@ -1,13 +1,14 @@
 import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import { cookies } from 'next/headers';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr';
 
-async function exchangeGoogleIdToken(idToken: string) {
+async function exchangeGoogleIdToken(idToken: string, kvkkConsentAccepted: boolean) {
   const response = await fetch(`${API_BASE}/api/v1/auth/google/web`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_token: idToken }),
+    body: JSON.stringify({ id_token: idToken, kvkk_consent_accepted: kvkkConsentAccepted }),
     cache: 'no-store',
   });
   if (!response.ok) {
@@ -41,7 +42,9 @@ export const authOptions: NextAuthOptions = {
       }
       if (account?.id_token) {
         try {
-          const backend = await exchangeGoogleIdToken(account.id_token);
+          const cookieStore = await cookies();
+          const kvkkConsentAccepted = cookieStore.get('gastro_kvkk_consent')?.value === '1';
+          const backend = await exchangeGoogleIdToken(account.id_token, kvkkConsentAccepted);
           token.backendAccessToken = backend.access_token;
           token.backendTokenExpiresAt = Date.now() + backend.expires_in * 1000;
         } catch (error) {

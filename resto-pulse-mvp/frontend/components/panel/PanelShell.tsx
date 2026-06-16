@@ -22,15 +22,18 @@ function authErrorMessage(code: string | null): string | null {
   return AUTH_ERROR_TR[code] ?? AUTH_ERROR_TR.Default;
 }
 
+import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
 import { PanelContractBanner } from '@/components/panel/PanelContractBanner';
 import { PanelNotificationCenter } from '@/components/panel/PanelNotificationCenter';
 import { PanelProvider, usePanel } from '@/components/panel/PanelContext';
+import { setKvkkConsentCookie } from '@/lib/kvkk-consent';
 
 function PanelShellInner({ children }: { children: React.ReactNode }) {
   const { access, loading, error, userEmail } = usePanel();
   const pathname = usePathname();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('error');
@@ -75,10 +78,17 @@ function PanelShellInner({ children }: { children: React.ReactNode }) {
             {authError}
           </p>
         ) : null}
+        <div className="mt-4 text-left">
+          <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} id="kvkk-panel" />
+        </div>
         <button
           type="button"
-          onClick={() => signIn('google', { callbackUrl: '/panel' })}
-          className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-surface">
+          disabled={!kvkkAccepted}
+          onClick={() => {
+            setKvkkConsentCookie();
+            signIn('google', { callbackUrl: '/panel' });
+          }}
+          className="mt-4 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-45">
           Google ile Giris
         </button>
       </div>

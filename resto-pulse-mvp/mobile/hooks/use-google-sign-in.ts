@@ -5,7 +5,7 @@ import { configureGoogleSignIn, readGoogleSignInError, signInWithGoogleNative } 
 import { verifyGoogleMobileAuth } from '@/lib/api';
 import { useSession } from '@/context/session-context';
 
-export function useGoogleSignIn(onError: (message: string) => void) {
+export function useGoogleSignIn(onError: (message: string) => void, kvkkConsentAccepted: boolean) {
   const { signInWithGoogleProfile } = useSession();
   const [ready, setReady] = useState(false);
 
@@ -22,7 +22,7 @@ export function useGoogleSignIn(onError: (message: string) => void) {
   const signIn = useCallback(async () => {
     try {
       const idToken = await signInWithGoogleNative();
-      const { profile, access_token, refresh_token } = await verifyGoogleMobileAuth(idToken);
+      const { profile, access_token, refresh_token } = await verifyGoogleMobileAuth(idToken, kvkkConsentAccepted);
       await signInWithGoogleProfile(
         profile,
         profile.google_sub ?? null,
@@ -32,7 +32,7 @@ export function useGoogleSignIn(onError: (message: string) => void) {
     } catch (err) {
       onError(readGoogleSignInError(err));
     }
-  }, [onError, signInWithGoogleProfile]);
+  }, [kvkkConsentAccepted, onError, signInWithGoogleProfile]);
 
   return { ready, signIn };
 }

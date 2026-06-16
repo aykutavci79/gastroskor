@@ -11,6 +11,7 @@ import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
 import { Screen } from '@/components/ui/Screen';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
@@ -24,6 +25,7 @@ import { useSession } from '@/context/session-context';
 export default function ProfilScreen() {
   const { user, loading, signOut } = useSession();
   const [error, setError] = useState<string | null>(null);
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
 
   useEffect(() => {
@@ -113,7 +115,9 @@ export default function ProfilScreen() {
           <Text style={styles.muted}>
             Guvenlik icin yalnizca Google hesabinizla giris yapabilirsiniz.
           </Text>
+          <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} />
           <GoogleSignInButton
+            consentAccepted={kvkkAccepted}
             onError={(message) => {
               setError(null);
               handleGoogleError(message);

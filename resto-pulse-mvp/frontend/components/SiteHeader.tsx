@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 import { GastroSkorLogo } from '@/components/GastroSkorLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -66,12 +66,9 @@ export function SiteHeader() {
               Çıkış
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => void signIn('google', { callbackUrl: '/' })}
-              className="btn-primary btn-sm whitespace-nowrap">
+            <Link href="/auth/giris?callbackUrl=/" className="btn-primary btn-sm whitespace-nowrap">
               Kullanıcı girişi
-            </button>
+            </Link>
           )}
 
           <Link href="/panel" className="btn-secondary btn-sm whitespace-nowrap">

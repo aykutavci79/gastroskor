@@ -1,6 +1,6 @@
 'use client';
 
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -64,7 +64,8 @@ export function RestaurantFollowButton({
 
   const toggle = useCallback(async () => {
     if (!email) {
-      void signIn('google');
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+      window.location.href = `/auth/giris?callbackUrl=${encodeURIComponent(returnUrl)}`;
       return;
     }
     if (!restaurantId) return;

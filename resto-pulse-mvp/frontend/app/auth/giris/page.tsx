@@ -2,7 +2,10 @@
 
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState } from 'react';
+
+import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
+import { setKvkkConsentCookie } from '@/lib/kvkk-consent';
 
 const AUTH_ERROR_TR: Record<string, string> = {
   AccessDenied:
@@ -26,6 +29,7 @@ function isAllowedReturnUrl(value: string | null): value is string {
 
 function GirisInner() {
   const searchParams = useSearchParams();
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const errorCode = searchParams.get('error');
   const mode = searchParams.get('mode');
   const returnUrl = searchParams.get('return');
@@ -39,7 +43,7 @@ function GirisInner() {
     if (isMobile && returnUrl) {
       return `/mobil-giris/tamam?return=${encodeURIComponent(returnUrl)}`;
     }
-    return '/panel';
+    return '/';
   }, [callbackFromQuery, isMobile, returnUrl]);
 
   const title = isMobile ? 'GastroSkor — Mobil giris' : 'GastroSkor — Giris';
@@ -59,10 +63,18 @@ function GirisInner() {
           </p>
         ) : null}
 
+        <div className="mt-6 text-left">
+          <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} />
+        </div>
+
         <button
           type="button"
-          onClick={() => signIn('google', { callbackUrl })}
-          className="mt-6 w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100">
+          disabled={!kvkkAccepted}
+          onClick={() => {
+            setKvkkConsentCookie();
+            signIn('google', { callbackUrl });
+          }}
+          className="mt-4 w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-45">
           Google ile giris yap
         </button>
 

@@ -493,11 +493,12 @@ export function syncUser(payload: {
   google_sub?: string | null;
   record_login?: boolean;
   default_review_name_display?: 'full' | 'masked' | 'nickname';
+  kvkk_consent_accepted?: boolean;
 }) {
   return request<UserProfile>('/users/sync', { method: 'POST', body: JSON.stringify(payload) });
 }
 
-export function verifyGoogleMobileAuth(idToken: string) {
+export function verifyGoogleMobileAuth(idToken: string, kvkkConsentAccepted: boolean) {
   return request<{
     profile: UserProfile;
     access_token: string;
@@ -506,7 +507,7 @@ export function verifyGoogleMobileAuth(idToken: string) {
     refresh_expires_in: number;
   }>('/auth/google/mobile', {
     method: 'POST',
-    body: JSON.stringify({ id_token: idToken }),
+    body: JSON.stringify({ id_token: idToken, kvkk_consent_accepted: kvkkConsentAccepted }),
   });
 }
 
