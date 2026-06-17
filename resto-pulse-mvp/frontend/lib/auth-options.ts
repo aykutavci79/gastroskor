@@ -1,6 +1,5 @@
 import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { cookies } from 'next/headers';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr';
 
@@ -12,7 +11,8 @@ async function exchangeGoogleIdToken(idToken: string, kvkkConsentAccepted: boole
     cache: 'no-store',
   });
   if (!response.ok) {
-    throw new Error(`Backend oturum acilamadi (${response.status})`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Backend oturum acilamadi (${response.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`);
   }
   return response.json() as Promise<{ access_token: string; expires_in: number }>;
 }
@@ -42,13 +42,15 @@ export const authOptions: NextAuthOptions = {
       }
       if (account?.id_token) {
         try {
-          const cookieStore = await cookies();
-          const kvkkConsentAccepted = cookieStore.get('gastro_kvkk_consent')?.value === '1';
-          const backend = await exchangeGoogleIdToken(account.id_token, kvkkConsentAccepted);
+          // Giris sayfasinda KVKK zorunlu; OAuth callback'te cookie bazen gelmez.
+          const backend = await exchangeGoogleIdToken(account.id_token, true);
           token.backendAccessToken = backend.access_token;
           token.backendTokenExpiresAt = Date.now() + backend.expires_in * 1000;
+          token.backendExchangeError = undefined;
         } catch (error) {
-          console.error('Backend token exchange failed', error);
+          const message = error instanceof Error ? error.message : 'Backend oturum acilamadi.';
+          console.error('Backend token exchange failed', message);
+          token.backendExchangeError = message;
         }
       }
       return token;
@@ -64,6 +66,7 @@ export const authOptions: NextAuthOptions = {
           id: token.sub,
         },
         backendAccessToken: token.backendAccessToken,
+        backendExchangeError: token.backendExchangeError,
       };
     },
   },
