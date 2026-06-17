@@ -27,6 +27,7 @@ from app.services.smart_filters import merge_criteria
 from app.services.social_proof_cache import (
     build_social_proof_cache_key,
     find_active_scan_job_id,
+    find_fresh_cache_for_query,
     is_cache_fresh,
     is_cache_stale,
     read_social_proof_cache,
