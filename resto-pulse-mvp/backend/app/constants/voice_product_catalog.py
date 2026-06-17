@@ -123,24 +123,10 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         sort_order=50,
     ),
     VoiceProduct(
-        slug="tepsi-kebap",
-        label="Tepsi Kebap",
-        search_group="tepsi-kebap",
-        aliases=("tepsi kebap", "tepsi kebabi", "tepsi kebabı", "tepsi kebabi"),
-        sort_order=55,
-    ),
-    VoiceProduct(
-        slug="pideli-kofte",
-        label="Pideli Kofte",
-        search_group="pideli-kofte",
-        aliases=("pideli kofte", "pideli köfte", "pideli koftesi"),
-        sort_order=56,
-    ),
-    VoiceProduct(
         slug="iskender",
         label="Iskender",
         search_group="iskender",
-        aliases=("iskender", "iskender kebap", "iskender kebabı", "iskender kebabi"),
+        aliases=("iskender", "iskender kebap"),
         sort_order=60,
     ),
     VoiceProduct(
@@ -174,41 +160,6 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
 )
 
 VALID_VOICE_PRODUCT_SLUGS = frozenset(p.slug for p in VOICE_PRODUCTS)
-
-# Genel kebap aramalarinda alaka filtresi kapali (fail-open).
-RELEVANCE_FILTER_DISABLED_GROUPS = frozenset({"kebap"})
-
-# Niyet grubu -> mekan adinda gecerse hard-exclude (normalize edilmis karsilastirma).
-EXCLUDE_MARKERS_BY_INTENT: dict[str, tuple[str, ...]] = {
-    "iskender": (
-        "pideli kofte",
-        "pideli köfte",
-        "lahmacun",
-        "cantik",
-        "cantık",
-        "tepsi kebap",
-    ),
-    "lahmacun": (
-        "iskender",
-        "pideli kofte",
-        "pideli köfte",
-    ),
-    "tepsi-kebap": (
-        "pideli kofte",
-        "pideli köfte",
-        "lahmacun",
-        "iskender",
-    ),
-    "doner": (
-        "iskender",
-        "lahmacun",
-        "tepsi kebap",
-    ),
-    "pide": (
-        "iskender",
-        "lahmacun",
-    ),
-}
 
 KEBAP_SEARCH_SLUGS = (
     "kebap",
@@ -391,10 +342,6 @@ def _group_label(search_group: str) -> str:
         return "Pide"
     if search_group == "doner":
         return "Doner"
-    if search_group == "tepsi-kebap":
-        return "Tepsi Kebap"
-    if search_group == "pideli-kofte":
-        return "Pideli Kofte"
     product = _BY_SLUG.get(search_group)
     if product:
         return product.label
