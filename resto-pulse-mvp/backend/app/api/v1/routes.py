@@ -2363,10 +2363,6 @@ from app.api.v1.foodcast_routes import router as foodcast_router
 
 router.include_router(foodcast_router)
 
-from app.api.v1.discover_routes import router as discover_router
-
-router.include_router(discover_router)
-
 
 @router.post("/internal/cron/panel-notifications")
 async def cron_panel_notifications(
@@ -2405,20 +2401,6 @@ def cron_gourmet_trivia(
     from app.services.gourmet_trivia import process_trivia_tick
 
     stats = process_trivia_tick(db)
-    return {"ok": True, "stats": stats}
-
-
-@router.post("/internal/cron/social-proof-worker")
-def cron_social_proof_worker(
-    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
-    db: Session = Depends(get_db),
-):
-    expected = settings.cron_secret
-    if not expected or x_cron_secret != expected:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
-    from app.services.social_proof_worker import process_pending_social_proof_jobs
-
-    stats = process_pending_social_proof_jobs(db, limit=5)
     return {"ok": True, "stats": stats}
 
 

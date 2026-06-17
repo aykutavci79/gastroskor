@@ -84,9 +84,6 @@ class User(Base):
     )
     push_tokens: Mapped[list["UserPushToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     notifications: Mapped[list["UserNotification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    eglence_results: Mapped[list["UserEglenceResult"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
     gourmet_chat_questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="author")
     gourmet_chat_answers: Mapped[list["GourmetChatAnswer"]] = relationship(back_populates="author")
     gourmet_chat_messages: Mapped[list["GourmetChatMessage"]] = relationship(back_populates="author")
@@ -275,26 +272,6 @@ class UserNotification(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
 
     user: Mapped["User"] = relationship(back_populates="notifications")
-
-
-class UserEglenceResult(Base):
-    __tablename__ = "user_eglence_results"
-    __table_args__ = (
-        UniqueConstraint("user_id", "game", "period_key", name="uq_user_eglence_period"),
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    game: Mapped[str] = mapped_column(String(32), index=True)
-    period_key: Mapped[str] = mapped_column(String(32), index=True)
-    elapsed_ms: Mapped[int | None] = mapped_column(Integer)
-    score: Mapped[int | None] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-
-    user: Mapped["User"] = relationship(back_populates="eglence_results")
 
 
 class Restaurant(Base):
@@ -1327,71 +1304,4 @@ class FoodcastPhotoReport(Base):
 
     photo: Mapped["FoodcastPhoto"] = relationship(back_populates="reports")
     reporter: Mapped["User | None"] = relationship()
-
-
-class SocialProofJob(Base):
-    __tablename__ = "social_proof_jobs"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    cache_key: Mapped[str] = mapped_column(String(64), index=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    query: Mapped[str] = mapped_column(Text)
-    lat: Mapped[float | None] = mapped_column(Float)
-    lng: Mapped[float | None] = mapped_column(Float)
-    radius_km: Mapped[float] = mapped_column(Float, default=30.0)
-    city: Mapped[str | None] = mapped_column(String(120))
-    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
-    progress_pct: Mapped[int] = mapped_column(Integer, default=0)
-    error_message: Mapped[str | None] = mapped_column(Text)
-    cold_scan: Mapped[bool] = mapped_column(Boolean, default=True)
-    places_snapshot_json: Mapped[list | None] = mapped_column(JSONB, default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-    user: Mapped["User"] = relationship()
-    mentions: Mapped[list["SocialMention"]] = relationship(back_populates="job", cascade="all, delete-orphan")
-
-
-class SocialProofCache(Base):
-    __tablename__ = "social_proof_cache"
-
-    cache_key: Mapped[str] = mapped_column(String(64), primary_key=True)
-    query_normalized: Mapped[str] = mapped_column(String(500))
-    lat_bucket: Mapped[float | None] = mapped_column(Float)
-    lng_bucket: Mapped[float | None] = mapped_column(Float)
-    radius_km: Mapped[float] = mapped_column(Float, default=30.0)
-    mode: Mapped[str] = mapped_column(String(20), default="trend")
-    status: Mapped[str] = mapped_column(String(24), default="ready")
-    payload_json: Mapped[dict] = mapped_column(JSONB, default=dict)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-
-
-class SocialMention(Base):
-    __tablename__ = "social_mentions"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("social_proof_jobs.id", ondelete="CASCADE"), index=True
-    )
-    cache_key: Mapped[str] = mapped_column(String(64), index=True)
-    platform: Mapped[str] = mapped_column(String(20))
-    author_hash: Mapped[str] = mapped_column(String(64), index=True)
-    matched_place_id: Mapped[str | None] = mapped_column(String(255), index=True)
-    matched_restaurant_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="SET NULL"), index=True
-    )
-    mention_text: Mapped[str] = mapped_column(Text)
-    source_url: Mapped[str | None] = mapped_column(String(1024))
-    sentiment: Mapped[str | None] = mapped_column(String(20))
-    sentiment_score: Mapped[float | None] = mapped_column(Float)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-
-    job: Mapped["SocialProofJob"] = relationship(back_populates="mentions")
-    restaurant: Mapped["Restaurant | None"] = relationship()
 

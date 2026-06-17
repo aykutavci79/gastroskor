@@ -19,21 +19,11 @@ import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
 import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
 import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBanner';
 import { RestaurantCard } from '@/components/RestaurantCard';
-import { SocialProofScanBanner } from '@/components/SocialProofScanBanner';
 import { Screen } from '@/components/ui/Screen';
 import { GastroStyles } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
-import { useSession } from '@/context/session-context';
 import { useGastroTheme } from '@/context/theme-context';
-import { getDiscoverJob, getSocialOverlay, requestSocialScan, searchLivePlaces } from '@/lib/api';
-import {
-  lookupSocialResult,
-  pollDiscoverSocialJob,
-  socialBadgeLabel,
-  sortLivePlacesBySocialProof,
-  socialResultsIndex,
-  type SocialResultsIndex,
-} from '@/lib/discover-social';
+import { searchLivePlaces } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import {
   livePlaceDistanceLabel,
@@ -53,17 +43,12 @@ import type {
   LivePlaceSearchItem,
   ParsedSearchIntent,
   RestaurantListItem,
-  SocialProofStatus,
-  SocialProofVenueResult,
 } from '@/lib/types';
 
 type Coords = { lat: number; lng: number };
 
-const EMPTY_SOCIAL_INDEX: SocialResultsIndex = { byPlaceId: new Map(), byName: new Map() };
-
 export default function ExploreScreen() {
   const { city, cityLabel } = useCity();
-  const { user } = useSession();
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createExploreStyles(colors), [colors]);
   const navigation = useNavigation();
@@ -83,16 +68,6 @@ export default function ExploreScreen() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [socialStatus, setSocialStatus] = useState<SocialProofStatus | null>(null);
-  const [socialByPlace, setSocialByPlace] = useState<SocialResultsIndex>({
-    byPlaceId: new Map(),
-    byName: new Map(),
-  });
-  const pollTokenRef = useRef(0);
-  const lastSearchQueryRef = useRef('');
-  const socialSortModeRef = useRef(false);
-  const [socialScanLoading, setSocialScanLoading] = useState(false);
-  const [socialSortActive, setSocialSortActive] = useState(false);
 
   const trimmedQuery = inputQuery.trim();
   const searchMode = trimmedQuery.length >= 2;
@@ -107,11 +82,6 @@ export default function ExploreScreen() {
     setLiveParsed(null);
     setActiveKitchenSlug(null);
     setError(null);
-    setSocialStatus(null);
-    setSocialByPlace(EMPTY_SOCIAL_INDEX);
-    socialSortModeRef.current = false;
-    setSocialSortActive(false);
-    pollTokenRef.current += 1;
   }, []);
 
   const kitchenBrowseMode = activeKitchenSlug != null && !searchMode;
@@ -167,114 +137,37 @@ export default function ExploreScreen() {
     await ensureCoords();
   }, [ensureCoords]);
 
-  const pollSocialJob = useCallback((jobId: string, pollToken: number) => {
-    void pollDiscoverSocialJob(
-      jobId,
-      (tick) => {
-        if (pollTokenRef.current !== pollToken) return;
-        setSocialStatus(tick);
-        if (tick.results?.length) {
-          const index = socialResultsIndex(tick.results);
-          setSocialByPlace(index);
-          if (socialSortModeRef.current) {
-            setSearchItems((prev) => {
-              if (!prev.length) return prev;
-              const ordered = sortLivePlacesBySocialProof(prev, index);
-              setSearchCards(ordered.map(livePlaceToRestaurantCard));
-              return ordered;
-            });
-          }
-        }
-      },
-      async (id) => {
-        const payload = await getDiscoverJob(id);
-        return { social: payload.social, status: payload.status };
-      },
-    ).then((finalSocial) => {
-      if (pollTokenRef.current !== pollToken) return;
-      setSocialStatus(finalSocial);
-      if (finalSocial.results?.length) {
-        const index = socialResultsIndex(finalSocial.results);
-        setSocialByPlace(index);
-        if (socialSortModeRef.current) {
-          setSearchItems((prev) => {
-            if (!prev.length) return prev;
-            const ordered = sortLivePlacesBySocialProof(prev, index);
-            setSearchCards(ordered.map(livePlaceToRestaurantCard));
-            return ordered;
-          });
-        }
-      }
-    });
-  }, []);
-
   const loadSearchResults = useCallback(async (query: string) => {
     const q = polishVoiceSearchTranscript(query);
-    lastSearchQueryRef.current = q;
     if (q.length < 2) {
       setSearchItems([]);
       setSearchCards([]);
       setLiveParsed(null);
       setError(null);
-    setSocialStatus(null);
-    setSocialByPlace(EMPTY_SOCIAL_INDEX);
-    socialSortModeRef.current = false;
-    setSocialSortActive(false);
-    return;
+      return;
     }
-
-    const pollToken = pollTokenRef.current + 1;
-    pollTokenRef.current = pollToken;
 
     setLoadingSearch(true);
     setError(null);
-    setSocialStatus(null);
-    setSocialByPlace(EMPTY_SOCIAL_INDEX);
-    socialSortModeRef.current = false;
-    setSocialSortActive(false);
     try {
       await refreshCoordsIfStale();
       const coords = (await ensureCoords()) ?? coordsRef.current;
-
-      let itemsForVoice: LivePlaceSearchItem[] = [];
-
-      const [result, socialOverlay] = await Promise.all([
-        searchLivePlaces({
-          q,
-          city,
-          limit: 20,
-          origin_lat: coords?.lat,
-          origin_lng: coords?.lng,
-        }),
-        getSocialOverlay({ query: q, city }).catch(() => null),
-      ]);
-
-      itemsForVoice = result.items;
+      const result = await searchLivePlaces({
+        q,
+        city,
+        limit: 20,
+        origin_lat: coords?.lat,
+        origin_lng: coords?.lng,
+      });
       setSearchItems(result.items);
       setSearchCards(result.items.map(livePlaceToRestaurantCard));
       setLiveParsed(result.parsed);
-
-      if (pollTokenRef.current === pollToken && socialOverlay) {
-        setSocialStatus(socialOverlay);
-        if (socialOverlay.results?.length) {
-          setSocialByPlace(socialResultsIndex(socialOverlay.results));
-        } else {
-          setSocialByPlace(EMPTY_SOCIAL_INDEX);
-        }
-        if (
-          socialOverlay.job_id &&
-          (socialOverlay.status === 'scanning' || socialOverlay.status === 'pending')
-        ) {
-          pollSocialJob(socialOverlay.job_id, pollToken);
-        }
-      }
-
       if (voiceSearchAnnounceRef.current) {
         voiceSearchAnnounceRef.current = false;
         await ensureGastroPlaybackReady();
         gastroSpeakVoiceSearchResults(
-          itemsForVoice.length,
-          itemsForVoice.slice(0, 3).map((item) => ({
+          result.items.length,
+          result.items.slice(0, 3).map((item) => ({
             name: item.name,
             rating: item.rating,
             distanceMeters: item.distance_meters,
@@ -293,38 +186,7 @@ export default function ExploreScreen() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob]);
-
-  const handleRequestSocialScan = useCallback(async () => {
-    const q = lastSearchQueryRef.current.trim();
-    if (q.length < 2 || socialScanLoading) return;
-    const pollToken = pollTokenRef.current;
-    socialSortModeRef.current = true;
-    setSocialSortActive(true);
-    setSocialScanLoading(true);
-    setError(null);
-    try {
-      const { data } = await requestSocialScan({ query: q, city });
-      if (pollTokenRef.current !== pollToken) return;
-      setSocialStatus(data);
-      if (data.job_id && (data.status === 'scanning' || data.status === 'pending')) {
-        pollSocialJob(data.job_id, pollToken);
-      } else if (data.results?.length) {
-        const index = socialResultsIndex(data.results);
-        setSocialByPlace(index);
-        setSearchItems((prev) => {
-          if (!prev.length) return prev;
-          const ordered = sortLivePlacesBySocialProof(prev, index);
-          setSearchCards(ordered.map(livePlaceToRestaurantCard));
-          return ordered;
-        });
-      }
-    } catch (err) {
-      setError(formatApiError(err, 'Sosyal tarama'));
-    } finally {
-      setSocialScanLoading(false);
-    }
-  }, [city, pollSocialJob, socialScanLoading]);
+  }, [refreshCoordsIfStale, ensureCoords, city]);
 
   const loadKitchenResults = useCallback(
     async (slug: string) => {
@@ -458,7 +320,6 @@ export default function ExploreScreen() {
         onDismiss={dismissKeyboard}
         searchInputRef={searchInputRef}
         searchFocused={searchFocused}
-        showReviewTicker={!listMode && !searchFocused}
       />
     </View>
   );
@@ -471,13 +332,6 @@ export default function ExploreScreen() {
           <Text style={styles.kitchenSub}>GastroSkor sıralı · {cityLabel}</Text>
         </View>
       ) : null}
-      <SocialProofScanBanner
-        social={socialStatus}
-        loggedIn={Boolean(user)}
-        scanLoading={socialScanLoading}
-        socialSortActive={socialSortActive}
-        onRequestScan={handleRequestSocialScan}
-      />
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.error}>{error}</Text>
@@ -496,7 +350,6 @@ export default function ExploreScreen() {
       ) : (
         searchCards.map((r, index) => {
           const liveItem = searchItems[index];
-          const socialRow = liveItem ? lookupSocialResult(socialByPlace, liveItem) : undefined;
           const detailHref = restaurantDetailHref({
             id: r.id,
             restaurant_id: r.restaurant_id,
@@ -519,7 +372,6 @@ export default function ExploreScreen() {
               googleRating={r.google_rating}
               googleReviewCount={r.google_review_count}
               distanceLabel={liveItem ? livePlaceDistanceLabel(liveItem) : undefined}
-              cornerBadge={socialBadgeLabel(socialRow?.badge)}
               href={detailHref}
             />
           );

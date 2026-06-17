@@ -1,18 +1,20 @@
-"""Sorgu-mekan alaka filtresi — yanlis yemek isimlerini ele, yerel favorileri koru."""
+"""Sorgu-mekan alaka filtresi — yemek niyetine uymayan adaylari listeden cikar."""
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 
-from app.constants.city_dish_favorites import local_favorite_sort_priority, venue_matches_local_favorite
 from app.constants.voice_product_catalog import (
     EXCLUDE_MARKERS_BY_INTENT,
     RELEVANCE_FILTER_DISABLED_GROUPS,
     _normalize_query,
+    get_voice_product,
+    infer_voice_product_slug_from_menu_name,
     resolve_voice_search_token,
 )
 from app.schemas.live_places import LivePlaceSearchItem
+from app.schemas.restaurant import RestaurantMenuItemPublic
 from app.services.query_parser import parse_search_query
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,9 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class PlaceRelevanceIntent:
     search_group: str
+    allowed_slugs: frozenset[str]
     exclude_markers: frozenset[str]
+    allowed_name_keys: frozenset[str]
 
 
 @dataclass(frozen=True)
@@ -30,7 +34,19 @@ class PlaceRelevanceFilterResult:
     enabled: bool
     dropped_count: int
     fallback: bool
-    mode: str
+
+
+def _name_keys_for_slugs(slugs: frozenset[str]) -> frozenset[str]:
+    keys: set[str] = set()
+    for slug in slugs:
+        product = get_voice_product(slug)
+        if product is None:
+            continue
+        for candidate in (product.slug, product.search_group, *product.aliases):
+            folded = _normalize_query(candidate)
+            if len(folded) >= 3:
+                keys.add(folded)
+    return frozenset(keys)
 
 
 def resolve_place_relevance_intent(query: str) -> PlaceRelevanceIntent | None:
@@ -46,9 +62,23 @@ def resolve_place_relevance_intent(query: str) -> PlaceRelevanceIntent | None:
     if token in RELEVANCE_FILTER_DISABLED_GROUPS:
         return None
 
+    allowed = frozenset(slugs)
     exclude_raw = EXCLUDE_MARKERS_BY_INTENT.get(token, ())
     exclude_markers = frozenset(_normalize_query(marker) for marker in exclude_raw if marker.strip())
-    return PlaceRelevanceIntent(search_group=token, exclude_markers=exclude_markers)
+    return PlaceRelevanceIntent(
+        search_group=token,
+        allowed_slugs=allowed,
+        exclude_markers=exclude_markers,
+        allowed_name_keys=_name_keys_for_slugs(allowed),
+    )
+
+
+def _menu_preview_matches(intent: PlaceRelevanceIntent, menu_preview: list[RestaurantMenuItemPublic]) -> bool:
+    for row in menu_preview:
+        slug = infer_voice_product_slug_from_menu_name(row.name)
+        if slug and slug in intent.allowed_slugs:
+            return True
+    return False
 
 
 def _compact_fold(value: str) -> str:
@@ -65,9 +95,9 @@ def _compact_contains(haystack: str, needle: str) -> bool:
 def venue_matches_relevance_intent(
     *,
     name: str,
+    menu_preview: list[RestaurantMenuItemPublic],
     intent: PlaceRelevanceIntent,
 ) -> bool:
-    """Negatif-only: bilinen yanlis yemek adlari disinda herkesi tut."""
     folded_name = _normalize_query(name)
     if len(folded_name) < 2:
         return False
@@ -75,7 +105,12 @@ def venue_matches_relevance_intent(
     for marker in intent.exclude_markers:
         if marker and _compact_contains(folded_name, marker):
             return False
-    return True
+
+    for key in intent.allowed_name_keys:
+        if _compact_contains(folded_name, key):
+            return True
+
+    return _menu_preview_matches(intent, menu_preview)
 
 
 def apply_place_relevance_filter(
@@ -85,17 +120,15 @@ def apply_place_relevance_filter(
 ) -> PlaceRelevanceFilterResult:
     intent = resolve_place_relevance_intent(query)
     if intent is None:
-        return PlaceRelevanceFilterResult(
-            items=items,
-            enabled=False,
-            dropped_count=0,
-            fallback=False,
-            mode="off",
-        )
+        return PlaceRelevanceFilterResult(items=items, enabled=False, dropped_count=0, fallback=False)
 
     kept: list[LivePlaceSearchItem] = []
     for item in items:
-        if venue_matches_relevance_intent(name=item.name, intent=intent):
+        if venue_matches_relevance_intent(
+            name=item.name,
+            menu_preview=item.menu_preview,
+            intent=intent,
+        ):
             kept.append(item)
 
     dropped_count = len(items) - len(kept)
@@ -111,7 +144,6 @@ def apply_place_relevance_filter(
             enabled=True,
             dropped_count=dropped_count,
             fallback=True,
-            mode="negative_only",
         )
 
     return PlaceRelevanceFilterResult(
@@ -119,12 +151,4 @@ def apply_place_relevance_filter(
         enabled=True,
         dropped_count=dropped_count,
         fallback=False,
-        mode="negative_only",
     )
-
-
-def local_favorite_rank_key(*, name: str, city: str | None, search_group: str | None) -> int:
-    """Siralama: yerel favori onceligi (dusuk=onde). Eslesme yoksa 999."""
-    if not city or not search_group:
-        return 999
-    return local_favorite_sort_priority(name=name, city=city, search_group=search_group)

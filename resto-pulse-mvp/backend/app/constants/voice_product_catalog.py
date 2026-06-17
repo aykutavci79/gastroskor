@@ -98,29 +98,14 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         slug="adana-kebap",
         label="Adana Kebap",
         search_group="adana-kebap",
-        aliases=(
-            "adana",
-            "adana kebap",
-            "adana kebabi",
-            "adana kebab",
-            "en iyi adana kebap",
-            "meshur adana kebabi",
-            "meshur adana kebapcisi",
-        ),
+        aliases=("adana", "adana kebap", "adana kebabi"),
         sort_order=40,
     ),
     VoiceProduct(
         slug="urfa-kebap",
         label="Urfa Kebap",
         search_group="urfa-kebap",
-        aliases=(
-            "urfa",
-            "urfa kebap",
-            "urfa kebabi",
-            "urfa kebab",
-            "en iyi urfa kebap",
-            "meshur urfa kebapcisi",
-        ),
+        aliases=("urfa", "urfa kebap", "urfa kebabi"),
         sort_order=41,
     ),
     VoiceProduct(
@@ -141,45 +126,21 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
         slug="tepsi-kebap",
         label="Tepsi Kebap",
         search_group="tepsi-kebap",
-        aliases=(
-            "tepsi kebap",
-            "tepsi kebabi",
-            "tepsi kebabı",
-            "en iyi tepsi kebap",
-            "meshur tepsi kebapcisi",
-        ),
+        aliases=("tepsi kebap", "tepsi kebabi", "tepsi kebabı", "tepsi kebabi"),
         sort_order=55,
     ),
     VoiceProduct(
         slug="pideli-kofte",
         label="Pideli Kofte",
         search_group="pideli-kofte",
-        aliases=(
-            "pideli kofte",
-            "pideli köfte",
-            "pideli koftesi",
-            "bursa pideli kofte",
-            "meshur pideli kofteci",
-        ),
+        aliases=("pideli kofte", "pideli köfte", "pideli koftesi"),
         sort_order=56,
     ),
     VoiceProduct(
         slug="iskender",
         label="Iskender",
         search_group="iskender",
-        aliases=(
-            "iskender",
-            "iskender kebap",
-            "iskender kebab",
-            "iskender kebabı",
-            "iskender kebabi",
-            "bursa kebab",
-            "bursa kebabi",
-            "bursa kebabı",
-            "uludag kebabi",
-            "iskender doner",
-            "bursa doner",
-        ),
+        aliases=("iskender", "iskender kebap", "iskender kebabı", "iskender kebabi"),
         sort_order=60,
     ),
     VoiceProduct(
@@ -206,64 +167,9 @@ VOICE_PRODUCTS: tuple[VoiceProduct, ...] = (
     VoiceProduct(
         slug="kadayif",
         label="Kadayif",
-        search_group="inegol-sutlu-kadayif",
-        aliases=(
-            "kadayif",
-            "kadayifi",
-            "sutlu kadayif",
-            "inegol sutlu kadayif",
-            "kadayif tatlisi",
-        ),
+        search_group="kadayif",
+        aliases=("kadayif", "kadayifi", "sutlu kadayif", "kadayif tatlisi"),
         sort_order=73,
-    ),
-    VoiceProduct(
-        slug="inegol-kofte",
-        label="Inegol Kofte",
-        search_group="inegol-kofte",
-        aliases=("inegol kofte", "inegol koftesi", "meshur inegol kofteci"),
-        sort_order=74,
-    ),
-    VoiceProduct(
-        slug="kemalpasa-tatlisi",
-        label="Kemalpasa Tatlisi",
-        search_group="kemalpasa-tatlisi",
-        aliases=("kemalpasa tatlisi", "kemalpasa tatlısı", "mustafakemalpasa tatlisi"),
-        sort_order=75,
-    ),
-    VoiceProduct(
-        slug="hinkali",
-        label="Hinkali",
-        search_group="hinkali",
-        aliases=("hinkali", "hınkalı", "zeyniler hinkali"),
-        sort_order=76,
-    ),
-    VoiceProduct(
-        slug="inegol-buryani",
-        label="Inegol Buryani",
-        search_group="inegol-buryani",
-        aliases=("inegol buryani", "misori", "inegol misori"),
-        sort_order=77,
-    ),
-    VoiceProduct(
-        slug="cevizli-lokum",
-        label="Cevizli Lokum",
-        search_group="cevizli-lokum",
-        aliases=("cevizli lokum", "bursa cevizli lokum"),
-        sort_order=78,
-    ),
-    VoiceProduct(
-        slug="sut-helvasi",
-        label="Sut Helvasi",
-        search_group="sut-helvasi",
-        aliases=("sut helvasi", "süt helvası", "bursa sut helvasi"),
-        sort_order=79,
-    ),
-    VoiceProduct(
-        slug="piyaz",
-        label="Piyaz",
-        search_group="piyaz",
-        aliases=("piyaz", "inegol piyazi", "inegol piyaz"),
-        sort_order=80,
     ),
 )
 
@@ -281,10 +187,6 @@ EXCLUDE_MARKERS_BY_INTENT: dict[str, tuple[str, ...]] = {
         "cantik",
         "cantık",
         "tepsi kebap",
-        "doner",
-        "döner",
-        "durum",
-        "dürüm",
     ),
     "lahmacun": (
         "iskender",
@@ -493,10 +395,6 @@ def _group_label(search_group: str) -> str:
         return "Tepsi Kebap"
     if search_group == "pideli-kofte":
         return "Pideli Kofte"
-    if search_group == "inegol-kofte":
-        return "Inegol Kofte"
-    if search_group == "inegol-sutlu-kadayif":
-        return "Sutlu Kadayif"
     product = _BY_SLUG.get(search_group)
     if product:
         return product.label
