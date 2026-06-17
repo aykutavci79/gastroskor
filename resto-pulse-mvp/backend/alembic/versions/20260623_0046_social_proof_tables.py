@@ -1,7 +1,7 @@
 """Social proof jobs, cache, mentions
 
 Revision ID: 20260623_0046
-Revises: 20260621_0044
+Revises: 20260622_0045
 """
 
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "20260623_0046"
-down_revision = "20260621_0044"
+down_revision = "20260622_0045"
 branch_labels = None
 depends_on = None
 
