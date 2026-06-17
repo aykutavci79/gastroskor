@@ -4,6 +4,20 @@ import type { SocialProofStatus, SocialProofVenueResult } from '@/lib/types';
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_MS = 90_000;
 
+// Rozet gosterim tabani (backend social_proof_min_* ile ayni mantik).
+// Cache taze olsa bile guncel Google puani/yorumu bu esiklerin altinaysa rozet gizlenir.
+const SOCIAL_DISPLAY_MIN_RATING = 4.0;
+const SOCIAL_DISPLAY_MIN_REVIEWS = 1000;
+
+export function socialItemEligible(item: {
+  rating?: number | null;
+  user_ratings_total?: number | null;
+}): boolean {
+  if ((item.user_ratings_total ?? 0) < SOCIAL_DISPLAY_MIN_REVIEWS) return false;
+  if ((item.rating ?? 0) < SOCIAL_DISPLAY_MIN_RATING) return false;
+  return true;
+}
+
 const SOCIAL_BADGE_RANK: Record<string, number> = {
   yüksek: 3,
   orta: 2,
@@ -20,8 +34,8 @@ export function sortLivePlacesBySocialProof(
   index: SocialResultsIndex,
 ): LivePlaceSearchItem[] {
   return [...items].sort((a, b) => {
-    const sa = lookupSocialResult(index, a);
-    const sb = lookupSocialResult(index, b);
+    const sa = socialItemEligible(a) ? lookupSocialResult(index, a) : undefined;
+    const sb = socialItemEligible(b) ? lookupSocialResult(index, b) : undefined;
     const badgeDiff = socialBadgeRank(sb?.badge) - socialBadgeRank(sa?.badge);
     if (badgeDiff !== 0) return badgeDiff;
     const scoreDiff = (sb?.final_score ?? 0) - (sa?.final_score ?? 0);
@@ -29,7 +43,6 @@ export function sortLivePlacesBySocialProof(
     return (b.gastro_score ?? 0) - (a.gastro_score ?? 0);
   });
 }
-const MAX_POLL_MS = 90_000;
 
 export function socialBadgeLabel(badge: string | undefined): string | null {
   if (!badge) return null;

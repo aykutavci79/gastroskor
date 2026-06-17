@@ -43,6 +43,25 @@ def distance_multiplier_km(distance_km: float | None) -> float:
     return 0.0
 
 
+def venue_meets_social_floor(
+    *,
+    rating: float | None,
+    user_ratings_total: int | None,
+    min_rating: float,
+    min_reviews: int,
+) -> bool:
+    """Rozet uygunluk tabani: az taninan veya puani dusuk mekan sosyal kanit alamaz.
+
+    - Google yorum sayisi < min_reviews → cok niche/yeni, sosyal listede yer yok.
+    - Google puani < min_rating → sentiment ne olursa olsun rozet gosterme.
+    """
+    if (user_ratings_total or 0) < min_reviews:
+        return False
+    if (rating or 0.0) < min_rating:
+        return False
+    return True
+
+
 def badge_for_venue(*, n_total: int, wilson: float, platform_count: int) -> str | None:
     """Rozet: cok kaynak + yeterli mention; ince veri None."""
     if n_total < MIN_MENTIONS_FOR_BADGE:

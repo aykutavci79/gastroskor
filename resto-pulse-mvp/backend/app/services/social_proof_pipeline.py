@@ -25,6 +25,7 @@ from app.services.social_proof_wilson import (
     badge_for_venue,
     final_score_for_venue,
     is_insufficient_data,
+    venue_meets_social_floor,
     wilson_lower_bound,
 )
 
@@ -224,9 +225,21 @@ def run_social_proof_pipeline(
     job.progress_pct = 5
     db.flush()
 
-    candidates = places_to_candidates(places)
-    queries = build_scan_queries(user_query=job.query, city=job.city, places=places)
-    place_names = [item.name for item in places if item.name]
+    # Rozet uygunluk tabani: az taninan / dusuk puanli mekanlar sosyal kanit adayligindan cikar.
+    eligible_places = [
+        item
+        for item in places
+        if venue_meets_social_floor(
+            rating=item.rating,
+            user_ratings_total=item.user_ratings_total,
+            min_rating=settings.social_proof_min_rating,
+            min_reviews=settings.social_proof_min_reviews,
+        )
+    ]
+
+    candidates = places_to_candidates(eligible_places)
+    queries = build_scan_queries(user_query=job.query, city=job.city, places=eligible_places)
+    place_names = [item.name for item in eligible_places if item.name]
     job.progress_pct = 15
     db.flush()
 
@@ -249,7 +262,7 @@ def run_social_proof_pipeline(
     db.flush()
 
     results, insufficient = build_venue_results(
-        items=places,
+        items=eligible_places,
         sentiments=sentiments,
         origin_lat=job.lat,
         origin_lng=job.lng,

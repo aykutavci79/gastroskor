@@ -5,7 +5,7 @@
 > bolme onayli; kullaniciyi fazlarla bunaltma, sadece siradaki 1-2 adimi soyle.
 > **"kral selam"** derse once asagidaki **Yarin backlog** bolumune bak.
 
-Son guncelleme: 6 Haziran 2026
+Son guncelleme: 17 Haziran 2026
 
 ## Yarin backlog (EAS build tek seferde — quota koru)
 
@@ -187,7 +187,58 @@ Acilis sehirleri: **Istanbul (hacim) + Bursa (yerel tohum)**; tek sehirle sinirl
 3. Native Google Sign-In (store build icin, Faz B)
 4. EAS production submit (her iki platform, onay sonrasi)
 
-## Topluluk kurallari (moderasyon)
+## Yapilacaklar backlog (acele degil — Haziran 2026)
+
+### Mac lokal build (EAS cloud yerine / ucretsiz)
+
+> **Soru:** Expo kullanmadan build alabilir miyiz? MacBook var.
+
+- **Kisa cevap:** Uygulama Expo SDK ile yazildi; **Expo'yu tamamen atlayamazsin** ama **EAS cloud (ucretli kota) sart degil** — Mac'te lokal build bedava.
+- **Yol 1 (en kolay):** `eas build --profile production --platform ios --local` (veya android) — EAS CLI kullanir ama build **senin Mac'inde** calisir, cloud dakikasi yemez.
+- **Yol 2 (tam native):** `npx expo prebuild` → `ios/` + `android/` → **Xcode Archive** (iOS) / `gradlew bundleRelease` (Android). `mobile/eas.json` ve `app.config.js` ayni kalir.
+- **Hala gerekli:** Apple Developer **$99/yil** (TestFlight/App Store), Google Play **$25** tek sefer. Sertifika/provisioning Xcode veya `eas credentials` ile.
+- **Arti:** Sinirsiz build, hizli iterasyon, cloud kuyruk yok.
+- **Eksi:** CI otomasyonu sende; her gelistirici Mac + Xcode kurulumu; ilk kez sertifika ayari can sıkıcı.
+- **Oneri:** iOS icin Mac + `--local` veya Xcode; Android icin Mac'te de alinir ama EAS cloud da makul. `mobile/STORE.md` + `APP_LINKS.md` ile birlikte bir kez dokumante edelim.
+
+- [ ] `mobile/docs/LOCAL_BUILD_MAC.md` — prebuild, Xcode Archive, TestFlight yukleme adimlari
+- [ ] `package.json` script: `build:ios:local` / `build:android:local` (`eas build --local`)
+- [ ] Ilk deneme: **preview** profili ile iOS `.ipa` veya Android APK
+
+### Sosyal kanit rozeti — tazelik & uygunluk (yapildi 18 Haz)
+
+- **TTL 7 gun:** `social_proof_cache_ttl_hours=168` — sentiment yavas degisir, maliyet/tazelik dengesi. On-demand tembel yenileme korunur (sürekli tarama yok).
+- **Yorum sayisi tabani:** `social_proof_min_reviews=1000` — az taninan mekan (or. 45 yorumlu 4.9) sosyal kanit listesine giremez. Tarama aninda `build_venue_results` filtreler.
+- **Google puan kapisi:** `social_proof_min_rating=4.0` — puan altina duserse rozet gizlenir. Iki katman:
+  - Tarama aninda (backend pipeline)
+  - Gosterim aninda (frontend `socialItemEligible` — cache taze olsa bile guncel Google puani dususe rozet kaybolur; bedava, her render'da)
+- **Acik kalan:** esikler env ile ayarlanabilir; gercek Bursa iskender taramasinda mention sayisi gorulunce `social_proof_min_*` ve Wilson esikleri ince ayar.
+
+### GA4 — custom event'ler (web)
+
+> **Durum:** Sadece otomatik `page_view` / `session_start` geliyor; aksiyon event'i yok.
+> **Kurulum:** `frontend/components/GoogleAnalytics.tsx` (`NEXT_PUBLIC_GA_MEASUREMENT_ID`, `gtag` + `page_path` config).
+
+**Hedef dosyalar (implementasyonda):**
+
+| Aksiyon | Dosya / bilesen | Onerilen event |
+|---------|-----------------|----------------|
+| Anasayfa / sehir arama kutusu | `HomePageContent.tsx` → `LivePlaceSearch.tsx` | `search` (`search_term`, `city`) |
+| Yol tarifi | `MapsDirectionsButton.tsx` | `restaurant_directions` |
+| Telefon ara | `LivePlaceDetailPanel.tsx` (`tel:`) | `restaurant_call` |
+| Menu goruntule | `RestaurantDetailView.tsx`, `RestaurantPublicMenu.tsx` | `restaurant_menu_view` |
+| Takip et / cik | `RestaurantFollowButton.tsx` | `restaurant_follow` / `restaurant_unfollow` |
+| (varsa) GS detay diger CTA'lar | `RestaurantDetailView.tsx`, `LivePlaceDetailPanel.tsx` | `restaurant_*` |
+
+**Parametreler (tum restoran event'lerinde):** `restaurant_id`, `restaurant_name`; canli Google mekanlari icin `place_id` / `source: google`.
+
+- [ ] `frontend/lib/analytics.ts` — `trackEvent(name, params)` helper (`gtag` yoksa no-op)
+- [ ] Restoran detay CTA'lara event bagla (yukaridaki tablo)
+- [ ] `LivePlaceSearch` submit'te `search` event (debounce / ilk anlamli arama)
+- [ ] GA4 DebugView ile dogrula; Vercel deploy sonrasi
+
+---
+
 
 - Kufur, argo → yorum **yayinlanmaz**; isaretli kelimeler kirmizi gosterilir
 - **Ban / strike yok** — isaretli kelimeler kirmizi; yorum yayinlanmaz

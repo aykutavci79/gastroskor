@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     social_proof_eksi_timeout_sec: float = 20.0
     social_proof_eksi_max_topics: int = 6
     social_proof_eksi_max_entries: int = 50
+    # Rozet tazeligi: sosyal sentiment yavas degisir → 7 gun cache yeterli (maliyet/tazelik dengesi)
+    social_proof_cache_ttl_hours: int = 168
+    # Rozet uygunluk tabani: az taninan mekan sosyal kanit listesine giremez
+    social_proof_min_reviews: int = 1000
+    # Google puani bu esigin altina duserse rozet gizlenir (sentiment ne olursa olsun)
+    social_proof_min_rating: float = 4.0
 
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False

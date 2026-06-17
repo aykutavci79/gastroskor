@@ -9,10 +9,12 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models import SocialProofCache
 from app.services.profanity_tr import normalize_review_text
 
-CACHE_TTL_HOURS = 48
+# Varsayilan; gercek deger settings.social_proof_cache_ttl_hours (7 gun).
+CACHE_TTL_HOURS = 168
 GEO_BUCKET_KM = 5.0
 MODE_TREND = "trend"
 
@@ -114,7 +116,8 @@ def write_social_proof_cache(
 ) -> SocialProofCache:
     now = datetime.now(timezone.utc)
     lat_b, lng_b = geo_bucket_5km(lat, lng)
-    ttl_hours = 6 if status == "insufficient_data" else CACHE_TTL_HOURS
+    fresh_ttl = settings.social_proof_cache_ttl_hours or CACHE_TTL_HOURS
+    ttl_hours = 6 if status == "insufficient_data" else fresh_ttl
     expires_at = now + timedelta(hours=ttl_hours)
     row = db.get(SocialProofCache, cache_key)
     if row is None:

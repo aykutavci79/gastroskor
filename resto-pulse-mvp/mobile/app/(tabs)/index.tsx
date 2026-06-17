@@ -30,6 +30,7 @@ import {
   lookupSocialResult,
   pollDiscoverSocialJob,
   socialBadgeLabel,
+  socialItemEligible,
   sortLivePlacesBySocialProof,
   socialResultsIndex,
   type SocialResultsIndex,
@@ -496,7 +497,10 @@ export default function ExploreScreen() {
       ) : (
         searchCards.map((r, index) => {
           const liveItem = searchItems[index];
-          const socialRow = liveItem ? lookupSocialResult(socialByPlace, liveItem) : undefined;
+          const socialRow =
+            liveItem && socialItemEligible(liveItem)
+              ? lookupSocialResult(socialByPlace, liveItem)
+              : undefined;
           const detailHref = restaurantDetailHref({
             id: r.id,
             restaurant_id: r.restaurant_id,

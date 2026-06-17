@@ -10,8 +10,40 @@ from app.services.social_proof_wilson import (
     distance_multiplier_km,
     final_score_for_venue,
     is_insufficient_data,
+    venue_meets_social_floor,
     wilson_lower_bound,
 )
+
+
+def test_social_floor_excludes_low_review_and_low_rating():
+    # 45 yorumlu 4.9 puanli yer (Kucuk Saray senaryosu) → sosyal kanit alamaz
+    assert (
+        venue_meets_social_floor(
+            rating=4.9, user_ratings_total=77, min_rating=4.0, min_reviews=1000
+        )
+        is False
+    )
+    # Binlerce yorum ama puan dustu (4.3 → 3.2) → rozet gizlenir
+    assert (
+        venue_meets_social_floor(
+            rating=3.2, user_ratings_total=5000, min_rating=4.0, min_reviews=1000
+        )
+        is False
+    )
+    # Cok yorumlu + yuksek puan → uygun
+    assert (
+        venue_meets_social_floor(
+            rating=4.6, user_ratings_total=12000, min_rating=4.0, min_reviews=1000
+        )
+        is True
+    )
+    # Sinir degerleri (esit kabul)
+    assert (
+        venue_meets_social_floor(
+            rating=4.0, user_ratings_total=1000, min_rating=4.0, min_reviews=1000
+        )
+        is True
+    )
 
 
 def test_wilson_lower_bound():

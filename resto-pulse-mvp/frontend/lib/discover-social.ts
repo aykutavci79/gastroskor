@@ -3,6 +3,20 @@ import type { SocialProofStatus, SocialProofVenueResult } from '@/lib/types';
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_MS = 90_000;
 
+// Rozet gosterim tabani (backend social_proof_min_* ile ayni mantik).
+// Cache taze olsa bile guncel Google puani/yorumu bu esiklerin altinaysa rozet gizlenir.
+const SOCIAL_DISPLAY_MIN_RATING = 4.0;
+const SOCIAL_DISPLAY_MIN_REVIEWS = 1000;
+
+export function socialItemEligible(item: {
+  rating?: number | null;
+  user_ratings_total?: number | null;
+}): boolean {
+  if ((item.user_ratings_total ?? 0) < SOCIAL_DISPLAY_MIN_REVIEWS) return false;
+  if ((item.rating ?? 0) < SOCIAL_DISPLAY_MIN_RATING) return false;
+  return true;
+}
+
 export function socialBadgeLabel(badge: string | undefined): string | null {
   if (!badge) return null;
   if (badge === 'yüksek') return 'Sosyal · yüksek';
