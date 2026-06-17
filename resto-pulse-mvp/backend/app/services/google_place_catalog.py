@@ -81,6 +81,37 @@ def search_catalog_places(
     return [_catalog_to_live_place(row) for row in rows]
 
 
+def search_catalog_by_name_patterns(
+    db: Session,
+    *,
+    city: str,
+    patterns: tuple[str, ...],
+    limit: int = 8,
+) -> list[LivePlaceResult]:
+    """Yerel favori mekanlari katalogdan isim desenleriyle bul."""
+    cleaned = [p.strip() for p in patterns if p and p.strip()]
+    if not cleaned:
+        return []
+
+    clauses = []
+    for pattern in cleaned:
+        folded = _normalize_name(pattern)
+        clauses.append(GooglePlaceCatalog.name.ilike(f"%{pattern}%"))
+        if folded and folded != pattern.lower():
+            clauses.append(GooglePlaceCatalog.name_normalized.ilike(f"%{folded}%"))
+
+    rows = db.scalars(
+        select(GooglePlaceCatalog)
+        .where(
+            GooglePlaceCatalog.city.ilike(f"%{city.strip()}%"),
+            or_(*clauses),
+        )
+        .order_by(GooglePlaceCatalog.rating.desc().nullslast(), GooglePlaceCatalog.seen_count.desc())
+        .limit(limit)
+    ).all()
+    return [_catalog_to_live_place(row) for row in rows]
+
+
 def _upsert_catalog_row(
     db: Session,
     *,
