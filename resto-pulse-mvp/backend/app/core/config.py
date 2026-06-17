@@ -113,6 +113,18 @@ class Settings(BaseSettings):
     gourmet_trivia_interval_sec: int = 180
     gourmet_trivia_answer_window_sec: int = 90
 
+    # Sosyal kanit (discover/search) — last30days + Groq sentiment
+    social_proof_groq_model: str = "llama-3.1-8b-instant"
+    social_proof_groq_timeout_sec: float = 30.0
+    social_proof_scan_timeout_sec: float = 120.0
+    social_proof_scan_mock: bool = False
+    social_proof_last30days_script: str | None = None
+    social_proof_last30days_python: str | None = None
+    social_proof_eksi_enabled: bool = True
+    social_proof_eksi_timeout_sec: float = 20.0
+    social_proof_eksi_max_topics: int = 6
+    social_proof_eksi_max_entries: int = 50
+
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False
 

@@ -7,6 +7,8 @@ import type {
   LivePlaceDetails,
   LivePlaceSearchItem,
   LivePlaceSearchResponse,
+  DiscoverSearchResponse,
+  SocialProofJobResponse,
   ReviewFilterState,
   CityTopResponse,
   NewMemberRestaurantsResponse,
@@ -54,7 +56,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
   } catch (err) {
     const raw = err instanceof Error ? err.message : 'Failed to fetch';
-    if (raw === 'Failed to fetch' || raw.includes('aborted') || raw.includes('timeout')) {
+    if (raw === 'Failed to fetch' || raw.includes('aborted') || raw.includes('timeout') || raw.includes('timed out')) {
       throw new Error(apiConnectionHint());
     }
     throw err;
@@ -301,6 +303,32 @@ export function searchLivePlaces(params: {
   if (params.distance_band) search.set('distance_band', params.distance_band);
   if (params.rating_band) search.set('rating_band', params.rating_band);
   return request<LivePlaceSearchResponse>(`/live/places/search?${search.toString()}`);
+}
+
+export function discoverSearch(params: {
+  query: string;
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+  city?: string;
+}) {
+  return request<DiscoverSearchResponse>('/discover/search', {
+    method: 'POST',
+    body: JSON.stringify({
+      query: params.query,
+      lat: params.lat ?? null,
+      lng: params.lng ?? null,
+      radius_km: params.radius_km ?? 30,
+      city: params.city?.trim() || null,
+    }),
+    signal: AbortSignal.timeout(45_000),
+  });
+}
+
+export function getDiscoverJob(jobId: string) {
+  return request<SocialProofJobResponse>(`/discover/jobs/${encodeURIComponent(jobId)}`, {
+    signal: AbortSignal.timeout(20_000),
+  });
 }
 
 export function getLivePlaceDetails(place_id: string, params?: { sort?: string; filter?: string }) {

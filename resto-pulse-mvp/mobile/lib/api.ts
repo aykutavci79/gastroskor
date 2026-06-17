@@ -17,6 +17,9 @@ import type {
   GourmetChatRoomListResponse,
   GourmetChatTag,
   LivePlaceSearchResponse,
+  DiscoverSearchResponse,
+  SocialProofJobResponse,
+  SocialProofStatus,
   LivePlaceDetails,
   PanelAccess,
   PanelDashboard,
@@ -50,29 +53,48 @@ import type {
 import { getApiV1Base } from '@/lib/api-base';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { notifyAuthFailure } from '@/lib/auth-session-events';
-import { authHeaders, refreshAuthTokens } from '@/lib/auth-token';
+import { authHeaders, ensureAccessToken, refreshAuthTokens } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 import { formatApiError, parseHttpErrorText } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
+import { setupSslPinning } from '@/lib/ssl-pinning';
 
 export { ReviewModerationApiError };
+
+const apiBootstrap = setupSslPinning();
+
+function isRetryableNetworkError(err: unknown): boolean {
+  return err instanceof TypeError && /network request failed/i.test(err.message);
+}
 
 function shouldAttemptAuthRefresh(path: string, status: number) {
   return status === 401 && !path.startsWith('/auth/');
 }
 
-async function performRequest(path: string, init?: RequestInit): Promise<Response> {
+async function performRequest(path: string, init?: RequestInit, attempt = 0): Promise<Response> {
+  await apiBootstrap;
+  await ensureAccessToken();
+
   const hasBody = init?.body != null;
   const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
-  return fetch(`${getApiV1Base()}${path}`, {
-    ...init,
-    headers: {
-      ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...authHeaders(),
-      ...(init?.headers ?? {}),
-    },
-    signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
-  });
+
+  try {
+    return await fetch(`${getApiV1Base()}${path}`, {
+      ...init,
+      headers: {
+        ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...authHeaders(),
+        ...(init?.headers ?? {}),
+      },
+      signal: createFetchTimeoutSignal(25_000, init?.signal ?? null),
+    });
+  } catch (err) {
+    if (attempt < 1 && isRetryableNetworkError(err)) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return performRequest(path, init, attempt + 1);
+    }
+    throw err;
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -619,6 +641,51 @@ export function registerPushToken(payload: {
   });
 }
 
+export function reportEglenceFriendActivity(payload: {
+  user_email: string;
+  game: 'mini_sudoku' | 'kelime_yarismasi';
+  elapsed_ms?: number;
+  score?: number;
+  puzzle_id?: string;
+}) {
+  return request<{ ok: boolean; notified_count: number }>('/social/me/eglence-activity', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: payload.user_email.trim().toLowerCase(),
+      game: payload.game,
+      elapsed_ms: payload.elapsed_ms,
+      score: payload.score,
+      puzzle_id: payload.puzzle_id,
+    }),
+  });
+}
+
+export function getEglenceLeaderboard(
+  userEmail: string,
+  game: 'mini_sudoku' | 'kelime_yarismasi',
+  periodKey: string,
+  scope: 'friends' | 'global' = 'friends',
+) {
+  const query = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+    game,
+    period_key: periodKey,
+    scope,
+  });
+  return request<import('@/lib/types').EglenceLeaderboardResponse>(
+    `/social/me/eglence-leaderboard?${query.toString()}`,
+  );
+}
+
+/** @deprecated use getEglenceLeaderboard */
+export function getEglenceFriendLeaderboard(
+  userEmail: string,
+  game: 'mini_sudoku' | 'kelime_yarismasi',
+  periodKey: string,
+) {
+  return getEglenceLeaderboard(userEmail, game, periodKey, 'friends');
+}
+
 export function listUserNotifications(userEmail: string, limit = 40) {
   const query = new URLSearchParams({
     user_email: userEmail.trim().toLowerCase(),
@@ -674,6 +741,63 @@ export function searchLivePlaces(params: {
   if (params.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
   if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
   return request<LivePlaceSearchResponse>(`/live/places/search?${search.toString()}`);
+}
+
+export function getSocialOverlay(params: { query: string; city?: string }) {
+  const search = new URLSearchParams();
+  search.set('query', params.query);
+  search.set('city', params.city?.trim() || 'Bursa');
+  return request<SocialProofStatus>(`/discover/social-overlay?${search.toString()}`);
+}
+
+export async function requestSocialScan(params: {
+  query: string;
+  city?: string;
+}): Promise<{ data: SocialProofStatus; status: number }> {
+  await apiBootstrap;
+  const response = await performRequest('/discover/social-scan', {
+    method: 'POST',
+    body: JSON.stringify({
+      query: params.query,
+      city: params.city?.trim() || null,
+    }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `API error ${response.status}`);
+  }
+  const data = (await response.json()) as SocialProofStatus;
+  return { data, status: response.status };
+}
+
+export async function discoverSearch(params: {
+  query: string;
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+  city?: string;
+}): Promise<{ data: DiscoverSearchResponse; status: number }> {
+  await apiBootstrap;
+  const response = await performRequest('/discover/search', {
+    method: 'POST',
+    body: JSON.stringify({
+      query: params.query,
+      lat: params.lat ?? null,
+      lng: params.lng ?? null,
+      radius_km: params.radius_km ?? 30,
+      city: params.city?.trim() || null,
+    }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `API error ${response.status}`);
+  }
+  const data = (await response.json()) as DiscoverSearchResponse;
+  return { data, status: response.status };
+}
+
+export function getDiscoverJob(jobId: string) {
+  return request<SocialProofJobResponse>(`/discover/jobs/${encodeURIComponent(jobId)}`);
 }
 
 export function getLivePlaceDetails(placeId: string) {

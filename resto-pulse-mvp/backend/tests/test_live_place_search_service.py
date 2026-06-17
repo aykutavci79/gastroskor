@@ -79,6 +79,7 @@ def test_cached_results_reapply_min_rating_filter() -> None:
         ),
         filters_applied={"min_rating": 4.5},
         search_query="kir pidesi 4.5 yildiz",
+        city="Bursa",
     )
     assert len(response.items) == 1
     assert response.items[0].rating == 4.8
