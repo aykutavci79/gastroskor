@@ -18,6 +18,7 @@ from app.services.food_place_filter import is_food_related_place
 from app.services.gastro_score_ranking import live_place_sort_key, rank_live_places
 from app.services.google_place_catalog import persist_live_place_results, persist_search_items, search_catalog_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
+from app.services.place_search_relevance import apply_place_relevance_filter
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
 from app.services.restaurant_check_in import visitor_counts_for_restaurants
@@ -185,8 +186,17 @@ def _finalize_search_response(
     limit: int,
     parsed_model: ParsedSearchIntent,
     filters_applied: dict,
+    search_query: str,
 ) -> LivePlaceSearchResponse:
     food_only = _filter_food_search_items(items)
+    relevance = apply_place_relevance_filter(food_only, query=search_query)
+    filters_applied = {
+        **filters_applied,
+        "relevance_filter_enabled": relevance.enabled,
+        "relevance_dropped_count": relevance.dropped_count,
+        "relevance_filter_fallback": relevance.fallback,
+    }
+    food_only = relevance.items
     sorted_items = _sort_search_items(food_only)
     filtered = apply_smart_filters(sorted_items, criteria)[:limit]
     return LivePlaceSearchResponse(
@@ -338,6 +348,7 @@ async def search_live_places_optimized(
             limit=limit,
             parsed_model=parsed_model,
             filters_applied={**filters_applied, "source": cached.get("filters_applied", {}).get("source", "cache")},
+            search_query=q,
         )
 
     db_rows = search_restaurants_in_db(db, query=search_text, city=city_label, limit=max(limit, 15))
@@ -395,4 +406,5 @@ async def search_live_places_optimized(
         limit=limit,
         parsed_model=parsed_model,
         filters_applied=filters_applied,
+        search_query=q,
     )
