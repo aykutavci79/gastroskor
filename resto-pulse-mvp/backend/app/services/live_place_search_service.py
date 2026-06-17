@@ -16,9 +16,16 @@ from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.food_place_filter import is_food_related_place
 from app.services.gastro_score_ranking import live_place_sort_key, rank_live_places
-from app.services.google_place_catalog import persist_live_place_results, persist_search_items, search_catalog_places
+from app.services.google_place_catalog import persist_live_place_results, persist_search_items, search_catalog_by_name_patterns, search_catalog_places
 from app.services.place_search_cache import build_cache_key, read_place_search_cache, write_place_search_cache
-from app.services.place_search_relevance import apply_place_relevance_filter
+from app.constants.city_dish_favorites import favorite_catalog_name_patterns
+from app.services.place_search_relevance import (
+    PlaceRelevanceIntent,
+    apply_place_relevance_filter,
+    local_favorite_rank_key,
+    resolve_place_relevance_intent,
+    venue_matches_relevance_intent,
+)
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
 from app.services.restaurant_check_in import visitor_counts_for_restaurants
@@ -167,16 +174,63 @@ def _refresh_search_item_scores(item: LivePlaceSearchItem) -> LivePlaceSearchIte
     )
 
 
-def _sort_search_items(items: list[LivePlaceSearchItem]) -> list[LivePlaceSearchItem]:
+def _sort_search_items(
+    items: list[LivePlaceSearchItem],
+    *,
+    city: str | None = None,
+    search_group: str | None = None,
+) -> list[LivePlaceSearchItem]:
     refreshed = [_refresh_search_item_scores(item) for item in items]
     return sorted(
         refreshed,
-        key=lambda item: live_place_sort_key(
-            rating=item.rating,
-            distance_meters=item.distance_meters,
-            user_ratings_total=item.user_ratings_total,
+        key=lambda item: (
+            local_favorite_rank_key(name=item.name, city=city, search_group=search_group),
+            live_place_sort_key(
+                rating=item.rating,
+                distance_meters=item.distance_meters,
+                user_ratings_total=item.user_ratings_total,
+            ),
         ),
     )
+
+
+def _inject_local_favorite_catalog_places(
+    db: Session,
+    items: list[LivePlaceSearchItem],
+    *,
+    city: str,
+    intent: PlaceRelevanceIntent,
+    origin_lat: float | None,
+    origin_lng: float | None,
+) -> tuple[list[LivePlaceSearchItem], int]:
+    patterns = favorite_catalog_name_patterns(city, intent.search_group)
+    if not patterns:
+        return items, 0
+
+    seen_ids = {row.place_id for row in items}
+    catalog_rows = search_catalog_by_name_patterns(db, city=city, patterns=patterns, limit=8)
+    if not catalog_rows:
+        return items, 0
+
+    ranked = rank_live_places(
+        catalog_rows,
+        city=city,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
+        limit=len(catalog_rows),
+    )
+    injected_items = _ranked_to_items(ranked, city=city)
+    merged = list(items)
+    added = 0
+    for row in injected_items:
+        if row.place_id in seen_ids:
+            continue
+        if not venue_matches_relevance_intent(name=row.name, intent=intent):
+            continue
+        merged.append(row)
+        seen_ids.add(row.place_id)
+        added += 1
+    return merged, added
 
 
 def _finalize_search_response(
@@ -187,17 +241,35 @@ def _finalize_search_response(
     parsed_model: ParsedSearchIntent,
     filters_applied: dict,
     search_query: str,
+    city: str,
+    db: Session | None = None,
+    origin_lat: float | None = None,
+    origin_lng: float | None = None,
 ) -> LivePlaceSearchResponse:
     food_only = _filter_food_search_items(items)
+    intent = resolve_place_relevance_intent(search_query)
+    injected_count = 0
+    if intent and db is not None:
+        food_only, injected_count = _inject_local_favorite_catalog_places(
+            db,
+            food_only,
+            city=city,
+            intent=intent,
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+        )
     relevance = apply_place_relevance_filter(food_only, query=search_query)
+    search_group = intent.search_group if intent else None
     filters_applied = {
         **filters_applied,
         "relevance_filter_enabled": relevance.enabled,
         "relevance_dropped_count": relevance.dropped_count,
         "relevance_filter_fallback": relevance.fallback,
+        "relevance_filter_mode": relevance.mode,
+        "local_favorites_injected": injected_count,
     }
     food_only = relevance.items
-    sorted_items = _sort_search_items(food_only)
+    sorted_items = _sort_search_items(food_only, city=city, search_group=search_group)
     filtered = apply_smart_filters(sorted_items, criteria)[:limit]
     return LivePlaceSearchResponse(
         items=filtered,
@@ -349,6 +421,10 @@ async def search_live_places_optimized(
             parsed_model=parsed_model,
             filters_applied={**filters_applied, "source": cached.get("filters_applied", {}).get("source", "cache")},
             search_query=q,
+            city=city_label,
+            db=db,
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
         )
 
     db_rows = search_restaurants_in_db(db, query=search_text, city=city_label, limit=max(limit, 15))
@@ -407,4 +483,8 @@ async def search_live_places_optimized(
         parsed_model=parsed_model,
         filters_applied=filters_applied,
         search_query=q,
+        city=city_label,
+        db=db,
+        origin_lat=origin_lat,
+        origin_lng=origin_lng,
     )

@@ -310,6 +310,47 @@ export type LivePlaceSearchResponse = {
   filters_applied: Record<string, string | number | null>;
 };
 
+export type SocialProofSourceSummary = {
+  reddit: number;
+  x: number;
+  youtube: number;
+  community: number;
+};
+
+export type SocialProofVenueResult = {
+  place_id: string;
+  name: string;
+  n_total: number;
+  n_positive: number;
+  wilson: number;
+  badge: string;
+  final_score: number;
+  sources_summary: SocialProofSourceSummary;
+};
+
+export type SocialProofStatus = {
+  status: string;
+  stale?: boolean;
+  can_scan?: boolean;
+  scan_label?: string | null;
+  job_id?: string | null;
+  poll_url?: string | null;
+  progress_pct?: number | null;
+  results?: SocialProofVenueResult[];
+};
+
+export type DiscoverSearchResponse = {
+  places: LivePlaceSearchItem[];
+  social: SocialProofStatus;
+};
+
+export type SocialProofJobResponse = {
+  job_id: string;
+  status: string;
+  progress_pct: number;
+  social: SocialProofStatus;
+};
+
 export type LivePlaceSearchItem = {
   place_id: string;
   name: string;
@@ -835,4 +876,18 @@ export type DmMessageListResponse = {
   thread_id: string;
   peer: PublicUserCard;
   items: DmMessageItem[];
+};
+
+export type EglenceLeaderboardEntry = {
+  rank: number;
+  user: PublicUserCard;
+  elapsed_ms?: number | null;
+  score?: number | null;
+  is_me: boolean;
+};
+
+export type EglenceLeaderboardResponse = {
+  game: 'mini_sudoku' | 'kelime_yarismasi';
+  period_key: string;
+  items: EglenceLeaderboardEntry[];
 };

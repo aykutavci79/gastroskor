@@ -17,8 +17,23 @@ export function FeaturedCardFrame({ children, featured = false, badge, style }: 
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
 
+  const badgeNode = badge ? (
+    <View style={styles.badgeWrap} pointerEvents="none">
+      <View style={styles.badge}>
+        <Text style={styles.badgeText} numberOfLines={1}>
+          {badge}
+        </Text>
+      </View>
+    </View>
+  ) : null;
+
   if (!featured) {
-    return <View style={[styles.cardShell, styles.cardPlain, style]}>{children}</View>;
+    return (
+      <View style={[styles.cardPlain, style]}>
+        <View style={styles.cardShell}>{children}</View>
+        {badgeNode}
+      </View>
+    );
   }
 
   return (
@@ -26,15 +41,7 @@ export function FeaturedCardFrame({ children, featured = false, badge, style }: 
       <View style={styles.gradientBorder}>
         <View style={styles.cardShell}>{children}</View>
       </View>
-      {badge ? (
-        <View style={styles.badgeWrap} pointerEvents="none">
-          <View style={styles.badge}>
-            <Text style={styles.badgeText} numberOfLines={1}>
-              {badge}
-            </Text>
-          </View>
-        </View>
-      ) : null}
+      {badgeNode}
     </View>
   );
 }
@@ -59,11 +66,10 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       gap: 6,
     },
     cardPlain: {
+      position: 'relative',
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 16,
-      padding: 12,
-      gap: 6,
       backgroundColor: colors.panel,
       ...shadow.card,
     },
