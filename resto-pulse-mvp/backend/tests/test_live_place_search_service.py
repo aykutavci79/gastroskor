@@ -78,6 +78,7 @@ def test_cached_results_reapply_min_rating_filter() -> None:
             removed_tokens=parsed.removed_tokens,
         ),
         filters_applied={"min_rating": 4.5},
+        search_query="kir pidesi 4.5 yildiz",
     )
     assert len(response.items) == 1
     assert response.items[0].rating == 4.8
