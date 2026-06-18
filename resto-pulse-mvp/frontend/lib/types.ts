@@ -287,6 +287,8 @@ export type SocialProofVenueResult = {
 export type SocialProofStatus = {
   status: string;
   stale?: boolean;
+  can_scan?: boolean;
+  scan_label?: string | null;
   job_id?: string | null;
   poll_url?: string | null;
   progress_pct?: number | null;
