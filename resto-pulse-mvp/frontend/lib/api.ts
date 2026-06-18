@@ -9,6 +9,7 @@ import type {
   LivePlaceSearchResponse,
   DiscoverSearchResponse,
   SocialProofJobResponse,
+  SocialProofStatus,
   ReviewFilterState,
   CityTopResponse,
   NewMemberRestaurantsResponse,
@@ -305,6 +306,7 @@ export function searchLivePlaces(params: {
   return request<LivePlaceSearchResponse>(`/live/places/search?${search.toString()}`);
 }
 
+/** @deprecated Web/mobil: searchLivePlaces + getSocialOverlay/requestSocialScan kullan */
 export function discoverSearch(params: {
   query: string;
   lat?: number;
@@ -319,6 +321,24 @@ export function discoverSearch(params: {
       lat: params.lat ?? null,
       lng: params.lng ?? null,
       radius_km: params.radius_km ?? 30,
+      city: params.city?.trim() || null,
+    }),
+    signal: AbortSignal.timeout(45_000),
+  });
+}
+
+export function getSocialOverlay(params: { query: string; city?: string }) {
+  const search = new URLSearchParams();
+  search.set('query', params.query);
+  if (params.city) search.set('city', params.city);
+  return request<SocialProofStatus>(`/discover/social-overlay?${search.toString()}`);
+}
+
+export function requestSocialScan(params: { query: string; city?: string }) {
+  return request<SocialProofStatus>('/discover/social-scan', {
+    method: 'POST',
+    body: JSON.stringify({
+      query: params.query,
       city: params.city?.trim() || null,
     }),
     signal: AbortSignal.timeout(45_000),

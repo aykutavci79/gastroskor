@@ -1,24 +1,29 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SocialProofScanBanner } from '@/components/SocialProofScanBanner';
 import type { CityDetectStatus } from '@/hooks/useDetectedCity';
-import { discoverSearch, getDiscoverJob, searchLivePlaces } from '@/lib/api';
+import { getDiscoverJob, getSocialOverlay, requestSocialScan, searchLivePlaces } from '@/lib/api';
 import { getBackendAccessToken } from '@/lib/backend-auth-token';
 import {
+  lookupSocialResult,
   pollDiscoverSocialJob,
   socialBadgeLabel,
   socialItemEligible,
-  socialResultsByPlaceId,
+  socialResultsIndex,
+  sortLivePlacesBySocialProof,
+  type SocialResultsIndex,
 } from '@/lib/discover-social';
 import { livePlaceDetailHref, livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
 import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
 import { cityDisplayName } from '@/lib/detect-city';
 import type { LivePlaceSearchItem, ParsedSearchIntent, SocialProofStatus } from '@/lib/types';
+
+type SearchModel = 'gastroskor' | 'sosyal';
 
 type Props = {
   city?: string;
@@ -31,6 +36,8 @@ type Props = {
   onSearchPerformed?: (query: string) => void;
 };
 
+const EMPTY_SOCIAL_INDEX: SocialResultsIndex = { byPlaceId: new Map(), byName: new Map() };
+
 export function LivePlaceSearch({
   city = 'Bursa',
   cityStatus = 'denied',
@@ -41,9 +48,12 @@ export function LivePlaceSearch({
 }: Props) {
   const { status: authStatus, data: session } = useSession();
   const pollTokenRef = useRef(0);
+  const lastQueryRef = useRef('');
 
   const [q, setQ] = useState('');
+  const [searchModel, setSearchModel] = useState<SearchModel>('gastroskor');
   const [loading, setLoading] = useState(false);
+  const [socialScanLoading, setSocialScanLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<LivePlaceSearchItem[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(sharedCoords);
@@ -55,12 +65,14 @@ export function LivePlaceSearch({
   const [ratingBand, setRatingBand] = useState<RatingBand>('');
   const [parsedIntent, setParsedIntent] = useState<ParsedSearchIntent | null>(null);
   const [socialStatus, setSocialStatus] = useState<SocialProofStatus | null>(null);
-  const [socialByPlace, setSocialByPlace] = useState<Map<string, { badge: string }>>(new Map());
+  const [socialIndex, setSocialIndex] = useState<SocialResultsIndex>(EMPTY_SOCIAL_INDEX);
+  const [socialSortActive, setSocialSortActive] = useState(false);
 
   const backendTokenReady = Boolean(session?.backendAccessToken ?? getBackendAccessToken());
   const backendExchangeError = session?.backendExchangeError;
   const isLoggedIn = authStatus === 'authenticated';
-  const canUseSocialProof = isLoggedIn && backendTokenReady;
+  const canRunSocialMode = isLoggedIn && backendTokenReady;
+  const isSocialMode = searchModel === 'sosyal';
 
   useEffect(() => {
     setUserCoords(sharedCoords);
@@ -101,6 +113,134 @@ export function LivePlaceSearch({
     });
   }
 
+  const applySocialToList = useCallback((baseItems: LivePlaceSearchItem[], index: SocialResultsIndex) => {
+    if (!baseItems.length) return baseItems;
+    return sortLivePlacesBySocialProof(baseItems, index);
+  }, []);
+
+  const pollSocialJob = useCallback(
+    (jobId: string, pollToken: number, baseItems: LivePlaceSearchItem[]) => {
+      void pollDiscoverSocialJob(
+        jobId,
+        (tick) => {
+          if (pollTokenRef.current !== pollToken) return;
+          setSocialStatus(tick);
+          if (tick.results?.length) {
+            const index = socialResultsIndex(tick.results);
+            setSocialIndex(index);
+            setItems(applySocialToList(baseItems, index));
+            setSocialSortActive(true);
+          }
+        },
+        async (id) => {
+          const payload = await getDiscoverJob(id);
+          return { social: payload.social, status: payload.status };
+        },
+      )
+        .then((finalSocial) => {
+          if (pollTokenRef.current !== pollToken) return;
+          setSocialStatus(finalSocial);
+          if (finalSocial.results?.length) {
+            const index = socialResultsIndex(finalSocial.results);
+            setSocialIndex(index);
+            setItems(applySocialToList(baseItems, index));
+            setSocialSortActive(true);
+          }
+        })
+        .catch(() => {
+          if (pollTokenRef.current !== pollToken) return;
+          setSocialStatus((prev) => (prev ? { ...prev, status: 'failed' } : { status: 'failed' }));
+        });
+    },
+    [applySocialToList],
+  );
+
+  const runSocialLayer = useCallback(
+    async (query: string, pollToken: number, baseItems: LivePlaceSearchItem[]) => {
+      if (!canRunSocialMode) return;
+
+      let overlay: SocialProofStatus | null = null;
+      try {
+        overlay = await getSocialOverlay({ query, city });
+      } catch {
+        overlay = null;
+      }
+      if (pollTokenRef.current !== pollToken) return;
+
+      if (overlay?.status === 'ready' && overlay.results?.length) {
+        const index = socialResultsIndex(overlay.results);
+        setSocialStatus(overlay);
+        setSocialIndex(index);
+        setItems(applySocialToList(baseItems, index));
+        setSocialSortActive(true);
+        return;
+      }
+
+      if (overlay) setSocialStatus(overlay);
+
+      const needsScan =
+        !overlay ||
+        overlay.status === 'uncached' ||
+        (overlay.status === 'insufficient_data' && overlay.can_scan);
+
+      if (!needsScan) return;
+
+      setSocialScanLoading(true);
+      try {
+        const scanned = await requestSocialScan({ query, city });
+        if (pollTokenRef.current !== pollToken) return;
+        setSocialStatus(scanned);
+        if (scanned.results?.length) {
+          const index = socialResultsIndex(scanned.results);
+          setSocialIndex(index);
+          setItems(applySocialToList(baseItems, index));
+          setSocialSortActive(true);
+        }
+        if (scanned.job_id && (scanned.status === 'scanning' || scanned.status === 'pending')) {
+          pollSocialJob(scanned.job_id, pollToken, baseItems);
+        }
+      } catch (err) {
+        if (pollTokenRef.current !== pollToken) return;
+        const message = err instanceof Error ? err.message : 'Sosyal tarama baslatilamadi.';
+        setError(message);
+        setSocialStatus((prev) => (prev ? { ...prev, status: 'failed' } : { status: 'failed' }));
+      } finally {
+        setSocialScanLoading(false);
+      }
+    },
+    [applySocialToList, canRunSocialMode, city, pollSocialJob],
+  );
+
+  const handleRequestSocialScan = useCallback(async () => {
+    const query = lastQueryRef.current.trim();
+    if (!query || socialScanLoading || !canRunSocialMode) return;
+    const pollToken = pollTokenRef.current;
+    setSocialScanLoading(true);
+    setSocialSortActive(true);
+    setError(null);
+    try {
+      const scanned = await requestSocialScan({ query, city });
+      if (pollTokenRef.current !== pollToken) return;
+      setSocialStatus(scanned);
+      if (scanned.results?.length) {
+        const index = socialResultsIndex(scanned.results);
+        setSocialIndex(index);
+        setItems((prev) => applySocialToList(prev, index));
+      }
+      if (scanned.job_id && (scanned.status === 'scanning' || scanned.status === 'pending')) {
+        setItems((current) => {
+          pollSocialJob(scanned.job_id!, pollToken, current);
+          return current;
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sosyal tarama baslatilamadi.';
+      setError(message);
+    } finally {
+      setSocialScanLoading(false);
+    }
+  }, [applySocialToList, canRunSocialMode, city, pollSocialJob, socialScanLoading]);
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const query = q.trim();
@@ -108,87 +248,58 @@ export function LivePlaceSearch({
       setItems([]);
       setError(null);
       setSocialStatus(null);
-      setSocialByPlace(new Map());
+      setSocialIndex(EMPTY_SOCIAL_INDEX);
+      setSocialSortActive(false);
+      lastQueryRef.current = '';
+      return;
+    }
+
+    if (isSocialMode && !canRunSocialMode) {
+      setError('Sosyal kanıt modu için giriş yap ve API oturumunun açık olduğundan emin ol.');
       return;
     }
 
     const pollToken = pollTokenRef.current + 1;
     pollTokenRef.current = pollToken;
+    lastQueryRef.current = query;
 
     setLoading(true);
     setError(null);
     setSocialStatus(null);
-    setSocialByPlace(new Map());
+    setSocialIndex(EMPTY_SOCIAL_INDEX);
+    setSocialSortActive(false);
+
     try {
       const coords = await requestUserCoords();
 
-      if (canUseSocialProof) {
-        const data = await discoverSearch({
-          query,
-          city,
-          lat: coords?.lat,
-          lng: coords?.lng,
-        });
-        setParsedIntent({
-          raw_query: query,
-          query,
-          min_rating: null,
-          max_distance_m: null,
-          min_distance_m: null,
-          removed_tokens: [],
-        });
-        setLastDistanceOrigin(data.places[0]?.distance_origin ?? (coords ? 'user' : 'city_center'));
-        setItems(data.places);
-        setSocialStatus(data.social);
-        if (data.social.results?.length) {
-          setSocialByPlace(socialResultsByPlaceId(data.social.results));
-        }
-        if (data.social.job_id && data.social.status === 'scanning') {
-          void pollDiscoverSocialJob(
-            data.social.job_id,
-            (tick) => {
-              if (pollTokenRef.current !== pollToken) return;
-              setSocialStatus(tick);
-              if (tick.results?.length) {
-                setSocialByPlace(socialResultsByPlaceId(tick.results));
-              }
-            },
-            async (jobId) => {
-              const payload = await getDiscoverJob(jobId);
-              return { social: payload.social, status: payload.status };
-            },
-          ).then((finalSocial) => {
-            if (pollTokenRef.current !== pollToken) return;
-            setSocialStatus(finalSocial);
-            if (finalSocial.results?.length) {
-              setSocialByPlace(socialResultsByPlaceId(finalSocial.results));
-            }
-          }).catch(() => {
-            if (pollTokenRef.current !== pollToken) return;
-            setSocialStatus((prev) => prev ? { ...prev, status: 'failed' } : { status: 'failed' });
-          });
-        }
-      } else {
-        const result = await searchLivePlaces({
-          q: query,
-          city,
-          limit: 8,
-          origin_lat: coords?.lat,
-          origin_lng: coords?.lng,
-          distance_band: distanceBand || undefined,
-          rating_band: ratingBand || undefined,
-        });
-        setParsedIntent(result.parsed);
-        setLastDistanceOrigin(result.items[0]?.distance_origin ?? (coords ? 'user' : 'city_center'));
-        setItems(result.items);
+      const result = await searchLivePlaces({
+        q: query,
+        city,
+        limit: isSocialMode ? 20 : 8,
+        origin_lat: coords?.lat,
+        origin_lng: coords?.lng,
+        distance_band: isSocialMode ? undefined : distanceBand || undefined,
+        rating_band: isSocialMode ? undefined : ratingBand || undefined,
+      });
+
+      if (pollTokenRef.current !== pollToken) return;
+
+      setParsedIntent(result.parsed);
+      setLastDistanceOrigin(result.items[0]?.distance_origin ?? (coords ? 'user' : 'city_center'));
+      setItems(result.items);
+
+      if (isSocialMode) {
+        await runSocialLayer(query, pollToken, result.items);
       }
+
       onSearchPerformed?.(query);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Canli arama sirasinda hata olustu.';
       setError(message);
       setItems([]);
       setSocialStatus(null);
-      setSocialByPlace(new Map());
+      setSocialIndex(EMPTY_SOCIAL_INDEX);
+      setSocialSortActive(false);
     } finally {
       setLoading(false);
     }
@@ -197,8 +308,17 @@ export function LivePlaceSearch({
   const cityLabel = cityDisplayName(city);
   const searchPlaceholder =
     cityStatus === 'ready'
-      ? `Örn: İskender 4.5+ yıldız ${cityLabel}`
-      : 'Örn: İskender 4.5+ yıldız';
+      ? isSocialMode
+        ? `Örn: en iyi iskender ${cityLabel}`
+        : `Örn: İskender 4.5+ yıldız ${cityLabel}`
+      : isSocialMode
+        ? 'Örn: en iyi iskender'
+        : 'Örn: İskender 4.5+ yıldız';
+
+  const modelDescription =
+    searchModel === 'gastroskor'
+      ? 'Google + yüksek puan/yorum + mesafe + yerel favoriler'
+      : 'Reddit, X, YouTube — Wilson skoru (giriş gerekir)';
 
   return (
     <section
@@ -214,10 +334,9 @@ export function LivePlaceSearch({
               ? cityStatus === 'loading'
                 ? 'Konumun alınıyor — şehir buna göre ayarlanacak'
                 : cityStatus === 'ready'
-                  ? `${cityLabel} · Google Haritalar ile anlık mekan araması`
+                  ? `${cityLabel} · ${modelDescription}`
                   : 'Konum kapalı — yöresel bölümden şehir seçebilirsin'
-              : 'Canli Google Places + akilli filtre'}
-            {canUseSocialProof ? ' · Sosyal sinyal taraması açık' : null}
+              : modelDescription}
             {locationStatus === 'loading' ? ' · Konum aliniyor…' : null}
             {locationStatus === 'denied' && !embedded
               ? ' Konum izni yok: mesafe sehir merkezine gore.'
@@ -233,31 +352,73 @@ export function LivePlaceSearch({
         ) : null}
       </div>
 
-      {isLoggedIn && !backendTokenReady ? (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
-          Google ile giriş yapıldı ama <strong>API oturumu</strong> oluşmadı — sosyal tarama kapalı,
-          sadece Google listesi gelir. Backend açıkken{' '}
-          <Link href="/auth/giris" className="underline">
-            çıkış yap → tekrar giriş
-          </Link>{' '}
-          (KVKK kutusu işaretli olsun).{' '}
-          <code className="text-xs">NEXT_PUBLIC_API_URL</code> = <code className="text-xs">http://127.0.0.1:8000</code>
-          {backendExchangeError ? (
-            <span className="mt-2 block text-xs text-amber-200/90">
-              Hata: {backendExchangeError}
+      <fieldset className="space-y-2">
+        <legend className="text-xs font-medium text-content">Arama modeli</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label
+            className={`cursor-pointer rounded-xl border p-3 text-sm transition ${
+              searchModel === 'gastroskor'
+                ? 'border-accent bg-accent/10 text-content'
+                : 'border-border bg-surface-muted/30 text-content-muted hover:border-accent/40'
+            }`}>
+            <input
+              type="radio"
+              name="search-model"
+              value="gastroskor"
+              checked={searchModel === 'gastroskor'}
+              onChange={() => setSearchModel('gastroskor')}
+              className="sr-only"
+            />
+            <span className="font-semibold text-content">GastroSkor</span>
+            <span className="mt-1 block text-xs text-content-muted">
+              Varsayılan liste — Google skoru, mesafe ve yorum kalitesi
             </span>
-          ) : null}
+          </label>
+          <label
+            className={`cursor-pointer rounded-xl border p-3 text-sm transition ${
+              searchModel === 'sosyal'
+                ? 'border-accent bg-accent/10 text-content'
+                : 'border-border bg-surface-muted/30 text-content-muted hover:border-accent/40'
+            } ${!canRunSocialMode ? 'opacity-90' : ''}`}>
+            <input
+              type="radio"
+              name="search-model"
+              value="sosyal"
+              checked={searchModel === 'sosyal'}
+              onChange={() => setSearchModel('sosyal')}
+              className="sr-only"
+            />
+            <span className="font-semibold text-content">Sosyal kanıt</span>
+            <span className="mt-1 block text-xs text-content-muted">
+              Reddit / X / YouTube sinyali — farklı sıralama, giriş gerekir
+            </span>
+          </label>
         </div>
-      ) : null}
+      </fieldset>
 
-      {authStatus === 'unauthenticated' ? (
-        <p className="text-xs text-content-muted">
-          Sosyal kanıt (Reddit, X, YouTube) için{' '}
-          <Link href="/auth/giris" className="text-accent underline">
-            giriş yap
-          </Link>
-          .
-        </p>
+      {isSocialMode && !canRunSocialMode ? (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+          {isLoggedIn && !backendTokenReady ? (
+            <>
+              Google ile giriş yapıldı ama <strong>API oturumu</strong> oluşmadı.{' '}
+              <Link href="/auth/giris" className="underline">
+                Çıkış yap → tekrar giriş
+              </Link>{' '}
+              (KVKK kutusu işaretli olsun).
+              {backendExchangeError ? (
+                <span className="mt-2 block text-xs text-amber-200/90">Hata: {backendExchangeError}</span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              Sosyal kanıt modu için{' '}
+              <Link href="/auth/giris" className="underline">
+                giriş yap
+              </Link>
+              .
+            </>
+          )}
+        </div>
       ) : null}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
@@ -267,49 +428,52 @@ export function LivePlaceSearch({
           placeholder={searchPlaceholder}
           className="input-field flex-1"
         />
-        <button type="submit" disabled={loading} className="btn-primary shrink-0">
-          {loading ? 'Araniyor...' : 'Ara'}
+        <button
+          type="submit"
+          disabled={loading || (isSocialMode && !canRunSocialMode)}
+          className="btn-primary shrink-0 disabled:opacity-60">
+          {loading ? 'Aranıyor...' : 'Ara'}
         </button>
       </form>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label htmlFor="live-search-distance" className="sr-only">
-          Mesafe filtresi
-        </label>
-        <select
-          id="live-search-distance"
-          value={distanceBand}
-          onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
-          className="input-field text-sm"
-          aria-label="Mesafe filtresi"
-          disabled={canUseSocialProof}>
-          {DISTANCE_BAND_OPTIONS.map((option) => (
-            <option key={option.value || 'all'} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="live-search-rating" className="sr-only">
-          Yıldız filtresi
-        </label>
-        <select
-          id="live-search-rating"
-          value={ratingBand}
-          onChange={(e) => setRatingBand(e.target.value as RatingBand)}
-          className="input-field text-sm"
-          aria-label="Yıldız filtresi"
-          disabled={canUseSocialProof}>
-          {RATING_BAND_OPTIONS.map((option) => (
-            <option key={option.value || 'all'} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {canUseSocialProof ? (
-        <p className="text-[10px] text-content-muted">Giriş yapılı aramada sosyal tarama önceliklidir; mesafe/yıldız filtreleri bu modda kapalı.</p>
-      ) : null}
+      {!isSocialMode ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label htmlFor="live-search-distance" className="sr-only">
+            Mesafe filtresi
+          </label>
+          <select
+            id="live-search-distance"
+            value={distanceBand}
+            onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
+            className="input-field text-sm"
+            aria-label="Mesafe filtresi">
+            {DISTANCE_BAND_OPTIONS.map((option) => (
+              <option key={option.value || 'all'} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="live-search-rating" className="sr-only">
+            Yıldız filtresi
+          </label>
+          <select
+            id="live-search-rating"
+            value={ratingBand}
+            onChange={(e) => setRatingBand(e.target.value as RatingBand)}
+            className="input-field text-sm"
+            aria-label="Yıldız filtresi">
+            {RATING_BAND_OPTIONS.map((option) => (
+              <option key={option.value || 'all'} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <p className="text-[10px] text-content-muted">
+          Sosyal kanıt modunda mesafe/yıldız filtreleri kapalı — sıralama sosyal sinyale göre yapılır.
+        </p>
+      )}
 
       {parsedIntent && (parsedIntent.removed_tokens.length > 0 || parsedIntent.query !== parsedIntent.raw_query) ? (
         <p className="text-xs text-content-muted">
@@ -319,14 +483,26 @@ export function LivePlaceSearch({
         </p>
       ) : null}
 
-      <SocialProofScanBanner social={socialStatus} />
+      {isSocialMode ? (
+        <SocialProofScanBanner
+          social={socialStatus}
+          loggedIn={canRunSocialMode}
+          socialSortActive={socialSortActive}
+          scanLoading={socialScanLoading}
+          onRequestScan={handleRequestSocialScan}
+          autoScan={loading || socialScanLoading}
+        />
+      ) : null}
 
       {error ? <div className="rounded-xl border border-bad/40 bg-bad/10 p-3 text-sm text-red-200">{error}</div> : null}
 
       {items.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
           {items.map((item) => {
-            const socialRow = socialItemEligible(item) ? socialByPlace.get(item.place_id) : undefined;
+            const socialRow =
+              isSocialMode && socialItemEligible(item)
+                ? lookupSocialResult(socialIndex, item)
+                : undefined;
             return (
               <RestaurantCard
                 key={item.place_id}
@@ -338,7 +514,7 @@ export function LivePlaceSearch({
                 distanceMeters={item.distance_meters}
                 mapsDirectionsUrl={item.maps_directions_url}
                 href={livePlaceDetailHref(item)}
-                cornerBadge={socialBadgeLabel(socialRow?.badge)}
+                cornerBadge={isSocialMode ? socialBadgeLabel(socialRow?.badge) : null}
               />
             );
           })}
