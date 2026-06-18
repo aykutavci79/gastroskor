@@ -258,7 +258,7 @@ def _finalize_search_response(
             origin_lat=origin_lat,
             origin_lng=origin_lng,
         )
-    relevance = apply_place_relevance_filter(food_only, query=search_query)
+    relevance = apply_place_relevance_filter(food_only, query=search_query, city=city)
     search_group = intent.search_group if intent else None
     filters_applied = {
         **filters_applied,

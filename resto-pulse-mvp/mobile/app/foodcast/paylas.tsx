@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import { Screen } from '@/components/ui/Screen';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
+import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
 import { searchLivePlaces, uploadFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import type { LivePlaceSearchItem } from '@/lib/types';
@@ -29,6 +30,13 @@ export default function FoodcastShareScreen() {
   const { city, cityLabel } = useCity();
   const router = useRouter();
   const { user } = useSession();
+  const keyboardOffset = useStackKeyboardOffset();
+  const scrollRef = useRef<ScrollView>(null);
+  const onFieldFocus = useKeyboardFieldFocus(scrollRef);
+  const dishNameY = useRef(0);
+  const captionY = useRef(0);
+  const searchY = useRef(0);
+
   const [photo, setPhoto] = useState<PhotoAsset | null>(null);
   const [dishName, setDishName] = useState('');
   const [caption, setCaption] = useState('');
@@ -40,7 +48,7 @@ export default function FoodcastShareScreen() {
 
   if (!user) {
     return (
-      <Screen>
+      <Screen scroll keyboardVerticalOffset={keyboardOffset}>
         <Text style={styles.muted}>Tabak paylaşmak için giriş yap.</Text>
         <Pressable onPress={() => router.push('/(tabs)/profil')}>
           <Text style={styles.link}>Hesap →</Text>
@@ -145,89 +153,105 @@ export default function FoodcastShareScreen() {
   }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>← Geri</Text>
-        </Pressable>
+    <Screen scroll scrollRef={scrollRef} keyboardVerticalOffset={keyboardOffset} style={styles.gap}>
+      <Pressable onPress={() => router.back()}>
+        <Text style={styles.back}>← Geri</Text>
+      </Pressable>
 
-        <FoodCastTitle size="md" />
-        <Text style={styles.sub}>
-          Yorumdan ayrı — sadece iştah açan tabak fotoğrafları. Restorana yakın olmalısın (~200 m).
-        </Text>
+      <FoodCastTitle size="md" />
+      <Text style={styles.sub}>
+        Yorumdan ayrı — sadece iştah açan tabak fotoğrafları. Restorana yakın olmalısın (~200 m).
+      </Text>
 
-        <Pressable style={styles.photoBox} onPress={() => void pickPhoto()}>
-          {photo ? (
-            <Image source={{ uri: photo.uri }} style={styles.photo} contentFit="cover" />
-          ) : (
-            <Text style={styles.photoPlaceholder}>📸 Tabak fotoğrafı seç</Text>
-          )}
-        </Pressable>
+      <Pressable style={styles.photoBox} onPress={() => void pickPhoto()}>
+        {photo ? (
+          <Image source={{ uri: photo.uri }} style={styles.photo} contentFit="cover" />
+        ) : (
+          <Text style={styles.photoPlaceholder}>📸 Tabak fotoğrafı seç</Text>
+        )}
+      </Pressable>
 
+      <View
+        onLayout={(event) => {
+          dishNameY.current = event.nativeEvent.layout.y;
+        }}>
         <TextInput
           value={dishName}
           onChangeText={setDishName}
+          onFocus={() => onFieldFocus(dishNameY.current)}
           placeholder="Yemek adı (ör. İskender)"
           placeholderTextColor={GastroColors.placeholder}
           style={styles.input}
         />
+      </View>
+
+      <View
+        onLayout={(event) => {
+          captionY.current = event.nativeEvent.layout.y;
+        }}>
         <TextInput
           value={caption}
           onChangeText={setCaption}
+          onFocus={() => onFieldFocus(captionY.current)}
           placeholder="Kısa not (opsiyonel)"
           placeholderTextColor={GastroColors.placeholder}
           style={styles.input}
           maxLength={200}
         />
+      </View>
 
-        <Text style={styles.label}>Restoran</Text>
-        <View style={styles.searchRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Restoran ara (canlı Google)"
-            placeholderTextColor={GastroColors.placeholder}
-            style={[styles.input, styles.searchInput]}
-            onSubmitEditing={() => void searchRestaurants()}
-          />
-          <Pressable style={styles.searchBtn} onPress={() => void searchRestaurants()} disabled={searching}>
-            <Text style={styles.searchBtnText}>{searching ? '…' : 'Ara'}</Text>
+      <Text style={styles.label}>Restoran</Text>
+      <View
+        style={styles.searchRow}
+        onLayout={(event) => {
+          searchY.current = event.nativeEvent.layout.y;
+        }}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          onFocus={() => onFieldFocus(searchY.current)}
+          placeholder="Restoran ara (canlı Google)"
+          placeholderTextColor={GastroColors.placeholder}
+          style={[styles.input, styles.searchInput]}
+          onSubmitEditing={() => void searchRestaurants()}
+        />
+        <Pressable style={styles.searchBtn} onPress={() => void searchRestaurants()} disabled={searching}>
+          <Text style={styles.searchBtnText}>{searching ? '…' : 'Ara'}</Text>
+        </Pressable>
+      </View>
+
+      {selected ? (
+        <View style={styles.selectedBox}>
+          <Text style={styles.selectedTitle}>{selected.name}</Text>
+          <Text style={styles.selectedSub}>{selected.address ?? cityLabel}</Text>
+          <Pressable onPress={() => setSelected(null)}>
+            <Text style={styles.clear}>Seçimi temizle</Text>
           </Pressable>
         </View>
+      ) : null}
 
-        {selected ? (
-          <View style={styles.selectedBox}>
-            <Text style={styles.selectedTitle}>{selected.name}</Text>
-            <Text style={styles.selectedSub}>{selected.address ?? cityLabel}</Text>
-            <Pressable onPress={() => setSelected(null)}>
-              <Text style={styles.clear}>Seçimi temizle</Text>
-            </Pressable>
-          </View>
-        ) : null}
+      <View style={styles.results}>
+        {results.map((row) => (
+          <Pressable key={row.place_id} style={styles.resultRow} onPress={() => setSelected(row)}>
+            <Text style={styles.resultName}>{row.name}</Text>
+            <Text style={styles.resultSub}>{row.address ?? ''}</Text>
+          </Pressable>
+        ))}
+      </View>
 
-        <View style={styles.results}>
-          {results.map((row) => (
-            <Pressable key={row.place_id} style={styles.resultRow} onPress={() => setSelected(row)}>
-              <Text style={styles.resultName}>{row.name}</Text>
-              <Text style={styles.resultSub}>{row.address ?? ''}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable style={[styles.submitBtn, busy && styles.submitDisabled]} disabled={busy} onPress={() => void submit()}>
-          {busy ? (
-            <ActivityIndicator color={GastroColors.text} />
-          ) : (
-            <Text style={styles.submitText}>FoodCast&apos;e paylaş</Text>
-          )}
-        </Pressable>
-      </ScrollView>
+      <Pressable style={[styles.submitBtn, busy && styles.submitDisabled]} disabled={busy} onPress={() => void submit()}>
+        {busy ? (
+          <ActivityIndicator color={GastroColors.text} />
+        ) : (
+          <Text style={styles.submitText}>FoodCast&apos;e paylaş</Text>
+        )}
+      </Pressable>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: 12, paddingBottom: 32, gap: 12 },
+  gap: { gap: 12 },
   back: { color: GastroColors.muted, fontSize: 14 },
   sub: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
   photoBox: {

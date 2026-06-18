@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Keyboard, Platform, type ScrollView } from 'react-native';
 
 /** Odaklanan alan klavyenin ustunde kalsin diye ilk kaydirma payi. */
-const FIELD_VISIBLE_GAP = 96;
+const FIELD_VISIBLE_GAP = 120;
 
 type ScrollRef = React.RefObject<ScrollView | null>;
 
@@ -32,7 +32,7 @@ export function useKeyboardFieldFocus(scrollRef: ScrollRef) {
       if (focusYRef.current <= 0) return;
       const keyboardHeight = event.endCoordinates.height;
       scrollRef.current?.scrollTo({
-        y: Math.max(0, focusYRef.current + keyboardHeight * 0.4),
+        y: Math.max(0, focusYRef.current - keyboardHeight + FIELD_VISIBLE_GAP),
         animated: true,
       });
     });

@@ -9,6 +9,7 @@ import { EglenceTabHeader } from '@/components/eglence/EglenceTabHeader';
 import { Screen } from '@/components/ui/Screen';
 import {
   EGLENCE_GAMES,
+  EGLENCE_GUNLUK_TEK_OYUN,
   SORU_CEVAP_ROOM_META,
   type EglenceGameId,
   type EglenceGameStatus,
@@ -16,15 +17,14 @@ import {
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
-import { listGourmetChatRooms } from '@/lib/api';
-import { buildDailySofraPuzzle, todaySofraPuzzleId } from '@/lib/kelime-sofrasi/puzzle';
-import { loadSofraProgress } from '@/lib/kelime-sofrasi/storage';
-import { buildDailyPuzzle, todayPuzzleId } from '@/lib/mini-sudoku/puzzle';
-import { loadProgress } from '@/lib/mini-sudoku/storage';
+import { listGourmetChatRooms, getJetonWallet } from '@/lib/api';
+import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
+import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
+import { loadSudokuMetaStatus } from '@/lib/mini-sudoku/storage';
 import type { GourmetChatRoom } from '@/lib/types';
 
 function sudokuStatus(completed: boolean, inProgress: boolean): EglenceGameStatus {
-  if (completed) return 'tamamlandi';
+  if (completed && EGLENCE_GUNLUK_TEK_OYUN) return 'tamamlandi';
   if (inProgress) return 'devam';
   return 'oyna';
 }
@@ -41,24 +41,37 @@ export default function EglenceTabScreen() {
   const [sudokuInProgress, setSudokuInProgress] = useState(false);
   const [sofraCompleted, setSofraCompleted] = useState(false);
   const [sofraInProgress, setSofraInProgress] = useState(false);
+  const [jetonBalance, setJetonBalance] = useState<number | null>(null);
+  const [jetonLoading, setJetonLoading] = useState(false);
+
+  const loadJeton = useCallback(async () => {
+    if (!user?.email) {
+      setJetonBalance(null);
+      return;
+    }
+    setJetonLoading(true);
+    try {
+      const wallet = await getJetonWallet(user.email);
+      setJetonBalance(wallet.balance);
+    } catch {
+      setJetonBalance(null);
+    } finally {
+      setJetonLoading(false);
+    }
+  }, [user?.email]);
 
   const loadSudokuMeta = useCallback(async () => {
-    const puzzle = buildDailyPuzzle(todayPuzzleId());
-    const progress = await loadProgress(puzzle);
-    setSudokuCompleted(progress.completedAt != null);
-    const started =
-      progress.completedAt == null &&
-      progress.values.some((row, ri) =>
-        row.some((cell, ci) => cell !== puzzle.givens[ri]![ci]!),
-      );
-    setSudokuInProgress(started);
+    const puzzleId = activePuzzleId();
+    const status = await loadSudokuMetaStatus(puzzleId);
+    setSudokuCompleted(status.completed);
+    setSudokuInProgress(status.inProgress);
   }, []);
 
   const loadSofraMeta = useCallback(async () => {
-    const puzzle = buildDailySofraPuzzle(todaySofraPuzzleId());
-    const progress = await loadSofraProgress(puzzle);
-    setSofraCompleted(progress.completedAt != null);
-    setSofraInProgress(progress.completedAt == null && progress.foundWordIds.length > 0);
+    const puzzleId = activePuzzleId();
+    const status = await loadSofraMetaStatus(puzzleId);
+    setSofraCompleted(status.completed);
+    setSofraInProgress(status.inProgress);
   }, []);
 
   const loadRooms = useCallback(async (silent = false) => {
@@ -77,9 +90,9 @@ export default function EglenceTabScreen() {
 
   const refreshAll = useCallback(
     async (silent = false) => {
-      await Promise.all([loadSudokuMeta(), loadSofraMeta(), loadRooms(silent)]);
+      await Promise.all([loadSudokuMeta(), loadSofraMeta(), loadRooms(silent), loadJeton()]);
     },
-    [loadRooms, loadSudokuMeta, loadSofraMeta],
+    [loadRooms, loadSudokuMeta, loadSofraMeta, loadJeton],
   );
 
   useEffect(() => {
@@ -144,7 +157,7 @@ export default function EglenceTabScreen() {
         setRefreshing(true);
         void refreshAll(true);
       }}>
-      <EglenceTabHeader cityLabel={cityLabel} />
+      <EglenceTabHeader cityLabel={cityLabel} jetonBalance={jetonBalance} jetonLoading={jetonLoading} />
 
       <EglenceSectionHeader title="Bugün" tone="games" hint="Günlük bulmaca ve yarışmalar" />
       <View style={styles.gameList}>

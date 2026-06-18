@@ -67,6 +67,7 @@ class User(Base):
     order_phone_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     kvkk_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     kvkk_consent_version: Mapped[str | None] = mapped_column(String(32))
+    first_order_bonus_claimed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")
@@ -87,6 +88,8 @@ class User(Base):
     eglence_results: Mapped[list["UserEglenceResult"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    wallet: Mapped["Wallet | None"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    jeton_ledger_entries: Mapped[list["JetonLedger"]] = relationship(back_populates="user")
     gourmet_chat_questions: Mapped[list["GourmetChatQuestion"]] = relationship(back_populates="author")
     gourmet_chat_answers: Mapped[list["GourmetChatAnswer"]] = relationship(back_populates="author")
     gourmet_chat_messages: Mapped[list["GourmetChatMessage"]] = relationship(back_populates="author")
@@ -243,6 +246,119 @@ class UserRestaurantFollow(Base):
 
     user: Mapped["User"] = relationship(back_populates="restaurant_follows")
     restaurant: Mapped["Restaurant"] = relationship(back_populates="followers")
+
+
+class JetonLedgerSource(str, enum.Enum):
+    order = "order"
+    follow = "follow"
+    referral = "referral"
+    clawback = "clawback"
+    game_spend = "game_spend"
+    manual_adjustment = "manual_adjustment"
+
+
+class JetonLedgerStatus(str, enum.Enum):
+    posted = "posted"
+    pending = "pending"
+    rejected = "rejected"
+
+
+class ReferralStatus(str, enum.Enum):
+    pending = "pending"
+    rewarded = "rewarded"
+    flagged = "flagged"
+    rejected = "rejected"
+
+
+class Wallet(Base):
+    __tablename__ = "wallets"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    balance: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="wallet")
+
+
+class JetonLedger(Base):
+    __tablename__ = "jeton_ledger"
+    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_jeton_ledger_idempotency"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    source: Mapped[JetonLedgerSource] = mapped_column(Enum(JetonLedgerSource), index=True)
+    source_id: Mapped[str | None] = mapped_column(String(120))
+    amount: Mapped[int] = mapped_column(Integer)
+    status: Mapped[JetonLedgerStatus] = mapped_column(
+        Enum(JetonLedgerStatus), default=JetonLedgerStatus.posted
+    )
+    related_ledger_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jeton_ledger.id", ondelete="SET NULL")
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="jeton_ledger_entries")
+
+
+class JetonFollowReward(Base):
+    __tablename__ = "jeton_follow_rewards"
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id", name="uq_jeton_follow_reward"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    rewarded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class Referral(Base):
+    __tablename__ = "referrals"
+    __table_args__ = (UniqueConstraint("referred_id", name="uq_referrals_referred_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    referrer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    referred_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    device_hash: Mapped[str | None] = mapped_column(String(128))
+    ip_at_signup: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[ReferralStatus] = mapped_column(Enum(ReferralStatus), default=ReferralStatus.pending)
+    rewarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class ReferralAttribution(Base):
+    __tablename__ = "referral_attributions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    referrer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    device_hash: Mapped[str] = mapped_column(String(128), index=True)
+    clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class JetonDailyEarnTotal(Base):
+    __tablename__ = "jeton_daily_earn_totals"
+    __table_args__ = (UniqueConstraint("user_id", "earn_date", name="uq_jeton_daily_earn"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    earn_date: Mapped[date] = mapped_column(Date)
+    total_earned: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class UserPushToken(Base):

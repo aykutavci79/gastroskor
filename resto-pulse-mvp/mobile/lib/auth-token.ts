@@ -40,6 +40,15 @@ export async function loadAccessToken(): Promise<string | null> {
   return accessToken;
 }
 
+/** Bellekte token yoksa SecureStore'dan yukle; gerekirse refresh dene. */
+export async function ensureAccessToken(): Promise<string | null> {
+  if (accessToken?.trim()) return accessToken;
+  const loaded = await loadAccessToken();
+  if (loaded) return loaded;
+  const refreshed = await refreshAuthTokens();
+  return refreshed ? accessToken : null;
+}
+
 export async function loadRefreshToken(): Promise<string | null> {
   try {
     const stored = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);

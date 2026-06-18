@@ -144,7 +144,8 @@ from app.services.voice_menu_offerings import voice_catalog_response
 from app.services.trending_google import get_trending_google_places
 from app.services.trending_restaurants import get_trending_restaurants_week
 from app.services.display_name import normalize_author_name_display, public_author_name
-from app.services.restaurant_claim import ensure_restaurant_coordinates, ensure_restaurant_for_place
+from app.services.restaurant_claim import ensure_restaurant_for_place
+from app.services.restaurant_proximity import sync_restaurant_coordinates_from_google
 from app.services.platform_profile_photo import google_photo_url_for_profile, sync_profile_photo_from_details
 from app.services.review_image_storage import MAX_REVIEW_IMAGES_PER_REVIEW, save_review_image
 from app.services.user_avatar_storage import save_user_avatar
@@ -196,6 +197,7 @@ from app.services.follower_promotion_service import (
     issue_coupon_for_follower,
     list_user_coupons,
 )
+from app.services.jeton_service import try_earn_follow_bundle
 from app.services.review_remedy_service import (
     ACCEPT_RESOLVED_MESSAGE,
     REJECT_PUBLISH_MESSAGE,
@@ -244,6 +246,7 @@ from app.api.v1.metrics_routes import metrics_router
 from app.api.v1.gourmet_chat_routes import router as gourmet_chat_router
 from app.api.v1.panel_routes import panel_router
 from app.api.v1.social_routes import router as social_router
+from app.api.v1.jeton_routes import router as jeton_router
 from app.api.v1.voice_routes import router as voice_router
 from app.services.user_accounts import get_or_create_user, serialize_user
 from app.services.kvkk_consent import record_kvkk_consent, user_needs_kvkk_consent
@@ -632,7 +635,7 @@ def seed_panel_demo(db: Session = Depends(get_db)):
     """Panel UI testi icin ornek sikayet kayitlari olusturur."""
     if settings.environment.lower() == "production":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-    actor = get_or_create_user(
+    actor, _ = get_or_create_user(
         db,
         email="restaurant-actor@example.com",
         full_name="Panel Demo Actor",
@@ -1335,6 +1338,7 @@ async def follow_restaurant_endpoint(
     user = load_authenticated_user_by_email(db, user_email)
     created = follow_restaurant(db, user_id=user.id, restaurant_id=restaurant_id)
     if created:
+        try_earn_follow_bundle(db, user_id=user.id, restaurant_id=restaurant_id)
         coupon = issue_coupon_for_follower(db, restaurant_id=restaurant_id, user_id=user.id)
         db.commit()
         await notify_restaurant_new_follower(db, restaurant_id=restaurant_id, follower=user)
@@ -1404,7 +1408,7 @@ async def post_restaurant_check_in(
     restaurant = db.get(Restaurant, restaurant_id)
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    await ensure_restaurant_coordinates(db, restaurant)
+    await sync_restaurant_coordinates_from_google(db, restaurant)
     try:
         result = create_check_in(
             db,
@@ -1686,7 +1690,7 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
             detail="Hesap acmak icin Google ile giris yapin.",
         )
 
-    user = get_or_create_user(
+    user, _ = get_or_create_user(
         db,
         email=email,
         full_name=payload.full_name,
@@ -2357,6 +2361,7 @@ router.include_router(panel_router)
 router.include_router(metrics_router)
 router.include_router(gourmet_chat_router)
 router.include_router(social_router)
+router.include_router(jeton_router)
 router.include_router(voice_router)
 
 from app.api.v1.foodcast_routes import router as foodcast_router

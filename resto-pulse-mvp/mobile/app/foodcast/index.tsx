@@ -24,6 +24,50 @@ import { formatApiError } from '@/lib/format-api-error';
 import type { FoodcastPhotoItem, FoodcastReportReason } from '@/lib/foodcast-types';
 import { formatRelativeTimeTr } from '@/lib/relative-time-tr';
 
+const GRID_COLUMNS = 2;
+const GRID_GAP = 8;
+
+function FoodcastGridTile({
+  row,
+  onOpen,
+  onReport,
+}: {
+  row: FoodcastPhotoItem;
+  onOpen: () => void;
+  onReport: () => void;
+}) {
+  return (
+    <View style={styles.cell}>
+      <Pressable
+        style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${row.dish_name}, ${row.restaurant_name}`}>
+        <Image source={{ uri: row.image_url }} style={styles.tilePhoto} contentFit="cover" />
+        <View style={styles.tileOverlay}>
+          <Text style={styles.tileDish} numberOfLines={1}>
+            {row.dish_name}
+          </Text>
+          <Text style={styles.tilePlace} numberOfLines={1}>
+            {row.restaurant_name}
+          </Text>
+          <Text style={styles.tileMeta} numberOfLines={1}>
+            {row.author_label} · {formatRelativeTimeTr(row.created_at)}
+          </Text>
+        </View>
+        <Pressable
+          style={styles.tileReportBtn}
+          hitSlop={8}
+          onPress={onReport}
+          accessibilityRole="button"
+          accessibilityLabel="Bildir">
+          <Text style={styles.tileReportText}>···</Text>
+        </Pressable>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function FoodcastFeedScreen() {
   const { city, cityLabel } = useCity();
   const router = useRouter();
@@ -111,29 +155,14 @@ export default function FoodcastFeedScreen() {
           </View>
         ) : null}
 
-        <View style={styles.list}>
+        <View style={styles.grid}>
           {items.map((row) => (
-            <View key={row.id} style={styles.row}>
-              <Pressable onPress={() => router.push(`/restaurant/${row.restaurant_id}` as Href)}>
-                <Image source={{ uri: row.image_url }} style={styles.photo} contentFit="cover" />
-              </Pressable>
-              <View style={styles.meta}>
-                <Text style={styles.dish}>{row.dish_name}</Text>
-                <Text style={styles.place}>{row.restaurant_name}</Text>
-                <Text style={styles.author}>
-                  {row.author_label} · {formatRelativeTimeTr(row.created_at)}
-                </Text>
-                {row.caption ? <Text style={styles.caption}>{row.caption}</Text> : null}
-                <View style={styles.actions}>
-                  <Pressable onPress={() => router.push(`/restaurant/${row.restaurant_id}` as Href)}>
-                    <Text style={styles.actionLink}>Detay →</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setReportTarget(row)}>
-                    <Text style={styles.reportLink}>Bildir</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </View>
+            <FoodcastGridTile
+              key={row.id}
+              row={row}
+              onOpen={() => router.push(`/restaurant/${row.restaurant_id}` as Href)}
+              onReport={() => setReportTarget(row)}
+            />
           ))}
         </View>
       </ScrollView>
@@ -172,28 +201,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  list: { marginTop: 8, gap: 14 },
-  row: {
+  grid: {
+    marginTop: 8,
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    marginHorizontal: -GRID_GAP / 2,
+  },
+  cell: {
+    width: `${100 / GRID_COLUMNS}%`,
+    padding: GRID_GAP / 2,
+  },
+  tile: {
     borderRadius: 12,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: GastroColors.border,
     backgroundColor: GastroColors.panel,
-    padding: 10,
   },
-  photo: {
-    width: 96,
-    height: 96,
-    borderRadius: 10,
+  tilePressed: { opacity: 0.92 },
+  tilePhoto: {
+    width: '100%',
+    aspectRatio: 1,
     backgroundColor: GastroColors.input,
   },
-  meta: { flex: 1, gap: 3 },
-  dish: { color: GastroColors.text, fontSize: 15, fontWeight: '800' },
-  place: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
-  author: { color: GastroColors.placeholder, fontSize: 11 },
-  caption: { color: GastroColors.muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
-  actions: { flexDirection: 'row', gap: 14, marginTop: 6 },
-  actionLink: { color: GastroColors.accent, fontSize: 12, fontWeight: '700' },
-  reportLink: { color: GastroColors.muted, fontSize: 12, fontWeight: '600' },
+  tileOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    gap: 1,
+    backgroundColor: 'rgba(20, 20, 20, 0.72)',
+  },
+  tileDish: { color: GastroColors.text, fontSize: 13, fontWeight: '800' },
+  tilePlace: { color: GastroColors.muted, fontSize: 11, fontWeight: '600' },
+  tileMeta: { color: GastroColors.placeholder, fontSize: 10, marginTop: 1 },
+  tileReportBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 28,
+    minHeight: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(20, 20, 20, 0.55)',
+  },
+  tileReportText: {
+    color: GastroColors.text,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 16,
+    marginTop: -4,
+  },
 });

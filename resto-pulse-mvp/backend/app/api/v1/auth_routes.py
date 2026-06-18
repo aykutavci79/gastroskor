@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.services.user_accounts import get_or_create_user, serialize_user
+from app.services.jeton_service import try_process_referral_on_signup
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.auth import GoogleMobileAuthPayload, GoogleMobileAuthResponse
@@ -46,7 +47,7 @@ def _authenticate_google_id_token(payload: GoogleMobileAuthPayload, db: Session,
         )
 
     google_sub = str(claims.get("sub") or "").strip() or None
-    user = get_or_create_user(
+    user, created = get_or_create_user(
         db,
         email=email,
         full_name=claims.get("name"),
@@ -54,6 +55,14 @@ def _authenticate_google_id_token(payload: GoogleMobileAuthPayload, db: Session,
         google_sub=google_sub,
     )
     require_and_record_kvkk_consent(db, user, accepted=payload.kvkk_consent_accepted)
+    if created:
+        try_process_referral_on_signup(
+            db,
+            referred_user=user,
+            referrer_id=payload.referrer_id,
+            device_hash=payload.device_hash,
+        )
+        db.commit()
     return _google_auth_response(user, db, platform=platform)
 
 

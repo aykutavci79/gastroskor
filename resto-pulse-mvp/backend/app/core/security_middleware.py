@@ -53,6 +53,8 @@ def _path_requires_auth(path: str, method: str) -> bool:
         return True
     if path.startswith("/api/v1/social/"):
         return True
+    if path.startswith("/api/v1/discover/"):
+        return True
     if path.startswith("/api/v1/gourmet-chat/") and method != "GET":
         return True
     if path.startswith("/api/v1/me/"):

@@ -11,6 +11,9 @@ export type EglenceGameId = 'mini-sudoku' | 'soru-cevap' | 'kelime-yarismasi' | 
 
 export type EglenceGameStatus = 'oyna' | 'devam' | 'tamamlandi' | 'yakinda';
 
+/** Prod: günde bir bulmaca. Dev build: bitince tekrar oynanabilir. */
+export const EGLENCE_GUNLUK_TEK_OYUN = !__DEV__;
+
 export type EglenceGameDef = {
   id: EglenceGameId;
   title: string;

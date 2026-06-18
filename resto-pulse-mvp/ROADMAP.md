@@ -4,8 +4,10 @@
 > madde varsa (Apple Pending, deploy, Faz D, magaza) kisa ve nazik hatirlat. Fazlara
 > bolme onayli; kullaniciyi fazlarla bunaltma, sadece siradaki 1-2 adimi soyle.
 > **"kral selam"** derse once asagidaki **Yarin backlog** bolumune bak.
+> **"yapilacaklar listesi" / "ne yaptik ne yapmadik"** derse bu dosyanin tamamini tara;
+> **Tamamlanan** vs **backlog** / `[ ]` maddeleri ozetle; siradaki 1-2 onceligi hatirlat.
 
-Son guncelleme: 17 Haziran 2026
+Son guncelleme: 18 Haziran 2026
 
 ## Yarin backlog (EAS build tek seferde — quota koru)
 
@@ -236,6 +238,48 @@ Acilis sehirleri: **Istanbul (hacim) + Bursa (yerel tohum)**; tek sehirle sinirl
 - [ ] Restoran detay CTA'lara event bagla (yukaridaki tablo)
 - [ ] `LivePlaceSearch` submit'te `search` event (debounce / ilk anlamli arama)
 - [ ] GA4 DebugView ile dogrula; Vercel deploy sonrasi
+
+### Faz F — Eglence sosyal (arkadas + kapisma) — Aykut fikri (18 Haz)
+
+> TikTok tarzi: rehberdeki kisi uygulamada kayitliysa **"arkadasin olabilir"** onerisi.
+> Oyunlarda (Kelime Sofrasi, Sudoku) arkadaslar birbirleriyle skor karsilastirir / meydan okur.
+> **Mevcut (kodda):** arkadaslik istegi, kabul, arkadas skor tablosu, oyun bitince bildirim, challenge paylasimi.
+
+**F1 — Rehberden arkadas onerisi (TikTok mantigi)**
+- [ ] Mobil izin: `expo-contacts` (iOS Contacts / Android READ_CONTACTS) + KVKK acik metin
+- [ ] Numara normalize (`+90…`) → sunucuya **sadece hash** (ham numara tutulmaz)
+- [ ] Backend: `user_phone_hash` (kayit/dogrulama) + `POST /social/contacts/match`
+- [ ] UI: Eglence veya Profil → **Arkadas bul** → oneri listesi → mevcut `send_friend_request`
+
+**F2 — Davet linki (rehber izni vermeyenler)**
+- [ ] `gastroskor.com/invite?ref=USER_ID` (Universal Link)
+- [ ] WhatsApp / mesaj paylasimi
+- [ ] Yeni kullanici giris yapinca referrer'a odul (F3 jeton ile baglanir)
+
+**F3 — Jeton ekonomisi** — kodlandi (backend + mobil chip; Railway: `alembic upgrade head` 0047)
+- [x] `wallet` + `jeton_ledger` + API (`/jeton/me/wallet`, spend hint)
+- [x] Kazanma v1: siparis accepted 15 (+5 ilk), gunluk 3 takip 10, davet 10
+- [x] Harcama: Sofra ipucu (2 ucretsiz, sonra 5 jeton)
+- [ ] v1.1: gunluk giris, paylas, yorum, foodcast
+- [ ] Davet linki UI (F2) + rehber eslestirme (F1)
+
+**F4 — Eglence arkadas deneyimi (mevcut uzerine)**
+- [ ] **Arkadaslarin bugun** widget (Sofra / Sudoku)
+- [ ] Rehber + davet akisini tek **Arkadas bul** ekraninda topla
+
+**Oncelik sirasi (Aykut onayli):** F2 davet linki → F1 rehber eslestirme → F3 jeton → F4 widget.
+
+### Kelime Sofrasi + Mini Sudoku (Eglence) — son oturum
+
+> Detay kodda; build/deploy beklemiyor (Expo Go ile test).
+
+| Alan | Durum |
+|------|--------|
+| Kelime Sofrasi UI (cam, surukle-birak, siyah metin) | Yapildi |
+| Zorluk seviyeleri (kolay/orta/zor) | Yapildi |
+| Ipucu = rastgele hucre acma | Yapildi |
+| Mini Sudoku lobby + zorluk | Yapildi (zor 9x9 yakinda) |
+| Sudoku 9x9 zor mod | Yapilmadi |
 
 ---
 

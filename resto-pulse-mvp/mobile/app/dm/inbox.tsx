@@ -68,7 +68,7 @@ export default function DmInboxScreen() {
   }
 
   return (
-    <Screen scroll edges={['left', 'right']}>
+    <Screen scroll edges={['top', 'left', 'right']}>
       {unreadTotal > 0 ? (
         <Text style={styles.unreadBadge}>{unreadTotal} okunmamis</Text>
       ) : (

@@ -5,13 +5,17 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from app.constants.city_dish_favorites import local_favorite_sort_priority, venue_matches_local_favorite
+from app.constants.city_dish_favorites import (
+    local_favorite_sort_priority,
+    venue_matches_local_favorite,
+)
 from app.constants.voice_product_catalog import (
     EXCLUDE_MARKERS_BY_INTENT,
     RELEVANCE_FILTER_DISABLED_GROUPS,
     _normalize_query,
     resolve_voice_search_token,
 )
+from app.core.config import settings
 from app.schemas.live_places import LivePlaceSearchItem
 from app.services.query_parser import parse_search_query
 
@@ -78,10 +82,30 @@ def venue_matches_relevance_intent(
     return True
 
 
+def venue_passes_product_review_floor(
+    *,
+    item: LivePlaceSearchItem,
+    intent: PlaceRelevanceIntent,
+    city: str | None,
+) -> bool:
+    """Urun niyetli aramada dusuk Google yorum sayisini ele (yerel favoriler muaf)."""
+    min_reviews = settings.social_proof_min_reviews
+    if min_reviews <= 0:
+        return True
+    if city and venue_matches_local_favorite(
+        name=item.name,
+        city=city,
+        search_group=intent.search_group,
+    ):
+        return True
+    return (item.user_ratings_total or 0) >= min_reviews
+
+
 def apply_place_relevance_filter(
     items: list[LivePlaceSearchItem],
     *,
     query: str,
+    city: str | None = None,
 ) -> PlaceRelevanceFilterResult:
     intent = resolve_place_relevance_intent(query)
     if intent is None:
@@ -95,11 +119,31 @@ def apply_place_relevance_filter(
 
     kept: list[LivePlaceSearchItem] = []
     for item in items:
-        if venue_matches_relevance_intent(name=item.name, intent=intent):
-            kept.append(item)
+        if not venue_matches_relevance_intent(name=item.name, intent=intent):
+            continue
+        if not venue_passes_product_review_floor(item=item, intent=intent, city=city):
+            continue
+        kept.append(item)
 
     dropped_count = len(items) - len(kept)
     if not kept:
+        # Yalnizca negatif marker yuzunden bosaldiysa fallback; dusuk yorum elemesinde fallback yok.
+        marker_only = [item for item in items if venue_matches_relevance_intent(name=item.name, intent=intent)]
+        if marker_only:
+            logger.info(
+                "relevance_review_floor_empty query=%r group=%s dropped=%s min_reviews=%s",
+                query,
+                intent.search_group,
+                dropped_count,
+                settings.social_proof_min_reviews,
+            )
+            return PlaceRelevanceFilterResult(
+                items=[],
+                enabled=True,
+                dropped_count=dropped_count,
+                fallback=False,
+                mode="product_intent",
+            )
         logger.info(
             "relevance_filter_fallback query=%r group=%s dropped=%s",
             query,
@@ -119,7 +163,7 @@ def apply_place_relevance_filter(
         enabled=True,
         dropped_count=dropped_count,
         fallback=False,
-        mode="negative_only",
+        mode="product_intent",
     )
 
 

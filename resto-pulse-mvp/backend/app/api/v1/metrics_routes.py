@@ -30,8 +30,9 @@ def ingest_app_usage_event(payload: AppUsageEventCreate, db: Session = Depends(g
     if payload.user_id:
         try:
             user_uuid = UUID(payload.user_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid user_id") from exc
+        except ValueError:
+            # NextAuth user.id = Google sub (UUID degil); KPI icin yoksay.
+            user_uuid = None
 
     record_app_usage_event(
         db,

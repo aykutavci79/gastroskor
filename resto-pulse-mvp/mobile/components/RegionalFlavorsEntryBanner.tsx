@@ -8,13 +8,14 @@ import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import { listRegionalProducts } from '@/lib/api';
+import { regionalProductImageSource } from '@/lib/regional-product-image';
 import type { RegionalProductItem } from '@/lib/types';
 
 const MIN_HEIGHT = 58;
 
 type Slide = {
   name: string;
-  source: ImageSourcePropType | { uri: string };
+  source: ImageSourcePropType;
 };
 
 type Props = {
@@ -22,12 +23,13 @@ type Props = {
 };
 
 function buildSlides(items: RegionalProductItem[]): Slide[] {
-  return items
-    .filter((row) => Boolean(row.image_url?.trim()))
-    .map((row) => ({
-      name: row.name,
-      source: { uri: row.image_url!.trim() },
-    }));
+  const slides: Slide[] = [];
+  for (const row of items) {
+    const source = regionalProductImageSource(row.slug, row.image_url);
+    if (!source) continue;
+    slides.push({ name: row.name, source });
+  }
+  return slides;
 }
 
 export function RegionalFlavorsEntryBanner({ style }: Props) {
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
   mediaClip: { ...StyleSheet.absoluteFillObject },
   mediaFallback: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    backgroundColor: '#2a2018',
   },
   content: {
     ...StyleSheet.absoluteFillObject,

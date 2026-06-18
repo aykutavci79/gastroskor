@@ -1,96 +1,30 @@
-import { SOFRA_MAX_HEDEF, SOFRA_MIN_HEDEF } from '@/constants/kelime-sofrasi';
+import {
+  SOFRA_MAX_HEDEF,
+  SOFRA_MIN_HEDEF,
+  SOFRA_MIN_KELIME_UZUNLUGU,
+  SOFRA_WHEEL_MAX,
+  SOFRA_WHEEL_MIN,
+} from '@/constants/kelime-sofrasi';
+import type { EglenceZorluk } from '@/constants/eglence-zorluk';
+import { SOFRA_KELIME_HEDEF, sofraPuzzleKey } from '@/constants/eglence-zorluk';
+import { packCrosswordFromCandidates } from '@/lib/kelime-sofrasi/crossword-pack';
+import { cantadanKelimeAdaylari } from '@/lib/kelime-sofrasi/letter-bag';
 import type { HavuzKelime } from '@/lib/kelime-sofrasi/havuz';
 import { havuzKelimeFiltre } from '@/lib/kelime-sofrasi/havuz';
-import { cevapNormalize } from '@/lib/kelime-yarismasi/turkce-metin';
-import { mulberry32, seedFromString, shuffled } from '@/lib/mini-sudoku/rng';
+import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
+import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types';
 
-type Template = {
-  hLen: number;
-  verticals: { crossAt: number; len: number }[];
-};
+/** Modül yüklendiğinde bir kez filtrelenir — her bulmacada tekrar tarama yok. */
+const POOL = havuzKelimeFiltre(SOFRA_MIN_KELIME_UZUNLUGU, SOFRA_WHEEL_MAX);
+const SEED_WORDS = POOL.filter(
+  (w) => w.kelime.length >= SOFRA_WHEEL_MIN && w.kelime.length <= SOFRA_WHEEL_MAX,
+);
 
-const TEMPLATES: Template[] = [
-  { hLen: 6, verticals: [{ crossAt: 1, len: 4 }] },
-  { hLen: 6, verticals: [{ crossAt: 3, len: 4 }] },
-  { hLen: 5, verticals: [{ crossAt: 1, len: 4 }] },
-  { hLen: 5, verticals: [{ crossAt: 2, len: 4 }] },
-  { hLen: 6, verticals: [{ crossAt: 1, len: 4 }, { crossAt: 4, len: 3 }] },
-  { hLen: 5, verticals: [{ crossAt: 0, len: 3 }, { crossAt: 4, len: 3 }] },
-  { hLen: 6, verticals: [{ crossAt: 2, len: 3 }, { crossAt: 5, len: 3 }] },
-];
-
-const FALLBACK: { kelimeler: string[]; ipuclari: string[] } = {
-  kelimeler: ['BALIK', 'KAL', 'PIL'],
-  ipuclari: ['Deniz veya tatlı suda yaşayan hayvan', 'Almak anlamında kısa fiil', 'Pilates kısaltması değil — ampul içi tel'],
-};
-
-function verticalCrossIndex(len: number): number {
-  return Math.floor((len - 1) / 2);
-}
-
-function pickVertical(
-  pool: HavuzKelime[],
-  crossLetter: string,
-  len: number,
-  used: Set<string>,
-  rand: () => number,
-): HavuzKelime | null {
-  const mid = verticalCrossIndex(len);
-  const candidates = pool.filter((w) => {
-    const norm = cevapNormalize(w.kelime);
-    if (norm.length !== len || used.has(norm)) return false;
-    return norm[mid] === crossLetter;
-  });
-  if (!candidates.length) return null;
-  return candidates[Math.floor(rand() * candidates.length)]!;
-}
-
-function buildFromAnchor(
-  anchor: HavuzKelime,
-  template: Template,
-  pool: HavuzKelime[],
-  rand: () => number,
-): SofraPlacedWord[] | null {
-  const horizontal = cevapNormalize(anchor.kelime);
-  if (horizontal.length !== template.hLen) return null;
-
-  const used = new Set<string>([horizontal]);
-  const hRow = Math.max(...template.verticals.map((v) => verticalCrossIndex(v.len)));
-  const placed: SofraPlacedWord[] = [
-    {
-      id: anchor.id,
-      kelime: horizontal,
-      ipucu: anchor.ipucu,
-      row: hRow,
-      col: 0,
-      direction: 'h',
-    },
-  ];
-
-  for (let i = 0; i < template.verticals.length; i++) {
-    const spec = template.verticals[i]!;
-    const crossLetter = horizontal[spec.crossAt];
-    if (!crossLetter) return null;
-    const picked = pickVertical(pool, crossLetter, spec.len, used, rand);
-    if (!picked) return null;
-    const norm = cevapNormalize(picked.kelime);
-    used.add(norm);
-    const vCross = verticalCrossIndex(spec.len);
-    placed.push({
-      id: `${anchor.id}-v${i}`,
-      kelime: norm,
-      ipucu: picked.ipucu,
-      row: hRow - vCross,
-      col: spec.crossAt,
-      direction: 'v',
-    });
-  }
-
-  return placed;
-}
+/** WOW referans setleri — yoğun çapraz ızgara üretemezsek sırayla dene */
+const FALLBACK_SEEDS = ['ARSLAN', 'ASLAN', 'KALEM', 'BALIK'];
 
 function compileGrid(words: SofraPlacedWord[]): {
   grid: (SofraGridCell | null)[][];
@@ -100,7 +34,7 @@ function compileGrid(words: SofraPlacedWord[]): {
   let maxRow = 0;
   let maxCol = 0;
   for (const w of words) {
-    const len = cevapNormalize(w.kelime).length;
+    const len = sofraKelimeBuyuk(w.kelime).length;
     maxRow = Math.max(maxRow, w.direction === 'h' ? w.row : w.row + len - 1);
     maxCol = Math.max(maxCol, w.direction === 'h' ? w.col + len - 1 : w.col);
   }
@@ -111,7 +45,7 @@ function compileGrid(words: SofraPlacedWord[]): {
   );
 
   for (const w of words) {
-    const norm = cevapNormalize(w.kelime);
+    const norm = sofraKelimeBuyuk(w.kelime);
     for (let i = 0; i < norm.length; i++) {
       const row = w.direction === 'h' ? w.row : w.row + i;
       const col = w.direction === 'h' ? w.col + i : w.col;
@@ -133,78 +67,112 @@ function compileGrid(words: SofraPlacedWord[]): {
   return { grid, rows, cols };
 }
 
-function buildWheel(words: SofraPlacedWord[], rand: () => number): string[] {
-  const letters: string[] = [];
-  for (const w of words) {
-    letters.push(...[...cevapNormalize(w.kelime)]);
+function wheelFromSeed(seed: string, rand: () => number): string[] {
+  const letters = [...sofraKelimeBuyuk(seed)];
+  const order = letters.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
   }
-  return shuffled(letters, rand);
+  return order.map((i) => letters[i]!);
 }
 
-function fallbackPuzzle(puzzleId: string, rand: () => number): SofraPuzzle {
-  const words: SofraPlacedWord[] = [
-    {
-      id: 'fb-h',
-      kelime: cevapNormalize(FALLBACK.kelimeler[0]!),
-      ipucu: FALLBACK.ipuclari[0],
-      row: 1,
-      col: 0,
-      direction: 'h',
-    },
-    {
-      id: 'fb-v1',
-      kelime: cevapNormalize(FALLBACK.kelimeler[1]!),
-      ipucu: FALLBACK.ipuclari[1],
-      row: 0,
-      col: 1,
-      direction: 'v',
-    },
-    {
-      id: 'fb-v2',
-      kelime: cevapNormalize(FALLBACK.kelimeler[2]!),
-      ipucu: FALLBACK.ipuclari[2],
-      row: 0,
-      col: 3,
-      direction: 'v',
-    },
-  ];
-  const { grid, rows, cols } = compileGrid(words);
+function bonusFromCandidates(candidates: HavuzKelime[], placed: SofraPlacedWord[]): string[] {
+  const onGrid = new Set(placed.map((w) => sofraKelimeBuyuk(w.kelime)));
+  return candidates
+    .filter((w) => !onGrid.has(w.kelime))
+    .map((w) => w.kelime)
+    .sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr'));
+}
+
+function buildPuzzleFromWheel(
+  puzzleId: string,
+  wheel: string[],
+  rand: () => number,
+  zorluk: EglenceZorluk,
+  kelimeHedef: number,
+): SofraPuzzle | null {
+  const candidates = cantadanKelimeAdaylari(wheel, POOL);
+  const placed = packCrosswordFromCandidates(candidates, rand, kelimeHedef, kelimeHedef);
+  if (!placed || placed.length !== kelimeHedef) return null;
+
+  const { grid, rows, cols } = compileGrid(placed);
   return {
     id: puzzleId,
-    words,
-    wheel: buildWheel(words, rand),
+    zorluk,
+    words: placed,
+    bonusKelimeler: bonusFromCandidates(candidates, placed),
+    wheel,
     rows,
     cols,
     grid,
   };
 }
 
-export function buildDailySofraPuzzle(puzzleId = activePuzzleId()): SofraPuzzle {
-  const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
-  const pool = havuzKelimeFiltre(3, 7);
-  const templates = shuffled(TEMPLATES, rand);
-  const anchors = shuffled(pool.filter((w) => w.kelime.length >= 5 && w.kelime.length <= 7), rand);
-
-  for (const template of templates) {
-    const slice = anchors.filter((w) => w.kelime.length === template.hLen);
-    for (const anchor of slice.slice(0, 80)) {
-      const placed = buildFromAnchor(anchor, template, pool, rand);
-      if (!placed) continue;
-      const count = placed.length;
-      if (count < SOFRA_MIN_HEDEF || count > SOFRA_MAX_HEDEF) continue;
-      const { grid, rows, cols } = compileGrid(placed);
-      return {
-        id: puzzleId,
-        words: placed,
-        wheel: buildWheel(placed, rand),
-        rows,
-        cols,
-        grid,
-      };
-    }
+function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZorluk): SofraPuzzle {
+  const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
+  for (let i = 0; i < FALLBACK_SEEDS.length; i++) {
+    const seed = FALLBACK_SEEDS[i]!;
+    const wheel = wheelFromSeed(seed, rand);
+    const retryRand = mulberry32(seedFromString(`${puzzleId}:fallback:${i}`));
+    const built = buildPuzzleFromWheel(puzzleId, wheel, retryRand, zorluk, kelimeHedef);
+    if (built) return built;
   }
 
-  return fallbackPuzzle(puzzleId, rand);
+  const wheel = wheelFromSeed(FALLBACK_SEEDS[0]!, rand);
+  const words: SofraPlacedWord[] = [
+    {
+      id: 'fb-h',
+      kelime: 'ARSLAN',
+      ipucu: 'Ormanların kralı',
+      row: 0,
+      col: 0,
+      direction: 'h',
+    },
+    {
+      id: 'fb-v1',
+      kelime: 'ALAN',
+      ipucu: 'Bölge, mekan',
+      row: 0,
+      col: 0,
+      direction: 'v',
+    },
+  ];
+  const { grid, rows, cols } = compileGrid(words);
+  const fbCandidates = cantadanKelimeAdaylari(wheel, POOL);
+  return {
+    id: puzzleId,
+    zorluk,
+    words,
+    bonusKelimeler: bonusFromCandidates(fbCandidates, words),
+    wheel,
+    rows,
+    cols,
+    grid,
+  };
+}
+
+const MAX_SEED_ATTEMPTS = 20;
+
+export function buildDailySofraPuzzle(
+  gunId = activePuzzleId(),
+  zorluk: EglenceZorluk = 'orta',
+): SofraPuzzle {
+  const puzzleId = sofraPuzzleKey(gunId, zorluk);
+  const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
+  const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
+  if (!SEED_WORDS.length) return fallbackPuzzle(puzzleId, rand, zorluk);
+
+  const start = seedFromString(`${puzzleId}:anchor`) % SEED_WORDS.length;
+
+  for (let attempt = 0; attempt < MAX_SEED_ATTEMPTS; attempt++) {
+    const anchor = SEED_WORDS[(start + attempt) % SEED_WORDS.length]!;
+    const wheel = wheelFromSeed(anchor.kelime, rand);
+    const built = buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, kelimeHedef);
+    if (built && built.words.length === kelimeHedef) return built;
+  }
+
+  return fallbackPuzzle(puzzleId, rand, zorluk);
 }
 
 export function todaySofraPuzzleId(now = new Date()): string {

@@ -196,7 +196,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
 
 
 def seed_tester_online_restaurants(db: Session) -> dict:
-    owner = get_or_create_user(
+    owner, _ = get_or_create_user(
         db,
         email=TESTER_OWNER_EMAIL,
         full_name="GastroSkor Tester Restoranlari",

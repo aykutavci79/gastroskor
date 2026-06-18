@@ -48,6 +48,9 @@ import type {
   FriendRequestListResponse,
   PublicUserCard,
   UserProfile,
+  JetonWalletSummary,
+  JetonLedgerListResponse,
+  GameHintSpendResponse,
 } from '@/lib/types';
 
 import { getApiV1Base } from '@/lib/api-base';
@@ -1235,5 +1238,43 @@ export function reportFoodcastPhoto(
   return request<{ ok: boolean; message: string }>(`/foodcast/photos/${encodeURIComponent(photoId)}/report`, {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export async function getJetonWallet(userEmail: string) {
+  const query = new URLSearchParams({ user_email: userEmail });
+  return request<JetonWalletSummary>(`/jeton/me/wallet?${query.toString()}`);
+}
+
+export async function getJetonLedger(userEmail: string, limit = 20, offset = 0) {
+  const query = new URLSearchParams({
+    user_email: userEmail,
+    limit: String(limit),
+    offset: String(offset),
+  });
+  return request<JetonLedgerListResponse>(`/jeton/me/ledger?${query.toString()}`);
+}
+
+export async function spendGameHint(payload: {
+  userEmail: string;
+  game: 'kelime_sofrasi' | 'mini_sudoku';
+  puzzleId: string;
+  hintIndex: number;
+}) {
+  return request<GameHintSpendResponse>('/jeton/me/spend/game-hint', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: payload.userEmail,
+      game: payload.game,
+      puzzle_id: payload.puzzleId,
+      hint_index: payload.hintIndex,
+    }),
+  });
+}
+
+export async function recordReferralClick(referrerId: string, deviceHash: string) {
+  return request<{ ok: boolean }>('/jeton/referral/click', {
+    method: 'POST',
+    body: JSON.stringify({ referrer_id: referrerId, device_hash: deviceHash }),
   });
 }

@@ -58,6 +58,15 @@ from app.models.entities import (
     UserNotification,
     UserPushToken,
     UserRestaurantFollow,
+    Wallet,
+    JetonLedger,
+    JetonLedgerSource,
+    JetonLedgerStatus,
+    JetonFollowReward,
+    JetonDailyEarnTotal,
+    Referral,
+    ReferralAttribution,
+    ReferralStatus,
 )
 
 __all__ = [
@@ -119,4 +128,13 @@ __all__ = [
     "UserNotification",
     "UserPushToken",
     "UserRestaurantFollow",
+    "Wallet",
+    "JetonLedger",
+    "JetonLedgerSource",
+    "JetonLedgerStatus",
+    "JetonFollowReward",
+    "JetonDailyEarnTotal",
+    "Referral",
+    "ReferralAttribution",
+    "ReferralStatus",
 ]

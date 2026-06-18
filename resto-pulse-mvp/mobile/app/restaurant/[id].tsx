@@ -6,8 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +14,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { KeyboardAvoidingView } from '@/components/ui/AppKeyboardAvoidingView';
 
 import { FollowerCouponBox } from '@/components/FollowerCouponBox';
 import { RestaurantFollowButton } from '@/components/RestaurantFollowButton';
@@ -52,6 +52,7 @@ import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { coerceNumber, formatNumber } from '@/lib/coerce-number';
 import { googleCardPhotosEnabled } from '@/lib/google-card-photos';
 import { formatApiError } from '@/lib/format-api-error';
+import { useScreenKeyboardOffset } from '@/lib/keyboard-layout';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
 import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
@@ -90,6 +91,7 @@ export default function RestaurantDetailScreen() {
   const [checkInBusy, setCheckInBusy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const onFieldFocus = useKeyboardFieldFocus(scrollRef);
+  const keyboardOffset = useScreenKeyboardOffset();
   const reviewFormOffsetY = useRef(0);
   const menuOffsetY = useRef(0);
   const reviewsSectionY = useRef(0);
@@ -219,7 +221,8 @@ export default function RestaurantDetailScreen() {
           setPhotoUrls(gallery);
           setGoogleRating(coerceNumber(live.rating) ?? coerceNumber(restaurantData.google_rating));
           setGoogleReviewCount(live.user_ratings_total ?? null);
-          await applyDistance(restaurantData);
+          if (!cancelled) setLoading(false);
+          void applyDistance(restaurantData);
           return;
         }
 
@@ -239,9 +242,10 @@ export default function RestaurantDetailScreen() {
           restaurantData.promo?.card_cover_image_url?.trim() ||
           restaurantData.promo?.menu_image_url?.trim();
         if (cover) gallery.push(cover);
+        setPhotoUrls(gallery);
+        setGoogleRating(coerceNumber(restaurantData.google_rating));
+        if (!cancelled) setLoading(false);
 
-        let googleScore = coerceNumber(restaurantData.google_rating);
-        let googleCount: number | null = null;
         googlePlaceId = restaurantData.google_place_id ?? googlePlaceId;
 
         if (googlePlaceId) {
@@ -249,16 +253,17 @@ export default function RestaurantDetailScreen() {
             const live = await getLivePlaceDetails(googlePlaceId);
             if (!cancelled) {
               applyLiveSnapshot(live);
+              const liveGallery = [...gallery];
               if (googleCardPhotosEnabled()) {
                 for (const url of live.photo_urls ?? []) {
-                  if (!gallery.includes(url)) gallery.push(url);
+                  if (!liveGallery.includes(url)) liveGallery.push(url);
                 }
               }
-              googleScore = coerceNumber(live.rating) ?? googleScore;
-              googleCount = coerceNumber(live.user_ratings_total);
+              setPhotoUrls(liveGallery);
+              setGoogleRating(coerceNumber(live.rating) ?? coerceNumber(restaurantData.google_rating));
+              setGoogleReviewCount(coerceNumber(live.user_ratings_total));
             }
           } catch {
-            // Google detay opsiyonel
             if (!cancelled) setGoogleReviews([]);
           }
         } else {
@@ -266,10 +271,7 @@ export default function RestaurantDetailScreen() {
         }
 
         if (!cancelled) {
-          setPhotoUrls(gallery);
-          setGoogleRating(googleScore);
-          setGoogleReviewCount(googleCount);
-          await applyDistance(restaurantData);
+          void applyDistance(restaurantData);
         }
       } catch (err) {
         if (!cancelled) {
@@ -485,15 +487,15 @@ export default function RestaurantDetailScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        behavior="padding"
+        keyboardVerticalOffset={keyboardOffset}>
         <ScrollView
           ref={scrollRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
+          automaticallyAdjustKeyboardInsets>
         <View style={styles.section}>
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
@@ -742,7 +744,7 @@ export default function RestaurantDetailScreen() {
                   <TextInput
                     value={text}
                     onFocus={() => {
-                      scrollToY(reviewFormOffsetY.current + 120);
+                      scrollToY(reviewsSectionY.current + reviewFormOffsetY.current + 100);
                     }}
                     onChangeText={(value) => {
                       setText(value);

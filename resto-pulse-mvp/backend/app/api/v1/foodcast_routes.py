@@ -28,6 +28,7 @@ from app.services.foodcast import (
 )
 from app.services.request_identity import get_request_auth
 from app.services.restaurant_claim import ensure_restaurant_for_place
+from app.services.restaurant_proximity import sync_restaurant_coordinates_from_google
 
 router = APIRouter(prefix="/foodcast", tags=["foodcast"])
 
@@ -94,6 +95,9 @@ async def upload_foodcast_photo(
 
     user = _resolve_upload_user(db, author_email)
     skip_location = user.role == "admin"
+    restaurant_row = db.get(Restaurant, restaurant_uuid)
+    if restaurant_row:
+        await sync_restaurant_coordinates_from_google(db, restaurant_row)
     try:
         photo = await create_foodcast_photo(
             db,

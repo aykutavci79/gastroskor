@@ -8,6 +8,7 @@ import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useGastroTheme } from '@/context/theme-context';
 import { listRegionalProducts } from '@/lib/api';
+import { regionalProductImageSource } from '@/lib/regional-product-image';
 import type { RegionalProductItem } from '@/lib/types';
 
 export default function YoreselLezzetlerScreen() {
@@ -65,9 +66,12 @@ export default function YoreselLezzetlerScreen() {
                     {item.registration_year} · {item.indication_type} · Canlı arama
                   </Text>
                 </View>
-                {item.image_url ? (
-                  <Image source={{ uri: item.image_url }} style={styles.thumb} contentFit="cover" />
-                ) : null}
+                {(() => {
+                  const source = regionalProductImageSource(item.slug, item.image_url);
+                  return source ? (
+                    <Image source={source} style={styles.thumb} contentFit="cover" />
+                  ) : null;
+                })()}
               </View>
             </Pressable>
           ))}

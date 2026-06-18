@@ -4,15 +4,14 @@ import {
   ActivityIndicator,
   BackHandler,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ChatKeyboardLayout } from '@/components/ui/ChatKeyboardLayout';
 
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
@@ -35,7 +34,6 @@ function formatWhen(value: string) {
 export default function DmThreadScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const threadId = param(params.threadId);
   const fallbackNickname = param(params.nickname, 'Gurme');
@@ -117,9 +115,30 @@ export default function DmThreadScreen() {
 
   return (
     <View style={styles.root}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ChatKeyboardLayout
+        composer={
+          <View style={styles.composer}>
+            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+            <View style={styles.composerRow}>
+              <TextInput
+                style={[GastroStyles.input, styles.composerInput]}
+                placeholder="Ozel mesaj yaz…"
+                placeholderTextColor={GastroColors.placeholder}
+                value={body}
+                onChangeText={setBody}
+                multiline
+                maxLength={800}
+                editable={!submitting}
+              />
+              <Pressable
+                style={[styles.sendBtn, (submitting || !body.trim()) && styles.sendBtnDisabled]}
+                onPress={() => void submitMessage()}
+                disabled={submitting || !body.trim()}>
+                <Text style={styles.sendBtnText}>{submitting ? '…' : 'Gonder'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        }>
         {loading ? (
           <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
         ) : error ? (
@@ -146,29 +165,7 @@ export default function DmThreadScreen() {
             onContentSizeChange={() => scrollToBottom(false)}
           />
         )}
-
-        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-          <View style={styles.composerRow}>
-            <TextInput
-              style={[GastroStyles.input, styles.composerInput]}
-              placeholder="Ozel mesaj yaz…"
-              placeholderTextColor={GastroColors.placeholder}
-              value={body}
-              onChangeText={setBody}
-              multiline
-              maxLength={800}
-              editable={!submitting}
-            />
-            <Pressable
-              style={[styles.sendBtn, (submitting || !body.trim()) && styles.sendBtnDisabled]}
-              onPress={() => void submitMessage()}
-              disabled={submitting || !body.trim()}>
-              <Text style={styles.sendBtnText}>{submitting ? '…' : 'Gonder'}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+      </ChatKeyboardLayout>
     </View>
   );
 }

@@ -1,7 +1,5 @@
 import { ReactNode, RefObject, useMemo } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
+import { KeyboardAvoidingView } from '@/components/ui/AppKeyboardAvoidingView';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -48,7 +47,7 @@ export function Screen({
       contentContainerStyle={contentStyle}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
-      automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+      automaticallyAdjustKeyboardInsets
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -68,7 +67,7 @@ export function Screen({
     <SafeAreaView style={styles.safe} edges={edges}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         keyboardVerticalOffset={keyboardVerticalOffset}>
         {body}
       </KeyboardAvoidingView>

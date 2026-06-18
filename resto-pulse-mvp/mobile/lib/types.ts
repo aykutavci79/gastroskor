@@ -891,3 +891,32 @@ export type EglenceLeaderboardResponse = {
   period_key: string;
   items: EglenceLeaderboardEntry[];
 };
+
+export type JetonWalletSummary = {
+  balance: number;
+  today_earned: number;
+  today_cap_remaining: number;
+  hint_cost: number;
+  free_hints_per_game: number;
+};
+
+export type JetonLedgerItem = {
+  id: string;
+  source: string;
+  source_id?: string | null;
+  amount: number;
+  status: string;
+  created_at: string;
+};
+
+export type JetonLedgerListResponse = {
+  items: JetonLedgerItem[];
+  total: number;
+};
+
+export type GameHintSpendResponse = {
+  ok: boolean;
+  balance: number;
+  charged: number;
+  reason?: string | null;
+};

@@ -4,8 +4,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  InteractionManager,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -13,10 +13,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GourmetChatMessageBubble } from '@/components/GourmetChatCards';
 import { NicknameActionSheet } from '@/components/NicknameActionSheet';
+import { ChatKeyboardLayout } from '@/components/ui/ChatKeyboardLayout';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
@@ -33,6 +34,7 @@ import {
   removeFriend,
   startDmThread,
 } from '@/lib/api';
+import { ensureAccessToken } from '@/lib/auth-token';
 import type { GourmetChatAuthor, GourmetChatMessage, GourmetTriviaLeaderboardItem } from '@/lib/types';
 
 const POLL_MS = 12_000;
@@ -43,7 +45,6 @@ function param(value: string | string[] | undefined, fallback = '') {
 
 export default function GurmeRoomScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const { city, cityLabel } = useCity();
   const roomSlug = param(params.roomSlug);
@@ -245,9 +246,23 @@ export default function GurmeRoomScreen() {
     if (!user?.email || !ensureCanPost()) return;
     const trimmed = body.trim();
     if (!trimmed) return;
+
+    const token = await ensureAccessToken();
+    if (!token) {
+      setFormError('Oturum suresi doldu. Hesap sekmesinden cikis yapip tekrar giris yap.');
+      return;
+    }
+
     setSubmitting(true);
     setFormError(null);
     try {
+      if (Platform.OS === 'android') {
+        Keyboard.dismiss();
+        await new Promise<void>((resolve) => {
+          InteractionManager.runAfterInteractions(() => resolve());
+        });
+      }
+
       await createGourmetChatMessage(roomSlug, {
         user_email: user.email,
         city,
@@ -260,7 +275,12 @@ export default function GurmeRoomScreen() {
       if (err instanceof ReviewModerationApiError) {
         setFormError(err.message);
       } else {
-        setFormError(err instanceof Error ? err.message : 'Mesaj gonderilemedi.');
+        const message = err instanceof Error ? err.message : 'Mesaj gonderilemedi.';
+        if (/401|oturum gerekli|gecersiz veya suresi dolmus/i.test(message)) {
+          setFormError('Oturum suresi doldu. Hesap sekmesinden cikis yapip tekrar giris yap.');
+        } else {
+          setFormError(message);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -269,34 +289,60 @@ export default function GurmeRoomScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <View style={styles.headerMeta}>
-            <Text style={styles.headerEmoji}>{roomEmoji}</Text>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>{roomTitle}</Text>
-              <Text style={styles.headerCity}>{cityLabel} · canli sohbet</Text>
-            </View>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Text style={styles.back}>← Geri</Text>
+        </Pressable>
+        <View style={styles.headerMeta}>
+          <Text style={styles.headerEmoji}>{roomEmoji}</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>{roomTitle}</Text>
+            <Text style={styles.headerCity}>{cityLabel} · canli sohbet</Text>
           </View>
         </View>
+      </View>
 
-        {leaderboard.length > 0 ? (
-          <View style={styles.leaderboard}>
-            <Text style={styles.leaderboardTitle}>BilBakalim · top {leaderboard.length}</Text>
-            <Text style={styles.leaderboardRow} numberOfLines={2}>
-              {leaderboard
-                .map((row, index) => `${index + 1}. ${row.nickname} (${row.correct_count})`)
-                .join(' · ')}
-            </Text>
+      {leaderboard.length > 0 ? (
+        <View style={styles.leaderboard}>
+          <Text style={styles.leaderboardTitle}>BilBakalim · top {leaderboard.length}</Text>
+          <Text style={styles.leaderboardRow} numberOfLines={2}>
+            {leaderboard
+              .map((row, index) => `${index + 1}. ${row.nickname} (${row.correct_count})`)
+              .join(' · ')}
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.flex}>
+        <ChatKeyboardLayout
+        composer={
+          <View style={styles.composer}>
+            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+            <View style={styles.composerRow}>
+              <TextInput
+                ref={composerRef}
+                style={[GastroStyles.input, styles.composerInput]}
+                placeholder="Mesaj yaz… @takmaad ile etiketle"
+                placeholderTextColor={GastroColors.placeholder}
+                value={body}
+                onChangeText={setBody}
+                onFocus={() => scrollToBottom(true)}
+                multiline
+                maxLength={800}
+                editable={!submitting}
+              />
+              <Pressable
+                style={[styles.sendBtn, (submitting || !body.trim()) && styles.sendBtnDisabled]}
+                onPress={() => {
+                  if (!ensureCanPost()) return;
+                  void submitMessage();
+                }}
+                disabled={submitting || !body.trim()}>
+                <Text style={styles.sendBtnText}>{submitting ? '…' : 'Gonder'}</Text>
+              </Pressable>
+            </View>
           </View>
-        ) : null}
-
+        }>
         {loading ? (
           <ActivityIndicator color={GastroColors.accent} style={styles.loader} />
         ) : error ? (
@@ -310,7 +356,6 @@ export default function GurmeRoomScreen() {
             contentContainerStyle={styles.messageList}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
-            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
             ListEmptyComponent={
               <Text style={styles.empty}>Henuz mesaj yok. Ilk sohbeti sen baslat!</Text>
@@ -326,34 +371,8 @@ export default function GurmeRoomScreen() {
             onContentSizeChange={() => scrollToBottom(false)}
           />
         )}
-
-        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-          <View style={styles.composerRow}>
-            <TextInput
-              ref={composerRef}
-              style={[GastroStyles.input, styles.composerInput]}
-              placeholder="Mesaj yaz… @takmaad ile etiketle"
-              placeholderTextColor={GastroColors.placeholder}
-              value={body}
-              onChangeText={setBody}
-              onFocus={() => scrollToBottom(true)}
-              multiline
-              maxLength={800}
-              editable={!submitting}
-            />
-            <Pressable
-              style={[styles.sendBtn, (submitting || !body.trim()) && styles.sendBtnDisabled]}
-              onPress={() => {
-                if (!ensureCanPost()) return;
-                void submitMessage();
-              }}
-              disabled={submitting || !body.trim()}>
-              <Text style={styles.sendBtnText}>{submitting ? '…' : 'Gonder'}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+        </ChatKeyboardLayout>
+      </View>
 
       <NicknameActionSheet
         visible={sheetVisible}

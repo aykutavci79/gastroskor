@@ -20,6 +20,7 @@ type Props = {
   onDismiss?: () => void;
   searchInputRef?: RefObject<TextInput | null>;
   searchFocused?: boolean;
+  showReviewTicker?: boolean;
 };
 
 export function KesfetHomeChrome({
@@ -31,6 +32,7 @@ export function KesfetHomeChrome({
   onDismiss,
   searchInputRef,
   searchFocused = false,
+  showReviewTicker = true,
 }: Props) {
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
@@ -38,7 +40,15 @@ export function KesfetHomeChrome({
   const [pickerOpen, setPickerOpen] = useState(false);
   const showClear = query.trim().length > 0;
 
-  const statusLine = manual ? 'Şehir seçimin geçerli' : 'Konumuna göre';
+  const statusLine = manual ? 'Elle seçili' : 'Konumuna göre';
+
+  function handleCityPress() {
+    if (manual) {
+      setPickerOpen(true);
+      return;
+    }
+    void refreshFromLocation();
+  }
 
   return (
     <View style={styles.wrap}>
@@ -49,26 +59,6 @@ export function KesfetHomeChrome({
           <DmAvatarButton />
         </View>
       </View>
-      <Pressable
-        onPress={() => {
-          if (manual) {
-            setPickerOpen(true);
-          } else {
-            void refreshFromLocation();
-          }
-        }}
-        onLongPress={() => setPickerOpen(true)}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel={
-          manual ? `${cityLabel} — elle seçili, değiştirmek için dokun` : `${cityLabel} — konumdan, yenilemek için dokun`
-        }>
-        <View style={styles.cityRow}>
-          {!manual ? <Ionicons name="location-sharp" size={11} color={colors.accent} /> : null}
-          <Text style={styles.city}>{cityLabel}</Text>
-          <Ionicons name="chevron-down" size={14} color={colors.muted} />
-        </View>
-      </Pressable>
       <CityPickerModal
         visible={pickerOpen}
         selected={city}
@@ -81,7 +71,7 @@ export function KesfetHomeChrome({
       />
       <View style={[styles.searchCard, searchFocused && styles.searchCardFocused]}>
         <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
-        <Text style={styles.searchSub}>{cityLabel} · Google Haritalar ile anlık mekan araması</Text>
+        <Text style={styles.searchSub}>Google Haritalar ile anlık mekan araması</Text>
         <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
@@ -119,7 +109,14 @@ export function KesfetHomeChrome({
           )}
         </View>
       </View>
-      <CityAtmosphereStrip city={city} statusLine={statusLine} />
+      <CityAtmosphereStrip
+        city={city}
+        statusLine={statusLine}
+        manual={manual}
+        showTicker={showReviewTicker}
+        onCityPress={handleCityPress}
+        onCityLongPress={() => setPickerOpen(true)}
+      />
     </View>
   );
 }
@@ -146,17 +143,6 @@ function createStyles(colors: GastroColorScheme, shadow: ReturnType<typeof impor
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-    },
-    cityRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      alignSelf: 'flex-start',
-    },
-    city: {
-      color: colors.muted,
-      fontSize: 10,
-      fontWeight: '700',
     },
     brand: {
       color: colors.text,

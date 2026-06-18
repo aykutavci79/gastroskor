@@ -30,6 +30,7 @@ from app.constants.order_reject_reasons import (
 )
 from app.services.order_phone_verification import user_has_verified_order_phone
 from app.services.order_review import order_can_be_reviewed
+from app.services.jeton_service import try_earn_order_accepted
 from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.phone_tr import normalize_tr_mobile
 from app.services.restaurant_menu import active_menu_items
@@ -363,6 +364,8 @@ def decide_restaurant_order(
     )
     order.decided_at = _utcnow()
     db.add(order)
+    if decision == "accepted" and order.user:
+        try_earn_order_accepted(db, order=order, user=order.user)
     db.commit()
     db.refresh(order)
     return order

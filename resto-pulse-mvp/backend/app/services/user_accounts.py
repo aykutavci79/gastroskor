@@ -46,7 +46,7 @@ def get_or_create_user(
     avatar_url: str | None = None,
     google_sub: str | None = None,
     default_review_name_display: str | None = None,
-) -> User:
+) -> tuple[User, bool]:
     email = email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if not user and google_sub:
@@ -75,7 +75,7 @@ def get_or_create_user(
             db.add(user)
             db.commit()
             db.refresh(user)
-        return user
+        return user, False
 
     user = User(
         email=email,
@@ -87,4 +87,4 @@ def get_or_create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    return user, True

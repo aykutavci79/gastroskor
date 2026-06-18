@@ -14,7 +14,7 @@ export default function KelimeSofrasiLayout() {
         headerBackTitle: 'Geri',
       }}>
       <Stack.Screen name="index" options={{ title: 'Kelime Sofrası' }} />
-      <Stack.Screen name="oyun" options={{ title: 'Sofra', headerBackVisible: false }} />
+      <Stack.Screen name="oyun" options={{ title: 'Sofra', headerBackTitle: 'Geri' }} />
     </Stack>
   );
 }

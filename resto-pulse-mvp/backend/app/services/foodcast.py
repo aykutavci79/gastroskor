@@ -14,7 +14,7 @@ from app.models.entities import FoodcastPhoto, FoodcastPhotoReport, Restaurant, 
 from app.services.foodcast_image_storage import save_foodcast_image
 from app.services.city_resolver import resolve_city_name
 from app.services.gastro_score_ranking import haversine_meters
-from app.services.restaurant_check_in import CHECK_IN_MAX_DISTANCE_M
+from app.services.restaurant_proximity import is_user_near_restaurant
 
 FOODCAST_STRIP_LIMIT = 10
 FOODCAST_FEED_MAX_LIMIT = 50
@@ -121,11 +121,16 @@ def _assert_location_near_restaurant(
 ) -> None:
     if restaurant.latitude is None or restaurant.longitude is None:
         raise FoodcastError("Bu restoran icin konum bilgisi yok; tabak paylasilamaz.")
-    distance_m = haversine_meters(latitude, longitude, restaurant.latitude, restaurant.longitude)
-    if distance_m > CHECK_IN_MAX_DISTANCE_M:
+    allowed, distance_m = is_user_near_restaurant(
+        db,
+        restaurant=restaurant,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    if not allowed:
         raise FoodcastError(
             f"Tabak paylasmak icin restorana {CHECK_IN_MAX_DISTANCE_M} m icinde olmalisiniz "
-            f"(su an ~{int(distance_m)} m)."
+            f"(su an ~{distance_m} m)."
         )
 
 

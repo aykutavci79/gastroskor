@@ -2,15 +2,15 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Alpha",
-    "versionName": "1.0.47",
-    "versionCode": 56,
-    "lastUpdated": "2026-06-15",
-    "_note": "EAS Android production 1.0.47 / versionCode 56"
+    "versionName": "1.0.49",
+    "versionCode": 58,
+    "lastUpdated": "2026-06-16",
+    "_note": "EAS Android production 1.0.49 / versionCode 58 — Eglence + modal sıralama"
   },
   "appStore": {
-    "version": "1.0.47",
-    "buildNumber": 48,
-    "lastUpdated": "2026-06-15",
-    "_note": "EAS iOS production 1.0.47 / build 48"
+    "version": "1.0.49",
+    "buildNumber": 50,
+    "lastUpdated": "2026-06-16",
+    "_note": "EAS iOS production 1.0.49 / build 50 — Eglence paketi"
   }
 }

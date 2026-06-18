@@ -78,14 +78,12 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
     if profile:
         restaurant = db.get(Restaurant, profile.restaurant_id)
         if restaurant:
-            if restaurant.latitude is None or restaurant.longitude is None or not profile.photo_reference:
-                details = await google_client.get_place_details(place_id)
-                if restaurant.latitude is None or restaurant.longitude is None:
-                    apply_google_details_to_restaurant(restaurant, details, city=city)
-                    db.add(restaurant)
-                if not profile.photo_reference and sync_profile_photo_from_details(profile, details):
-                    db.add(profile)
-                db.flush()
+            details = await google_client.get_place_details(place_id)
+            apply_google_details_to_restaurant(restaurant, details, city=city)
+            db.add(restaurant)
+            if not profile.photo_reference and sync_profile_photo_from_details(profile, details):
+                db.add(profile)
+            db.flush()
             return restaurant
 
     details = await google_client.get_place_details(place_id)

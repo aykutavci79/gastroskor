@@ -13,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.models.entities import Restaurant, RestaurantCheckIn
 from app.services.gastro_score_ranking import haversine_meters
-
-CHECK_IN_MAX_DISTANCE_M = 200
+from app.services.restaurant_proximity import (
+    CHECK_IN_MAX_DISTANCE_M,
+    is_user_near_restaurant,
+)
 ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
 
 
@@ -125,11 +127,16 @@ def create_check_in(
     if restaurant.latitude is None or restaurant.longitude is None:
         raise CheckInError("Bu restoran icin konum bilgisi yok; check-in yapilamaz.")
 
-    distance_m = haversine_meters(latitude, longitude, restaurant.latitude, restaurant.longitude)
-    if distance_m > CHECK_IN_MAX_DISTANCE_M:
+    allowed, distance_m = is_user_near_restaurant(
+        db,
+        restaurant=restaurant,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    if not allowed:
         raise CheckInError(
             f"Check-in icin restorana {CHECK_IN_MAX_DISTANCE_M} m icinde olmalisiniz "
-            f"(su an ~{int(distance_m)} m)."
+            f"(su an ~{distance_m} m)."
         )
 
     today = istanbul_today()

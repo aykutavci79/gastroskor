@@ -1,3 +1,5 @@
+import type { EglenceZorluk } from '@/constants/eglence-zorluk';
+
 export type SofraDirection = 'h' | 'v';
 
 export type SofraPlacedWord = {
@@ -18,7 +20,10 @@ export type SofraGridCell = {
 
 export type SofraPuzzle = {
   id: string;
+  zorluk: EglenceZorluk;
   words: SofraPlacedWord[];
+  /** Çark harflerinden oluşan, ızgarada olmayan sözlük kelimeleri */
+  bonusKelimeler: string[];
   wheel: string[];
   rows: number;
   cols: number;
@@ -28,6 +33,8 @@ export type SofraPuzzle = {
 export type SofraProgress = {
   puzzleId: string;
   foundWordIds: string[];
+  bonusFound: string[];
+  hintedCells: string[];
   wheelOrder: number[];
   completedAt: string | null;
   elapsedMs: number;

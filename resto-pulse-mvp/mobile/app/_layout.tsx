@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
@@ -102,6 +103,7 @@ function NavigationShell() {
           }}
         />
         <Stack.Screen name="oyun/kelime-sofrasi" options={{ headerShown: false }} />
+        <Stack.Screen name="oyun/mini-sudoku" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>
@@ -129,15 +131,17 @@ function RootLayout() {
 
   return (
     <AppErrorBoundary>
-      <SessionProvider>
-        <GastroThemeProvider>
-          <CityProvider>
-            <AppMetricsTracker />
-            <NotificationBootstrap />
-            <NavigationShell />
-          </CityProvider>
-        </GastroThemeProvider>
-      </SessionProvider>
+      <KeyboardProvider>
+        <SessionProvider>
+          <GastroThemeProvider>
+            <CityProvider>
+              <AppMetricsTracker />
+              <NotificationBootstrap />
+              <NavigationShell />
+            </CityProvider>
+          </GastroThemeProvider>
+        </SessionProvider>
+      </KeyboardProvider>
     </AppErrorBoundary>
   );
 }

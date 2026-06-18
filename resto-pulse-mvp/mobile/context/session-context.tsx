@@ -137,6 +137,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setUser(next);
           void registerUserPushToken(next.email);
         } catch {
+          await loadAccessToken();
           setUser(parsed);
           void registerUserPushToken(parsed.email);
         }

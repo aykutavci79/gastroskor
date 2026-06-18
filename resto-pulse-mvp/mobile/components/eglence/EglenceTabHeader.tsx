@@ -2,13 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { DmAvatarButton } from '@/components/DmAvatarButton';
+import { JetonChip } from '@/components/eglence/JetonChip';
 import { GastroColors } from '@/constants/theme';
 
 type Props = {
   cityLabel: string;
+  jetonBalance?: number | null;
+  jetonLoading?: boolean;
 };
 
-export function EglenceTabHeader({ cityLabel }: Props) {
+export function EglenceTabHeader({ cityLabel, jetonBalance = null, jetonLoading }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -16,7 +19,10 @@ export function EglenceTabHeader({ cityLabel }: Props) {
           <Ionicons name="people" size={13} color={GastroColors.accent} />
           <Text style={styles.kickerText}>Topluluk · {cityLabel}</Text>
         </View>
-        <DmAvatarButton />
+        <View style={styles.topActions}>
+          <JetonChip balance={jetonBalance} loading={jetonLoading} />
+          <DmAvatarButton />
+        </View>
       </View>
 
       <View style={styles.heroCard}>
@@ -44,6 +50,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   kickerPill: {
     flexDirection: 'row',
