@@ -26,6 +26,11 @@ export function buildGastroSpeechStartOptions(): Record<string, unknown> {
 
   if (Platform.OS === 'ios') {
     options.iosTaskHint = 'search';
+    options.iosCategory = {
+      category: 'playAndRecord',
+      categoryOptions: ['defaultToSpeaker', 'allowBluetooth'],
+      mode: 'measurement',
+    };
   }
 
   if (Platform.OS === 'android') {

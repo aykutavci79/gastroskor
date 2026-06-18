@@ -42,10 +42,10 @@ function prepareSpeechText(text: string): string {
   return prepareTurkishSpeechText(withNumberWords);
 }
 
-/** iOS: AVSpeechSynthesizer kayit oturumunu paylasmasin — hoparlorden duyulsun. */
+/** iOS: TTS, applySpeakerPlaybackMode ile ayarlanan playback oturumunu kullansin. */
 function iosTtsSpeakOptions(): Pick<Speech.SpeechOptions, 'useApplicationAudioSession'> | undefined {
   if (Platform.OS !== 'ios') return undefined;
-  return { useApplicationAudioSession: false };
+  return { useApplicationAudioSession: true };
 }
 
 /** Kayit bittikten sonra Gamze/TTS icin ses oturumunu serbest birak. */

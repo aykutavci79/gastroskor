@@ -325,7 +325,14 @@ export default function KelimeSofrasiOyunScreen() {
 
   const hintsLeft = progress ? Math.max(0, SOFRA_MAX_IPUCU - progress.hintedCells.length) : 0;
 
-  if (loading || !puzzle || !progress) {
+  if (
+    loading ||
+    !puzzle?.words?.length ||
+    !puzzle?.wheel?.length ||
+    !progress?.foundWordIds ||
+    !progress?.bonusFound ||
+    !progress?.hintedCells
+  ) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={colors.accent} />
@@ -336,7 +343,7 @@ export default function KelimeSofrasiOyunScreen() {
   const foundCount = progress.foundWordIds.length;
   const totalCount = puzzle.words.length;
   const bonusCount = progress.bonusFound.length;
-  const bonusTotal = puzzle.bonusKelimeler.length;
+  const bonusTotal = puzzle.bonusKelimeler?.length ?? 0;
 
   return (
     <Screen scroll={false} flush edges={['left', 'right', 'bottom']}>

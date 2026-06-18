@@ -1,4 +1,4 @@
-import { iosClientId, webClientId } from '@/lib/google-signin-config';
+import { iosClientId, isExpoGo, webClientId } from '@/lib/google-signin-config';
 import { Platform } from 'react-native';
 
 type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
@@ -7,6 +7,9 @@ let googleSignInModule: GoogleSignInModule | null = null;
 let configured = false;
 
 async function loadGoogleSignIn(): Promise<GoogleSignInModule> {
+  if (isExpoGo) {
+    throw new Error('Google girisi Expo Go\'da calismaz. Play dahili test / EAS build kullanin.');
+  }
   if (!googleSignInModule) {
     googleSignInModule = await import('@react-native-google-signin/google-signin');
   }
@@ -14,7 +17,7 @@ async function loadGoogleSignIn(): Promise<GoogleSignInModule> {
 }
 
 export async function configureGoogleSignIn() {
-  if (configured || !webClientId) return;
+  if (isExpoGo || configured || !webClientId) return;
   if (Platform.OS === 'ios' && !iosClientId) {
     throw new Error(
       'iOS Google client ID yapilandirilmamis. EAS production ortamina EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ekleyip yeni build alin.',
@@ -81,6 +84,9 @@ function normalizeGoogleTokenError(err: unknown): Error {
 }
 
 export async function signInWithGoogleNative(): Promise<string> {
+  if (isExpoGo) {
+    throw new Error('Google girisi Expo Go\'da calismaz. Play dahili test / EAS build kullanin.');
+  }
   if (!webClientId) {
     throw new Error('Google Web client ID yapilandirilmamis.');
   }
@@ -131,6 +137,7 @@ export function readGoogleSignInError(err: unknown): string {
 }
 
 export async function signOutGoogleNative() {
+  if (isExpoGo) return;
   try {
     const { GoogleSignin } = await loadGoogleSignIn();
     await configureGoogleSignIn();
