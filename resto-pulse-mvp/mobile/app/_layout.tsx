@@ -101,6 +101,7 @@ function NavigationShell() {
             headerBackVisible: true,
           }}
         />
+        <Stack.Screen name="oyun/kelime-sofrasi" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

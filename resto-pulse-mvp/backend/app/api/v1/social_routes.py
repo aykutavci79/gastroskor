@@ -12,6 +12,9 @@ from app.schemas.social import (
     DmSendPayload,
     DmStartPayload,
     DmThreadSummary,
+    EglenceFriendActivityPayload,
+    EglenceFriendActivityResponse,
+    EglenceLeaderboardResponse,
     FriendAddPayload,
     FriendListItem,
     FriendListResponse,
@@ -19,6 +22,13 @@ from app.schemas.social import (
     FriendRequestItem,
     FriendRequestListResponse,
     PublicUserCard,
+)
+from app.services.eglence_friend_notifications import notify_friends_eglence_activity
+from app.services.eglence_leaderboard import (
+    leaderboard_for_friends,
+    leaderboard_global,
+    record_eglence_result,
+    resolve_period_key,
 )
 from app.services.user_social import (
     UserSocialError,
@@ -168,6 +178,63 @@ def delete_friend(
     except UserSocialError as exc:
         _raise_social_error(exc)
     return {"ok": True}
+
+
+@router.post("/me/eglence-activity", response_model=EglenceFriendActivityResponse)
+def post_eglence_friend_activity(payload: EglenceFriendActivityPayload, db: Session = Depends(get_db)):
+    user = _resolve_user(db, payload.user_email)
+    if payload.game in ("mini_sudoku", "kelime_sofrasi") and payload.elapsed_ms is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{payload.game} için elapsed_ms gerekli.",
+        )
+    if payload.game == "kelime_yarismasi" and payload.score is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="kelime_yarismasi için score gerekli.",
+        )
+    try:
+        period_key = resolve_period_key(game=payload.game, puzzle_id=payload.puzzle_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    record_eglence_result(
+        db,
+        user=user,
+        game=payload.game,
+        period_key=period_key,
+        elapsed_ms=payload.elapsed_ms,
+        score=payload.score,
+    )
+    count = notify_friends_eglence_activity(
+        db,
+        actor=user,
+        game=payload.game,
+        elapsed_ms=payload.elapsed_ms,
+        score=payload.score,
+        puzzle_id=payload.puzzle_id,
+    )
+    if count == 0:
+        db.commit()
+    return EglenceFriendActivityResponse(notified_count=count)
+
+
+@router.get("/me/eglence-leaderboard", response_model=EglenceLeaderboardResponse)
+def get_eglence_leaderboard(
+    user_email: str = Query(..., min_length=3),
+    game: str = Query(..., pattern="^(mini_sudoku|kelime_yarismasi|kelime_sofrasi)$"),
+    period_key: str = Query(..., min_length=4, max_length=32),
+    scope: str = Query("friends", pattern="^(friends|global)$"),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, user_email)
+    if scope == "global":
+        items = leaderboard_global(
+            db, viewer=user, game=game, period_key=period_key, limit=limit
+        )
+    else:
+        items = leaderboard_for_friends(db, viewer=user, game=game, period_key=period_key)
+    return EglenceLeaderboardResponse(game=game, period_key=period_key, items=items)
 
 
 @router.get("/me/dm", response_model=DmInboxResponse)

@@ -643,7 +643,7 @@ export function registerPushToken(payload: {
 
 export function reportEglenceFriendActivity(payload: {
   user_email: string;
-  game: 'mini_sudoku' | 'kelime_yarismasi';
+  game: 'mini_sudoku' | 'kelime_yarismasi' | 'kelime_sofrasi';
   elapsed_ms?: number;
   score?: number;
   puzzle_id?: string;
@@ -662,7 +662,7 @@ export function reportEglenceFriendActivity(payload: {
 
 export function getEglenceLeaderboard(
   userEmail: string,
-  game: 'mini_sudoku' | 'kelime_yarismasi',
+  game: 'mini_sudoku' | 'kelime_yarismasi' | 'kelime_sofrasi',
   periodKey: string,
   scope: 'friends' | 'global' = 'friends',
 ) {

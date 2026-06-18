@@ -42,10 +42,12 @@ function TabsWithBadges() {
         }}
       />
       <Tabs.Screen
-        name="gurme"
+        name="eglence"
         options={{
-          title: 'Sohbet',
-          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
+          title: 'Eğlence',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="game-controller-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen

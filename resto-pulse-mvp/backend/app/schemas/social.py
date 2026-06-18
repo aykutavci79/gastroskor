@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -49,6 +50,33 @@ class FriendRequestListResponse(BaseModel):
 
 class FriendRequestActionPayload(BaseModel):
     user_email: str
+
+
+class EglenceFriendActivityPayload(BaseModel):
+    user_email: str
+    game: Literal["mini_sudoku", "kelime_yarismasi", "kelime_sofrasi"]
+    elapsed_ms: int | None = Field(default=None, ge=0, le=3_600_000)
+    score: int | None = Field(default=None, ge=0, le=500)
+    puzzle_id: str | None = Field(default=None, max_length=32)
+
+
+class EglenceFriendActivityResponse(BaseModel):
+    ok: bool = True
+    notified_count: int = Field(ge=0)
+
+
+class EglenceLeaderboardEntry(BaseModel):
+    rank: int = Field(ge=1)
+    user: PublicUserCard
+    elapsed_ms: int | None = Field(default=None, ge=0)
+    score: int | None = Field(default=None, ge=0)
+    is_me: bool = False
+
+
+class EglenceLeaderboardResponse(BaseModel):
+    game: Literal["mini_sudoku", "kelime_yarismasi", "kelime_sofrasi"]
+    period_key: str
+    items: list[EglenceLeaderboardEntry]
 
 
 class FriendRemovePayload(BaseModel):
