@@ -3,9 +3,9 @@
   "play": {
     "track": "Kapali test - Gastroskor-test2",
     "versionName": "1.0.49",
-    "versionCode": 59,
+    "versionCode": 60,
     "lastUpdated": "2026-06-19",
-    "_note": "Lokal AAB 1.0.49 / versionCode 59 — temel Sofra (layout oncesi)"
+    "_note": "Lokal AAB gastroskor-20260619-2155.aab — Sofra layout, gunluk 5 tur, disk cache, yorum fix"
   },
   "appStore": {
     "version": "1.0.49",
