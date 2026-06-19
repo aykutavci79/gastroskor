@@ -2372,6 +2372,10 @@ from app.api.v1.discover_routes import router as discover_router
 
 router.include_router(discover_router)
 
+from app.api.v1.kelime_sofrasi_routes import router as kelime_sofrasi_router
+
+router.include_router(kelime_sofrasi_router)
+
 
 @router.post("/internal/cron/panel-notifications")
 async def cron_panel_notifications(
@@ -2452,4 +2456,19 @@ def cron_seed_tester_online_restaurants(
     from app.services.seed_tester_online_restaurants import seed_tester_online_restaurants
 
     return seed_tester_online_restaurants(db)
+
+
+@router.post("/internal/cron/sofra-kelime-adaylari")
+def cron_sofra_kelime_adaylari(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.sofra_kelime_learning import scan_sofra_kelime_adaylari
+
+    stats = scan_sofra_kelime_adaylari(db)
+    db.commit()
+    return {"ok": True, "stats": stats}
 

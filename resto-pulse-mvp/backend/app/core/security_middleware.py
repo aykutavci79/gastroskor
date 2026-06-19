@@ -84,6 +84,8 @@ def _rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitR
         return RateLimitRule(limit=60, window_sec=60), rate_limit_key("search", client_ip)
     if path == "/api/v1/voice/transcribe" and method == "POST":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("voice", client_ip)
+    if path == "/api/v1/eglence/kelime-sofrasi/attempts" and method == "POST":
+        return RateLimitRule(limit=120, window_sec=60), rate_limit_key("sofra-attempt", client_ip)
     if method == "POST" and path.endswith("/reviews"):
         return RateLimitRule(limit=20, window_sec=3600), rate_limit_key("reviews", client_ip)
     if path.startswith("/api/v1/social/"):

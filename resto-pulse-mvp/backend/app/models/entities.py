@@ -1511,3 +1511,40 @@ class SocialMention(Base):
     job: Mapped["SocialProofJob"] = relationship(back_populates="mentions")
     restaurant: Mapped["Restaurant | None"] = relationship()
 
+
+class SofraKelimeAdayStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class SofraWheelAttempt(Base):
+    """Kelime Sofrası — anonim çark denemesi (4+ harf)."""
+
+    __tablename__ = "sofra_wheel_attempts"
+
+    kelime: Mapped[str] = mapped_column(String(32), primary_key=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class SofraKelimeAday(Base):
+    """TDK doğrulanmış ama havuzda olmayan aday kelimeler."""
+
+    __tablename__ = "sofra_kelime_adaylari"
+
+    kelime: Mapped[str] = mapped_column(String(32), primary_key=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tdk_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tdk_anlam_kisa: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[SofraKelimeAdayStatus] = mapped_column(
+        Enum(SofraKelimeAdayStatus, name="sofra_kelime_aday_status"),
+        nullable=False,
+        default=SofraKelimeAdayStatus.pending,
+        index=True,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+

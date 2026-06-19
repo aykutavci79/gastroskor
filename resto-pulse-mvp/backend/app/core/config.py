@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     gourmet_trivia_interval_sec: int = 180
     gourmet_trivia_answer_window_sec: int = 90
 
+    # Kelime Sofrası — anonim deneme loglama
+    sofra_havuz_json_path: str | None = None
+    sofra_tdk_json_path: str | None = None
+    sofra_attempt_min_count: int = 3
+
     # Sosyal kanit (discover/search) — last30days + Groq sentiment
     social_proof_groq_model: str = "llama-3.1-8b-instant"
     social_proof_groq_timeout_sec: float = 30.0
