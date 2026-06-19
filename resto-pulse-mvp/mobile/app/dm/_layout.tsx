@@ -28,6 +28,7 @@ export default function DmLayout() {
         options={{
           title: 'Özel mesaj',
           headerBackTitle: 'Geri',
+          headerLeft: () => <DmHeaderBack />,
         }}
       />
     </Stack>

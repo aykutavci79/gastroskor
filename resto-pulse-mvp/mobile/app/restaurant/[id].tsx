@@ -51,7 +51,7 @@ import { estimateTravelMinutes, haversineMeters } from '@/lib/travel-estimate';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { coerceNumber, formatNumber } from '@/lib/coerce-number';
 import { googleCardPhotosEnabled } from '@/lib/google-card-photos';
-import { formatApiError } from '@/lib/format-api-error';
+import { ensureAccessToken } from '@/lib/auth-token';
 import { useScreenKeyboardOffset } from '@/lib/keyboard-layout';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
@@ -62,7 +62,7 @@ export default function RestaurantDetailScreen() {
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const gastroScores = useMemo(() => parseLiveScoreParams(params), [params]);
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -399,8 +399,14 @@ export default function RestaurantDetailScreen() {
 
   async function submitReview() {
     if (!restaurant) return;
+    if (sessionLoading) return;
     if (!user?.email) {
       setSubmitError('Yorum yapmak için giriş yap');
+      return;
+    }
+    const token = await ensureAccessToken();
+    if (!token) {
+      setSubmitError('Oturum süresi doldu. Hesap sekmesinden çıkış yapıp tekrar giriş yap.');
       return;
     }
     if (rating < 1) {
@@ -445,7 +451,12 @@ export default function RestaurantDetailScreen() {
         setSubmitError(err.message);
         setModerationHighlights(err.highlights);
       } else {
-        setSubmitError(err instanceof Error ? err.message : 'Yorum gönderilemedi');
+        const message = err instanceof Error ? err.message : 'Yorum gönderilemedi';
+        if (/401|oturum gerekli|geçersiz veya süresi dolmuş|author_email gerekli/i.test(message)) {
+          setSubmitError('Oturum süresi doldu. Hesap sekmesinden çıkış yapıp tekrar giriş yap.');
+        } else {
+          setSubmitError(message);
+        }
         setModerationHighlights([]);
       }
     } finally {
@@ -726,7 +737,9 @@ export default function RestaurantDetailScreen() {
                 reviewFormOffsetY.current = event.nativeEvent.layout.y;
               }}>
               <Text style={styles.subsectionTitle}>Yorum yap</Text>
-              {!user ? (
+              {sessionLoading ? (
+                <Text style={styles.loginHint}>Oturum kontrol ediliyor…</Text>
+              ) : !user?.email ? (
                 <Pressable onPress={() => router.push('/(tabs)/profil')}>
                   <Text style={styles.loginHint}>Yorum ve isim gizleme için giriş yap →</Text>
                 </Pressable>

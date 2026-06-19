@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import {
   SOFRA_GLASS_BG,
   SOFRA_GLASS_BG_FOUND,
-  SOFRA_GLASS_BORDER,
+  SOFRA_TILE_BORDER,
   SOFRA_LETTER_COLOR,
 } from '@/constants/kelime-sofrasi';
 import { hucreAcikMi } from '@/lib/kelime-sofrasi/engine';
@@ -19,7 +19,7 @@ type Props = {
   compact?: boolean;
 };
 
-export function KelimeSofrasiGrid({
+export const KelimeSofrasiGrid = memo(function KelimeSofrasiGrid({
   grid,
   foundWordIds,
   hintedCells = [],
@@ -31,27 +31,27 @@ export function KelimeSofrasiGrid({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        wrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: compact ? 2 : 8 },
+        wrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: compact ? 0 : 6 },
         row: { flexDirection: 'row' },
         cell: {
           width: cellSize,
           height: cellSize,
           margin: compact ? 1 : 2,
           borderRadius: 9,
-          borderWidth: 1.5,
+          borderWidth: 1,
           alignItems: 'center',
           justifyContent: 'center',
         },
         cellEmpty: { borderColor: 'transparent' },
         cellHidden: {
-          borderColor: SOFRA_GLASS_BORDER,
+          borderColor: SOFRA_TILE_BORDER,
           backgroundColor: SOFRA_GLASS_BG,
         },
         cellFound: {
-          borderColor: SOFRA_GLASS_BORDER,
+          borderColor: SOFRA_TILE_BORDER,
           backgroundColor: SOFRA_GLASS_BG_FOUND,
         },
-        letter: { fontSize: cellSize * 0.48, fontWeight: '900', color: SOFRA_LETTER_COLOR },
+        letter: { fontSize: cellSize * 0.52, fontWeight: '900', color: SOFRA_LETTER_COLOR },
       }),
     [cellSize, compact],
   );
@@ -77,4 +77,4 @@ export function KelimeSofrasiGrid({
       ))}
     </View>
   );
-}
+});

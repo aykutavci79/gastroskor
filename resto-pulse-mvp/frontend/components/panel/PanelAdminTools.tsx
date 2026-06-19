@@ -33,6 +33,22 @@ export function PanelAdminTools() {
   const [appsLoading, setAppsLoading] = useState(false);
   const [appFilter, setAppFilter] = useState<'pending' | 'approved' | 'rejected' | ''>('pending');
   const [forceTakeoverApps, setForceTakeoverApps] = useState(true);
+  const [adminReviews, setAdminReviews] = useState<
+    Array<{
+      id: string;
+      restaurant_id: string;
+      restaurant_name: string | null;
+      review_text: string;
+      rating: number;
+      review_kind?: string;
+      publication_status?: string;
+      created_at: string | null;
+      author_email: string | null;
+      author_name?: string | null;
+    }>
+  >([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewSearch, setReviewSearch] = useState('');
   const [adminStatus, setAdminStatus] = useState<{
     is_panel_admin?: boolean;
     admin_emails_configured?: boolean;
@@ -57,6 +73,63 @@ export function PanelAdminTools() {
       })
       .catch(() => setAllowed(false));
   }, []);
+
+  async function loadRecentReviews() {
+    setReviewsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/panel/admin/reviews/recent?limit=80');
+      const data = (await res.json()) as { items?: typeof adminReviews; detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Yorumlar yuklenemedi');
+      setAdminReviews(data.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Yorumlar yuklenemedi');
+    } finally {
+      setReviewsLoading(false);
+    }
+  }
+
+  async function searchAdminReviews() {
+    const q = reviewSearch.trim();
+    if (q.length < 2) {
+      setError('Arama icin en az 2 karakter yazin.');
+      return;
+    }
+    setReviewsLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ q, limit: '80' });
+      const res = await fetch(`/api/panel/admin/reviews/search?${params}`);
+      const data = (await res.json()) as { items?: typeof adminReviews; detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Arama basarisiz');
+      setAdminReviews(data.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Arama basarisiz');
+    } finally {
+      setReviewsLoading(false);
+    }
+  }
+
+  async function deleteAdminReview(reviewId: string) {
+    if (!window.confirm('Bu yorum kalici olarak silinecek. Emin misiniz?')) return;
+    setReviewsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/panel/admin/reviews/${encodeURIComponent(reviewId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { detail?: string };
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'Silinemedi');
+      }
+      setAdminReviews((prev) => prev.filter((row) => row.id !== reviewId));
+      setMessage('Yorum silindi.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Silinemedi');
+    } finally {
+      setReviewsLoading(false);
+    }
+  }
 
   async function loadClaimRequests() {
     setClaimsLoading(true);
@@ -533,6 +606,91 @@ export function PanelAdminTools() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-surface/80 p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-content">GastroSkor yorumlari</h2>
+            <p className="text-sm text-content-muted">
+              Tester ve uye yorumlarini toplu goruntule, metin ara veya sil.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={reviewsLoading}
+              onClick={() => void loadRecentReviews()}
+              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-ink disabled:opacity-50">
+              Son yorumlari yukle
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={reviewSearch}
+            onChange={(event) => setReviewSearch(event.target.value)}
+            placeholder="Yorum metninde ara…"
+            className="flex-1 rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-content"
+          />
+          <button
+            type="button"
+            disabled={reviewsLoading}
+            onClick={() => void searchAdminReviews()}
+            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-content hover:bg-surface-input disabled:opacity-50">
+            Ara
+          </button>
+        </div>
+
+        {reviewsLoading ? (
+          <p className="mt-4 text-sm text-content-muted">Yukleniyor…</p>
+        ) : adminReviews.length === 0 ? (
+          <p className="mt-4 text-sm text-content-muted">
+            Henuz liste yok. &quot;Son yorumlari yukle&quot; ile baslayin.
+          </p>
+        ) : (
+          <ul className="mt-4 max-h-[32rem] space-y-3 overflow-y-auto">
+            {adminReviews.map((row) => (
+              <li
+                key={row.id}
+                className="rounded-xl border border-border bg-surface-input/60 p-4 text-sm text-content">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      {row.restaurant_name ?? 'Restoran'} · ★ {row.rating}
+                      {row.review_kind ? ` · ${row.review_kind}` : ''}
+                    </p>
+                    <p className="text-xs text-content-muted">
+                      {row.author_name ?? row.author_email ?? 'Anonim'}
+                      {row.created_at
+                        ? ` · ${new Date(row.created_at).toLocaleString('tr-TR')}`
+                        : ''}
+                      {row.publication_status ? ` · ${row.publication_status}` : ''}
+                    </p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{row.review_text || '(Metin yok)'}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <a
+                      href={`/restaurants/${row.restaurant_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10">
+                      Mekani ac
+                    </a>
+                    <button
+                      type="button"
+                      disabled={reviewsLoading}
+                      onClick={() => void deleteAdminReview(row.id)}
+                      className="rounded-lg border border-rose-500/50 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:opacity-50">
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {message ? (

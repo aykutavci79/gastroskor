@@ -1,4 +1,4 @@
-import { SOFRA_MAX_IPUCU, SOFRA_MIN_KELIME_UZUNLUGU } from '@/constants/kelime-sofrasi';
+import { SOFRA_BONUS_HINT_THRESHOLD, SOFRA_MAX_IPUCU, SOFRA_MIN_KELIME_UZUNLUGU } from '@/constants/kelime-sofrasi';
 
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types';
 import { sofraKelimeBuyuk, sofraKelimeEsit } from './turkce-harf';
@@ -119,6 +119,19 @@ export function sonrakiIpucuHucresi(
   return adaylar[Math.floor(rand() * adaylar.length)]!;
 }
 
-export function ipucuHakkiKaldi(hintedCount: number): boolean {
-  return hintedCount < SOFRA_MAX_IPUCU;
+export function sofraMaxIpucu(bonusFoundCount: number): number {
+  const bonusExtra = Math.floor(bonusFoundCount / SOFRA_BONUS_HINT_THRESHOLD);
+  return SOFRA_MAX_IPUCU + bonusExtra;
+}
+
+export function ipucuHakkiKaldi(hintedCount: number, bonusFoundCount = 0): boolean {
+  return hintedCount < sofraMaxIpucu(bonusFoundCount);
+}
+
+export function bonusIpucuIlerleme(bonusFoundCount: number): {
+  cycle: number;
+  hedef: number;
+} {
+  const cycle = bonusFoundCount % SOFRA_BONUS_HINT_THRESHOLD;
+  return { cycle, hedef: SOFRA_BONUS_HINT_THRESHOLD };
 }

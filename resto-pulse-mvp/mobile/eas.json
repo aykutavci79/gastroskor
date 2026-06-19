@@ -37,7 +37,7 @@
     "production": {
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
-        "track": "internal"
+        "track": "Gastroskor-test2"
       },
       "ios": {
         "appleId": "coolisback@gmail.com",

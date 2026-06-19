@@ -115,6 +115,7 @@ function NavigationShell() {
 function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
+    SofraMontserratBlack: require('../assets/fonts/Montserrat-Black.ttf'),
   });
   const [splashDone, setSplashDone] = useState(false);
 

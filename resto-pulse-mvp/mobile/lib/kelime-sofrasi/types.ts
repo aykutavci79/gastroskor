@@ -38,4 +38,6 @@ export type SofraProgress = {
   wheelOrder: number[];
   completedAt: string | null;
   elapsedMs: number;
+  /** Ayni gunluk bulmaca (puzzleId) kac kez tamamlandi */
+  gunlukTamamlamaSayisi?: number;
 };

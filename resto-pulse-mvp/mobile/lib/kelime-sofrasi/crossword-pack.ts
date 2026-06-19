@@ -2,12 +2,41 @@ import type { HavuzKelime } from '@/lib/kelime-sofrasi/havuz';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 import { shuffled } from '@/lib/mini-sudoku/rng';
 
+import {
+  affectedRowsCols,
+  allRunsValid,
+  extractRunsForAxes,
+  gridKey,
+  type GridMap,
+} from './grid-runs';
+import { tdkLexicon } from './tdk-lexicon';
 import type { SofraDirection, SofraPlacedWord } from './types';
 
-type GridMap = Map<string, { letter: string; wordIds: string[] }>;
+export type PackStats = {
+  lexiconRejections: number;
+  placementsTried: number;
+  backtracks: number;
+  stallReason?: string;
+};
 
-function key(row: number, col: number): string {
-  return `${row},${col}`;
+const PACK_DEADLINE_MS = 12_000;
+const YIELD_EVERY_MS = 12;
+
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
+function createYieldGate() {
+  let lastYield = Date.now();
+  return async () => {
+    const now = Date.now();
+    if (now - lastYield >= YIELD_EVERY_MS) {
+      lastYield = now;
+      await yieldToUi();
+    }
+  };
 }
 
 function wordCells(row: number, col: number, dir: SofraDirection, kelime: string) {
@@ -42,7 +71,7 @@ function canPlace(
   let crossCount = 0;
 
   for (const cell of cells) {
-    const existing = grid.get(key(cell.row, cell.col));
+    const existing = grid.get(gridKey(cell.row, cell.col));
     if (existing) {
       if (existing.letter !== kelime[cell.index]) return { ok: false, crossCount: 0 };
       crossCount++;
@@ -53,8 +82,8 @@ function canPlace(
 
   const before = cellBefore(row, col, dir);
   const after = cellAfter(row, col, dir, kelime.length);
-  if (grid.has(key(before.row, before.col))) return { ok: false, crossCount: 0 };
-  if (grid.has(key(after.row, after.col))) return { ok: false, crossCount: 0 };
+  if (grid.has(gridKey(before.row, before.col))) return { ok: false, crossCount: 0 };
+  if (grid.has(gridKey(after.row, after.col))) return { ok: false, crossCount: 0 };
 
   return { ok: true, crossCount };
 }
@@ -68,7 +97,7 @@ function applyPlace(
   kelime: string,
 ): void {
   for (const cell of wordCells(row, col, dir, kelime)) {
-    const k = key(cell.row, cell.col);
+    const k = gridKey(cell.row, cell.col);
     const existing = grid.get(k);
     if (existing) {
       if (!existing.wordIds.includes(wordId)) existing.wordIds.push(wordId);
@@ -125,6 +154,21 @@ function cloneGrid(grid: GridMap): GridMap {
   return next;
 }
 
+function placePassesLexicon(
+  grid: GridMap,
+  row: number,
+  col: number,
+  dir: SofraDirection,
+  kelime: string,
+  lexicon: ReadonlySet<string>,
+): boolean {
+  const trial = cloneGrid(grid);
+  applyPlace(trial, '__trial__', row, col, dir, kelime);
+  const { rows, cols } = affectedRowsCols(row, col, dir, kelime);
+  const runs = extractRunsForAxes(trial, rows, cols);
+  return allRunsValid(runs, lexicon);
+}
+
 function normalizeOrigin(words: SofraPlacedWord[]): SofraPlacedWord[] {
   if (!words.length) return words;
   let minRow = Infinity;
@@ -141,57 +185,253 @@ function normalizeOrigin(words: SofraPlacedWord[]): SofraPlacedWord[] {
   return words.map((w) => ({ ...w, row: w.row + dr, col: w.col + dc }));
 }
 
-function packGreedy(candidates: HavuzKelime[], rand: () => number, maxWords: number): SofraPlacedWord[] | null {
-  if (!candidates.length) return null;
+function packBacktrack(
+  candidates: HavuzKelime[],
+  candIndex: number,
+  grid: GridMap,
+  placed: SofraPlacedWord[],
+  used: Set<string>,
+  lexicon: ReadonlySet<string>,
+  rand: () => number,
+  targetWords: number,
+  stats: PackStats,
+  deadline: number,
+): SofraPlacedWord[] | null {
+  if (Date.now() > deadline) {
+    stats.stallReason = 'timeout';
+    return null;
+  }
+  if (placed.length === targetWords) return normalizeOrigin(placed);
 
-  const ordered = shuffled(candidates, rand).sort((a, b) => b.kelime.length - a.kelime.length);
-  const first = ordered[0]!;
-  const grid: GridMap = new Map();
-  const placed: SofraPlacedWord[] = [
-    {
-      id: first.id,
-      kelime: first.kelime,
-      ipucu: first.ipucu,
-      row: 0,
-      col: 0,
-      direction: 'h',
-    },
-  ];
-  applyPlace(grid, first.id, 0, 0, 'h', first.kelime);
-
-  const used = new Set<string>([first.kelime]);
-  const rest = shuffled(ordered.slice(1), rand);
-
-  for (const candidate of rest) {
-    if (placed.length >= maxWords) break;
+  for (let i = candIndex; i < candidates.length; i++) {
+    const candidate = candidates[i]!;
     const kelime = candidate.kelime;
     if (used.has(kelime)) continue;
 
     const options = findPlacements(grid, placed, kelime);
     if (!options.length) continue;
 
-    options.sort((a, b) => b.crossCount - a.crossCount || a.row - b.row || a.col - b.col);
-    const pick = options[0]!;
-    const nextGrid = cloneGrid(grid);
-    const id = candidate.id || `w-${placed.length}`;
-    const check = canPlace(nextGrid, pick.row, pick.col, pick.direction, kelime, placed.length > 0);
-    if (!check.ok) continue;
+    const sorted = shuffled(options, rand).sort(
+      (a, b) => b.crossCount - a.crossCount || a.row - b.row || a.col - b.col,
+    );
 
-    applyPlace(nextGrid, id, pick.row, pick.col, pick.direction, kelime);
-    for (const k of nextGrid.keys()) grid.set(k, nextGrid.get(k)!);
+    for (const pick of sorted) {
+      stats.placementsTried++;
+      const requireCross = placed.length > 0;
+      const check = canPlace(grid, pick.row, pick.col, pick.direction, kelime, requireCross);
+      if (!check.ok) continue;
 
-    placed.push({
-      id,
-      kelime,
-      ipucu: candidate.ipucu,
-      row: pick.row,
-      col: pick.col,
-      direction: pick.direction,
-    });
-    used.add(kelime);
+      if (!placePassesLexicon(grid, pick.row, pick.col, pick.direction, kelime, lexicon)) {
+        stats.lexiconRejections++;
+        continue;
+      }
+
+      const nextGrid = cloneGrid(grid);
+      const id = candidate.id || `w-${placed.length}`;
+      applyPlace(nextGrid, id, pick.row, pick.col, pick.direction, kelime);
+      const nextPlaced: SofraPlacedWord[] = [
+        ...placed,
+        {
+          id,
+          kelime,
+          ipucu: candidate.ipucu,
+          row: pick.row,
+          col: pick.col,
+          direction: pick.direction,
+        },
+      ];
+      const nextUsed = new Set(used);
+      nextUsed.add(kelime);
+
+      const result = packBacktrack(
+        candidates,
+        i + 1,
+        nextGrid,
+        nextPlaced,
+        nextUsed,
+        lexicon,
+        rand,
+        targetWords,
+        stats,
+        deadline,
+      );
+      if (result) return result;
+
+      stats.backtracks++;
+    }
   }
 
-  return normalizeOrigin(placed);
+  return null;
+}
+
+async function packBacktrackAsync(
+  candidates: HavuzKelime[],
+  candIndex: number,
+  grid: GridMap,
+  placed: SofraPlacedWord[],
+  used: Set<string>,
+  lexicon: ReadonlySet<string>,
+  rand: () => number,
+  targetWords: number,
+  stats: PackStats,
+  deadline: number,
+  yieldGate: () => Promise<void>,
+): Promise<SofraPlacedWord[] | null> {
+  if (Date.now() > deadline) {
+    stats.stallReason = 'timeout';
+    return null;
+  }
+  await yieldGate();
+  if (placed.length === targetWords) return normalizeOrigin(placed);
+
+  for (let i = candIndex; i < candidates.length; i++) {
+    const candidate = candidates[i]!;
+    const kelime = candidate.kelime;
+    if (used.has(kelime)) continue;
+
+    const options = findPlacements(grid, placed, kelime);
+    if (!options.length) continue;
+
+    const sorted = shuffled(options, rand).sort(
+      (a, b) => b.crossCount - a.crossCount || a.row - b.row || a.col - b.col,
+    );
+
+    for (const pick of sorted) {
+      stats.placementsTried++;
+      const requireCross = placed.length > 0;
+      const check = canPlace(grid, pick.row, pick.col, pick.direction, kelime, requireCross);
+      if (!check.ok) continue;
+
+      if (!placePassesLexicon(grid, pick.row, pick.col, pick.direction, kelime, lexicon)) {
+        stats.lexiconRejections++;
+        continue;
+      }
+
+      const nextGrid = cloneGrid(grid);
+      const id = candidate.id || `w-${placed.length}`;
+      applyPlace(nextGrid, id, pick.row, pick.col, pick.direction, kelime);
+      const nextPlaced: SofraPlacedWord[] = [
+        ...placed,
+        {
+          id,
+          kelime,
+          ipucu: candidate.ipucu,
+          row: pick.row,
+          col: pick.col,
+          direction: pick.direction,
+        },
+      ];
+      const nextUsed = new Set(used);
+      nextUsed.add(kelime);
+
+      const result = await packBacktrackAsync(
+        candidates,
+        i + 1,
+        nextGrid,
+        nextPlaced,
+        nextUsed,
+        lexicon,
+        rand,
+        targetWords,
+        stats,
+        deadline,
+        yieldGate,
+      );
+      if (result) return result;
+
+      stats.backtracks++;
+    }
+  }
+
+  return null;
+}
+
+async function packWithLexiconAsync(
+  candidates: HavuzKelime[],
+  rand: () => number,
+  targetWords: number,
+  stats: PackStats,
+): Promise<SofraPlacedWord[] | null> {
+  if (!candidates.length) return null;
+  const lexicon = tdkLexicon();
+  const ordered = shuffled(candidates, rand).sort((a, b) => b.kelime.length - a.kelime.length);
+  const deadline = Date.now() + PACK_DEADLINE_MS;
+  const yieldGate = createYieldGate();
+  return packBacktrackAsync(
+    ordered,
+    0,
+    new Map(),
+    [],
+    new Set(),
+    lexicon,
+    rand,
+    targetWords,
+    stats,
+    deadline,
+    yieldGate,
+  );
+}
+
+export async function packCrosswordFromCandidatesAsync(
+  candidates: HavuzKelime[],
+  rand: () => number,
+  minWords: number,
+  maxWords: number,
+  outStats?: PackStats,
+): Promise<SofraPlacedWord[] | null> {
+  if (candidates.length < minWords) return null;
+
+  const aggregate: PackStats = outStats ?? {
+    lexiconRejections: 0,
+    placementsTried: 0,
+    backtracks: 0,
+  };
+
+  let best: SofraPlacedWord[] | null = null;
+  const starters = shuffled(candidates.filter((w) => w.kelime.length >= 4), rand).slice(0, 10);
+  const yieldGate = createYieldGate();
+
+  for (const starter of starters) {
+    await yieldGate();
+    const attemptStats: PackStats = {
+      lexiconRejections: 0,
+      placementsTried: 0,
+      backtracks: 0,
+    };
+    const others = shuffled(
+      candidates.filter((w) => w.kelime !== starter.kelime),
+      rand,
+    );
+    const attempt = await packWithLexiconAsync([starter, ...others], rand, maxWords, attemptStats);
+    aggregate.lexiconRejections += attemptStats.lexiconRejections;
+    aggregate.placementsTried += attemptStats.placementsTried;
+    aggregate.backtracks += attemptStats.backtracks;
+    if (attemptStats.stallReason) aggregate.stallReason = attemptStats.stallReason;
+
+    if (!attempt || attempt.length < minWords) continue;
+    if (minWords === maxWords && attempt.length !== maxWords) continue;
+    if (!best || attempt.length > best.length) best = attempt;
+    if (best.length >= maxWords) break;
+  }
+
+  if (!best && !aggregate.stallReason) {
+    aggregate.stallReason = 'no_valid_placement';
+  }
+
+  return best;
+}
+
+function packWithLexicon(
+  candidates: HavuzKelime[],
+  rand: () => number,
+  targetWords: number,
+  stats: PackStats,
+): SofraPlacedWord[] | null {
+  if (!candidates.length) return null;
+  const lexicon = tdkLexicon();
+  const ordered = shuffled(candidates, rand).sort((a, b) => b.kelime.length - a.kelime.length);
+  const deadline = Date.now() + PACK_DEADLINE_MS;
+  return packBacktrack(ordered, 0, new Map(), [], new Set(), lexicon, rand, targetWords, stats, deadline);
 }
 
 export function packCrosswordFromCandidates(
@@ -199,19 +439,43 @@ export function packCrosswordFromCandidates(
   rand: () => number,
   minWords: number,
   maxWords: number,
+  outStats?: PackStats,
 ): SofraPlacedWord[] | null {
   if (candidates.length < minWords) return null;
 
+  const aggregate: PackStats = outStats ?? {
+    lexiconRejections: 0,
+    placementsTried: 0,
+    backtracks: 0,
+  };
+
   let best: SofraPlacedWord[] | null = null;
-  const starters = shuffled(candidates.filter((w) => w.kelime.length >= 4), rand).slice(0, 4);
+  const starters = shuffled(candidates.filter((w) => w.kelime.length >= 4), rand).slice(0, 10);
 
   for (const starter of starters) {
-    const others = candidates.filter((w) => w.kelime !== starter.kelime);
-    const attempt = packGreedy([starter, ...others], rand, maxWords);
+    const attemptStats: PackStats = {
+      lexiconRejections: 0,
+      placementsTried: 0,
+      backtracks: 0,
+    };
+    const others = shuffled(
+      candidates.filter((w) => w.kelime !== starter.kelime),
+      rand,
+    );
+    const attempt = packWithLexicon([starter, ...others], rand, maxWords, attemptStats);
+    aggregate.lexiconRejections += attemptStats.lexiconRejections;
+    aggregate.placementsTried += attemptStats.placementsTried;
+    aggregate.backtracks += attemptStats.backtracks;
+    if (attemptStats.stallReason) aggregate.stallReason = attemptStats.stallReason;
+
     if (!attempt || attempt.length < minWords) continue;
     if (minWords === maxWords && attempt.length !== maxWords) continue;
     if (!best || attempt.length > best.length) best = attempt;
     if (best.length >= maxWords) break;
+  }
+
+  if (!best && !aggregate.stallReason) {
+    aggregate.stallReason = 'no_valid_placement';
   }
 
   return best;

@@ -4,7 +4,13 @@ node_modules/
 .expo-export-test2/
 dist/
 web-build/
+.android-build/
 *.jks
+android-keystore.properties
+gastroskor-upload.jks
+android/
+ios/
+dist/
 *.p8
 *.p12
 *.key

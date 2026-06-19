@@ -47,7 +47,7 @@ export const EGLENCE_GAMES: EglenceGameDef[] = [
   {
     id: 'kelime-sofrasi',
     title: 'Kelime Sofrası',
-    subtitle: 'Harf çarkı · günlük ızgara · WOW kuralları',
+    subtitle: 'Harf çarkı · günlük ızgara · günde 5 tur',
     icon: 'text-outline',
     available: true,
   },

@@ -18,6 +18,7 @@ import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { listGourmetChatRooms, getJetonWallet } from '@/lib/api';
+import { warmSofraPuzzleCache, prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache';
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import { loadSudokuMetaStatus } from '@/lib/mini-sudoku/storage';
@@ -25,6 +26,12 @@ import type { GourmetChatRoom } from '@/lib/types';
 
 function sudokuStatus(completed: boolean, inProgress: boolean): EglenceGameStatus {
   if (completed && EGLENCE_GUNLUK_TEK_OYUN) return 'tamamlandi';
+  if (inProgress) return 'devam';
+  return 'oyna';
+}
+
+function sofraStatus(completed: boolean, inProgress: boolean): EglenceGameStatus {
+  if (completed) return 'tamamlandi';
   if (inProgress) return 'devam';
   return 'oyna';
 }
@@ -101,6 +108,9 @@ export default function EglenceTabScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const gunId = activePuzzleId();
+      warmSofraPuzzleCache(gunId);
+      prefetchSofraPuzzlesForToday(gunId, 'orta');
       void loadSudokuMeta();
       void loadSofraMeta();
     }, [loadSudokuMeta, loadSofraMeta]),
@@ -112,7 +122,7 @@ export default function EglenceTabScreen() {
         'mini-sudoku': sudokuStatus(sudokuCompleted, sudokuInProgress),
         'kelime-yarismasi': 'oyna' as EglenceGameStatus,
         'soru-cevap': 'oyna' as EglenceGameStatus,
-        'kelime-sofrasi': sudokuStatus(sofraCompleted, sofraInProgress),
+        'kelime-sofrasi': sofraStatus(sofraCompleted, sofraInProgress),
       }) satisfies Record<EglenceGameId, EglenceGameStatus>,
     [sudokuCompleted, sudokuInProgress, sofraCompleted, sofraInProgress],
   );
@@ -145,6 +155,7 @@ export default function EglenceTabScreen() {
       return;
     }
     if (id === 'kelime-sofrasi') {
+      prefetchSofraPuzzlesForToday(activePuzzleId(), 'orta');
       router.push('/oyun/kelime-sofrasi' as Href);
       return;
     }

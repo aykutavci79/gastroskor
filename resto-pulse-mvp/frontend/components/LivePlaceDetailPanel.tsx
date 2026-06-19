@@ -7,6 +7,7 @@ import { ReviewList } from '@/components/ReviewList';
 import { RestaurantPhotoCarousel } from '@/components/RestaurantPhotoCarousel';
 import { StarRating } from '@/components/StarRating';
 import { createReview, getLivePlaceDetails, listRestaurantReviews, syncUser } from '@/lib/api';
+import { getBackendAccessToken } from '@/lib/backend-auth-token';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY, previewAuthorName } from '@/lib/display-name';
 import type {
@@ -45,6 +46,7 @@ export function LivePlaceDetailPanel({ placeId, selectedItem = null }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
+  const hasBackendSession = Boolean(getBackendAccessToken());
 
   useEffect(() => {
     try {
@@ -156,6 +158,13 @@ export function LivePlaceDetailPanel({ placeId, selectedItem = null }: Props) {
 
     if (!session?.user?.email) {
       setDetailsError('Yorum için sağ üstten Kullanıcı girişi (Google) yapın.');
+      return;
+    }
+
+    if (!getBackendAccessToken()) {
+      setDetailsError(
+        'Google ile giriş yapıldı ama API oturumu oluşmadı. Çıkış yapıp tekrar giriş deneyin veya sayfayı yenileyin.',
+      );
       return;
     }
 
@@ -449,6 +458,10 @@ export function LivePlaceDetailPanel({ placeId, selectedItem = null }: Props) {
               <h3 className="text-sm font-semibold text-content">Yorum yap</h3>
               {!isAuthenticated ? (
                 <p className="text-sm text-content-muted">Yorum eklemek icin sag ustten Google ile giris yapin.</p>
+              ) : !hasBackendSession ? (
+                <p className="text-sm text-amber-200">
+                  Google ile giris yapildi ama API oturumu olusmadi. Cikis yapip tekrar deneyin.
+                </p>
               ) : (
                 <>
                   <div className="space-y-2">

@@ -1,14 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceZorlukSecici } from '@/components/eglence/EglenceZorlukSecici';
 import { Screen } from '@/components/ui/Screen';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { SOFRA_KELIME_HEDEF } from '@/constants/eglence-zorluk';
+import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
 import { useGastroTheme } from '@/context/theme-context';
-import { getDailySofraPuzzle } from '@/lib/kelime-sofrasi/puzzle-cache';
+import {
+  prefetchSofraOtherZorluklarIdle,
+  prefetchSofraPuzzlesForToday,
+  scheduleSofraPuzzleWarm,
+} from '@/lib/kelime-sofrasi/puzzle-cache';
+import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 import type { SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { activePuzzleId, formatNextResetHint, formatPuzzlePeriodLabel } from '@/lib/mini-sudoku/schedule';
 
@@ -18,18 +25,36 @@ export default function KelimeSofrasiLobbyScreen() {
   const puzzleId = activePuzzleId();
   const [zorluk, setZorluk] = useState<EglenceZorluk>('orta');
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
+  const [tamamlamaSayisi, setTamamlamaSayisi] = useState(0);
+  const [limitDoldu, setLimitDoldu] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    const task = InteractionManager.runAfterInteractions(() => {
-      const built = getDailySofraPuzzle(puzzleId, zorluk);
-      if (alive) setPuzzle(built);
+    void loadSofraMetaStatus(puzzleId).then((meta) => {
+      setTamamlamaSayisi(meta.tamamlamaSayisi);
+      setLimitDoldu(meta.completed);
     });
-    return () => {
-      alive = false;
-      task.cancel();
-    };
+  }, [puzzleId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadSofraMetaStatus(puzzleId).then((meta) => {
+        setTamamlamaSayisi(meta.tamamlamaSayisi);
+        setLimitDoldu(meta.completed);
+      });
+    }, [puzzleId]),
+  );
+
+  useEffect(() => {
+    setPuzzle(null);
+    prefetchSofraPuzzlesForToday(puzzleId, zorluk);
+    return scheduleSofraPuzzleWarm(puzzleId, zorluk, setPuzzle);
   }, [puzzleId, zorluk]);
+
+  useEffect(() => {
+    if (puzzle?.zorluk === zorluk) {
+      prefetchSofraOtherZorluklarIdle(puzzleId, zorluk);
+    }
+  }, [puzzle?.zorluk, puzzleId, zorluk]);
 
   const styles = useMemo(
     () =>
@@ -71,12 +96,16 @@ export default function KelimeSofrasiLobbyScreen() {
           paddingVertical: 16,
           alignItems: 'center',
         },
+        butonDisabled: { opacity: 0.45 },
         butonYazi: { fontSize: 17, fontWeight: '800', color: '#fff' },
       }),
     [colors],
   );
 
   const hedefKelime = SOFRA_KELIME_HEDEF[zorluk];
+  const sofraHazir = puzzle?.zorluk === zorluk;
+  const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
+  const oyunAcik = sofraHazir && !limitDoldu;
 
   return (
     <Screen edges={['left', 'right', 'bottom']}>
@@ -114,13 +143,30 @@ export default function KelimeSofrasiLobbyScreen() {
               : ' Sofra hazırlanıyor…'}
           </Text>
           <Text style={styles.madde}>Takılırsan İpucu ile ızgarada rastgele bir harf açılır.</Text>
-          <Text style={styles.madde}>Süre tutulur; her gün 17:00&apos;de yeni sofra.</Text>
+          <Text style={styles.madde}>
+            Aynı günlük sofrayı günde {SOFRA_GUNLUK_TAMAMLAMA_LIMIT} kez bitirebilirsin.
+            {limitDoldu
+              ? ' Bugünlük hakkın doldu.'
+              : kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+                ? ` Kalan: ${kalanTur} tur.`
+                : ''}
+          </Text>
+          <Text style={styles.madde}>{formatNextResetHint()}</Text>
         </View>
 
         <Pressable
-          style={styles.buton}
+          style={[styles.buton, !oyunAcik ? styles.butonDisabled : null]}
+          disabled={!oyunAcik}
           onPress={() => router.push(`/oyun/kelime-sofrasi/oyun?zorluk=${zorluk}` as Href)}>
-          <Text style={styles.butonYazi}>Sofraya Otur</Text>
+          <Text style={styles.butonYazi}>
+            {limitDoldu
+              ? 'Bugünlük hak doldu'
+              : sofraHazir
+                ? kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+                  ? `Sofraya Otur (${kalanTur} tur kaldı)`
+                  : 'Sofraya Otur'
+                : 'Sofra hazırlanıyor…'}
+          </Text>
         </Pressable>
       </ScrollView>
     </Screen>

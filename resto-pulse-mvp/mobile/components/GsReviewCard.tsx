@@ -22,6 +22,7 @@ import {
   updateReview,
   updateReviewReply,
 } from '@/lib/api';
+import { ensureAccessToken } from '@/lib/auth-token';
 import { formatReviewDate, isOwnReview, renderStarRow } from '@/lib/review-display';
 import type { DisplayReview, ReviewReply } from '@/lib/types';
 
@@ -88,6 +89,11 @@ export function GsReviewCard({
 
   async function onToggleHelpful() {
     if (!viewerEmail || ownReview || helpfulBusy) return;
+    const token = await ensureAccessToken();
+    if (!token) {
+      Alert.alert('Yararlı', 'Oturum süresi doldu. Hesap sekmesinden çıkış yapıp tekrar giriş yap.');
+      return;
+    }
     setHelpfulBusy(true);
     try {
       const updated = await toggleReviewHelpful(review.id, viewerEmail);
@@ -105,6 +111,11 @@ export function GsReviewCard({
 
   async function submitReply() {
     if (!viewerEmail?.trim() || !replyText.trim() || replyBusy) return;
+    const token = await ensureAccessToken();
+    if (!token) {
+      setReplyError('Oturum süresi doldu. Hesap sekmesinden çıkış yapıp tekrar giriş yap.');
+      return;
+    }
     setReplyBusy(true);
     setReplyError(null);
     try {
@@ -119,7 +130,12 @@ export function GsReviewCard({
       setReplyText('');
       setReplyOpen(false);
     } catch (err) {
-      setReplyError(err instanceof Error ? err.message : 'Cevap gonderilemedi');
+      const message = err instanceof Error ? err.message : 'Cevap gonderilemedi';
+      if (/401|oturum gerekli|geçersiz veya süresi dolmuş/i.test(message)) {
+        setReplyError('Oturum süresi doldu. Hesap sekmesinden çıkış yapıp tekrar giriş yap.');
+      } else {
+        setReplyError(message);
+      }
     } finally {
       setReplyBusy(false);
     }

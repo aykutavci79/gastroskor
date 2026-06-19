@@ -1,11 +1,11 @@
 {
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
-    "track": "Kapali test - Alpha",
+    "track": "Kapali test - Gastroskor-test2",
     "versionName": "1.0.49",
-    "versionCode": 58,
-    "lastUpdated": "2026-06-16",
-    "_note": "EAS Android production 1.0.49 / versionCode 58 — Eglence + modal sıralama"
+    "versionCode": 59,
+    "lastUpdated": "2026-06-19",
+    "_note": "Lokal AAB 1.0.49 / versionCode 59 — temel Sofra (layout oncesi)"
   },
   "appStore": {
     "version": "1.0.49",

@@ -11,6 +11,7 @@ import {
   updateReview,
   updateReviewReply,
 } from '@/lib/api';
+import { getBackendAccessToken } from '@/lib/backend-auth-token';
 import { sentimentColor } from '@/lib/scores';
 import type { Review, ReviewReply } from '@/lib/types';
 
@@ -53,7 +54,8 @@ type Props = {
 
 export function GsReviewCard({ review, viewerEmail = null, viewerUserId = null, onChange, onDelete }: Props) {
   const ownReview = isOwnReview(review, viewerEmail, viewerUserId);
-  const canInteract = Boolean(viewerEmail?.trim());
+  const hasBackendSession = Boolean(getBackendAccessToken());
+  const canInteract = Boolean(viewerEmail?.trim()) && hasBackendSession;
   const editable = review.viewer_can_edit === true || (ownReview && !review.source_platform);
 
   const [helpfulBusy, setHelpfulBusy] = useState(false);
@@ -386,7 +388,9 @@ export function GsReviewCard({ review, viewerEmail = null, viewerUserId = null, 
 
       {!canInteract ? (
         <p className="mt-3 text-xs text-content-muted">
-          Yararlı ve cevap icin Google ile giris yapin.
+          {viewerEmail?.trim() && !hasBackendSession
+            ? 'Google ile giris yapildi ama API oturumu olusmadi. Cikis yapip tekrar deneyin.'
+            : 'Yararlı ve cevap icin Google ile giris yapin.'}
         </p>
       ) : null}
     </article>

@@ -7,10 +7,10 @@ import {
 } from '@/constants/kelime-sofrasi';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { SOFRA_KELIME_HEDEF, sofraPuzzleKey } from '@/constants/eglence-zorluk';
-import { packCrosswordFromCandidates } from '@/lib/kelime-sofrasi/crossword-pack';
+import { packCrosswordFromCandidates, packCrosswordFromCandidatesAsync } from '@/lib/kelime-sofrasi/crossword-pack';
 import { cantadanKelimeAdaylari } from '@/lib/kelime-sofrasi/letter-bag';
 import type { HavuzKelime } from '@/lib/kelime-sofrasi/havuz';
-import { havuzKelimeFiltre } from '@/lib/kelime-sofrasi/havuz';
+import { havuzKelimeFiltre, havuzZorlukFiltre } from '@/lib/kelime-sofrasi/havuz';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
@@ -18,10 +18,26 @@ import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types';
 
 /** Modül yüklendiğinde bir kez filtrelenir — her bulmacada tekrar tarama yok. */
-const POOL = havuzKelimeFiltre(SOFRA_MIN_KELIME_UZUNLUGU, SOFRA_WHEEL_MAX);
-const SEED_WORDS = POOL.filter(
-  (w) => w.kelime.length >= SOFRA_WHEEL_MIN && w.kelime.length <= SOFRA_WHEEL_MAX,
-);
+let poolBaseCache: HavuzKelime[] | null = null;
+
+function poolBase(): HavuzKelime[] {
+  if (!poolBaseCache) {
+    poolBaseCache = havuzKelimeFiltre(SOFRA_MIN_KELIME_UZUNLUGU, SOFRA_WHEEL_MAX);
+  }
+  return poolBaseCache;
+}
+
+function poolForZorluk(zorluk: EglenceZorluk): HavuzKelime[] {
+  const filtered = havuzZorlukFiltre(poolBase(), zorluk);
+  return filtered.length >= 80 ? filtered : poolBase();
+}
+
+function seedWordsForZorluk(zorluk: EglenceZorluk): HavuzKelime[] {
+  const pool = poolForZorluk(zorluk);
+  return pool.filter(
+    (w) => w.kelime.length >= SOFRA_WHEEL_MIN && w.kelime.length <= SOFRA_WHEEL_MAX,
+  );
+}
 
 /** WOW referans setleri — yoğun çapraz ızgara üretemezsek sırayla dene */
 const FALLBACK_SEEDS = ['ARSLAN', 'ASLAN', 'KALEM', 'BALIK'];
@@ -92,7 +108,8 @@ function buildPuzzleFromWheel(
   zorluk: EglenceZorluk,
   kelimeHedef: number,
 ): SofraPuzzle | null {
-  const candidates = cantadanKelimeAdaylari(wheel, POOL);
+  const pool = poolForZorluk(zorluk);
+  const candidates = cantadanKelimeAdaylari(wheel, pool);
   const placed = packCrosswordFromCandidates(candidates, rand, kelimeHedef, kelimeHedef);
   if (!placed || placed.length !== kelimeHedef) return null;
 
@@ -107,6 +124,37 @@ function buildPuzzleFromWheel(
     cols,
     grid,
   };
+}
+
+async function buildPuzzleFromWheelAsync(
+  puzzleId: string,
+  wheel: string[],
+  rand: () => number,
+  zorluk: EglenceZorluk,
+  kelimeHedef: number,
+): Promise<SofraPuzzle | null> {
+  const pool = poolForZorluk(zorluk);
+  const candidates = cantadanKelimeAdaylari(wheel, pool);
+  const placed = await packCrosswordFromCandidatesAsync(candidates, rand, kelimeHedef, kelimeHedef);
+  if (!placed || placed.length !== kelimeHedef) return null;
+
+  const { grid, rows, cols } = compileGrid(placed);
+  return {
+    id: puzzleId,
+    zorluk,
+    words: placed,
+    bonusKelimeler: bonusFromCandidates(candidates, placed),
+    wheel,
+    rows,
+    cols,
+    grid,
+  };
+}
+
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZorluk): SofraPuzzle {
@@ -139,7 +187,8 @@ function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZor
     },
   ];
   const { grid, rows, cols } = compileGrid(words);
-  const fbCandidates = cantadanKelimeAdaylari(wheel, POOL);
+  const pool = poolForZorluk(zorluk);
+  const fbCandidates = cantadanKelimeAdaylari(wheel, pool);
   return {
     id: puzzleId,
     zorluk,
@@ -152,7 +201,7 @@ function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZor
   };
 }
 
-const MAX_SEED_ATTEMPTS = 20;
+const MAX_SEED_ATTEMPTS = 40;
 
 export function buildDailySofraPuzzle(
   gunId = activePuzzleId(),
@@ -160,15 +209,39 @@ export function buildDailySofraPuzzle(
 ): SofraPuzzle {
   const puzzleId = sofraPuzzleKey(gunId, zorluk);
   const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
+  const seedWords = seedWordsForZorluk(zorluk);
   const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
-  if (!SEED_WORDS.length) return fallbackPuzzle(puzzleId, rand, zorluk);
+  if (!seedWords.length) return fallbackPuzzle(puzzleId, rand, zorluk);
 
-  const start = seedFromString(`${puzzleId}:anchor`) % SEED_WORDS.length;
+  const start = seedFromString(`${puzzleId}:anchor`) % seedWords.length;
 
   for (let attempt = 0; attempt < MAX_SEED_ATTEMPTS; attempt++) {
-    const anchor = SEED_WORDS[(start + attempt) % SEED_WORDS.length]!;
+    const anchor = seedWords[(start + attempt) % seedWords.length]!;
     const wheel = wheelFromSeed(anchor.kelime, rand);
     const built = buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, kelimeHedef);
+    if (built && built.words.length === kelimeHedef) return built;
+  }
+
+  return fallbackPuzzle(puzzleId, rand, zorluk);
+}
+
+export async function buildDailySofraPuzzleAsync(
+  gunId = activePuzzleId(),
+  zorluk: EglenceZorluk = 'orta',
+): Promise<SofraPuzzle> {
+  const puzzleId = sofraPuzzleKey(gunId, zorluk);
+  const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
+  const seedWords = seedWordsForZorluk(zorluk);
+  const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
+  if (!seedWords.length) return fallbackPuzzle(puzzleId, rand, zorluk);
+
+  const start = seedFromString(`${puzzleId}:anchor`) % seedWords.length;
+
+  for (let attempt = 0; attempt < MAX_SEED_ATTEMPTS; attempt++) {
+    if (attempt > 0) await yieldToUi();
+    const anchor = seedWords[(start + attempt) % seedWords.length]!;
+    const wheel = wheelFromSeed(anchor.kelime, rand);
+    const built = await buildPuzzleFromWheelAsync(puzzleId, wheel, rand, zorluk, kelimeHedef);
     if (built && built.words.length === kelimeHedef) return built;
   }
 

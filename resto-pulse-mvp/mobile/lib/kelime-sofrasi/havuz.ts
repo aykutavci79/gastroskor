@@ -7,6 +7,7 @@ export type HavuzKelime = {
   id: string;
   kelime: string;
   harfSayisi: number;
+  frekansSira?: number;
   ipucu?: string;
 };
 
@@ -21,6 +22,7 @@ const HAVUZ: HavuzKelime[] = (havuzJson as HavuzKelime[]).map((row) => {
     ...row,
     kelime,
     harfSayisi: kelime.length,
+    frekansSira: row.frekansSira,
   };
 });
 
@@ -30,4 +32,20 @@ export function sofraHavuzu(): readonly HavuzKelime[] {
 
 export function havuzKelimeFiltre(minLen: number, maxLen: number): HavuzKelime[] {
   return HAVUZ.filter((w) => w.kelime.length >= minLen && w.kelime.length <= maxLen);
+}
+
+/** frekansSira kucuk = daha sik kullanilan kelime */
+const FREKANS_KOLAY_MAX = 5000;
+const FREKANS_ORTA_MAX = 15000;
+
+export function havuzZorlukFiltre(
+  pool: readonly HavuzKelime[],
+  zorluk: 'kolay' | 'orta' | 'zor',
+): HavuzKelime[] {
+  return pool.filter((w) => {
+    const f = w.frekansSira ?? 99_999;
+    if (zorluk === 'kolay') return f <= FREKANS_KOLAY_MAX;
+    if (zorluk === 'orta') return f <= FREKANS_ORTA_MAX;
+    return true;
+  });
 }

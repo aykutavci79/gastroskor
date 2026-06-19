@@ -1326,22 +1326,42 @@ def admin_search_reviews(
         .order_by(Review.created_at.desc())
         .limit(limit)
     ).all()
-    results = []
-    for row in rows:
-        restaurant = db.get(Restaurant, row.restaurant_id)
-        author = db.get(User, row.author_id) if row.author_id else None
-        results.append(
-            {
-                "id": str(row.id),
-                "restaurant_id": str(row.restaurant_id),
-                "restaurant_name": restaurant.name if restaurant else None,
-                "review_text": row.review_text,
-                "rating": row.rating,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "author_email": author.email if author else None,
-            }
-        )
-    return results
+    return {"items": [_serialize_admin_review_row(db, row) for row in rows]}
+
+
+@panel_router.get("/admin/reviews/recent")
+def admin_list_recent_reviews(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    require_admin(x_panel_admin_secret)
+    rows = db.scalars(
+        select(Review).order_by(Review.created_at.desc()).offset(offset).limit(limit)
+    ).all()
+    return {
+        "items": [_serialize_admin_review_row(db, row) for row in rows],
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+def _serialize_admin_review_row(db: Session, row: Review) -> dict:
+    restaurant = db.get(Restaurant, row.restaurant_id)
+    author = db.get(User, row.author_id) if row.author_id else None
+    return {
+        "id": str(row.id),
+        "restaurant_id": str(row.restaurant_id),
+        "restaurant_name": restaurant.name if restaurant else None,
+        "review_text": row.review_text,
+        "rating": row.rating,
+        "review_kind": row.review_kind,
+        "publication_status": row.publication_status,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "author_email": author.email if author else None,
+        "author_name": author.full_name if author else None,
+    }
 
 
 @panel_router.get("/followers", response_model=PanelFollowerListResponse)
