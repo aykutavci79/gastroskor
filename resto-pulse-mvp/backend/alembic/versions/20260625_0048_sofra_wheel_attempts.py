@@ -7,26 +7,51 @@ Revises: 20260624_0047
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
 
 revision = "20260625_0048"
 down_revision = "20260624_0047"
 branch_labels = None
 depends_on = None
 
-ADAY_STATUS = sa.Enum("pending", "approved", "rejected", name="sofra_kelime_aday_status")
+aday_status = postgresql.ENUM(
+    "pending",
+    "approved",
+    "rejected",
+    name="sofra_kelime_aday_status",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
     bind = op.get_bind()
     insp = inspect(bind)
 
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE sofra_kelime_aday_status AS ENUM ('pending', 'approved', 'rejected');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+        """
+    )
+
     if not insp.has_table("sofra_wheel_attempts"):
         op.create_table(
             "sofra_wheel_attempts",
             sa.Column("kelime", sa.String(length=32), primary_key=True),
             sa.Column("attempt_count", sa.Integer(), nullable=False, server_default="1"),
-            sa.Column("first_seen_at", sa.DateTime(timezone=True), nullable=False),
-            sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=False),
+            sa.Column(
+                "first_seen_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            sa.Column(
+                "last_seen_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
         )
         op.create_index(
             "ix_sofra_wheel_attempts_count",
@@ -35,7 +60,6 @@ def upgrade() -> None:
         )
 
     if not insp.has_table("sofra_kelime_adaylari"):
-        ADAY_STATUS.create(bind, checkfirst=True)
         op.create_table(
             "sofra_kelime_adaylari",
             sa.Column("kelime", sa.String(length=32), primary_key=True),
@@ -44,13 +68,23 @@ def upgrade() -> None:
             sa.Column("tdk_anlam_kisa", sa.Text(), nullable=True),
             sa.Column(
                 "status",
-                ADAY_STATUS,
+                aday_status,
                 nullable=False,
                 server_default="pending",
             ),
             sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
-            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-            sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
         )
         op.create_index(
             "ix_sofra_kelime_adaylari_status_count",
@@ -66,4 +100,4 @@ def downgrade() -> None:
         op.drop_table("sofra_kelime_adaylari")
     if insp.has_table("sofra_wheel_attempts"):
         op.drop_table("sofra_wheel_attempts")
-    ADAY_STATUS.drop(bind, checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS sofra_kelime_aday_status")
