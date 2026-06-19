@@ -7,10 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { GastroAnimatedSplash } from '@/components/GastroAnimatedSplash';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { CityProvider } from '@/context/city-context';
@@ -114,6 +116,11 @@ function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+  const [splashDone, setSplashDone] = useState(false);
+
+  const handleSplashFinish = useCallback(() => {
+    setSplashDone(true);
+  }, []);
 
   useEffect(() => {
     void setupSslPinning();
@@ -127,6 +134,16 @@ function RootLayout() {
 
   if (!fontsLoaded && !fontError) {
     return null;
+  }
+
+  if (!splashDone) {
+    return (
+      <AppErrorBoundary>
+        <View style={splashGateStyles.gate}>
+          <GastroAnimatedSplash onFinish={handleSplashFinish} />
+        </View>
+      </AppErrorBoundary>
+    );
   }
 
   return (
@@ -147,3 +164,10 @@ function RootLayout() {
 }
 
 export default sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;
+
+const splashGateStyles = StyleSheet.create({
+  gate: {
+    flex: 1,
+    backgroundColor: '#141414',
+  },
+});
