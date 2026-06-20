@@ -11,7 +11,7 @@ export default function KvkkPage() {
   return (
     <LegalDocument
       title="Kişisel Verilerin Korunması, İşlenmesi ve Gizlilik Politikası"
-      updated="10 Haziran 2026"
+      updated="20 Haziran 2026"
     >
       <p>
         6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot; veya &quot;Kanun&quot;) kapsamında
@@ -69,6 +69,15 @@ export default function KvkkPage() {
         <li>Yorum, puan, fotoğraf, check-in ve GastroSkor puanının gösterilmesi</li>
         <li>Sosyal özellikler: takip, arkadaşlık, özel mesaj (DM), gurme sohbet odaları</li>
         <li>Online sipariş talebinin doğrulanmış telefon ile restorana iletilmesi</li>
+        <li>
+          GastroJeton ekonomisi: görev/sipariş/takip/davet ile jeton kazanımı; oyun ipucu ve market
+          harcaması; arkadaşlar arası jeton transferi (onay ve SMS OTP ile)
+        </li>
+        <li>
+          Jeton ve hesap güvenliği: aynı telefon numarasının en fazla iki hesaba bağlanması; sahte/çoklu
+          hesap ve kötüye kullanımın önlenmesi için cihaz tanımlayıcısının tek yönlü hash&apos;i ve kısa
+          süreli IP kayıtları
+        </li>
         <li>İşletme paneli, mekan sahipliği başvurusu ve panel bildirimleri</li>
         <li>Telafi / kupon süreçleri (şikâyet sonrası telafi akışı)</li>
         <li>
@@ -110,8 +119,8 @@ export default function KvkkPage() {
           <strong>Expo:</strong> mobil push bildirim token&apos;larının iletimi
         </li>
         <li>
-          <strong>SMS sağlayıcısı</strong> (Netgsm, İleti Merkezi vb.): online sipariş telefon doğrulama
-          (OTP) — yalnızca doğrulama amacıyla telefon numarası
+          <strong>SMS sağlayıcısı</strong> (Netgsm, İleti Merkezi vb.): online sipariş ve jeton transferi
+          telefon doğrulama (OTP) — yalnızca doğrulama amacıyla telefon numarası
         </li>
         <li>
           <strong>Restoran / işletme:</strong> online sipariş verdiğinizde sipariş detayı, doğrulanmış telefon
@@ -218,20 +227,22 @@ export default function KvkkPage() {
           <strong>Kimlik / profil:</strong> ad, takma ad (nickname), avatar, Google hesap kimliği
         </li>
         <li>
-          <strong>İletişim:</strong> e-posta; online sipariş için doğrulanmış telefon numarası
+          <strong>İletişim:</strong> e-posta; online sipariş ve jeton işlemleri için doğrulanmış telefon
+          numarası (bir numara en fazla iki hesaba bağlanabilir)
         </li>
         <li>
           <strong>Konum:</strong> cihaz konumu (izin verdiğinizde); check-in kayıtları
         </li>
         <li>
           <strong>Müşteri işlem:</strong> yorum, puan, sipariş, DM, gurme sohbet mesajları, takip ve arkadaşlık
-          kayıtları, telafi kuponları
+          kayıtları, telafi kuponları, GastroJeton bakiye/ledger ve jeton transfer kayıtları
         </li>
         <li>
           <strong>Görsel kayıtlar:</strong> yorum ve panel yüklemeleri
         </li>
         <li>
-          <strong>İşlem güvenliği:</strong> oturum token&apos;ları, push token, teknik loglar, IP (kısa süreli)
+          <strong>İşlem güvenliği:</strong> oturum token&apos;ları, push token, teknik loglar, IP (kısa süreli),
+          cihaz tanımlayıcı hash&apos;i (jeton/dolandırıcılık önleme)
         </li>
         <li>
           <strong>İşletme / hukuki işlem:</strong> panel başvurusu, sahiplik talebi ve destek yazışmaları
@@ -249,6 +260,10 @@ export default function KvkkPage() {
       <ul className="list-disc space-y-1 pl-5">
         <li>Hesap verileri: hesabınız aktif olduğu sürece</li>
         <li>OTP kayıtları: doğrulama sonrası kısa süre; güvenlik amaçlı sınırlı tutulur</li>
+        <li>
+          Jeton ledger kayıtları: hesap aktif olduğu sürece ve olası uyuşmazlık/zamanaşımı süreleri boyunca
+        </li>
+        <li>Telefon–hesap eşleştirmeleri: bağlantı süresince; hesap silinince ilişki kaldırılır</li>
         <li>Yorum ve sipariş kayıtları: hizmet sunumu ve olası hukuki talepler için makul süre</li>
         <li>
           İşleme amacı ortadan kalktığında veya silme talebiniz üzerine veriler silinir, yok edilir veya

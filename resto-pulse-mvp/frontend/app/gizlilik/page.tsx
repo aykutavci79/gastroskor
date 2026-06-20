@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="Gizlilik Politikası" updated="10 Haziran 2026">
+    <LegalDocument title="Gizlilik Politikası" updated="20 Haziran 2026">
       <p>
         GastroSkor (&quot;biz&quot;), mobil uygulama ve web sitesi üzerinden restoran keşfi, yorum, sosyal
         özellikler, online sipariş iletimi ve işletme paneli hizmetleri sunar. Bu metin özet bilgilendirme
@@ -24,6 +24,11 @@ export default function PrivacyPage() {
         <li>Yorum ve fotoğraf paylaştığınızda: puan, metin ve yüklediğiniz görseller.</li>
         <li>Takma ad, takip, arkadaşlık, özel mesaj ve gurme sohbet odalarında yazdıklarınız.</li>
         <li>Online siparişte: doğrulanmış telefon numarası ve teslimat adresi (restorana iletilir).</li>
+        <li>
+          GastroJeton (oyun içi jeton): bakiye, kazanım/harcama kayıtları; jeton transferinde SMS doğrulama
+          için telefon numarası; dolandırıcılık önleme amacıyla cihaza özgü tanımlayıcının hash&apos;i
+          (ham MAC adresi toplanmaz).
+        </li>
         <li>Bildirim izni verdiğinizde: push bildirim token&apos;ı (yalnızca hizmet bildirimleri).</li>
         <li>İşletme paneli kullanımında: mekan bilgileri, menü ve tanıtım içerikleri.</li>
       </ul>
@@ -34,6 +39,12 @@ export default function PrivacyPage() {
         <li>Yorumların gösterilmesi ve GastroSkor puanı</li>
         <li>İşletme sahiplerine panel ve bildirim hizmetleri</li>
         <li>Online sipariş talebinin ilgili restorana iletilmesi</li>
+        <li>
+          GastroHub mini oyunları, günlük görevler ve jeton marketi (ipucu, oyun hakkı, indirim kuponu
+          talebi)
+        </li>
+        <li>Jeton transferi güvenliği: telefon doğrulama, hesap başına telefon limiti, kötüye kullanım
+          tespiti</li>
         <li>Hizmet güvenliği ve kötüye kullanımın önlenmesi</li>
       </ul>
       <p>
