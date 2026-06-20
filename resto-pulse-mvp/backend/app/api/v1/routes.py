@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
+from app.core.rate_limit import rate_limiter
 from app.services.review_moderation import (
     ReviewModerationError,
     check_review_text,
@@ -618,7 +619,11 @@ def serialize_compensation_coupon(row: CompensationCoupon) -> CompensationCoupon
 
 @router.get("/health")
 def health():
-    return {"status": "ok", "service": settings.app_name}
+    return {
+        "status": "ok",
+        "service": settings.app_name,
+        "rate_limit": rate_limiter.status(),
+    }
 
 
 @router.post("/dev/seed-tester-online-restaurants")

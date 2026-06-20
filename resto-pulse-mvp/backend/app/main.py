@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routes import router as v1_router
 from app.core.config import settings
+from app.core.rate_limit import rate_limiter
 from app.core.security_middleware import SecurityMiddleware
 from app.services.menu_image_storage import menu_images_dir
 from app.services.foodcast_image_storage import foodcast_images_dir
@@ -54,6 +55,14 @@ app.add_middleware(
 )
 
 app.include_router(v1_router, prefix=settings.api_v1_prefix)
+
+
+@app.on_event("startup")
+def log_rate_limit_backend() -> None:
+    status = rate_limiter.status()
+    logger.info("Rate limit backend: %s", status)
+    if status.get("redis_configured") and not status.get("redis_ok"):
+        logger.warning("REDIS_URL tanimli ama Redis ping basarisiz — in-memory fallback kullanilacak")
 
 try:
     menu_dir = menu_images_dir()

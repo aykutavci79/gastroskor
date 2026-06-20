@@ -132,6 +132,12 @@ class HybridRateLimiter:
         self._fallback.reset()
         self._redis_down_until = 0.0
 
+    def status(self) -> dict[str, bool | str]:
+        if self._redis is None:
+            return {"backend": "memory", "redis_configured": False, "redis_ok": False}
+        redis_ok = self._redis.ping()
+        return {"backend": "redis", "redis_configured": True, "redis_ok": redis_ok}
+
 
 def rate_limit_key(*parts: str | None) -> str:
     return "|".join(part.strip().lower() for part in parts if part and part.strip())

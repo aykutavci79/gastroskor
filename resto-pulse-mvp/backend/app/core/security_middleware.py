@@ -8,6 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.request_ip import get_client_ip
 from app.core.rate_limit import path_rate_limit_rule, rate_limiter, user_global_rate_limit_rule
 from app.services.access_token import decode_access_token
 from app.services.request_identity import RequestAuth, auth_require_bearer, set_request_auth
@@ -85,7 +86,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method.upper()
 
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = get_client_ip(request)
         rule_info = path_rate_limit_rule(path, method, client_ip)
         if rule_info is not None:
             rule, key = rule_info

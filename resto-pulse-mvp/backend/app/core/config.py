@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
+from typing import Self
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -143,9 +144,24 @@ class Settings(BaseSettings):
 
     # Rate limiting — Redis yoksa in-memory fallback (cok instance'da zayif koruma)
     redis_url: str | None = None
+    redis_private_url: str | None = None
     rate_limit_redis_key_prefix: str = "gastroskor:rl"
     rate_limit_user_global_per_minute: int = 100
     rate_limit_user_global_window_sec: int = 60
+
+    @field_validator("redis_url", "redis_private_url", mode="before")
+    @classmethod
+    def strip_redis_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
+    @model_validator(mode="after")
+    def merge_redis_urls(self) -> Self:
+        if not self.redis_url and self.redis_private_url:
+            self.redis_url = self.redis_private_url
+        return self
 
     # Kart/liste Google foto — her img yuklemesi Places Photo ucreti. Varsayilan kapali.
     google_card_photos_enabled: bool = False
