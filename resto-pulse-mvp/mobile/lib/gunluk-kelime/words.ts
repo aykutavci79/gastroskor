@@ -1,41 +1,53 @@
-import besHarfHavuz from '@/data/gunluk-kelime/bes-harf-havuz.json';
-import yazilisMap from '@/data/kelime-sofrasi/kelime-yazilis.json';
-import { asciiKelimeAnahtar, sofraKelimeBuyuk, sofraKelimeGecerli } from '@/lib/kelime-sofrasi/turkce-harf';
-
 import { GUNLUK_KELIME_LENGTH } from '@/constants/gunluk-kelime';
 import { gunlukKelimeGraphemes } from '@/lib/gunluk-kelime/grapheme';
+import {
+  gastroKanonikKelime,
+  gastroLexiconCevap5,
+  gastroLexiconTahmin5,
+} from '@/lib/gastro-lexicon';
+import { asciiKelimeAnahtar, sofraKelimeGecerli } from '@/lib/kelime-sofrasi/turkce-harf';
 
-function canonicalBesHarf(raw: string): string {
-  const ascii = sofraKelimeBuyuk(raw);
-  const mapped = (yazilisMap as Record<string, string>)[ascii] ?? ascii;
-  return sofraKelimeBuyuk(mapped);
-}
-
-const CANONICAL_BY_ASCII = new Map<string, string>();
-
-for (const raw of besHarfHavuz.words ?? []) {
-  try {
-    const canon = canonicalBesHarf(String(raw));
-    if (gunlukKelimeGraphemes(canon).length !== GUNLUK_KELIME_LENGTH || !sofraKelimeGecerli(canon)) {
-      continue;
+function buildAsciiMap(words: readonly string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const raw of words) {
+    try {
+      const canon = gastroKanonikKelime(String(raw));
+      if (gunlukKelimeGraphemes(canon).length !== GUNLUK_KELIME_LENGTH || !sofraKelimeGecerli(canon)) {
+        continue;
+      }
+      map.set(asciiKelimeAnahtar(canon), canon);
+    } catch {
+      // bozuk satir
     }
-    CANONICAL_BY_ASCII.set(asciiKelimeAnahtar(canon), canon);
-  } catch {
-    // bozuk havuz satiri
   }
+  return map;
 }
 
-const ALL_WORDS: readonly string[] = [...CANONICAL_BY_ASCII.values()].sort();
+const TAHMIN_BY_ASCII = buildAsciiMap(gastroLexiconTahmin5());
+const CEVAP_BY_ASCII = buildAsciiMap(gastroLexiconCevap5());
 
+const TAHMIN_WORDS: readonly string[] = [...TAHMIN_BY_ASCII.values()].sort((a, b) =>
+  a.localeCompare(b, 'tr'),
+);
+const CEVAP_WORDS: readonly string[] = [...CEVAP_BY_ASCII.values()].sort((a, b) =>
+  a.localeCompare(b, 'tr'),
+);
+
+/** Günlük Kelime tahmin sözlüğü (~5.3k TDK). */
 export function gunlukKelimeSozluk(): readonly string[] {
-  return ALL_WORDS;
+  return TAHMIN_WORDS;
+}
+
+/** Günlük cevap havuzu — daha dar, günlük kelime seçimi. */
+export function gunlukKelimeCevapHavuzu(): readonly string[] {
+  return CEVAP_WORDS;
 }
 
 export function gunlukKelimeGecerliMi(word: string): boolean {
   try {
     if (gunlukKelimeGraphemes(word).length !== GUNLUK_KELIME_LENGTH) return false;
     const norm = gunlukKelimeGraphemes(word).join('');
-    return CANONICAL_BY_ASCII.has(asciiKelimeAnahtar(norm));
+    return TAHMIN_BY_ASCII.has(asciiKelimeAnahtar(norm));
   } catch {
     return false;
   }
@@ -46,7 +58,7 @@ export function gunlukKelimeKanonik(word: string): string | null {
   try {
     if (gunlukKelimeGraphemes(word).length !== GUNLUK_KELIME_LENGTH) return null;
     const norm = gunlukKelimeGraphemes(word).join('');
-    return CANONICAL_BY_ASCII.get(asciiKelimeAnahtar(norm)) ?? null;
+    return TAHMIN_BY_ASCII.get(asciiKelimeAnahtar(norm)) ?? null;
   } catch {
     return null;
   }

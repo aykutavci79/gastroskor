@@ -38,7 +38,7 @@ export const EGLENCE_GAMES: EglenceGameDef[] = [
   {
     id: 'gunluk-kelime',
     title: 'Günlük Kelime',
-    subtitle: 'Wordle tarzı · 5 harf · 6 deneme',
+    subtitle: 'Wordle tarzı · 5 harf · 5300+ kelime',
     icon: 'text-outline',
     available: true,
   },

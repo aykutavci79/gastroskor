@@ -63,6 +63,15 @@ export function scoreGunlukKelimeGuess(answer: string, guess: string): LetterSta
   return result;
 }
 
+/** Tahmin puanlama — hata durumunda null (kırmızı crash yerine sözlük uyarısı). */
+export function tryScoreGunlukKelimeGuess(answer: string, guess: string): LetterState[] | null {
+  try {
+    return scoreGunlukKelimeGuess(answer, guess);
+  } catch {
+    return null;
+  }
+}
+
 function applyKeyState(
   next: Record<string, LetterState>,
   ch: string,

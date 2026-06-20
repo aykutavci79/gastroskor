@@ -1,0 +1,42 @@
+{
+  "formatVersion": 1,
+  "builtAt": "2026-06-20T20:34:17.091Z",
+  "games": [
+    "kelime-sofrasi",
+    "gunluk-kelime",
+    "kelime-yarismasi"
+  ],
+  "sources": {
+    "tdk5Resinder": "https://gist.githubusercontent.com/Resinder/b2897fd639006e34a1bf54252d730f7b/raw/tdk-5-harfli-kelimeler.json",
+    "tdk5Burak": "https://gist.githubusercontent.com/burakgarci/307dcd4d857ca32957d020536b9a982b/raw/turkish-5-letter-words"
+  },
+  "counts": {
+    "tahmin5": 5302,
+    "cevap5": 3658,
+    "lexiconFull": 7885,
+    "yazilisByAscii": 7885,
+    "yarismasiCevapTotal": 1500,
+    "yarismasiCevapInLexicon": 1500
+  },
+  "stats": {
+    "fetched": {
+      "tdk5Resinder": 3597,
+      "tdk5BurakLines": 4993,
+      "besHarfHavuz": 746,
+      "sofraHavuz": 2273,
+      "kelimeYarismasi": 1500
+    },
+    "added": {
+      "tahmin5": {
+        "tdk5Resinder": 3413,
+        "tdk5BurakLines": 1868,
+        "besHarfHavuz": 21
+      },
+      "full": {
+        "sofraHavuz": 1523,
+        "kelimeYarismasi": 967
+      }
+    }
+  },
+  "contentHash": "739d5a03a642"
+}

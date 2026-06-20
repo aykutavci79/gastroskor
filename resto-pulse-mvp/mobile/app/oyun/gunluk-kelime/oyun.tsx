@@ -19,12 +19,12 @@ import { eglenceLobbyTheme } from '@/constants/eglence-card-art-theme';
 import {
   gunlukKelimeShareEmoji,
   mergeKeyboardStates,
-  scoreGunlukKelimeGuess,
+  tryScoreGunlukKelimeGuess,
   type LetterState,
 } from '@/lib/gunluk-kelime/engine';
 import { loadGunlukKelimeProgress, saveGunlukKelimeProgress } from '@/lib/gunluk-kelime/storage';
 import type { GunlukKelimeProgress } from '@/lib/gunluk-kelime/types';
-import { gunlukKelimeGecerliMi, gunlukKelimeKanonik } from '@/lib/gunluk-kelime/words';
+import { gunlukKelimeKanonik } from '@/lib/gunluk-kelime/words';
 import {
   gunlukKelimeAppendHarf,
   gunlukKelimeBackspace,
@@ -159,9 +159,9 @@ export default function GunlukKelimeOyunScreen() {
       return;
     }
 
-    const word = gunlukKelimeGraphemes(current).join('');
-    if (!gunlukKelimeGecerliMi(word)) {
-      showMessage('Listede yok — başka kelime dene', 'warn');
+    const canonical = gunlukKelimeKanonik(word);
+    if (!canonical) {
+      showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
       rejectGuess();
       return;
     }
@@ -174,9 +174,13 @@ export default function GunlukKelimeOyunScreen() {
       }
       const answer = answerChars.join('');
 
-      const canonical = gunlukKelimeKanonik(word) ?? word;
       clearMessage();
-      const states = scoreGunlukKelimeGuess(answer, canonical);
+      const states = tryScoreGunlukKelimeGuess(answer, canonical);
+      if (!states) {
+        showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
+        rejectGuess();
+        return;
+      }
       const won = states.every((s) => s === 'correct');
       const guesses = [...progress.guesses, { word: canonical, states }];
       const done = won || guesses.length >= GUNLUK_KELIME_MAX_GUESSES;

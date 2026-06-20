@@ -2,10 +2,10 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.50",
-    "versionCode": 61,
+    "versionName": "1.0.52",
+    "versionCode": 63,
     "lastUpdated": "2026-06-20",
-    "_note": "Lokal AAB — guvenlik (Sentry scrub, logout, voice JWT), api.ts fix, iOS 1.0.50/52 EAS"
+    "_note": "Lokal AAB — gastro-lexicon (5302 tahmin), Günlük Kelime tahmin/cevap ayrımı"
   },
   "appStore": {
     "version": "1.0.50",

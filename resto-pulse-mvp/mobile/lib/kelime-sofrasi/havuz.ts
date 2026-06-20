@@ -2,7 +2,8 @@ import havuzJson from '@/data/kelime-sofrasi/havuz.json';
 import ucHarfJson from '@/data/kelime-sofrasi/uc-harf-havuz.json';
 import yazilisMap from '@/data/kelime-sofrasi/kelime-yazilis.json';
 
-import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
+import { gastroYazilisByAscii } from '@/lib/gastro-lexicon';
+import { asciiKelimeAnahtar, sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 export type HavuzKelime = {
   id: string;
@@ -15,9 +16,12 @@ export type HavuzKelime = {
 type HavuzKaynak = HavuzKelime & { yazilis?: string };
 
 function havuzKelimeFormu(asciiKelime: string, yazilisOverride?: string): string {
+  const key = asciiKelimeAnahtar(asciiKelime);
+  const gastroMap = gastroYazilisByAscii();
   const mapped =
     yazilisOverride?.trim() ||
     (yazilisMap as Record<string, string>)[asciiKelime] ||
+    gastroMap[key] ||
     asciiKelime;
   return sofraKelimeBuyuk(mapped);
 }
