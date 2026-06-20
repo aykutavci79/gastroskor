@@ -117,6 +117,7 @@ function NavigationShell() {
         />
         <Stack.Screen name="oyun/kelime-sofrasi" options={{ headerShown: false }} />
         <Stack.Screen name="oyun/mini-sudoku" options={{ headerShown: false }} />
+        <Stack.Screen name="oyun/gunluk-kelime" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

@@ -37,9 +37,10 @@ import {
   hedefKelimeMi,
   hucreAnahtar,
   ipucuHakkiKaldi,
-  ipucuIleOtomatikBulunanKelimeIdleri,
+  autoSolveFullyRevealedWordIds,
   kelimeCarktanOlusur,
   normalizeKelime,
+  sameAxisPrefixOfUnfoundLonger,
   sameAxisSubstringSpoiler,
   sonrakiIpucuHucresi,
   sofraMaxIpucu,
@@ -392,22 +393,6 @@ export default function KelimeSofrasiOyunScreen() {
     [puzzle, user, zorluk],
   );
 
-  useEffect(() => {
-    if (!puzzle || !progress || progress.completedAt || resultOpen) return;
-    const autoIds = ipucuIleOtomatikBulunanKelimeIdleri(
-      puzzle,
-      progress.foundWordIds,
-      progress.hintedCells,
-    );
-    if (!autoIds.length) return;
-    const foundWordIds = [...progress.foundWordIds, ...autoIds];
-    const labels = puzzle.words
-      .filter((w) => autoIds.includes(w.id))
-      .map((w) => w.kelime)
-      .join(', ');
-    applyFoundWordIds(progress, foundWordIds, labels ? `+ ${labels}` : undefined);
-  }, [applyFoundWordIds, puzzle, progress, resultOpen]);
-
   const submitPath = useCallback(
     (path: number[]) => {
       if (!puzzle || !progress || completed || resultOpen) {
@@ -430,6 +415,19 @@ export default function KelimeSofrasiOyunScreen() {
       }
       if (norm.length >= SOFRA_MIN_KELIME_UZUNLUGU) {
         logWheelAttempt(norm);
+      }
+      const longerKutu = sameAxisPrefixOfUnfoundLonger(
+        puzzle.words,
+        norm,
+        progress.foundWordIds,
+      );
+      if (longerKutu) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        setMessage(
+          `${longerKutu.kelime.length} harfli kutu — ${longerKutu.kelime} yaz (${norm.length} harf yetmez)`,
+        );
+        setSelectedPath([]);
+        return;
       }
       const target = hedefKelimeMi(puzzle, word);
       if (!target) {
@@ -541,7 +539,7 @@ export default function KelimeSofrasiOyunScreen() {
     if (progress.hintedCells.includes(key)) return;
 
     const nextHinted = [...progress.hintedCells, key];
-    const autoIds = ipucuIleOtomatikBulunanKelimeIdleri(
+    const autoIds = autoSolveFullyRevealedWordIds(
       puzzle,
       progress.foundWordIds,
       nextHinted,

@@ -125,6 +125,29 @@ const GAME_ART: Record<EglenceGameId, GameArtConfig> = {
       sceneBottomScrim: 'rgba(14, 10, 6, 0.48)',
     },
   },
+  'gunluk-kelime': {
+    carousel: {
+      borderColor: 'rgba(83, 141, 78, 0.5)',
+      overlay: 'rgba(6, 10, 6, 0.18)',
+      scrim: 'rgba(8, 12, 8, 0.48)',
+      bg: '#0C100C',
+    },
+    lobby: {
+      bg: '#121212',
+      headerBg: '#121212',
+      text: '#F5F5F5',
+      muted: '#9CA3AF',
+      accent: '#538D4E',
+      accentSoft: 'rgba(83, 141, 78, 0.2)',
+      panel: 'rgba(24, 24, 24, 0.92)',
+      border: 'rgba(83, 141, 78, 0.32)',
+      borderStrong: 'rgba(83, 141, 78, 0.55)',
+      artOpacity: 1,
+      artScale: 1.08,
+      sceneOverlay: 'rgba(8, 10, 8, 0.45)',
+      sceneBottomScrim: 'rgba(10, 12, 10, 0.55)',
+    },
+  },
 };
 
 export function eglenceCardArtTheme(gameId: EglenceGameId): EglenceCardArtTheme {

@@ -58,6 +58,8 @@ import { warmSofraPuzzleCache, prefetchSofraPuzzlesForToday } from '@/lib/kelime
 
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 
+import { loadGunlukKelimeMetaStatus } from '@/lib/gunluk-kelime/storage';
+
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 
 import { loadSudokuMetaStatus } from '@/lib/mini-sudoku/storage';
@@ -113,6 +115,10 @@ export default function EglenceTabScreen() {
   const [sofraCompleted, setSofraCompleted] = useState(false);
 
   const [sofraInProgress, setSofraInProgress] = useState(false);
+
+  const [gunlukKelimeCompleted, setGunlukKelimeCompleted] = useState(false);
+
+  const [gunlukKelimeInProgress, setGunlukKelimeInProgress] = useState(false);
 
   const [jetonBalance, setJetonBalance] = useState<number | null>(null);
 
@@ -183,6 +189,13 @@ export default function EglenceTabScreen() {
     setSofraInProgress(statuses.some((s) => s.inProgress));
   }, []);
 
+  const loadGunlukKelimeMeta = useCallback(async () => {
+    const puzzleId = activePuzzleId();
+    const status = await loadGunlukKelimeMetaStatus(puzzleId);
+    setGunlukKelimeCompleted(status.completed);
+    setGunlukKelimeInProgress(status.inProgress);
+  }, []);
+
 
 
   const loadRooms = useCallback(async (silent = false) => {
@@ -217,11 +230,17 @@ export default function EglenceTabScreen() {
 
     async (silent = false) => {
 
-      await Promise.all([loadSudokuMeta(), loadSofraMeta(), loadRooms(silent), loadJeton()]);
+      await Promise.all([
+        loadSudokuMeta(),
+        loadSofraMeta(),
+        loadGunlukKelimeMeta(),
+        loadRooms(silent),
+        loadJeton(),
+      ]);
 
     },
 
-    [loadRooms, loadSudokuMeta, loadSofraMeta, loadJeton],
+    [loadRooms, loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton],
 
   );
 
@@ -243,8 +262,9 @@ export default function EglenceTabScreen() {
       prefetchSofraPuzzlesForToday(gunId, 'orta');
       void loadSudokuMeta();
       void loadSofraMeta();
+      void loadGunlukKelimeMeta();
       void loadJeton();
-    }, [loadSudokuMeta, loadSofraMeta, loadJeton]),
+    }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton]),
   );
 
 
@@ -263,9 +283,11 @@ export default function EglenceTabScreen() {
 
         'kelime-sofrasi': sofraStatus(sofraCompleted, sofraInProgress),
 
+        'gunluk-kelime': sudokuStatus(gunlukKelimeCompleted, gunlukKelimeInProgress),
+
       }) satisfies Record<EglenceGameId, EglenceGameStatus>,
 
-    [sudokuCompleted, sudokuInProgress, sofraCompleted, sofraInProgress],
+    [sudokuCompleted, sudokuInProgress, sofraCompleted, sofraInProgress, gunlukKelimeCompleted, gunlukKelimeInProgress],
 
   );
 
@@ -346,6 +368,11 @@ export default function EglenceTabScreen() {
 
       return;
 
+    }
+
+    if (id === 'gunluk-kelime') {
+      router.push('/oyun/gunluk-kelime' as Href);
+      return;
     }
 
   }

@@ -10,12 +10,35 @@ from app.services.place_search_relevance import (
 )
 
 
-def _item(name: str, *, partner: bool = False) -> LivePlaceSearchItem:
+def _item(name: str, *, partner: bool = False, user_ratings_total: int | None = None) -> LivePlaceSearchItem:
     return LivePlaceSearchItem(
         place_id=name[:8].replace(" ", "_"),
         name=name,
         is_premium_partner=partner,
+        user_ratings_total=user_ratings_total,
     )
+
+
+def test_named_doner_search_skips_review_floor():
+    items = [
+        _item("TAŞKIN DÖNER", user_ratings_total=55),
+        _item("Melike Döner", user_ratings_total=9591),
+    ]
+    result = apply_place_relevance_filter(items, query="taşkın döner", city="Bursa")
+    assert result.mode == "negative_only"
+    names = [row.name for row in result.items]
+    assert any("TAŞKIN" in name for name in names)
+
+
+def test_pure_doner_query_applies_review_floor():
+    items = [
+        _item("TAŞKIN DÖNER", user_ratings_total=55),
+        _item("Melike Döner", user_ratings_total=9591),
+    ]
+    result = apply_place_relevance_filter(items, query="döner", city="Bursa")
+    assert result.mode == "product_intent"
+    assert len(result.items) == 1
+    assert "Melike" in result.items[0].name
 
 
 def test_resolve_iskender_intent_from_en_iyi():

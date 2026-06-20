@@ -22,12 +22,13 @@ export function asciiKelimeAnahtar(raw: string): string {
     .replace(/[^A-Z]/g, '');
 }
 
-/** Oyun içi kanonik kelime formu — tam Türkçe büyük harf. */
+/** Oyun içi kanonik kelime formu — tam Türkçe büyük harf (NFC). */
 export function sofraKelimeBuyuk(raw: string): string {
   return raw
     .trim()
     .toLocaleUpperCase('tr-TR')
-    .replace(/[^A-ZÇĞİÖŞÜI]/gu, '');
+    .replace(/[^A-ZÇĞİÖŞÜI]/gu, '')
+    .normalize('NFC');
 }
 
 export function sofraKelimeGecerli(raw: string): boolean {

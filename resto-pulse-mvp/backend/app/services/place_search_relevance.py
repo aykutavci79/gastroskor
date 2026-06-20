@@ -12,6 +12,8 @@ from app.constants.city_dish_favorites import (
 from app.constants.voice_product_catalog import (
     EXCLUDE_MARKERS_BY_INTENT,
     RELEVANCE_FILTER_DISABLED_GROUPS,
+    _BY_SEARCH_GROUP,
+    _BY_SLUG,
     _normalize_query,
     resolve_voice_search_token,
 )
@@ -82,13 +84,38 @@ def venue_matches_relevance_intent(
     return True
 
 
+def _is_pure_dish_query(query: str, search_group: str) -> bool:
+    """Yalnizca 'doner', 'lahmacun' gibi tek urun aramalarinda yorum tabani uygula."""
+    parsed = parse_search_query(query)
+    folded = _normalize_query(parsed.query.strip())
+    if not folded:
+        return False
+    if folded == _normalize_query(search_group):
+        return True
+
+    group_aliases = {_normalize_query(search_group)}
+    for slug in _BY_SEARCH_GROUP.get(search_group, ()):
+        product = _BY_SLUG.get(slug)
+        if not product:
+            continue
+        group_aliases.add(_normalize_query(product.slug))
+        group_aliases.add(_normalize_query(product.search_group))
+        for alias in product.aliases:
+            group_aliases.add(_normalize_query(alias))
+
+    return folded in group_aliases
+
+
 def venue_passes_product_review_floor(
     *,
     item: LivePlaceSearchItem,
     intent: PlaceRelevanceIntent,
     city: str | None,
+    query: str,
 ) -> bool:
-    """Urun niyetli aramada dusuk Google yorum sayisini ele (yerel favoriler muaf)."""
+    """Genel urun aramasinda dusuk Google yorum sayisini ele; isim aramalarinda uygulama."""
+    if not _is_pure_dish_query(query, intent.search_group):
+        return True
     min_reviews = settings.social_proof_min_reviews
     if min_reviews <= 0:
         return True
@@ -121,10 +148,17 @@ def apply_place_relevance_filter(
     for item in items:
         if not venue_matches_relevance_intent(name=item.name, intent=intent):
             continue
-        if not venue_passes_product_review_floor(item=item, intent=intent, city=city):
+        if not venue_passes_product_review_floor(
+            item=item,
+            intent=intent,
+            city=city,
+            query=query,
+        ):
             continue
         kept.append(item)
 
+    review_floor_active = _is_pure_dish_query(query, intent.search_group)
+    filter_mode = "product_intent" if review_floor_active else "negative_only"
     dropped_count = len(items) - len(kept)
     if not kept:
         # Yalnizca negatif marker yuzunden bosaldiysa fallback; dusuk yorum elemesinde fallback yok.
@@ -142,7 +176,7 @@ def apply_place_relevance_filter(
                 enabled=True,
                 dropped_count=dropped_count,
                 fallback=False,
-                mode="product_intent",
+                mode=filter_mode,
             )
         logger.info(
             "relevance_filter_fallback query=%r group=%s dropped=%s",
@@ -163,7 +197,7 @@ def apply_place_relevance_filter(
         enabled=True,
         dropped_count=dropped_count,
         fallback=False,
-        mode="product_intent",
+        mode=filter_mode,
     )
 
 

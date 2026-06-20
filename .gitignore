@@ -29,6 +29,7 @@ dev_*.db
 
 # misc
 .DS_Store
+_ref/
 
 # Python cache/artifacts
 __pycache__/

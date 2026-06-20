@@ -89,6 +89,17 @@ export function eglenceBannerTheme(gameId: EglenceGameId): EglenceBannerTheme {
         iconBorder: '#A8E0C0',
         iconColor: '#4CAF79',
       };
+    case 'gunluk-kelime':
+      return {
+        borderColor: '#A8D4A4',
+        titleColor: '#1A3D1A',
+        subtitleColor: '#3D6B3D',
+        statusColor: '#538D4E',
+        statusMutedColor: '#5A7A5A',
+        iconBg: 'rgba(255,255,255,0.9)',
+        iconBorder: '#A8D4A4',
+        iconColor: '#538D4E',
+      };
   }
 }
 
@@ -349,6 +360,40 @@ function KelimeSofrasiBanner() {
   );
 }
 
+function GunlukKelimeBanner() {
+  const tiles = [
+    { bg: '#538D4E', top: '12%', left: '52%' },
+    { bg: '#B59F3B', top: '12%', left: '60%' },
+    { bg: '#3A3A3C', top: '12%', left: '68%' },
+    { bg: '#538D4E', top: '22%', left: '56%' },
+    { bg: '#3A3A3C', top: '22%', left: '64%' },
+    { bg: '#538D4E', top: '32%', left: '60%' },
+    { bg: '#B59F3B', top: '48%', left: '72%', size: 28 },
+    { bg: '#538D4E', top: '62%', left: '58%', size: 24 },
+    { bg: '#3A3A3C', top: '70%', left: '78%', size: 22 },
+  ] as const;
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {tiles.map((tile, i) => (
+        <View
+          key={`gk-${i}`}
+          style={{
+            position: 'absolute',
+            top: tile.top,
+            left: tile.left,
+            width: 'size' in tile ? tile.size : 26,
+            height: 'size' in tile ? tile.size : 26,
+            borderRadius: 4,
+            backgroundColor: tile.bg,
+            opacity: 0.85,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 function PatternBody({ gameId }: Props) {
   switch (gameId) {
     case 'mini-sudoku':
@@ -359,6 +404,8 @@ function PatternBody({ gameId }: Props) {
       return <SoruCevapBanner />;
     case 'kelime-sofrasi':
       return <KelimeSofrasiBanner />;
+    case 'gunluk-kelime':
+      return <GunlukKelimeBanner />;
   }
 }
 

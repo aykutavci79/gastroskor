@@ -57,6 +57,36 @@ export function sameAxisSubstringSpoiler(
   return null;
 }
 
+/**
+ * Swipe edilen kelime, aynı eksende henüz bulunmamış daha uzun ızgara kelimesinin
+ * başından başlayan öneki mi? (YAK swipe → YAKA kutusu dolmadan eşleşme yok)
+ */
+export function sameAxisPrefixOfUnfoundLonger(
+  words: readonly SofraPlacedWord[],
+  typedNorm: string,
+  foundWordIds: readonly string[],
+): SofraPlacedWord | null {
+  const found = new Set(foundWordIds);
+  if (typedNorm.length < SOFRA_MIN_KELIME_UZUNLUGU) return null;
+
+  for (const long of words) {
+    if (found.has(long.id)) continue;
+    const longNorm = sofraKelimeBuyuk(long.kelime);
+    if (longNorm.length <= typedNorm.length) continue;
+    if (!longNorm.startsWith(typedNorm)) continue;
+
+    const prefixAtLongStart: SofraPlacedWord = {
+      id: `__prefix__:${long.id}`,
+      kelime: typedNorm,
+      row: long.row,
+      col: long.col,
+      direction: long.direction,
+    };
+    if (isSameAxisSubstring(prefixAtLongStart, long)) return long;
+  }
+  return null;
+}
+
 export function bonusKelimeMi(puzzle: SofraPuzzle, kelime: string): boolean {
   const norm = sofraKelimeBuyuk(kelime);
   return puzzle.bonusKelimeler.some((w) => sofraKelimeEsit(w, norm));
@@ -101,59 +131,87 @@ export function hucreAnahtar(row: number, col: number): string {
   return `${row},${col}`;
 }
 
+/**
+ * Word Tracer `buildRevealedCells` uyumlu: ipucu hücreleri + bulunan kelime yolları.
+ * @see _ref/wordtracer/src/game-engine.ts
+ */
+export function buildSofraRevealedCellKeys(
+  words: readonly SofraPlacedWord[],
+  foundWordIds: readonly string[],
+  hintedCells: readonly string[],
+): Set<string> {
+  const revealed = new Set<string>(hintedCells);
+  const found = new Set(foundWordIds);
+  for (const word of words) {
+    if (!found.has(word.id)) continue;
+    if (sameAxisSubstringSpoiler(words, word, foundWordIds)) continue;
+    const norm = sofraKelimeBuyuk(word.kelime);
+    for (let i = 0; i < norm.length; i++) {
+      const row = word.direction === 'h' ? word.row : word.row + i;
+      const col = word.direction === 'h' ? word.col + i : word.col;
+      revealed.add(hucreAnahtar(row, col));
+    }
+  }
+  return revealed;
+}
+
 export function hucreAcikMi(
   cell: SofraGridCell,
   foundWordIds: string[],
   hintedCells: Set<string> | readonly string[],
   allWords?: readonly SofraPlacedWord[],
 ): boolean {
-  const hinted =
-    hintedCells instanceof Set ? hintedCells : new Set(hintedCells);
-  if (hinted.has(hucreAnahtar(cell.row, cell.col))) return true;
-
-  for (const id of cell.wordIds) {
-    if (!foundWordIds.includes(id)) continue;
-    if (!allWords?.length) return true;
-
-    const word = allWords.find((w) => w.id === id);
-    if (!word) return true;
-    // DAM bulundu ama IDAM henüz yok → ortak hücreleri gösterme
-    if (sameAxisSubstringSpoiler(allWords, word, foundWordIds)) continue;
-    return true;
+  if (!allWords?.length) {
+    const hinted =
+      hintedCells instanceof Set ? hintedCells : new Set(hintedCells);
+    if (hinted.has(hucreAnahtar(cell.row, cell.col))) return true;
+    return foundWordIds.some((id) => cell.wordIds.includes(id));
   }
-  return false;
+  const hintedList = hintedCells instanceof Set ? [...hintedCells] : hintedCells;
+  const revealed = buildSofraRevealedCellKeys(allWords, foundWordIds, hintedList);
+  return revealed.has(hucreAnahtar(cell.row, cell.col));
 }
 
-/** Izgara kelimesinin tüm hücreleri bulundu veya ipucu ile açıldı mı? */
-export function kelimeTamamenAcikMi(
+/** Kelimenin tüm hücreleri ipucu veya bulunmuş kelime yolu ile açık mı? */
+export function isWordFullyRevealed(
   word: SofraPlacedWord,
-  puzzle: SofraPuzzle,
-  foundWordIds: string[],
+  words: readonly SofraPlacedWord[],
+  foundWordIds: readonly string[],
   hintedCells: readonly string[],
 ): boolean {
+  const revealed = buildSofraRevealedCellKeys(words, foundWordIds, hintedCells);
   const norm = sofraKelimeBuyuk(word.kelime);
-  const hinted = new Set(hintedCells);
   for (let i = 0; i < norm.length; i++) {
     const row = word.direction === 'h' ? word.row : word.row + i;
     const col = word.direction === 'h' ? word.col + i : word.col;
-    const cell = puzzle.grid[row]?.[col];
-    if (!cell) return false;
-    if (!hucreAcikMi(cell, foundWordIds, hinted, puzzle.words)) return false;
+    if (!revealed.has(hucreAnahtar(row, col))) return false;
   }
   return true;
 }
 
-/** İpucu ile tamamen görünen ama henüz işaretlenmemiş hedef kelimeler. */
-export function ipucuIleOtomatikBulunanKelimeIdleri(
+/**
+ * Word Tracer `autoSolveFullyRevealedAnswers` — tüm harfler açıldıysa kelime bulundu say.
+ * Kısmi ipucu (YAK / 4 kutu) tek başına kelimeyi bitirmez.
+ */
+export function autoSolveFullyRevealedWordIds(
   puzzle: SofraPuzzle,
-  foundWordIds: string[],
+  foundWordIds: readonly string[],
   hintedCells: readonly string[],
 ): string[] {
   const found = new Set(foundWordIds);
   return puzzle.words
     .filter((w) => !found.has(w.id))
-    .filter((w) => kelimeTamamenAcikMi(w, puzzle, foundWordIds, hintedCells))
+    .filter((w) => isWordFullyRevealed(w, puzzle.words, foundWordIds, hintedCells))
     .map((w) => w.id);
+}
+
+/** @deprecated autoSolveFullyRevealedWordIds kullan */
+export function ipucuIleOtomatikBulunanKelimeIdleri(
+  puzzle: SofraPuzzle,
+  foundWordIds: string[],
+  hintedCells: readonly string[],
+): string[] {
+  return autoSolveFullyRevealedWordIds(puzzle, foundWordIds, hintedCells);
 }
 
 /** Henüz açılmamış rastgele bir ızgara hücresi seçer. */

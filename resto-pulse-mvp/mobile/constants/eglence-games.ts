@@ -7,7 +7,12 @@ export const SORU_CEVAP_ROOM_META = {
   emoji: '🥙',
 } as const;
 
-export type EglenceGameId = 'mini-sudoku' | 'soru-cevap' | 'kelime-yarismasi' | 'kelime-sofrasi';
+export type EglenceGameId =
+  | 'mini-sudoku'
+  | 'soru-cevap'
+  | 'kelime-yarismasi'
+  | 'kelime-sofrasi'
+  | 'gunluk-kelime';
 
 export type EglenceGameStatus = 'oyna' | 'devam' | 'tamamlandi' | 'yakinda';
 
@@ -27,6 +32,13 @@ export const EGLENCE_GAMES: EglenceGameDef[] = [
     id: 'kelime-sofrasi',
     title: 'Kelime Sofrası',
     subtitle: 'Harf çarkı · günlük ızgara · günde 5 tur',
+    icon: 'text-outline',
+    available: true,
+  },
+  {
+    id: 'gunluk-kelime',
+    title: 'Günlük Kelime',
+    subtitle: 'Wordle tarzı · 5 harf · 6 deneme',
     icon: 'text-outline',
     available: true,
   },

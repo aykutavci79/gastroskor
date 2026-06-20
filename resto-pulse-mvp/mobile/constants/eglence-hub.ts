@@ -97,6 +97,7 @@ export const HUB_TASK_DEMO_STATE: Record<HubTaskId, HubTaskState> = {
 export const HUB_GAME_JETON_LABEL: Record<EglenceGameId, string> = {
   'mini-sudoku': 'Ücretsiz',
   'kelime-sofrasi': 'Günlük ücretsiz',
+  'gunluk-kelime': 'Günlük ücretsiz',
   'kelime-yarismasi': '10 jeton',
   'soru-cevap': 'Ücretsiz',
 };
