@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "451f70ca-239f-446f-9352-05c3b32e7749"
+      }
+    },
+    "android": {
+      "package": "com.delimanyah.app"
+    }
+  }
+}

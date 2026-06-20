@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       gun_id:
-        description: "Override gun_id (YYYY-MM-DD). Bos = Istanbul bugun"
+        description: "Override gun_id (YYYY-MM-DD). Bos = aktif donem (+ 17:00 sonrasi icin yarin)"
         required: false
         type: string
 
@@ -34,30 +34,35 @@ jobs:
         working-directory: resto-pulse-mvp/mobile
         run: npm ci
 
-      - name: Resolve gun_id (Europe/Istanbul)
+      - name: Resolve gun_ids (Europe/Istanbul)
         id: gun
         run: |
-          if [ -n "${{ github.event.inputs.gun_id }}" ]; then
-            GUN_ID="${{ github.event.inputs.gun_id }}"
-          else
-            GUN_ID=$(TZ=Europe/Istanbul date +%Y-%m-%d)
+          MANUAL="${{ github.event.inputs.gun_id }}"
+          if [ -n "$MANUAL" ]; then
+            echo "ids=$MANUAL" >> "$GITHUB_OUTPUT"
+            echo "Manual gun_id: $MANUAL"
+            exit 0
           fi
-          echo "gun_id=$GUN_ID" >> "$GITHUB_OUTPUT"
-          echo "Target gun_id: $GUN_ID"
+          IDS=$(python3 <<'PY'
+          from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
+          IST = ZoneInfo("Europe/Istanbul")
+          now = datetime.now(IST)
+          active = now.date()
+          if now.hour < 17:
+              active = (now - timedelta(days=1)).date()
+          upcoming = now.date()
+          ids = [active.isoformat()]
+          if upcoming.isoformat() not in ids:
+              ids.append(upcoming.isoformat())
+          print(" ".join(ids))
+          PY
+          )
+          echo "ids=$IDS" >> "$GITHUB_OUTPUT"
+          echo "Target gun_ids: $IDS"
 
-      - name: Generate 15 slots (3 zorluk x 5 tur)
+      - name: Generate and import pools
         working-directory: resto-pulse-mvp/mobile
-        run: |
-          npx tsx scripts/generate-sofra-pool.ts --gun-id "${{ steps.gun.outputs.gun_id }}" > /tmp/sofra-pool.json
-          OK=$(node -e "const d=require('/tmp/sofra-pool.json'); console.log(d.filter(x=>x.ok).length)")
-          TOTAL=$(node -e "const d=require('/tmp/sofra-pool.json'); console.log(d.length)")
-          echo "Generator: $OK/$TOTAL ok"
-          if [ "$OK" -lt "$TOTAL" ]; then
-            node -e "const d=require('/tmp/sofra-pool.json'); d.filter(x=>!x.ok).forEach(x=>console.log('FAIL', x.zorluk, 'tur', x.tur))"
-            echo "::warning::Bazi slotlar uretilemedi — import sirasinda onceki gun yedegi kullanilacak"
-          fi
-
-      - name: Import to production API
         env:
           CRON_SECRET: ${{ secrets.SOFRA_CRON_SECRET }}
           API_BASE: ${{ secrets.SOFRA_API_BASE_URL }}
@@ -66,35 +71,46 @@ jobs:
             echo "::error::SOFRA_CRON_SECRET ve SOFRA_API_BASE_URL GitHub secrets tanimli olmali"
             exit 1
           fi
-          BODY=$(node -e "
-            const fs = require('fs');
-            const puzzles = JSON.parse(fs.readFileSync('/tmp/sofra-pool.json','utf8'));
-            console.log(JSON.stringify({ gun_id: '${{ steps.gun.outputs.gun_id }}', puzzles }));
-          ")
-          HTTP=$(curl -sS -o /tmp/import-response.json -w '%{http_code}' \
-            -X POST "${API_BASE%/}/api/v1/internal/cron/sofra-bulmaca-import" \
-            -H "Content-Type: application/json" \
-            -H "X-Cron-Secret: $CRON_SECRET" \
-            -d "$BODY")
-          echo "HTTP $HTTP"
-          cat /tmp/import-response.json
-          if [ "$HTTP" != "200" ]; then
-            echo "::error::Import basarisiz (HTTP $HTTP)"
-            exit 1
-          fi
-          node -e "
-            const r = require('/tmp/import-response.json');
-            if (!r.ok) {
-              console.error('Import ok=false', JSON.stringify(r.stats?.errors || r));
-              process.exit(1);
-            }
-            console.log('Import OK:', r.stats?.generated, 'generated,', r.stats?.fallback, 'fallback,', r.stats?.failed, 'failed');
-          "
+          for GUN_ID in ${{ steps.gun.outputs.ids }}; do
+            echo "=== gun_id=$GUN_ID ==="
+            npx tsx scripts/generate-sofra-pool.ts --gun-id "$GUN_ID" > "/tmp/sofra-pool-${GUN_ID}.json"
+            OK=$(node -e "const d=require('/tmp/sofra-pool-${GUN_ID}.json'); console.log(d.filter(x=>x.ok).length)")
+            TOTAL=$(node -e "const d=require('/tmp/sofra-pool-${GUN_ID}.json'); console.log(d.length)")
+            echo "Generator: $OK/$TOTAL ok"
+            if [ "$OK" -lt "$TOTAL" ]; then
+              node -e "const d=require('/tmp/sofra-pool-${GUN_ID}.json'); d.filter(x=>!x.ok).forEach(x=>console.log('FAIL', x.zorluk, 'tur', x.tur))"
+              echo "::warning::Bazi slotlar uretilemedi — import sirasinda onceki gun yedegi kullanilacak"
+            fi
+            BODY=$(node -e "
+              const fs = require('fs');
+              const puzzles = JSON.parse(fs.readFileSync('/tmp/sofra-pool-${GUN_ID}.json','utf8'));
+              console.log(JSON.stringify({ gun_id: '${GUN_ID}', puzzles }));
+            ")
+            HTTP=$(curl -sS -o "/tmp/import-response-${GUN_ID}.json" -w '%{http_code}' \
+              -X POST "${API_BASE%/}/api/v1/internal/cron/sofra-bulmaca-import" \
+              -H "Content-Type: application/json" \
+              -H "X-Cron-Secret: $CRON_SECRET" \
+              -d "$BODY")
+            echo "HTTP $HTTP"
+            cat "/tmp/import-response-${GUN_ID}.json"
+            if [ "$HTTP" != "200" ]; then
+              echo "::error::Import basarisiz (HTTP $HTTP) gun_id=$GUN_ID"
+              exit 1
+            fi
+            node -e "
+              const r = require('/tmp/import-response-${GUN_ID}.json');
+              if (!r.ok) {
+                console.error('Import ok=false', JSON.stringify(r.stats?.errors || r));
+                process.exit(1);
+              }
+              console.log('Import OK:', r.stats?.generated, 'generated,', r.stats?.fallback, 'fallback,', r.stats?.failed, 'failed');
+            "
+          done
 
       - name: Upload generator artifact (debug)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sofra-pool-${{ steps.gun.outputs.gun_id }}
-          path: /tmp/sofra-pool.json
+          name: sofra-pool-${{ steps.gun.outputs.ids }}
+          path: /tmp/sofra-pool-*.json
           retention-days: 7

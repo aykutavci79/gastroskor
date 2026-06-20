@@ -2507,10 +2507,10 @@ def cron_sofra_bulmaca_import(
     expected = settings.cron_secret
     if not expected or x_cron_secret != expected:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
-    from app.services.sofra_puzzle_pool import audit_stale_pool, generate_daily_puzzles, upcoming_sofra_gun_id
+    from app.services.sofra_puzzle_pool import active_sofra_gun_id, audit_stale_pool, generate_daily_puzzles
 
-    target_gun = payload.gun_id or upcoming_sofra_gun_id()
-    stats = generate_daily_puzzles(db, gun_id=target_gun, pregenerated=payload.puzzles, cron_mode=True)
+    target_gun = payload.gun_id or active_sofra_gun_id()
+    stats = generate_daily_puzzles(db, gun_id=target_gun, pregenerated=payload.puzzles)
     stale = audit_stale_pool(db)
     db.commit()
     return {"ok": stats["failed"] == 0 and stats["coverage"]["ok"], "stats": stats, "stale_audit": stale}
