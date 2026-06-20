@@ -13,16 +13,19 @@ export const SUDOKU_MAX_LIVES = 3;
 export const SUDOKU_MAX_HINTS = 5;
 export const SUDOKU_UNDO_LIMIT = 60;
 
-/** Koyu neon tahta — ikon paleti ile uyumlu. */
+/** Kalan bos hücre bu kadar veya azsa otomatik tamamla önerilir. */
+export const SUDOKU_AUTO_COMPLETE_THRESHOLD = 5;
+
+/** Koyu neon tahta — notlar mavi, zemin hafif acik (okunabilirlik). */
 export const SUDOKU_BOARD_COLORS = {
-  bg: '#161616',
-  line: '#2E2E2E',
+  bg: '#252532',
+  line: '#3A3A48',
   lineThick: '#FF6B35',
-  cellSelected: 'rgba(255, 107, 53, 0.52)',
-  cellMatch: 'rgba(255, 107, 53, 0.2)',
+  cellSelected: 'rgba(255, 107, 53, 0.48)',
+  cellMatch: 'rgba(255, 107, 53, 0.22)',
   cellConflict: 'rgba(255, 92, 92, 0.38)',
   givenText: '#FFFFFF',
   userText: '#FFB347',
-  noteText: '#8A8A8A',
+  noteText: '#5EB0FF',
   padCount: '#737373',
 } as const;

@@ -26,9 +26,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.services.sofra_puzzle_pool import (
     EXPECTED_SLOTS_PER_DAY,
-    active_sofra_gun_id,
     generate_daily_puzzles,
     list_puzzles,
+    upcoming_sofra_gun_id,
 )
 
 
@@ -53,7 +53,7 @@ def main() -> int:
         print("JSON array bekleniyor", file=sys.stderr)
         return 1
 
-    gun_id = args.gun_id or active_sofra_gun_id()
+    gun_id = args.gun_id or upcoming_sofra_gun_id()
     ok_count = sum(1 for p in puzzles if p.get("ok") is True)
     print(f"Import: gun_id={gun_id} ok_slots={ok_count}/{len(puzzles)}")
 

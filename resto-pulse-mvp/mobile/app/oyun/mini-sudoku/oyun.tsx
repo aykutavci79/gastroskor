@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { MiniSudokuGrid } from '@/components/mini-sudoku/MiniSudokuGrid';
@@ -14,9 +14,12 @@ import { eglenceZorlukEtiket, parseEglenceZorluk } from '@/constants/eglence-zor
 import { useSession } from '@/context/session-context';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
 import type { Digit } from '@/lib/mini-sudoku/constants';
-import { SUDOKU_UNDO_LIMIT } from '@/lib/mini-sudoku/constants';
+import { SUDOKU_AUTO_COMPLETE_THRESHOLD, SUDOKU_UNDO_LIMIT, SIZE } from '@/lib/mini-sudoku/constants';
 import {
+  autoCompleteFromSolution,
   cloneGrid,
+  countEmptyCells,
+  filledCellsMatchSolution,
   isGiven,
   isSolved,
   isWrongPlacement,
@@ -97,6 +100,18 @@ export default function MiniSudokuOyunScreen() {
         },
         gameOverTitle: { color: t.bad, fontWeight: '800', fontSize: 15 },
         gameOverBody: { color: t.muted, fontSize: 13, lineHeight: 18 },
+        autoCompleteBtn: {
+          marginTop: 12,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          alignItems: 'center',
+          backgroundColor: t.accentSoft,
+          borderWidth: 1,
+          borderColor: t.borderStrong,
+        },
+        autoCompleteText: { color: t.accent, fontSize: 15, fontWeight: '800' },
+        autoCompleteSub: { color: t.muted, fontSize: 12, marginTop: 4 },
       }),
     [t],
   );
@@ -111,6 +126,17 @@ export default function MiniSudokuOyunScreen() {
 
   const highlightDigit =
     selected && progress ? (progress.values[selected.row]![selected.col]! as Digit) || null : null;
+
+  const emptyCells = useMemo(() => {
+    if (!progress) return SIZE * SIZE;
+    return countEmptyCells(progress.values);
+  }, [progress]);
+
+  const canAutoComplete = useMemo(() => {
+    if (!puzzle || !progress || locked) return false;
+    if (emptyCells === 0 || emptyCells > SUDOKU_AUTO_COMPLETE_THRESHOLD) return false;
+    return filledCellsMatchSolution(progress.values, puzzle.solution);
+  }, [emptyCells, locked, progress, puzzle]);
 
   const pushUndo = useCallback((before: MiniSudokuProgress) => {
     undoStackRef.current = [...undoStackRef.current.slice(-(SUDOKU_UNDO_LIMIT - 1)), snapshotProgress(before)];
@@ -285,6 +311,14 @@ export default function MiniSudokuOyunScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [applyProgress, locked, progress, puzzle, selected]);
 
+  const onAutoComplete = useCallback(() => {
+    if (!puzzle || !progress || !canAutoComplete) return;
+    const before = progress;
+    const { values, notes } = autoCompleteFromSolution(progress.values, progress.notes, puzzle.solution);
+    applyProgress(before, { ...progress, values, notes }, true);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [applyProgress, canAutoComplete, progress, puzzle]);
+
   if (loading || !puzzle || !progress) {
     return (
       <SudokuScreen scroll={false} edges={['bottom', 'left', 'right']}>
@@ -311,6 +345,19 @@ export default function MiniSudokuOyunScreen() {
           selected={selected}
           onSelect={onSelect}
         />
+
+        {canAutoComplete ? (
+          <Pressable
+            style={({ pressed }) => [styles.autoCompleteBtn, pressed && { opacity: 0.88 }]}
+            onPress={onAutoComplete}
+            accessibilityRole="button"
+            accessibilityLabel="Otomatik tamamla">
+            <Text style={styles.autoCompleteText}>Otomatik tamamla</Text>
+            <Text style={styles.autoCompleteSub}>
+              {emptyCells} hücre kaldı — kalan rakamları yerleştir
+            </Text>
+          </Pressable>
+        ) : null}
 
         <MiniSudokuToolbar
           noteMode={noteMode}

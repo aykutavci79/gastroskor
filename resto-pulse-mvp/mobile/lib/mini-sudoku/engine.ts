@@ -147,3 +147,43 @@ export function remainingDigitCounts(solution: Grid, values: Grid): Record<Digit
 export function isWrongPlacement(solution: Grid, row: number, col: number, digit: Digit): boolean {
   return solution[row]![col] !== digit;
 }
+
+export function countEmptyCells(grid: Grid): number {
+  let count = 0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r]![c] === 0) count += 1;
+    }
+  }
+  return count;
+}
+
+/** Dolu hücreler çözümle uyumlu mu (yanlış rakam yok). */
+export function filledCellsMatchSolution(values: Grid, solution: Grid): boolean {
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const value = values[r]![c]!;
+      if (value > 0 && value !== solution[r]![c]) return false;
+    }
+  }
+  return true;
+}
+
+/** Boş hücreleri çözümle doldurur; notları temizler. */
+export function autoCompleteFromSolution(
+  values: Grid,
+  notes: Digit[][][],
+  solution: Grid,
+): { values: Grid; notes: Digit[][][] } {
+  const nextValues = cloneGrid(values);
+  const nextNotes = notes.map((row) => row.map((cell) => [...cell]));
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (nextValues[r]![c] === 0) {
+        nextValues[r]![c] = solution[r]![c]!;
+        nextNotes[r]![c] = [];
+      }
+    }
+  }
+  return { values: nextValues, notes: nextNotes };
+}

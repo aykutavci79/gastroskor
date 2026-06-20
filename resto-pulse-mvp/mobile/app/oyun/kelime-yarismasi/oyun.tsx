@@ -4,14 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardStickyView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KelimeYarismasiHarfKutulari } from '@/components/kelime-yarismasi/KelimeYarismasiHarfKutulari';
-import { KeyboardAvoidingView } from '@/components/ui/AppKeyboardAvoidingView';
 import {
   CEVAP_SURE_MS,
   JOKER_MAX_TOPLAM_SURE_MS,
@@ -88,6 +90,7 @@ function OyunIcerik({
   const router = useRouter();
   const { colors } = useGastroTheme();
   const { user } = useSession();
+  const insets = useSafeAreaInsets();
   const [tahmin, setTahmin] = useState('');
   const [cevapKalanSn, setCevapKalanSn] = useState(CEVAP_SURE_MS / 1000);
   const [bildirildi, setBildirildi] = useState(false);
@@ -97,6 +100,7 @@ function OyunIcerik({
   const cevapBitisRef = useRef(0);
   const kayitliTurRef = useRef<number | null>(null);
   const arkadasBildirildiRef = useRef(false);
+  const tahminInputRef = useRef<TextInput>(null);
   asamaRef.current = oyun.asama;
 
   const tur = aktifTurKaydi(oyun);
@@ -110,7 +114,9 @@ function OyunIcerik({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        kok: { flex: 1, padding: 16, gap: 14 },
+        kok: { flex: 1 },
+        scroll: { flex: 1 },
+        scrollIcerik: { padding: 16, gap: 14 },
         ust: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
         tur: { fontSize: 15, fontWeight: '600', color: colors.muted },
         yarismaSure: { fontSize: 13, fontWeight: '600', color: colors.sky, marginTop: 4 },
@@ -180,12 +186,24 @@ function OyunIcerik({
         turSonu: { alignItems: 'center', gap: 12, marginTop: 8 },
         turSonuBaslik: { fontSize: 20, fontWeight: '800', color: colors.text },
         dogruCevap: { fontSize: 16, color: colors.muted },
+        cevapAlani: {
+          paddingHorizontal: 16,
+          paddingTop: 10,
+          gap: 10,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          backgroundColor: colors.bg,
+        },
       }),
     [colors],
   );
 
   useEffect(() => {
     setTahmin('');
+    if (oyun.asama === 'cevap') {
+      const id = setTimeout(() => tahminInputRef.current?.focus(), 120);
+      return () => clearTimeout(id);
+    }
   }, [oyun.aktifTur, oyun.asama]);
 
   useEffect(() => {
@@ -352,93 +370,111 @@ function OyunIcerik({
           : '';
 
   return (
-    <KeyboardAvoidingView style={styles.kok} behavior="padding">
-      <View style={styles.ust}>
-        <View>
-          <Text style={styles.tur}>
-            Tur {tur.turNo} / {oyun.turlar.length} · {harfSayisi} harf
-          </Text>
-          <Text style={styles.yarismaSure}>
-            Yarışma süresi: {sureMetni(oyun.toplamSureMs)}
-            {oyun.asama === 'cevap' ? ' · durdu' : ''}
-          </Text>
-        </View>
-        <Text style={styles.puan}>Toplam: {oyun.toplamPuan}</Text>
-      </View>
-
-      <View style={styles.ipucuKutu}>
-        <View style={styles.ipucuUst}>
-          <Text style={styles.koken}>
-            {kokenEtiketi(tur.soru.koken)}
-            {tur.soru.kokenNot ? ` · ${tur.soru.kokenNot}` : ''}
-          </Text>
-          <Pressable
-            style={[styles.bildir, bildirildi && styles.bildirildi]}
-            onPress={bildirBas}
-            disabled={bildirildi}
-            hitSlop={8}>
-            <Text style={styles.bildirYazi}>{bildirildi ? 'Bildirildi' : 'Bildir'}</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.ipucu}>{tur.soru.ipucu}</Text>
-        {bildirMesaj ? <Text style={styles.bildirMesaj}>{bildirMesaj}</Text> : null}
-      </View>
-
-      <KelimeYarismasiHarfKutulari harfler={harfler} kucuk={harfSayisi > 10} />
-
-      {oyun.asama === 'oku' ? (
-        <>
-          <Text style={styles.ipucuNot}>İpucunu oku; yarışma süresi işliyor. Hazır olunca cevap ver.</Text>
-          <Pressable style={styles.cevapVer} onPress={cevapVerBas}>
-            <Text style={styles.cevapVerYazi}>Cevap ver</Text>
-            <Text style={styles.cevapVerAlt}>
-              Basınca süre durur · {CEVAP_SURE_MS / 1000} sn yazma hakkı
+    <View style={styles.kok}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollIcerik,
+          oyun.asama === 'cevap' ? { paddingBottom: 12 } : { paddingBottom: Math.max(insets.bottom, 16) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets>
+        <View style={styles.ust}>
+          <View>
+            <Text style={styles.tur}>
+              Tur {tur.turNo} / {oyun.turlar.length} · {harfSayisi} harf
             </Text>
-          </Pressable>
-        </>
-      ) : null}
+            <Text style={styles.yarismaSure}>
+              Yarışma süresi: {sureMetni(oyun.toplamSureMs)}
+              {oyun.asama === 'cevap' ? ' · durdu' : ''}
+            </Text>
+          </View>
+          <Text style={styles.puan}>Toplam: {oyun.toplamPuan}</Text>
+        </View>
+
+        <View style={styles.ipucuKutu}>
+          <View style={styles.ipucuUst}>
+            <Text style={styles.koken}>
+              {kokenEtiketi(tur.soru.koken)}
+              {tur.soru.kokenNot ? ` · ${tur.soru.kokenNot}` : ''}
+            </Text>
+            <Pressable
+              style={[styles.bildir, bildirildi && styles.bildirildi]}
+              onPress={bildirBas}
+              disabled={bildirildi}
+              hitSlop={8}>
+              <Text style={styles.bildirYazi}>{bildirildi ? 'Bildirildi' : 'Bildir'}</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.ipucu}>{tur.soru.ipucu}</Text>
+          {bildirMesaj ? <Text style={styles.bildirMesaj}>{bildirMesaj}</Text> : null}
+        </View>
+
+        <KelimeYarismasiHarfKutulari harfler={harfler} kucuk={harfSayisi > 10} />
+
+        {oyun.asama === 'oku' ? (
+          <>
+            <Text style={styles.ipucuNot}>İpucunu oku; yarışma süresi işliyor. Hazır olunca cevap ver.</Text>
+            <Pressable style={styles.cevapVer} onPress={cevapVerBas}>
+              <Text style={styles.cevapVerYazi}>Cevap ver</Text>
+              <Text style={styles.cevapVerAlt}>
+                Basınca süre durur · {CEVAP_SURE_MS / 1000} sn yazma hakkı
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+
+        {oyun.asama === 'cevap' ? (
+          <>
+            <Text style={styles.duraklatildi}>
+              Cevap süresi: {cevapKalanSn} sn
+              {!jokerSureBitti ? ` · jokerden +${jokerSureKalan / 1000} sn kaldı` : ''}
+            </Text>
+            <Pressable
+              style={[styles.joker, !harflerAcik && styles.jokerPasif]}
+              disabled={!harflerAcik}
+              onPress={jokerBas}>
+              <Text style={styles.jokerYazi}>Joker (rastgele harf)</Text>
+              <Text style={styles.jokerAlt}>
+                {jokerSureBitti
+                  ? 'Süre bonusu doldu (+15 sn) · harf açmaya devam'
+                  : `+${JOKER_SURE_BONUS_MS / 1000} sn (max +${JOKER_MAX_TOPLAM_SURE_MS / 1000} sn) · kullanılan ${tur.jokerSayisi}`}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+
+        {oyun.asama === 'tur_sonu' ? (
+          <View style={styles.turSonu}>
+            <Text style={styles.turSonuBaslik}>{turSonucMetni}</Text>
+            <Text style={styles.dogruCevap}>Cevap: {tur.soru.cevap}</Text>
+            <KelimeYarismasiHarfKutulari harfler={[...tur.soru.cevap]} kucuk={harfSayisi > 10} />
+          </View>
+        ) : null}
+      </ScrollView>
 
       {oyun.asama === 'cevap' ? (
-        <>
-          <Text style={styles.duraklatildi}>
-            Cevap süresi: {cevapKalanSn} sn
-            {!jokerSureBitti ? ` · jokerden +${jokerSureKalan / 1000} sn kaldı` : ''}
-          </Text>
-          <Pressable
-            style={[styles.joker, !harflerAcik && styles.jokerPasif]}
-            disabled={!harflerAcik}
-            onPress={jokerBas}>
-            <Text style={styles.jokerYazi}>Joker (rastgele harf)</Text>
-            <Text style={styles.jokerAlt}>
-              {jokerSureBitti
-                ? 'Süre bonusu doldu (+15 sn) · harf açmaya devam'
-                : `+${JOKER_SURE_BONUS_MS / 1000} sn (max +${JOKER_MAX_TOPLAM_SURE_MS / 1000} sn) · kullanılan ${tur.jokerSayisi}`}
-            </Text>
-          </Pressable>
-          <TextInput
-            style={styles.input}
-            value={tahmin}
-            onChangeText={setTahmin}
-            placeholder="Cevabını yaz..."
-            placeholderTextColor={colors.placeholder}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            onSubmitEditing={gonder}
-            returnKeyType="done"
-          />
-          <Pressable style={styles.gonder} onPress={gonder}>
-            <Text style={styles.gonderYazi}>Gönder</Text>
-          </Pressable>
-        </>
+        <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+          <View style={[styles.cevapAlani, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+            <TextInput
+              ref={tahminInputRef}
+              style={styles.input}
+              value={tahmin}
+              onChangeText={setTahmin}
+              placeholder="Cevabını yaz..."
+              placeholderTextColor={colors.placeholder}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              onSubmitEditing={gonder}
+              returnKeyType="done"
+            />
+            <Pressable style={styles.gonder} onPress={gonder}>
+              <Text style={styles.gonderYazi}>Gönder</Text>
+            </Pressable>
+          </View>
+        </KeyboardStickyView>
       ) : null}
-
-      {oyun.asama === 'tur_sonu' ? (
-        <View style={styles.turSonu}>
-          <Text style={styles.turSonuBaslik}>{turSonucMetni}</Text>
-          <Text style={styles.dogruCevap}>Cevap: {tur.soru.cevap}</Text>
-          <KelimeYarismasiHarfKutulari harfler={[...tur.soru.cevap]} kucuk={harfSayisi > 10} />
-        </View>
-      ) : null}
-    </KeyboardAvoidingView>
+    </View>
   );
 }

@@ -70,7 +70,8 @@ export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Pr
         notesWrap: { width: '100%', height: '100%', justifyContent: 'center', padding: 1 },
         notesRow: { flexDirection: 'row', justifyContent: 'center' },
         note: {
-          fontSize: Math.max(7, Math.floor(cellSize * 0.18)),
+          fontSize: Math.max(7, Math.floor(cellSize * 0.19)),
+          fontWeight: '700',
           textAlign: 'center',
           color: SUDOKU_BOARD_COLORS.noteText,
         },
