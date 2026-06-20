@@ -141,6 +141,12 @@ class Settings(BaseSettings):
     # Yorum, DM, gurme sohbet, takma ad — argo/kufur filtresi (varsayilan kapali)
     content_moderation_enabled: bool = False
 
+    # Rate limiting — Redis yoksa in-memory fallback (cok instance'da zayif koruma)
+    redis_url: str | None = None
+    rate_limit_redis_key_prefix: str = "gastroskor:rl"
+    rate_limit_user_global_per_minute: int = 100
+    rate_limit_user_global_window_sec: int = 60
+
     # Kart/liste Google foto — her img yuklemesi Places Photo ucreti. Varsayilan kapali.
     google_card_photos_enabled: bool = False
 

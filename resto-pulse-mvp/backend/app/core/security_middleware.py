@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from app.core.config import settings
-from app.core.rate_limit import RateLimitRule, rate_limit_key, rate_limiter
+from app.core.rate_limit import path_rate_limit_rule, rate_limiter, user_global_rate_limit_rule
 from app.services.access_token import decode_access_token
 from app.services.request_identity import RequestAuth, auth_require_bearer, set_request_auth
 
@@ -79,28 +79,6 @@ def _path_requires_auth(path: str, method: str) -> bool:
     return False
 
 
-def _rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitRule, str] | None:
-    if path.startswith("/api/v1/auth/google/") or path in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}:
-        return RateLimitRule(limit=20, window_sec=60), rate_limit_key("auth", client_ip)
-    if path == "/api/v1/users/sync":
-        return RateLimitRule(limit=30, window_sec=60), rate_limit_key("sync", client_ip)
-    if path.startswith("/api/v1/live/places/search"):
-        return RateLimitRule(limit=60, window_sec=60), rate_limit_key("search", client_ip)
-    if path == "/api/v1/voice/transcribe" and method == "POST":
-        return RateLimitRule(limit=30, window_sec=60), rate_limit_key("voice", client_ip)
-    if path == "/api/v1/eglence/kelime-sofrasi/attempts" and method == "POST":
-        return RateLimitRule(limit=120, window_sec=60), rate_limit_key("sofra-attempt", client_ip)
-    if path == "/api/v1/eglence/kelime-sofrasi/puzzle" and method == "GET":
-        return RateLimitRule(limit=180, window_sec=60), rate_limit_key("sofra-puzzle", client_ip)
-    if method == "POST" and path.endswith("/reviews"):
-        return RateLimitRule(limit=20, window_sec=3600), rate_limit_key("reviews", client_ip)
-    if path.startswith("/api/v1/social/"):
-        return RateLimitRule(limit=120, window_sec=60), rate_limit_key("social", client_ip)
-    if path.startswith("/api/v1/panel/"):
-        return RateLimitRule(limit=180, window_sec=60), rate_limit_key("panel", client_ip)
-    return None
-
-
 class SecurityMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         set_request_auth(None)
@@ -108,11 +86,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         method = request.method.upper()
 
         client_ip = request.client.host if request.client else "unknown"
-        rule_info = _rate_limit_rule(path, method, client_ip)
+        rule_info = path_rate_limit_rule(path, method, client_ip)
         if rule_info is not None:
             rule, key = rule_info
-            keyed = rate_limit_key(key, client_ip)
-            if not rate_limiter.allow(keyed, rule):
+            if not rate_limiter.allow(key, rule):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Cok fazla istek. Lutfen kisa bir sure sonra tekrar deneyin."},
@@ -140,6 +117,14 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                         status_code=401,
                         content={"detail": "Gecersiz veya suresi dolmus oturum."},
                     )
+        if auth is not None:
+            user_rule, user_key = user_global_rate_limit_rule(str(auth.user_id))
+            if not rate_limiter.allow(user_key, user_rule):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Cok fazla istek. Lutfen kisa bir sure sonra tekrar deneyin."},
+                )
+
         if always_requires_bearer and auth is None:
             return JSONResponse(
                 status_code=401,
