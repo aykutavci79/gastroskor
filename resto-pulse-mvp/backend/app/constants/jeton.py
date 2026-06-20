@@ -23,6 +23,10 @@ JETON_WELCOME_BONUS = 10
 # Günlük giriş — günde bir kez (Europe/Istanbul)
 JETON_DAILY_LOGIN_AMOUNT = 10
 
+# GS yorum + puan — günde bir kez (yayınlanan / gönderilen yorum)
+JETON_REVIEW_AMOUNT = 5
+JETON_REVIEW_DAILY_LIMIT = 1
+
 REFERRAL_ATTRIBUTION_DAYS = 7
 
 ISTANBUL_TZ = "Europe/Istanbul"

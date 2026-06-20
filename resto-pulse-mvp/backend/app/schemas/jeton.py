@@ -14,6 +14,12 @@ class WalletSummary(BaseModel):
     follow_bundle_threshold: int = 3
     follow_bundle_granted_today: bool = False
     daily_login_granted_today: bool = False
+    review_earn_today: int = 0
+    review_daily_limit: int = 1
+    order_earn_today: int = 0
+    order_daily_limit: int = 2
+    referral_earn_today: int = 0
+    referral_daily_limit: int = 5
 
 
 class JetonLedgerItem(BaseModel):

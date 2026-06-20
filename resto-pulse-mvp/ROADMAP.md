@@ -1,290 +1,153 @@
 # GastroSkor — Yol Haritasi (Durum Ozeti)
 
-> **Agent notu:** Aykut unutkan — her sohbet basinda bu dosyayi kontrol et; takili kalan
-> madde varsa (Apple Pending, deploy, Faz D, magaza) kisa ve nazik hatirlat. Fazlara
-> bolme onayli; kullaniciyi fazlarla bunaltma, sadece siradaki 1-2 adimi soyle.
-> **"kral selam"** derse once asagidaki **Yarin backlog** bolumune bak.
-> **"yapilacaklar listesi" / "ne yaptik ne yapmadik"** derse bu dosyanin tamamini tara;
-> **Tamamlanan** vs **backlog** / `[ ]` maddeleri ozetle; siradaki 1-2 onceligi hatirlat.
+> **Agent notu:** Aykut unutkan — her sohbet basinda bu dosyayi kontrol et.
+> **"kral selam"** → asagidaki **Siradaki 1-2** bolumune bak.
+> **"yapilacaklar listesi"** → **Tamamlanan** vs **Backlog** ozetle; 1-2 oncelik hatirlat.
 
-Son guncelleme: 18 Haziran 2026
-
-## Yarin backlog (EAS build tek seferde — quota koru)
-
-> Aykut: kucuk fix icin tek basina build alma; asagidakileri topla, **1.0.10** ile birlikte build.
-
-| # | Konu | Durum / not |
-|---|------|-------------|
-| 1 | **iOS Google giris** | Android web koprusu calisiyor; iOS native OAuth patliyor (EAS'ta iOS client ID yok). Kod hazir: iOS da web koprusu (`mobile/hooks/use-google-sign-in.ts`). Sürüm **1.0.10 (build 10)** local, henuz build yok. |
-| 2 | **iOS one cikanlar yok** | Kod: trending ustte + `source: google` + arama hatasi trending'i dusurmuyor. **1.0.10 build** ile TestFlight. |
-| 3 | **Web one cikan kart tiklanmiyor** | **Duzeltildi:** `FeaturedCityTop` + `TrendingRestaurants` → `trendingDetailHref` → `/place/[id]`. Vercel deploy. |
-| 4 | **Toplu EAS build** | `eas build --profile production --platform all` + submit; iOS Internal TestFlight. |
-| 5 | **Universal / App Links** | Kod hazir (`APP_LINKS.md`). Vercel: `ANDROID_SHA256_FINGERPRINTS`. **1.0.10 build** ile test. |
-
-**Simdi calisan (build beklemeden):** Android 1.0.9 Google giris + push; iOS 1.0.9 Internal push (Google giris icin e-posta ile devam veya 1.0.10 bekle).
-
-## Tamamlanan
-
-| Alan | Ne yapildi |
-|------|------------|
-| Mobil kesfet | Kompakt kartlar, Google foto fallback, canli arama |
-| Restoran detay | GS yorumlari, foto yukleme, Google fotolar |
-| Web detay | Canli modal, foto carousel |
-| Store hazirligi | Yasal sayfalar, EAS config, app.config.js |
-| Google giris (mobil) | Web koprusu `/mobil-giris` + `/auth/google` callback |
-| Yorum fotolari | WebP sikistirma, Railway volume notu |
-| Bursa yoresel lezzetler | TPE katalogu (12 urun), urun karti → Google canli arama (web + mobil kod) |
-| Destek e-postasi | `destek@gastroskor.com.tr` aktif (web + mobil yasal sayfalar) |
-
-## Simdi eklendi (backend deploy gerekir)
-
-| Alan | Ne yapildi |
-|------|------------|
-| Yorum moderasyonu | Kufur/argo filtresi, 1. uyari / 2. 7 gun ban / 3. 3 ay ban |
-| Yararli + cevap | Tek tik yararli, yorum alti kullanici cevabi, duzenle/sil |
-| Kufur sozlugu | `backend/app/services/profanity_tr.py` (genisletilebilir liste) |
-| Gurme profil (E1) | Nickname + avatar preset/foto, `/users/gourmet-profile`, yorumda takma ad modu |
-
-Railway: `alembic upgrade head` calistir (0016 + 0017 + **0024** gourmet profil).
-**Not:** E1 backend kodu henuz GitHub/Railway'e push edilmediyse mobil profil **404 Not Found** verir — once backend deploy.
-
-## Siradaki fazlar (plan — henuz yok)
-
-### Faz A — Topluluk (devam)
-1. ~~**Yararli bul** (tek tik begeni)~~
-2. ~~**Tek seviye yanit** (yorum altina kisa cevap)~~
-3. ~~Kullanici kendi yorumunu duzenle/sil~~
-4. Bildirim: "Yorumun begenildi" / "Yorumuna cevap geldi"
-5. **Isletme yaniti** (restoran resmi cevap)
-
-### Faz B — Magaza
-1. EAS preview build (Android APK / iOS TestFlight)
-2. Play Store + App Store listesi
-3. Native Google Sign-In (store build icin)
-
-### Faz C — Panel / isletme
-1. Mevcut panel iyilestirmeleri
-2. Yorum moderasyonu panelden gorunurluk (sikayet listesi, ihlal gecmisi)
-3. **Kufur/argo sozlugu panelden guncelleme** (`profanity_tr.py` yerine DB veya admin arayuzu)
-4. **Isletme yaniti** panel ekrani (Faz A #5 ile birlikte)
-
-**C5 — Restoran kayit / panele erisim (Aykut — kisa vade notu)**
-
-> **Mevcut (kodda):** `/panel/claim` — isletme Google'da aranir → SMS OTP veya vergi levhasi yukleme → otomatik baglama (`ClaimRestaurantFlow`, `mobile/app/panel/claim.tsx`).
-
-> **Istenen kisa vade:** Manuel onayli basvuru
-> 1. Web formu: isletme adi, istedikleri **panel e-postasi**, telefon, adres/sehir, vergi levhasi (PDF/foto), opsiyonel web sitesi
-> 2. Form gonderilince **destek@gastroskor.com.tr** (veya admin) adresine e-posta + ekler
-> 3. Aykut inceleyip onaylar → admin panelden ilgili restorana `user_email` / panel erisimi tanimlar
-> 4. Isletme o e-posta ile Google giris yapinca **restoran dashboard** acilir
-> 5. Red durumunda otomatik e-posta (sebep opsiyonel)
-
-- [ ] Public sayfa: `/isletme-basvuru` veya panel giris altinda "Basvuru yap"
-- [ ] Backend: basvuru kaydi + e-posta (SMTP/Railway) veya form → Resend/SendGrid
-- [ ] Admin: bekleyen basvurular listesi + onay/red (mevcut `grant-access` genisletilebilir)
-- [ ] Mevcut SMS OTP akisi: istege bagli kalir (hizli self-serve) veya sadece onayli isletmelerde acilir
-
-### Faz D — Restoran takip + takipci promosyonu (Aykut fikri — UNUTMA)
-
-> Kullanicilar sevdikleri restoranlari takip eder; yeni GS yorumunda bildirim gider;
-> uye isletmeler takipcilerine ozel promosyon yapar. B2B satis argumani: "Musterilerinizi
-> takip ettirin, kampanya yapin."
-
-**D1 — Takip + liste (once bu)** — mobil + API (Expo Go test)
-- [x] Restoran detay: Takip et / Takipten cik (giris sart)
-- [x] Profil: **Takip ettiklerim**
-- [x] Backend: `user_restaurant_follows` + `/me/restaurant-follows`, follow/unfollow
-
-**D2 — Yorum bildirimi**
-- Onayli yeni GS yorumu → o restorani takip edenlere push (Expo token kaydi)
-- Kullanici ayari: acik/kapali; spam icin limit / toplu ozet dusunulebilir
-- Web: istege bagli e-posta
-
-**D3 — Takipciye ozel promosyon** — v1 kodlandi
-- [x] Panel: kampanya (% , gun, max kupon) + kupon dogrula (kullanildi)
-- [x] Kisisel GS- kodu; takip aninda / kampanya acilisinda uretim
-- [x] Mobil: takipci kupon kutusu (restoran detay)
-- [x] Panel: **Takipçi listesi** (`/panel/followers`)
-- [x] Mobil: kupon bildirimi (push + Profil → Bildirimler)
-- Sadece `subscription_allows_promo` (aktif/trial uyelik)
-
-**Notlar:** KVKK gizlilik maddesi; bildirim yorgunluguna dikkat. Magaza v1.0 sonrasi v1.1
-icin uygun — Apple Active olunca magaza, sonra veya paralel D1 kodlanabilir.
-
-### Faz E — Gurme Sohbetler (Aykut fikri — UNUTMA)
-
-> Kanal adi: **Gurme Sohbetler**. "Bursada en iyi doner?" — nickname ile soru, cevaplar.
-> Tavsiyede **GS restoran karti paylasilir**; soru soran karta tiklar → detay (puan, yorum,
-> menu). Kesfet + topluluk tek akista.
-
-**E1 — Nickname + profil** — kodlandi (mobil + API; Railway: `alembic upgrade head` 0024)
-- [x] Kayit sonrasi veya ilk giris: takma ad sec (**benzersiz** — ayni takma ad baska kullaniciya verilemez; buyuk/kucuk harf ayni sayilir)
-- [x] **Profil gorseli:** kendi fotosu VEYA hazir avatar (kullanici secer); nickname yaninda
-- [x] Yorumlarda istege bagli nickname + avatar (display mode: takma ad)
-- [x] Gurme Sohbetlerde nickname + avatar (E2 feed ile birlikte)
-
-**E2 — Soru-cevap feed (sehir bazli)** — kodlandi (mobil + API; Railway: `alembic upgrade head` 0025)
-- [x] Sekme adi: **Gurme Sohbetler**
-- [x] Soru: sehir secimi — **Istanbul + Bursa** (acilis); UI cok sehirli, ileride genisleme
-- [x] Soru: etiket (doner, sutlac, kahvalti...)
-- [ ] Cevap: metin + **restoran karti embed** (foto, ad, GS puani) — tikla → restoran detay (E2.2 / kullanici odalari)
-
-**E2.1 — Oda yapisi (fazli acilis)** — kodlandi (6 sistem odasi seed)
-- [x] Baslangic: sistem odalari sabit (kullanicilar direkt oda acamaz)
-- [x] 6 cekirdek oda adi:
-  - `kes-donerciler`
-  - `ocakbasi-muhabbeti`
-  - `anne-eli-ev-yemegi`
-  - `gece-acikanlar`
-  - `fiyat-performans-avcilari`
-  - `gizli-kalmis-mekanlar`
-- [ ] Kural: once az ama aktif oda; kullanim oturunca "oda oner" ile yeni oda acilisi
-- [ ] Ozel/kapali odalar: v1.0'da yok, moderasyon olgunlasinca degerlendir
-
-**E2.2 — Restoran karti paylasim kurali** — kural kodda (sistem odalarinda kapali)
-- [x] Sistem odalarinda restoran karti paylasimi kapali (reklam algisini azaltmak icin)
-- [x] Restoran kartinda **Paylas** (sistem paylasim menusu — WhatsApp, Instagram, mesaj vb.)
-- [x] Universal / App Links (iOS + Android): paylasim linki uygulama yukluysa uygulamada acilir — `mobile/APP_LINKS.md`, Vercel AASA + assetlinks, **1.0.10 build + SHA-256 env ile test**
-
-**E2.3 — Gurme Sohbetler (web)** — henuz yok, degerlendir
-- [ ] Web'de Gurme sekmesi / oda listesi + akan sohbet (mobil ile ayni API: `/gourmet-chat/*`)
-- [ ] Giris: NextAuth (Google) — nickname zaten E1'de var
-- [ ] Mobildeki kurallar gecerli: sistem odalarinda restoran karti embed yok
-- [ ] Oncelik: mobil oturduktan sonra; SEO ve masaustu kullanicilar icin faydali
-
-**E3 — Bildirim + moderasyon**
-- Soruna cevap gelince push; kartli cevaplarda zengin onizleme
-- Kufur/argo filtresi + raporla; isletme spam kurallari
-
-**E4 — Bos sohbet guvenlik agi (3 dk AI oneri)**
-- Soruya **3 dk** insan cevabi yoksa: GS **puan 4.5+** mekan oner (sehir + sorudan yemek tipi)
-- Mesaj **GastroSkor Asistan** botu olarak (sahte kullanici degil); restoran karti ile
-- Mevcut `gastro_score_ranking` + sehir filtresi; yemek tipi icin Gemini veya anahtar kelime
-- Insan cevabi gelirse bot yaniti kalir veya "X de onerdi" ile birlesir
-
-**Not:** WhatsApp degil — herkese acik soru-cevap. Faz D (takip) ile birlestirilebilir.
-Acilis sehirleri: **Istanbul (hacim) + Bursa (yerel tohum)**; tek sehirle sinirlama yok.
-
-## Magaza / hesap durumu (2 Haziran 2026)
-
-### Apple (iOS)
-- TestFlight **Internal**: **v1.0.9 (build 9)** Testing — push profili duzeltildi
-- External (GE): 1.0.4 / 1.0.5 hala Waiting for Review (beklenebilir)
-- Bundle ID: `com.gastroskor.app` · siradaki build: **v1.0.10** (backlog maddeleriyle)
-
-### Google Play (Android)
-- Play Console kapali test — 16 tester
-- Paket: `com.gastroskor.app` · canli: **1.0.9 (versionCode 12)** AAB build alindi
-
-### Ortak
-- **Canli arama maliyet:** DB-once + 24s cache + tek Google istegi
-- **Destek e-postasi:** `destek@gastroskor.com.tr` — **aktif, calisiyor**
-  - Kodda zaten: web footer, gizlilik/KVKK/kullanim kosullari, hesap-sil, `mobile/constants/legal.ts`
-  - Magaza konsollarinda da ayni adresi kullan (asagida)
-- Sistem e-postalari (bildirim vb.): Railway `EMAIL_FROM` → genelde `noreply@gastroskor.com.tr` (destekten ayri)
-
-### Siradaki magaza adimlari
-1. Apple onay gelince tester linki paylas
-2. Play kapali test geri bildirimlerini topla; kritik bug yoksa track yukselt
-3. Native Google Sign-In (store build icin, Faz B)
-4. EAS production submit (her iki platform, onay sonrasi)
-
-## Yapilacaklar backlog (acele degil — Haziran 2026)
-
-### Mac lokal build (EAS cloud yerine / ucretsiz)
-
-> **Soru:** Expo kullanmadan build alabilir miyiz? MacBook var.
-
-- **Kisa cevap:** Uygulama Expo SDK ile yazildi; **Expo'yu tamamen atlayamazsin** ama **EAS cloud (ucretli kota) sart degil** — Mac'te lokal build bedava.
-- **Yol 1 (en kolay):** `eas build --profile production --platform ios --local` (veya android) — EAS CLI kullanir ama build **senin Mac'inde** calisir, cloud dakikasi yemez.
-- **Yol 2 (tam native):** `npx expo prebuild` → `ios/` + `android/` → **Xcode Archive** (iOS) / `gradlew bundleRelease` (Android). `mobile/eas.json` ve `app.config.js` ayni kalir.
-- **Hala gerekli:** Apple Developer **$99/yil** (TestFlight/App Store), Google Play **$25** tek sefer. Sertifika/provisioning Xcode veya `eas credentials` ile.
-- **Arti:** Sinirsiz build, hizli iterasyon, cloud kuyruk yok.
-- **Eksi:** CI otomasyonu sende; her gelistirici Mac + Xcode kurulumu; ilk kez sertifika ayari can sıkıcı.
-- **Oneri:** iOS icin Mac + `--local` veya Xcode; Android icin Mac'te de alinir ama EAS cloud da makul. `mobile/STORE.md` + `APP_LINKS.md` ile birlikte bir kez dokumante edelim.
-
-- [ ] `mobile/docs/LOCAL_BUILD_MAC.md` — prebuild, Xcode Archive, TestFlight yukleme adimlari
-- [ ] `package.json` script: `build:ios:local` / `build:android:local` (`eas build --local`)
-- [ ] Ilk deneme: **preview** profili ile iOS `.ipa` veya Android APK
-
-### Sosyal kanit rozeti — tazelik & uygunluk (yapildi 18 Haz)
-
-- **TTL 7 gun:** `social_proof_cache_ttl_hours=168` — sentiment yavas degisir, maliyet/tazelik dengesi. On-demand tembel yenileme korunur (sürekli tarama yok).
-- **Yorum sayisi tabani:** `social_proof_min_reviews=1000` — az taninan mekan (or. 45 yorumlu 4.9) sosyal kanit listesine giremez. Tarama aninda `build_venue_results` filtreler.
-- **Google puan kapisi:** `social_proof_min_rating=4.0` — puan altina duserse rozet gizlenir. Iki katman:
-  - Tarama aninda (backend pipeline)
-  - Gosterim aninda (frontend `socialItemEligible` — cache taze olsa bile guncel Google puani dususe rozet kaybolur; bedava, her render'da)
-- **Acik kalan:** esikler env ile ayarlanabilir; gercek Bursa iskender taramasinda mention sayisi gorulunce `social_proof_min_*` ve Wilson esikleri ince ayar.
-
-### GA4 — custom event'ler (web)
-
-> **Durum:** Sadece otomatik `page_view` / `session_start` geliyor; aksiyon event'i yok.
-> **Kurulum:** `frontend/components/GoogleAnalytics.tsx` (`NEXT_PUBLIC_GA_MEASUREMENT_ID`, `gtag` + `page_path` config).
-
-**Hedef dosyalar (implementasyonda):**
-
-| Aksiyon | Dosya / bilesen | Onerilen event |
-|---------|-----------------|----------------|
-| Anasayfa / sehir arama kutusu | `HomePageContent.tsx` → `LivePlaceSearch.tsx` | `search` (`search_term`, `city`) |
-| Yol tarifi | `MapsDirectionsButton.tsx` | `restaurant_directions` |
-| Telefon ara | `LivePlaceDetailPanel.tsx` (`tel:`) | `restaurant_call` |
-| Menu goruntule | `RestaurantDetailView.tsx`, `RestaurantPublicMenu.tsx` | `restaurant_menu_view` |
-| Takip et / cik | `RestaurantFollowButton.tsx` | `restaurant_follow` / `restaurant_unfollow` |
-| (varsa) GS detay diger CTA'lar | `RestaurantDetailView.tsx`, `LivePlaceDetailPanel.tsx` | `restaurant_*` |
-
-**Parametreler (tum restoran event'lerinde):** `restaurant_id`, `restaurant_name`; canli Google mekanlari icin `place_id` / `source: google`.
-
-- [ ] `frontend/lib/analytics.ts` — `trackEvent(name, params)` helper (`gtag` yoksa no-op)
-- [ ] Restoran detay CTA'lara event bagla (yukaridaki tablo)
-- [ ] `LivePlaceSearch` submit'te `search` event (debounce / ilk anlamli arama)
-- [ ] GA4 DebugView ile dogrula; Vercel deploy sonrasi
-
-### Faz F — Eglence sosyal (arkadas + kapisma) — Aykut fikri (18 Haz)
-
-> TikTok tarzi: rehberdeki kisi uygulamada kayitliysa **"arkadasin olabilir"** onerisi.
-> Oyunlarda (Kelime Sofrasi, Sudoku) arkadaslar birbirleriyle skor karsilastirir / meydan okur.
-> **Mevcut (kodda):** arkadaslik istegi, kabul, arkadas skor tablosu, oyun bitince bildirim, challenge paylasimi.
-
-**F1 — Rehberden arkadas onerisi (TikTok mantigi)**
-- [ ] Mobil izin: `expo-contacts` (iOS Contacts / Android READ_CONTACTS) + KVKK acik metin
-- [ ] Numara normalize (`+90…`) → sunucuya **sadece hash** (ham numara tutulmaz)
-- [ ] Backend: `user_phone_hash` (kayit/dogrulama) + `POST /social/contacts/match`
-- [ ] UI: Eglence veya Profil → **Arkadas bul** → oneri listesi → mevcut `send_friend_request`
-
-**F2 — Davet linki (rehber izni vermeyenler)**
-- [ ] `gastroskor.com/invite?ref=USER_ID` (Universal Link)
-- [ ] WhatsApp / mesaj paylasimi
-- [ ] Yeni kullanici giris yapinca referrer'a odul (F3 jeton ile baglanir)
-
-**F3 — Jeton ekonomisi** — kodlandi (backend + mobil chip; Railway: `alembic upgrade head` 0047)
-- [x] `wallet` + `jeton_ledger` + API (`/jeton/me/wallet`, spend hint)
-- [x] Kazanma v1: siparis accepted 15 (+5 ilk), gunluk 3 takip 10, davet 10
-- [x] Harcama: Sofra ipucu (2 ucretsiz, sonra 5 jeton)
-- [ ] v1.1: gunluk giris, paylas, yorum, foodcast
-- [ ] Davet linki UI (F2) + rehber eslestirme (F1)
-
-**F4 — Eglence arkadas deneyimi (mevcut uzerine)**
-- [ ] **Arkadaslarin bugun** widget (Sofra / Sudoku)
-- [ ] Rehber + davet akisini tek **Arkadas bul** ekraninda topla
-
-**Oncelik sirasi (Aykut onayli):** F2 davet linki → F1 rehber eslestirme → F3 jeton → F4 widget.
-
-### Kelime Sofrasi + Mini Sudoku (Eglence) — son oturum
-
-> Detay kodda; build/deploy beklemiyor (Expo Go ile test).
-
-| Alan | Durum |
-|------|--------|
-| Kelime Sofrasi UI (cam, surukle-birak, siyah metin) | Yapildi |
-| Zorluk seviyeleri (kolay/orta/zor) | Yapildi |
-| Ipucu = rastgele hucre acma | Yapildi |
-| Mini Sudoku lobby + zorluk | Yapildi (zor 9x9 yakinda) |
-| Sudoku 9x9 zor mod | Yapilmadi |
+**Son guncelleme:** 21 Haziran 2026
 
 ---
 
+## Siradaki 1-2 (oncelik)
 
-- Kufur, argo → yorum **yayinlanmaz**; isaretli kelimeler kirmizi gosterilir
-- **Ban / strike yok** — isaretli kelimeler kirmizi; yorum yayinlanmaz
-- Ana sayfa: tek arama (canli Google); ust bar **Kullanici girisi** + **Restoran girisi**; sehir konumdan
-- Amac: saygin, yapici yemek toplulugu
+| # | Ne | Not |
+|---|-----|-----|
+| 1 | **MacBook → iOS TestFlight** | Ayni kod (`git pull`); 1.0.52+ lexicon hazir |
+| 2 | **Gorev UI gercek durum** | `invite` / `review` su an demo state — backend baglantisi + yorum jetonu |
+| 3 | **Rehberden arkadas bul (F1)** | ~1-2 gun dev (asagida detay); Mac gelince iOS izin testi kolay |
+
+---
+
+## Tamamlanan (Haziran 2026 — guncel)
+
+### Magaza & build
+| Alan | Durum |
+|------|--------|
+| Android kapali test | **1.0.52 (versionCode 63)** — Gastroskor-test2, lokal AAB + EAS upload key |
+| Lokal Android build | `npm run build:android:local` + `submit:android:local` (Windows, `C:\dev\gs` veya kisa yol) |
+| iOS | Mac bekleniyor; son EAS notu 1.0.50 / build 52 TestFlight |
+
+### Eglence — oyunlar
+| Oyun | Durum |
+|------|--------|
+| **Kelime Sofrasi** | Gunluk bulmaca havuzu (API+cron), Word Tracer fix, layout iyilestirme (test edilecek) |
+| **Günlük Kelime** | Wordle 5x6, gastro-lexicon **5302 tahmin / 3658 cevap** |
+| **Kelime Yarismasi** | 1500 soru, 6 tur |
+| **Mini Sudoku** | 6x6, can/ipucu/not modu, beyaz board |
+| **Sudoku 9x9 zor** | ~~Backlog~~ — tamam |
+| **Soru-Cevap** | Gurme odalari (6 sistem odasi) |
+
+### Lexicon
+| Alan | Durum |
+|------|--------|
+| `gastro-lexicon` | TDK gist + Sofra + Yarismasi → `npm run build:lexicon` |
+| Tam set | 7885 kelime; Sofra `tdkLexicon()` genisletildi |
+| Repo | Commit `6c35efc` main'de |
+
+### Jeton & Eglence hub
+| Alan | Durum |
+|------|--------|
+| Backend wallet + ledger | Railway canli |
+| Gunluk giris odulu | +10 jeton, gunluk 1x (idempotency backend'de) |
+| Davet linki (F2) | `gastroskor.com.tr/invite?ref=` + paylasim + referral jeton |
+| Jeton gorev sheet | Eglence header chip |
+| Hub UI | Gunluk gorevler + Gastro-Market (oyun haklari) |
+
+### Urun / backend
+| Alan | Durum |
+|------|--------|
+| Kesfet canli arama | Named search fix (or. "taskin doner") |
+| Isletme panel basvurusu | `/isletme-basvuru` + admin onay — **test edildi, calisiyor** |
+| Restoran takip + kupon (D3) | Kodda |
+| Gurme Sohbetler (E2) | Mobil odalar |
+| Gurme profil nickname (E1) | Kodda |
+
+---
+
+## Bilinen sorunlar / dikkat
+
+| Konu | Aciklama |
+|------|----------|
+| **Gorev listesi demo** | ~~invite/review sabit tamamlandi~~ — wallet API ile guncellendi (mobil build gerekir) |
+| **20 jeton / gun** | Muhtemel: **hos geldin 10** (ilk wallet acilisi) + **gunluk giris 10** — ikinci giris backend'de tekrar vermemeli. Ledger'dan dogrulanmali |
+| **Yorum klavyesi** | Restoran detayda form klavyenin altinda kalabiliyor — ayri fix gerekir |
+
+---
+
+## Backlog (acele degil)
+
+### Jeton gorevleri (kisa vade)
+- [x] Gunluk giris, takip paketi, davet referral, siparis jetonu (backend)
+- [x] Hub gorev kartlari API'den (`review/order/referral_earn_today`)
+- [x] Yorum jetonu +5 (GS yorum gonderiminde)
+- [ ] Online siparis gorevi UI netlestirme (Keşfet yonlendirme var)
+
+### Faz F — Rehberden arkadas bul (F1)
+
+> **Ne zaman:** Mac oncesi Android prototip mumkun; tam test icin Mac + iOS izin metinleri ideal.
+> **Sure tahmini:** **1-2 is gunu** (tek gelistirici, odakli)
+
+| Parca | Is | Sure |
+|-------|-----|------|
+| Backend | `user_phone_hash` kolonu + `POST /social/contacts/match` + rate limit | ~4 saat |
+| Mobil | `expo-contacts`, +90 normalize, hash, **Arkadas bul** ekrani | ~6 saat |
+| Uyum | KVKK metni, Play/App Store privacy declaration | ~1-2 saat |
+| Test | Android + iOS izin akislari | ~2 saat |
+
+**Bagimliliklar:** Kullanicinin telefon numarasi kayitta yoksa once opsiyonel telefon dogrulama veya sadece “rehberde kayitli olanlari eslestir” (hash eslesmesi icin kayitli kullanicilarda hash gerekir).
+
+**F2 davet linki** — [x] kodda. **F4 arkadaslarin bugun widget** — [ ] bekliyor.
+
+### Urun / topluluk
+- [ ] Yorum klavyesi fix (restoran detay)
+- [ ] Bildirim: yorum begenildi / cevap geldi (Faz A)
+- [ ] Isletme resmi yanit
+- [ ] Gurme Sohbet: cevapta restoran karti embed (E2)
+- [ ] Gurme Sohbet web (E2.3)
+- [ ] TDK v12 tam sozluk (99k) — `ogun/guncel-turkce-sozluk` build script genisletme
+
+### Sesli sipariş (mimari onayli)
+- [ ] iOS: Whisper backend (kalici)
+- [ ] Android: simdilik `expo-speech-recognition`; sonra istege bagli Whisper
+
+### Web / analitik
+- [ ] GA4 custom event'ler (arama, yol tarifi, takip…)
+
+### Magaza
+- [ ] Mac: Xcode Archive → TestFlight (1.0.52+)
+- [ ] iOS Google giris web koprusu test
+- [ ] Play kapali test → acik test / production (geri bildirim sonrasi)
+
+---
+
+## Magaza durumu (21 Haziran 2026)
+
+| Platform | Surum | Track |
+|----------|--------|--------|
+| **Android** | 1.0.52 (63) | Kapali test — Gastroskor-test2 |
+| **iOS** | 1.0.50 (52) not | TestFlight — Mac ile guncellenecek |
+| **API** | Railway | `api.gastroskor.com.tr` — ok |
+| **Web** | Vercel | www.gastroskor.com.tr |
+
+**Destek:** destek@gastroskor.com.tr
+
+---
+
+## Eski notlar (arsiv — 1.0.10 backlog artik gecersiz)
+
+<details>
+<summary>Eski "Yarin backlog" (Haziran basi — referans)</summary>
+
+- iOS Google giris, one cikanlar, App Links → sonraki buildlerde parca parca alindi
+- Web one cikan kart → duzeltildi
+
+</details>
+
+---
+
+## Vizyon hatirlatmalari (uzun vade)
+
+- **Faz D:** Restoran takip + takipci promosyonu — D1/D3 kodda; D2 yorum bildirimi bekliyor
+- **Faz E:** Gurme Sohbetler — E2 calisiyor; embed kart + web + AI oneri (E4) bekliyor
+- **Faz C:** Panel kufur sozlugu admin, isletme yaniti paneli
+- Topluluk: saygin yorum kulturu, kufur filtresi aktif

@@ -906,6 +906,12 @@ export type JetonWalletSummary = {
   follow_bundle_threshold?: number;
   follow_bundle_granted_today?: boolean;
   daily_login_granted_today?: boolean;
+  review_earn_today?: number;
+  review_daily_limit?: number;
+  order_earn_today?: number;
+  order_daily_limit?: number;
+  referral_earn_today?: number;
+  referral_daily_limit?: number;
 };
 
 export type DailyLoginClaimResponse = {

@@ -38,7 +38,6 @@ import {
 
 import {
   HUB_FOLLOW_TARGET,
-  HUB_TASK_DEMO_STATE,
   type HubFollowProgress,
   type HubGamePlayProduct,
   type HubTaskDef,
@@ -132,11 +131,16 @@ export default function EglenceTabScreen() {
     granted: false,
   });
   const [dailyLoginGranted, setDailyLoginGranted] = useState(false);
-
-
+  const [hubEarn, setHubEarn] = useState({
+    reviewToday: 0,
+    reviewLimit: 1,
+    orderToday: 0,
+    orderLimit: 2,
+    referralToday: 0,
+    referralLimit: 5,
+  });
 
   const loadJeton = useCallback(async () => {
-
     if (!user?.email) {
       setJetonBalance(null);
       setFollowProgress({ current: 0, target: HUB_FOLLOW_TARGET, granted: false });
@@ -155,10 +159,26 @@ export default function EglenceTabScreen() {
         granted: wallet.follow_bundle_granted_today ?? false,
       });
       setDailyLoginGranted(wallet.daily_login_granted_today ?? false);
+      setHubEarn({
+        reviewToday: wallet.review_earn_today ?? 0,
+        reviewLimit: wallet.review_daily_limit ?? 1,
+        orderToday: wallet.order_earn_today ?? 0,
+        orderLimit: wallet.order_daily_limit ?? 2,
+        referralToday: wallet.referral_earn_today ?? 0,
+        referralLimit: wallet.referral_daily_limit ?? 5,
+      });
     } catch {
       setJetonBalance(null);
       setFollowProgress({ current: 0, target: HUB_FOLLOW_TARGET, granted: false });
       setDailyLoginGranted(false);
+      setHubEarn({
+        reviewToday: 0,
+        reviewLimit: 1,
+        orderToday: 0,
+        orderLimit: 2,
+        referralToday: 0,
+        referralLimit: 5,
+      });
     } finally {
       setJetonLoading(false);
     }
@@ -294,16 +314,21 @@ export default function EglenceTabScreen() {
   const hubTaskStates = useMemo(
     (): Record<HubTaskId, HubTaskState> => ({
       'daily-login': dailyLoginGranted ? 'done' : 'active',
-      invite: HUB_TASK_DEMO_STATE.invite,
+      invite: hubEarn.referralToday >= 1 ? 'done' : 'active',
       follow: followProgress.granted
         ? 'done'
         : followProgress.current > 0
           ? 'active'
           : 'idle',
-      review: HUB_TASK_DEMO_STATE.review,
-      order: HUB_TASK_DEMO_STATE.order,
+      review: hubEarn.reviewToday >= hubEarn.reviewLimit ? 'done' : 'active',
+      order:
+        hubEarn.orderToday >= hubEarn.orderLimit
+          ? 'done'
+          : hubEarn.orderToday > 0
+            ? 'active'
+            : 'idle',
     }),
-    [dailyLoginGranted, followProgress],
+    [dailyLoginGranted, followProgress, hubEarn],
   );
 
   function openGame(id: EglenceGameId) {
@@ -406,6 +431,10 @@ export default function EglenceTabScreen() {
     }
 
     if (task.id === 'invite') {
+      if (hubEarn.referralToday >= hubEarn.referralLimit) {
+        Alert.alert('Davet', 'Bugünkü davet jeton tavanına ulaştın.');
+        return;
+      }
       setJetonSheetOpen(true);
       return;
     }
@@ -418,11 +447,29 @@ export default function EglenceTabScreen() {
         });
         return;
       }
-      router.push('/' as Href);
+      router.push('/(tabs)/takip' as Href);
       return;
     }
 
-    router.push('/' as Href);
+    if (task.id === 'review') {
+      if (hubEarn.reviewToday >= hubEarn.reviewLimit) {
+        Alert.alert('Yorum görevi', 'Bugünkü yorum jetonunu zaten aldın.');
+        return;
+      }
+      router.push('/(tabs)/' as Href);
+      return;
+    }
+
+    if (task.id === 'order') {
+      if (hubEarn.orderToday >= hubEarn.orderLimit) {
+        Alert.alert('Sipariş görevi', 'Bugünkü sipariş jeton tavanına ulaştın.');
+        return;
+      }
+      router.push('/(tabs)/' as Href);
+      return;
+    }
+
+    router.push('/(tabs)/' as Href);
   }
 
 

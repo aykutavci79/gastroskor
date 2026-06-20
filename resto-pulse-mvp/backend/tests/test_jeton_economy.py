@@ -74,3 +74,31 @@ def test_order_not_accepted_skips_earn():
     result = try_earn_order_accepted(_Db(), order=order, user=user)  # type: ignore[arg-type]
     assert result.granted is False
     assert result.reason == "order_not_accepted"
+
+
+def test_review_daily_limit_blocks_second_earn():
+    from app.services.jeton_service import try_earn_review_submitted
+
+    user_id = uuid4()
+    review_id = uuid4()
+
+    class _Db:
+        def __init__(self):
+            self._count = 0
+
+        def scalar(self, *_a, **_k):
+            if self._count == 0:
+                self._count += 1
+                return 1
+            return 0
+
+        def add(self, *_a, **_k):
+            return None
+
+        def flush(self):
+            return None
+
+    db = _Db()
+    result = try_earn_review_submitted(db, user_id=user_id, review_id=review_id)  # type: ignore[arg-type]
+    assert result.granted is False
+    assert result.reason == "review_daily_limit"

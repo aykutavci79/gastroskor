@@ -198,7 +198,7 @@ from app.services.follower_promotion_service import (
     issue_coupon_for_follower,
     list_user_coupons,
 )
-from app.services.jeton_service import try_earn_follow_bundle
+from app.services.jeton_service import try_earn_follow_bundle, try_earn_review_submitted
 from app.services.review_remedy_service import (
     ACCEPT_RESOLVED_MESSAGE,
     REJECT_PUBLISH_MESSAGE,
@@ -1502,6 +1502,7 @@ async def post_order_review(order_id: UUID, payload: OrderReviewCreate, db: Sess
         raise_order_review_http(exc)
 
     maybe_init_review_remedy(db, review=review)
+    try_earn_review_submitted(db, user_id=user.id, review_id=review.id)
     db.commit()
     db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
     record_app_usage_event(db, event_type="order_review_created", user_id=user.id, platform="api")
@@ -2031,6 +2032,7 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     db.add(review)
     db.flush()
     maybe_init_review_remedy(db, review=review)
+    try_earn_review_submitted(db, user_id=author_uuid, review_id=review.id)
     db.commit()
     db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
     record_app_usage_event(db, event_type="review_created", user_id=author_uuid, platform="api")

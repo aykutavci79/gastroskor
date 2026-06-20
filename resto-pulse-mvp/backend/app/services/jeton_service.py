@@ -26,6 +26,8 @@ from app.constants.jeton import (
     JETON_ORDER_MIN_TL,
     JETON_REFERRAL_AMOUNT,
     JETON_REFERRAL_DAILY_LIMIT,
+    JETON_REVIEW_AMOUNT,
+    JETON_REVIEW_DAILY_LIMIT,
     JETON_WELCOME_BONUS,
     REFERRAL_ATTRIBUTION_DAYS,
 )
@@ -148,6 +150,47 @@ def get_daily_login_granted_today(db: Session, *, user_id: UUID) -> bool:
         )
         is not None
     )
+
+
+def get_hub_task_earn_counts(db: Session, *, user_id: UUID) -> dict[str, int]:
+    """Günlük görev kartları — bugünkü kazanım sayıları."""
+    return {
+        "review_earn_today": count_daily_earn_by_source_prefix(
+            db, user_id=user_id, key_prefix="review_earn:"
+        ),
+        "order_earn_today": count_daily_earn_by_source_prefix(
+            db, user_id=user_id, key_prefix="order_earn:"
+        ),
+        "referral_earn_today": count_daily_earn_by_source_prefix(
+            db, user_id=user_id, key_prefix="referral_earn:"
+        ),
+    }
+
+
+def try_earn_review_submitted(db: Session, *, user_id: UUID, review_id: UUID) -> EarnResult:
+    """GS yorumu gönderildiğinde +5 jeton (günde 1, yorum başına tek)."""
+    today_count = count_daily_earn_by_source_prefix(
+        db, user_id=user_id, key_prefix="review_earn:"
+    )
+    if today_count >= JETON_REVIEW_DAILY_LIMIT:
+        balance = get_wallet_balance(db, user_id=user_id)
+        return EarnResult(granted=False, balance=balance, reason="review_daily_limit")
+
+    key = f"review_earn:{review_id}"
+    entry = _post_ledger_entry(
+        db,
+        user_id=user_id,
+        source=JetonLedgerSource.review,
+        source_id=str(review_id),
+        amount=JETON_REVIEW_AMOUNT,
+        idempotency_key=key,
+    )
+    balance = get_wallet_balance(db, user_id=user_id)
+    if entry and entry.status == JetonLedgerStatus.posted:
+        return EarnResult(granted=True, amount=JETON_REVIEW_AMOUNT, balance=balance)
+    if entry and entry.status == JetonLedgerStatus.rejected:
+        return EarnResult(granted=False, balance=balance, reason="daily_cap")
+    return EarnResult(granted=False, balance=balance, reason="already_rewarded")
 
 
 def claim_daily_login(db: Session, *, user_id: UUID) -> EarnResult:

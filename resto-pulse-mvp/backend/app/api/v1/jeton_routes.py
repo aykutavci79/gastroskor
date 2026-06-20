@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants.jeton import JETON_FREE_HINTS_PER_GAME, JETON_HINT_COST
+from app.constants.jeton import (
+    JETON_FREE_HINTS_PER_GAME,
+    JETON_HINT_COST,
+    JETON_ORDER_DAILY_LIMIT,
+    JETON_REFERRAL_DAILY_LIMIT,
+    JETON_REVIEW_DAILY_LIMIT,
+)
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.jeton import (
@@ -23,6 +29,7 @@ from app.services.jeton_service import (
     get_daily_earn_summary,
     get_daily_login_granted_today,
     get_follow_daily_progress,
+    get_hub_task_earn_counts,
     get_wallet_balance,
     list_ledger_entries,
     record_referral_click,
@@ -52,6 +59,7 @@ def get_my_wallet(
     today_earned, cap_remaining = get_daily_earn_summary(db, user_id=user.id)
     follow_count, follow_threshold, follow_granted = get_follow_daily_progress(db, user_id=user.id)
     daily_login_granted = get_daily_login_granted_today(db, user_id=user.id)
+    hub_counts = get_hub_task_earn_counts(db, user_id=user.id)
     return WalletSummary(
         balance=get_wallet_balance(db, user_id=user.id),
         today_earned=today_earned,
@@ -62,6 +70,12 @@ def get_my_wallet(
         follow_bundle_threshold=follow_threshold,
         follow_bundle_granted_today=follow_granted,
         daily_login_granted_today=daily_login_granted,
+        review_earn_today=hub_counts["review_earn_today"],
+        review_daily_limit=JETON_REVIEW_DAILY_LIMIT,
+        order_earn_today=hub_counts["order_earn_today"],
+        order_daily_limit=JETON_ORDER_DAILY_LIMIT,
+        referral_earn_today=hub_counts["referral_earn_today"],
+        referral_daily_limit=JETON_REFERRAL_DAILY_LIMIT,
     )
 
 

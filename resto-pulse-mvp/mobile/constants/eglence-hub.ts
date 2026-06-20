@@ -85,7 +85,7 @@ export const HUB_TASKS: HubTaskDef[] = [
   },
 ];
 
-/** Demo tamamlanma — prod görev API gelene kadar */
+/** @deprecated Görev durumu artık `/jeton/me/wallet` alanlarından gelir. */
 export const HUB_TASK_DEMO_STATE: Record<HubTaskId, HubTaskState> = {
   'daily-login': 'active',
   invite: 'done',

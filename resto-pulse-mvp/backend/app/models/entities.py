@@ -252,6 +252,7 @@ class JetonLedgerSource(str, enum.Enum):
     order = "order"
     follow = "follow"
     referral = "referral"
+    review = "review"
     clawback = "clawback"
     game_spend = "game_spend"
     manual_adjustment = "manual_adjustment"
