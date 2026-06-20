@@ -2,8 +2,10 @@ import { Asset } from 'expo-asset';
 import { InteractionManager } from 'react-native';
 
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
+import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
-import { buildDailySofraPuzzle, buildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
+import { fetchSofraPuzzleFromPool } from '@/lib/kelime-sofrasi/puzzle-api';
+import { tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
 import {
   loadSofraPuzzleFromDisk,
   saveSofraPuzzleToDisk,
@@ -22,8 +24,8 @@ let prefetchChain: Promise<void> = Promise.resolve();
 
 const ZORLUKLAR: EglenceZorluk[] = ['orta', 'kolay', 'zor'];
 
-function cacheKey(gunId: string, zorluk: EglenceZorluk): string {
-  return `${gunId}:${zorluk}:v${CACHE_VERSION}`;
+function cacheKey(gunId: string, zorluk: EglenceZorluk, tur: number): string {
+  return `${gunId}:${zorluk}:t${tur}:v${CACHE_VERSION}`;
 }
 
 function puzzleReady(puzzle: SofraPuzzle): void {
@@ -31,25 +33,42 @@ function puzzleReady(puzzle: SofraPuzzle): void {
   scheduleBackgroundPrefetch(puzzle.id);
 }
 
+async function resolvePuzzleFromSources(
+  gunId: string,
+  zorluk: EglenceZorluk,
+  tur: number,
+  expectedId: string,
+): Promise<SofraPuzzle | null> {
+  const fromApi = await fetchSofraPuzzleFromPool(gunId, zorluk, tur, expectedId);
+  if (fromApi) return fromApi;
+
+  const fromDisk = await loadSofraPuzzleFromDisk(gunId, zorluk, expectedId, tur);
+  if (fromDisk) return fromDisk;
+
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    return tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
+  }
+  return null;
+}
+
 /** Günlük bulmaca — bellek önbelleği (senkron, test/script). */
 export function getDailySofraPuzzle(
   gunId = activePuzzleId(),
   zorluk: EglenceZorluk = 'orta',
+  tur = 0,
 ): SofraPuzzle {
-  const key = cacheKey(gunId, zorluk);
+  const key = cacheKey(gunId, zorluk, tur);
   const hit = cache.get(key);
   if (hit) return hit;
-  const built = buildDailySofraPuzzle(gunId, zorluk);
-  cache.set(key, built);
-  saveSofraPuzzleToDisk(gunId, zorluk, built);
-  return built;
+  throw new Error('Sofra bulmacasi senkron cache miss — ensureSofraPuzzleAsync kullanin.');
 }
 
 export function isSofraPuzzleCached(
   gunId = activePuzzleId(),
   zorluk: EglenceZorluk = 'orta',
+  tur = 0,
 ): boolean {
-  return cache.has(cacheKey(gunId, zorluk));
+  return cache.has(cacheKey(gunId, zorluk, tur));
 }
 
 async function prefetchSofraBackground(puzzleId: string): Promise<void> {
@@ -70,19 +89,25 @@ function scheduleBackgroundPrefetch(puzzleId: string): void {
   });
 }
 
-function storePuzzle(gunId: string, zorluk: EglenceZorluk, puzzle: SofraPuzzle): SofraPuzzle {
-  cache.set(cacheKey(gunId, zorluk), puzzle);
-  saveSofraPuzzleToDisk(gunId, zorluk, puzzle);
+function storePuzzle(
+  gunId: string,
+  zorluk: EglenceZorluk,
+  tur: number,
+  puzzle: SofraPuzzle,
+): SofraPuzzle {
+  cache.set(cacheKey(gunId, zorluk, tur), puzzle);
+  saveSofraPuzzleToDisk(gunId, zorluk, puzzle, tur);
   puzzleReady(puzzle);
   return puzzle;
 }
 
-/** Disk → async uretim; tek seferde bir istek birlestirilir. */
+/** Disk → API → (dev) yerel uretim; tek seferde bir istek birlestirilir. */
 export function ensureSofraPuzzleAsync(
   gunId: string,
   zorluk: EglenceZorluk,
+  tur = 0,
 ): Promise<SofraPuzzle> {
-  const key = cacheKey(gunId, zorluk);
+  const key = cacheKey(gunId, zorluk, tur);
   const mem = cache.get(key);
   if (mem) return Promise.resolve(mem);
 
@@ -90,12 +115,12 @@ export function ensureSofraPuzzleAsync(
   if (pending) return pending;
 
   const promise = (async () => {
-    const expectedId = `${gunId}:${zorluk}`;
-    const fromDisk = await loadSofraPuzzleFromDisk(gunId, zorluk, expectedId);
-    if (fromDisk) return storePuzzle(gunId, zorluk, fromDisk);
-
-    const built = await buildDailySofraPuzzleAsync(gunId, zorluk);
-    return storePuzzle(gunId, zorluk, built);
+    const expectedId = sofraPuzzleKey(gunId, zorluk, tur);
+    const resolved = await resolvePuzzleFromSources(gunId, zorluk, tur, expectedId);
+    if (!resolved) {
+      throw new Error(`Sofra bulmacasi yuklenemedi: ${expectedId}`);
+    }
+    return storePuzzle(gunId, zorluk, tur, resolved);
   })().finally(() => {
     inflight.delete(key);
   });
@@ -119,9 +144,9 @@ export function prefetchSofraPuzzlesForToday(
 
   prefetchChain = prefetchChain.then(async () => {
     for (const zorluk of order) {
-      if (isSofraPuzzleCached(gunId, zorluk)) continue;
+      if (isSofraPuzzleCached(gunId, zorluk, 0)) continue;
       try {
-        await ensureSofraPuzzleAsync(gunId, zorluk);
+        await ensureSofraPuzzleAsync(gunId, zorluk, 0);
       } catch {
         /* tek zorluk basarisiz — digerlerine devam */
       }
@@ -140,9 +165,9 @@ export function prefetchSofraOtherZorluklarIdle(
   prefetchChain = prefetchChain.then(async () => {
     await new Promise<void>((r) => setTimeout(r, 800));
     for (const zorluk of ZORLUKLAR) {
-      if (zorluk === skip || isSofraPuzzleCached(gunId, zorluk)) continue;
+      if (zorluk === skip || isSofraPuzzleCached(gunId, zorluk, 0)) continue;
       try {
-        await ensureSofraPuzzleAsync(gunId, zorluk);
+        await ensureSofraPuzzleAsync(gunId, zorluk, 0);
       } catch {
         /* atla */
       }
@@ -157,15 +182,15 @@ export function prefetchSofraOtherZorluklarIdle(
  */
 export function warmSofraPuzzleCache(gunId = activePuzzleId()): void {
   for (const zorluk of ZORLUKLAR) {
-    const hit = cache.get(cacheKey(gunId, zorluk));
+    const hit = cache.get(cacheKey(gunId, zorluk, 0));
     if (hit) {
       warmSofraProgress(hit);
       scheduleBackgroundPrefetch(hit.id);
       return;
     }
   }
-  void loadSofraPuzzleFromDisk(gunId, 'orta', `${gunId}:orta`).then((disk) => {
-    if (disk) storePuzzle(gunId, 'orta', disk);
+  void loadSofraPuzzleFromDisk(gunId, 'orta', `${gunId}:orta`, 0).then((disk) => {
+    if (disk) storePuzzle(gunId, 'orta', 0, disk);
   });
 }
 
@@ -174,15 +199,16 @@ export function scheduleSofraPuzzleWarm(
   gunId: string,
   zorluk: EglenceZorluk,
   onReady: (puzzle: SofraPuzzle) => void,
+  tur = 0,
 ): () => void {
-  if (isSofraPuzzleCached(gunId, zorluk)) {
-    onReady(getDailySofraPuzzle(gunId, zorluk));
+  if (isSofraPuzzleCached(gunId, zorluk, tur)) {
+    onReady(cache.get(cacheKey(gunId, zorluk, tur))!);
     return () => undefined;
   }
 
   let cancelled = false;
   const task = InteractionManager.runAfterInteractions(() => {
-    void ensureSofraPuzzleAsync(gunId, zorluk).then((puzzle) => {
+    void ensureSofraPuzzleAsync(gunId, zorluk, tur).then((puzzle) => {
       if (!cancelled) onReady(puzzle);
     });
   });
@@ -197,6 +223,24 @@ export function scheduleSofraPuzzleWarm(
 export function peekSofraPuzzle(
   gunId = activePuzzleId(),
   zorluk: EglenceZorluk = 'orta',
+  tur = 0,
 ): SofraPuzzle | null {
-  return cache.get(cacheKey(gunId, zorluk)) ?? null;
+  return cache.get(cacheKey(gunId, zorluk, tur)) ?? null;
+}
+
+/** Sonraki tur bulmacasini arka planda hazirla. */
+export function prefetchSofraTurIdle(
+  gunId: string,
+  zorluk: EglenceZorluk,
+  tur: number,
+): void {
+  if (tur <= 0 || isSofraPuzzleCached(gunId, zorluk, tur)) return;
+  prefetchChain = prefetchChain.then(async () => {
+    await new Promise<void>((r) => setTimeout(r, 200));
+    try {
+      await ensureSofraPuzzleAsync(gunId, zorluk, tur);
+    } catch {
+      /* atla */
+    }
+  });
 }

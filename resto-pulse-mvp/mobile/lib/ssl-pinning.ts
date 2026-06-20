@@ -1,11 +1,42 @@
 import {
+  addSslPinningErrorListener,
   initializeSslPinning,
   isSslPinningAvailable,
 } from 'react-native-ssl-public-key-pinning';
 
 const API_HOST = 'api.gastroskor.com.tr';
 
+export const SSL_PINNING_USER_MESSAGE =
+  'Guvenlik dogrulamasi basarisiz. Lutfen uygulamayi App Store / Play Store uzerinden guncelleyin.';
+
 let pinningSetup: Promise<void> | null = null;
+let pinningFailureActive = false;
+
+export function isSslPinningFailureActive(): boolean {
+  return pinningFailureActive;
+}
+
+export function registerSslPinningErrorListener(): () => void {
+  if (!isSslPinningAvailable()) return () => undefined;
+
+  const subscription = addSslPinningErrorListener(() => {
+    pinningFailureActive = true;
+  });
+
+  return () => subscription.remove();
+}
+
+export function isLikelySslPinningError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    pinningFailureActive ||
+    normalized.includes('certificate pinning') ||
+    normalized.includes('pin verification') ||
+    normalized.includes('pinning failure') ||
+    normalized.includes('trustkit') ||
+    normalized.includes('public key pin')
+  );
+}
 
 function readPinHashes(): string[] {
   const primary = process.env.EXPO_PUBLIC_API_SSL_PIN_PRIMARY?.trim();

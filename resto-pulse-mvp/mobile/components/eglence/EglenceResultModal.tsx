@@ -281,7 +281,7 @@ export function EglenceResultModal({
 
           <Text style={styles.kicker}>
             {game === 'mini_sudoku'
-              ? 'Mini Sudoku'
+              ? 'Sudoku'
               : game === 'kelime_sofrasi'
                 ? 'Kelime Sofrası'
                 : 'Kelime Yarışması'}

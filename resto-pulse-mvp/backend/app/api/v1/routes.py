@@ -161,6 +161,7 @@ from app.schemas.review import (
     ReviewAuthorAction,
     ReviewCategoryRead,
     ReviewCreate,
+    ReviewMineRead,
     ReviewRead,
     ReviewRemedyOfferSummary,
     ReviewReplyCreate,
@@ -1653,6 +1654,46 @@ def list_restaurant_reviews(
     return [serialize_review(row, viewer_user_id=viewer_user_id) for row in rows]
 
 
+@router.get("/reviews/mine", response_model=list[ReviewMineRead])
+def list_my_reviews(
+    author_email: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    review_kind: str | None = Query(default=None, pattern="^(visit|online_order)$"),
+    db: Session = Depends(get_db),
+):
+    user = resolve_actor_user(db, author_email=author_email)
+    stmt = (
+        select(Review)
+        .where(Review.author_id == user.id)
+        .options(
+            selectinload(Review.remedy_offer),
+            selectinload(Review.category_scores),
+            selectinload(Review.author),
+            selectinload(Review.restaurant),
+            selectinload(Review.images),
+            selectinload(Review.helpful_votes),
+            selectinload(Review.replies).selectinload(ReviewReply.author),
+        )
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+    )
+    if review_kind == "online_order":
+        stmt = stmt.where(online_order_review_filter())
+    elif review_kind == "visit":
+        stmt = stmt.where(visit_review_filter())
+    rows = db.scalars(stmt).all()
+    items: list[ReviewMineRead] = []
+    for row in rows:
+        base = serialize_review(row, viewer_user_id=user.id)
+        items.append(
+            ReviewMineRead(
+                **base.model_dump(),
+                restaurant_name=row.restaurant.name if row.restaurant else "Restoran",
+            )
+        )
+    return items
+
+
 @router.post("/users/sync", response_model=UserProfile)
 def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
     auth = get_request_auth()
@@ -1818,27 +1859,13 @@ async def upload_user_avatar(
 
 @router.post("/feedback/private", response_model=PrivateFeedbackRead, status_code=status.HTTP_201_CREATED)
 def create_private_feedback_endpoint(payload: PrivateFeedbackCreate, db: Session = Depends(get_db)):
-    author_uuid = None
-    if payload.author_id:
-        try:
-            author_uuid = UUID(payload.author_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
-    elif payload.author_email:
-        author = resolve_actor_user(
-            db,
-            author_id=payload.author_id,
-            author_email=payload.author_email,
-        )
-        author_uuid = author.id
+    author = resolve_actor_user(
+        db,
+        author_id=payload.author_id,
+        author_email=payload.author_email,
+    )
 
-    if not author_uuid:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="author_id or author_email is required",
-        )
-
-    feedback = create_private_feedback(db, payload=payload, author_id=author_uuid)
+    feedback = create_private_feedback(db, payload=payload, author_id=author.id)
     return serialize_private_feedback(feedback)
 
 
@@ -1848,13 +1875,8 @@ def list_my_private_feedbacks(
     email: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    user_uuid = resolve_user_uuid(db, user_id=author_id, email=email)
-    if not user_uuid:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="author_id or email is required and must exist",
-        )
-    rows = list_private_feedbacks_for_user(db, user_uuid=user_uuid)
+    user = resolve_actor_user(db, author_id=author_id, author_email=email)
+    rows = list_private_feedbacks_for_user(db, user_uuid=user.id)
     return [serialize_private_feedback(row) for row in rows]
 
 
@@ -1973,36 +1995,19 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-    author_uuid = None
-    author_name = payload.author_name
-    author_user: User | None = None
-    if payload.author_id:
-        try:
-            author_uuid = UUID(payload.author_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid author_id") from exc
-        author_user = db.get(User, author_uuid)
-    elif payload.author_email:
-        author = resolve_actor_user(
-            db,
-            author_id=payload.author_id,
-            author_email=payload.author_email,
-        )
-        author_uuid = author.id
-        author_user = author
-        author_name = author_name or author.full_name
+    author = resolve_actor_user(
+        db,
+        author_id=payload.author_id,
+        author_email=payload.author_email,
+    )
+    author_uuid = author.id
+    author_user = author
+    author_name = payload.author_name or author.full_name
 
-    if author_user:
-        try:
-            enforce_review_author_policy(author_user, payload.review_text or "")
-        except ReviewModerationError as exc:
-            _raise_review_moderation_error(exc)
-
-    if not author_uuid:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Yorum yazmak icin giris yapin (author_email gerekli).",
-        )
+    try:
+        enforce_review_author_policy(author_user, payload.review_text or "")
+    except ReviewModerationError as exc:
+        _raise_review_moderation_error(exc)
 
     name_display = normalize_author_name_display(payload.author_name_display)
     if name_display == "nickname" and author_user and not author_user.nickname:
@@ -2109,8 +2114,8 @@ async def upload_review_image(
     if not review:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
 
-    if not review.author or review.author.email.lower() != author_email.strip().lower():
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu yoruma fotograf ekleyemezsiniz.")
+    user = load_authenticated_user_by_email(db, author_email)
+    assert_review_owner(user, review)
 
     existing = len(review.images or [])
     if existing >= MAX_REVIEW_IMAGES_PER_REVIEW:
@@ -2376,6 +2381,8 @@ from app.api.v1.kelime_sofrasi_routes import router as kelime_sofrasi_router
 
 router.include_router(kelime_sofrasi_router)
 
+from app.schemas.sofra_puzzle import SofraBulmacaImportPayload
+
 
 @router.post("/internal/cron/panel-notifications")
 async def cron_panel_notifications(
@@ -2471,4 +2478,40 @@ def cron_sofra_kelime_adaylari(
     stats = scan_sofra_kelime_adaylari(db)
     db.commit()
     return {"ok": True, "stats": stats}
+
+
+@router.post("/internal/cron/sofra-bulmaca-uret")
+def cron_sofra_bulmaca_uret(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+    gun_id: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.sofra_puzzle_pool import audit_stale_pool, generate_daily_puzzles
+
+    stats = generate_daily_puzzles(db, gun_id=gun_id, cron_mode=True)
+    stale = audit_stale_pool(db)
+    db.commit()
+    return {"ok": stats["failed"] == 0 and stats["coverage"]["ok"], "stats": stats, "stale_audit": stale}
+
+
+@router.post("/internal/cron/sofra-bulmaca-import")
+def cron_sofra_bulmaca_import(
+    payload: SofraBulmacaImportPayload,
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    """GitHub Actions — TS generator JSON → havuz (idempotent upsert)."""
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.sofra_puzzle_pool import audit_stale_pool, generate_daily_puzzles, upcoming_sofra_gun_id
+
+    target_gun = payload.gun_id or upcoming_sofra_gun_id()
+    stats = generate_daily_puzzles(db, gun_id=target_gun, pregenerated=payload.puzzles, cron_mode=True)
+    stale = audit_stale_pool(db)
+    db.commit()
+    return {"ok": stats["failed"] == 0 and stats["coverage"]["ok"], "stats": stats, "stale_audit": stale}
 

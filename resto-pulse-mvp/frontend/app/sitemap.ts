@@ -13,6 +13,7 @@ const STATIC_PATHS = [
   '/bursa',
   '/yoresel-lezzetler',
   '/isletme-basvuru',
+  '/sss',
   '/gizlilik',
   '/kvkk',
   '/kullanim-kosullari',

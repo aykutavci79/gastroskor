@@ -1,4 +1,5 @@
 import havuzJson from '@/data/kelime-sofrasi/havuz.json';
+import ucHarfJson from '@/data/kelime-sofrasi/uc-harf-havuz.json';
 import yazilisMap from '@/data/kelime-sofrasi/kelime-yazilis.json';
 
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
@@ -11,20 +12,30 @@ export type HavuzKelime = {
   ipucu?: string;
 };
 
-function havuzKelimeFormu(asciiKelime: string): string {
-  const mapped = (yazilisMap as Record<string, string>)[asciiKelime] ?? asciiKelime;
+type HavuzKaynak = HavuzKelime & { yazilis?: string };
+
+function havuzKelimeFormu(asciiKelime: string, yazilisOverride?: string): string {
+  const mapped =
+    yazilisOverride?.trim() ||
+    (yazilisMap as Record<string, string>)[asciiKelime] ||
+    asciiKelime;
   return sofraKelimeBuyuk(mapped);
 }
 
-const HAVUZ: HavuzKelime[] = (havuzJson as HavuzKelime[]).map((row) => {
-  const kelime = havuzKelimeFormu(row.kelime);
+function mapHavuzRow(row: HavuzKaynak): HavuzKelime {
+  const kelime = havuzKelimeFormu(row.kelime, row.yazilis);
   return {
     ...row,
     kelime,
     harfSayisi: kelime.length,
     frekansSira: row.frekansSira,
   };
-});
+}
+
+const HAVUZ: HavuzKelime[] = [
+  ...(havuzJson as HavuzKaynak[]).map(mapHavuzRow),
+  ...(ucHarfJson as HavuzKaynak[]).map(mapHavuzRow),
+];
 
 export function sofraHavuzu(): readonly HavuzKelime[] {
   return HAVUZ;

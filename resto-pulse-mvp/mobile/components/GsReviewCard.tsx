@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { StarRatingPicker } from '@/components/StarRatingPicker';
+import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPhotoPicker';
 import { UserAvatar } from '@/components/UserAvatar';
 import { GastroColors } from '@/constants/theme';
 import {
@@ -21,6 +22,7 @@ import {
   toggleReviewHelpful,
   updateReview,
   updateReviewReply,
+  uploadReviewImage,
 } from '@/lib/api';
 import { ensureAccessToken } from '@/lib/auth-token';
 import { formatReviewDate, isOwnReview, renderStarRow } from '@/lib/review-display';
@@ -79,6 +81,7 @@ export function GsReviewCard({
   const [editText, setEditText] = useState(review.review_text);
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [editPhotos, setEditPhotos] = useState<ReviewPhotoAsset[]>([]);
 
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   const [editingReplyText, setEditingReplyText] = useState('');
@@ -150,13 +153,23 @@ export function GsReviewCard({
     setEditBusy(true);
     setEditError(null);
     try {
-      const updated = await updateReview(review.id, {
+      let updated = await updateReview(review.id, {
         author_email: viewerEmail,
         rating: editRating,
         review_text: editText.trim(),
       });
+      for (const photo of editPhotos) {
+        updated = await uploadReviewImage(
+          review.id,
+          viewerEmail,
+          photo.uri,
+          photo.mimeType,
+          photo.fileName,
+        );
+      }
       onChange({ ...review, ...updated, replies: review.replies });
       setEditing(false);
+      setEditPhotos([]);
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Guncellenemedi');
     } finally {
@@ -268,8 +281,27 @@ export function GsReviewCard({
             multiline
             textAlignVertical="top"
           />
+          {(review.image_urls?.length ?? 0) > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.editExistingPhotos}>
+              {review.image_urls!.map((uri) => (
+                <Image key={uri} source={{ uri }} style={styles.photo} contentFit="cover" />
+              ))}
+            </ScrollView>
+          ) : null}
+          {(review.image_urls?.length ?? 0) < 4 ? (
+            <ReviewPhotoPicker
+              photos={editPhotos}
+              onChange={setEditPhotos}
+              maxPhotos={4 - (review.image_urls?.length ?? 0)}
+            />
+          ) : null}
           <View style={styles.editActions}>
-            <Pressable style={styles.ghostBtn} onPress={() => setEditing(false)}>
+            <Pressable
+              style={styles.ghostBtn}
+              onPress={() => {
+                setEditing(false);
+                setEditPhotos([]);
+              }}>
               <Text style={styles.ghostBtnText}>Vazgec</Text>
             </Pressable>
             <Pressable style={styles.primaryBtn} onPress={() => void saveEdit()} disabled={editBusy}>
@@ -321,6 +353,7 @@ export function GsReviewCard({
               <Pressable style={styles.linkBtn} onPress={() => {
                 setEditRating(review.rating);
                 setEditText(review.review_text);
+                setEditPhotos([]);
                 setEditing(true);
               }}>
                 <Text style={styles.linkBtnText}>Duzenle</Text>
@@ -480,6 +513,7 @@ const styles = StyleSheet.create({
   },
   replySubmit: { alignSelf: 'flex-start' },
   editBox: { gap: 8 },
+  editExistingPhotos: { gap: 8 },
   editInput: {
     minHeight: 72,
     backgroundColor: GastroColors.panel,

@@ -376,6 +376,17 @@ class UserPushToken(Base):
     user: Mapped["User"] = relationship(back_populates="push_tokens")
 
 
+class RevokedRefreshToken(Base):
+    __tablename__ = "revoked_refresh_tokens"
+
+    jti: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
 class UserNotification(Base):
     __tablename__ = "user_notifications"
 
@@ -1527,6 +1538,36 @@ class SofraWheelAttempt(Base):
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class SofraBulmacaReviewStatus(str, enum.Enum):
+    pending_review = "pending_review"
+    approved = "approved"
+    flagged = "flagged"
+
+
+class SofraDailyPuzzle(Base):
+    """Kelime Sofrası — günlük/tur bazlı önceden üretilmiş bulmaca havuzu."""
+
+    __tablename__ = "sofra_daily_puzzles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    gun_id: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    zorluk: Mapped[str] = mapped_column(String(8), nullable=False)
+    tur: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    puzzle_id: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    puzzle_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    is_fallback: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    source_gun_id: Mapped[str | None] = mapped_column(String(10))
+    generation_ms: Mapped[int | None] = mapped_column(Integer)
+    review_status: Mapped[SofraBulmacaReviewStatus] = mapped_column(
+        Enum(SofraBulmacaReviewStatus, name="sofra_bulmaca_review_status"),
+        nullable=False,
+        default=SofraBulmacaReviewStatus.pending_review,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
 class SofraKelimeAday(Base):

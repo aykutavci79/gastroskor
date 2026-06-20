@@ -20,6 +20,9 @@ JETON_FREE_HINTS_PER_GAME = 2
 # Hoş geldin hediyesi — hesap başına bir kez
 JETON_WELCOME_BONUS = 10
 
+# Günlük giriş — günde bir kez (Europe/Istanbul)
+JETON_DAILY_LOGIN_AMOUNT = 10
+
 REFERRAL_ATTRIBUTION_DAYS = 7
 
 ISTANBUL_TZ = "Europe/Istanbul"

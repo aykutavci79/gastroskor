@@ -18,7 +18,8 @@ import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { CityProvider } from '@/context/city-context';
 import { GastroThemeProvider, useGastroTheme } from '@/context/theme-context';
 import { SessionProvider } from '@/context/session-context';
-import { setupSslPinning } from '@/lib/ssl-pinning';
+import { createSentryBeforeSend } from '@/lib/sentry-scrub';
+import { registerSslPinningErrorListener, setupSslPinning } from '@/lib/ssl-pinning';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
 
@@ -26,7 +27,9 @@ if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     enabled: !__DEV__,
+    sendDefaultPii: false,
     tracesSampleRate: 0.2,
+    beforeSend: createSentryBeforeSend(),
   });
 }
 
@@ -97,6 +100,14 @@ function NavigationShell() {
           }}
         />
         <Stack.Screen
+          name="yorumlarim"
+          options={{
+            title: 'Yorumlarım',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+          }}
+        />
+        <Stack.Screen
           name="siparis/[id]"
           options={{
             title: 'Sipariş detayı',
@@ -124,7 +135,9 @@ function RootLayout() {
   }, []);
 
   useEffect(() => {
+    const removePinningListener = registerSslPinningErrorListener();
     void setupSslPinning();
+    return removePinningListener;
   }, []);
 
   useEffect(() => {

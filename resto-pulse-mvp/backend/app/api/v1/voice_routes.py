@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
 from app.core.config import settings
 from app.schemas.voice import VoiceTranscribeResponse
+from app.services.request_identity import require_request_auth
 from app.services.voice_transcription import VoiceTranscriptionError, transcribe_voice_audio
 
 router = APIRouter(prefix="/voice", tags=["voice"])
@@ -36,6 +37,8 @@ async def transcribe_voice(
     file: UploadFile = File(...),
     language: str = Form(default="tr"),
 ):
+    require_request_auth()
+
     if not (settings.groq_api_key or settings.openai_api_key):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

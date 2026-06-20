@@ -10,6 +10,10 @@ class WalletSummary(BaseModel):
     today_cap_remaining: int
     hint_cost: int
     free_hints_per_game: int
+    follow_today_count: int = 0
+    follow_bundle_threshold: int = 3
+    follow_bundle_granted_today: bool = False
+    daily_login_granted_today: bool = False
 
 
 class JetonLedgerItem(BaseModel):
@@ -37,6 +41,17 @@ class GameHintSpendResponse(BaseModel):
     ok: bool
     balance: int
     charged: int
+    reason: str | None = None
+
+
+class DailyLoginClaimPayload(BaseModel):
+    user_email: str = Field(min_length=3)
+
+
+class DailyLoginClaimResponse(BaseModel):
+    ok: bool
+    balance: int
+    amount: int
     reason: str | None = None
 
 

@@ -28,6 +28,7 @@ import {
 import { logWheelAttempt } from '@/lib/kelime-sofrasi/attempt-log';
 import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
+import { spendGameHint } from '@/lib/api';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
 import {
   bonusKelimeMi,
@@ -42,9 +43,9 @@ import {
   sofraMaxIpucu,
 } from '@/lib/kelime-sofrasi/engine';
 import {
-  peekSofraPuzzle,
+  ensureSofraPuzzleAsync,
   prefetchSofraOtherZorluklarIdle,
-  scheduleSofraPuzzleWarm,
+  prefetchSofraTurIdle,
 } from '@/lib/kelime-sofrasi/puzzle-cache';
 import {
   sofraGunlukLimitDoldu,
@@ -52,9 +53,9 @@ import {
 } from '@/lib/kelime-sofrasi/sofra-gunluk-limit';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import {
-  freshProgress,
-  getCachedSofraProgress,
+  beginNextSofraRound,
   loadSofraProgress,
+  resolveSofraSessionTur,
   saveSofraProgress,
 } from '@/lib/kelime-sofrasi/storage';
 import type { SofraProgress, SofraPuzzle } from '@/lib/kelime-sofrasi/types';
@@ -165,7 +166,11 @@ export default function KelimeSofrasiOyunScreen() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [bgReady, setBgReady] = useState(false);
   const elapsedRef = useRef(0);
+  const progressRef = useRef<SofraProgress | null>(null);
+  const saveGenRef = useRef(0);
   const notifiedRef = useRef(false);
+  const resultElapsedRef = useRef(0);
+  const resultPuzzleIdRef = useRef<string | null>(null);
   const layout = useSofraLayout(puzzle);
 
   const styles = useMemo(
@@ -211,13 +216,22 @@ export default function KelimeSofrasiOyunScreen() {
     elapsedRef.current = ms;
   }, []);
 
-  const persistProgress = useCallback(async (patch?: Partial<SofraProgress>) => {
-    if (!progress) return;
-    await saveSofraProgress({ ...progress, ...patch, elapsedMs: elapsedRef.current });
+  useEffect(() => {
+    progressRef.current = progress;
   }, [progress]);
 
+  const persistProgress = useCallback(async (patch?: Partial<SofraProgress>) => {
+    const current = progressRef.current;
+    if (!current || current.completedAt) return;
+    const gen = ++saveGenRef.current;
+    const merged = { ...current, ...patch, elapsedMs: elapsedRef.current };
+    await saveSofraProgress(merged);
+    if (gen !== saveGenRef.current) return;
+    progressRef.current = merged;
+  }, []);
+
   useEffect(() => {
-    if (!progress) return;
+    if (!progress || progress.completedAt) return;
     void persistProgress();
   }, [
     progress?.puzzleId,
@@ -225,7 +239,6 @@ export default function KelimeSofrasiOyunScreen() {
     progress?.bonusFound,
     progress?.hintedCells,
     progress?.wheelOrder,
-    progress?.completedAt,
     persistProgress,
   ]);
 
@@ -239,9 +252,11 @@ export default function KelimeSofrasiOyunScreen() {
 
   useEffect(() => {
     return () => {
-      if (progress) void persistProgress();
+      const current = progressRef.current;
+      if (!current || current.completedAt) return;
+      void saveSofraProgress({ ...current, elapsedMs: elapsedRef.current });
     };
-  }, [persistProgress, progress]);
+  }, []);
 
   useEffect(() => {
     const gunId = activePuzzleId();
@@ -255,41 +270,35 @@ export default function KelimeSofrasiOyunScreen() {
     setMessage(null);
     setTimerRunning(false);
 
-    const startSession = (daily: SofraPuzzle) => {
-      if (!alive) return;
-      const cached = getCachedSofraProgress(daily);
-      const bootstrap = cached ?? freshProgress(daily);
-
-      setPuzzle(daily);
-      setProgress(bootstrap);
-      elapsedRef.current = bootstrap.elapsedMs;
-      setLoading(false);
-
-      if (!bootstrap.completedAt) setTimerRunning(true);
-      else {
-        setTimerRunning(false);
-        setResultOpen(true);
-      }
-
-      void loadSofraProgress(daily).then((saved) => {
+    void (async () => {
+      try {
+        const tur = await resolveSofraSessionTur(gunId, zorluk);
+        const daily = await ensureSofraPuzzleAsync(gunId, zorluk, tur);
         if (!alive) return;
+        const saved = await loadSofraProgress(daily, gunId, zorluk);
+        if (!alive) return;
+        setPuzzle(daily);
         setProgress(saved);
+        progressRef.current = saved;
         elapsedRef.current = saved.elapsedMs;
-        if (!saved.completedAt) setTimerRunning(true);
-        else {
+        setLoading(false);
+
+        if (!sofraGunlukLimitDoldu(saved)) {
+          prefetchSofraTurIdle(gunId, zorluk, tur + 1);
+        }
+
+        if (sofraGunlukLimitDoldu(saved)) {
           setTimerRunning(false);
           setResultOpen(true);
+          return;
         }
-      });
-    };
+        setTimerRunning(true);
+        notifiedRef.current = false;
+      } catch {
+        if (alive) setLoading(false);
+      }
+    })();
 
-    const cachedPuzzle = peekSofraPuzzle(gunId, zorluk);
-    let cancelWarm = () => undefined;
-    if (cachedPuzzle) {
-      startSession(cachedPuzzle);
-    } else {
-      cancelWarm = scheduleSofraPuzzleWarm(gunId, zorluk, startSession);
-    }
     prefetchSofraOtherZorluklarIdle(gunId, zorluk);
 
     const bgTask = InteractionManager.runAfterInteractions(() => {
@@ -298,7 +307,6 @@ export default function KelimeSofrasiOyunScreen() {
 
     return () => {
       alive = false;
-      cancelWarm();
       bgTask.cancel?.();
       setTimerRunning(false);
     };
@@ -316,7 +324,7 @@ export default function KelimeSofrasiOyunScreen() {
 
   const submitPath = useCallback(
     (path: number[]) => {
-      if (!puzzle || !progress || completed) {
+      if (!puzzle || !progress || completed || resultOpen) {
         setSelectedPath([]);
         return;
       }
@@ -331,7 +339,7 @@ export default function KelimeSofrasiOyunScreen() {
         setSelectedPath([]);
         return;
       }
-      if (norm.length >= 4) {
+      if (norm.length >= SOFRA_MIN_KELIME_UZUNLUGU) {
         logWheelAttempt(norm);
       }
       const target = hedefKelimeMi(puzzle, word);
@@ -360,7 +368,11 @@ export default function KelimeSofrasiOyunScreen() {
           return;
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setMessage('Sözlükte yok — ızgaradaki kelimelere odaklan');
+        setMessage(
+          norm.length <= 3
+            ? 'Bonus değil — çarktaki harflerle başka kısa kelime dene'
+            : 'Sözlükte yok — ızgaradaki kelimelere odaklan',
+        );
         setSelectedPath([]);
         return;
       }
@@ -373,21 +385,23 @@ export default function KelimeSofrasiOyunScreen() {
       const foundWordIds = [...progress.foundWordIds, target.id];
       const done = bulmacaTamamlandi(puzzle, foundWordIds);
       const nextTamamlama = done ? sofraTamamlamaSayisi(progress) + 1 : sofraTamamlamaSayisi(progress);
-      setProgress({
-        ...progress,
-        foundWordIds,
-        completedAt: done ? new Date().toISOString() : null,
-        elapsedMs: elapsedRef.current,
-        gunlukTamamlamaSayisi: nextTamamlama,
-      });
       setSelectedPath([]);
       if (done) {
+        const completedProgress: SofraProgress = {
+          ...progress,
+          foundWordIds,
+          completedAt: new Date().toISOString(),
+          elapsedMs: elapsedRef.current,
+          gunlukTamamlamaSayisi: nextTamamlama,
+        };
         const limitMsg =
           nextTamamlama >= SOFRA_GUNLUK_TAMAMLAMA_LIMIT
             ? 'Sofra tamam! Bugünlük hakkın doldu.'
             : `Sofra tamam! (${nextTamamlama}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT})`;
         setMessage(limitMsg);
         setTimerRunning(false);
+        resultElapsedRef.current = elapsedRef.current;
+        resultPuzzleIdRef.current = puzzle.id;
         setResultOpen(true);
         if (!notifiedRef.current && user) {
           notifiedRef.current = true;
@@ -397,11 +411,40 @@ export default function KelimeSofrasiOyunScreen() {
             elapsedMs: elapsedRef.current,
           });
         }
+        if (sofraGunlukLimitDoldu(completedProgress)) {
+          progressRef.current = completedProgress;
+          setProgress(completedProgress);
+          void saveSofraProgress(completedProgress);
+          return;
+        }
+        saveGenRef.current += 1;
+        const gunId = activePuzzleId();
+        void ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama).then((nextPuzzle) => {
+          void beginNextSofraRound(nextPuzzle, nextTamamlama).then((next) => {
+            setPuzzle(nextPuzzle);
+            progressRef.current = next;
+            setProgress(next);
+            elapsedRef.current = 0;
+            setSelectedPath([]);
+            setBgReady(false);
+            InteractionManager.runAfterInteractions(() => setBgReady(true));
+            if (nextTamamlama + 1 < SOFRA_GUNLUK_TAMAMLAMA_LIMIT) {
+              prefetchSofraTurIdle(gunId, zorluk, nextTamamlama + 1);
+            }
+          });
+        });
       } else {
+        setProgress({
+          ...progress,
+          foundWordIds,
+          completedAt: null,
+          elapsedMs: elapsedRef.current,
+          gunlukTamamlamaSayisi: nextTamamlama,
+        });
         setMessage(`+ ${target.kelime}`);
       }
     },
-    [completed, puzzle, progress, user],
+    [completed, puzzle, progress, resultOpen, user, zorluk],
   );
 
   const handlePathChange = useCallback((path: number[]) => {
@@ -535,7 +578,7 @@ export default function KelimeSofrasiOyunScreen() {
                 onShuffle={onShuffle}
                 onHint={onHint}
                 hintsLeft={hintsLeft}
-                disabled={completed}
+                disabled={completed || resultOpen}
               />
               <View style={styles.bonusBadgeAnchor} pointerEvents="box-none">
                 <SofraBonusBadge bonusFoundCount={bonusCount} />
@@ -548,7 +591,7 @@ export default function KelimeSofrasiOyunScreen() {
       <EglenceResultModal
         visible={resultOpen}
         onClose={() => {
-          if (!puzzle || !progress) {
+          if (!progress) {
             setResultOpen(false);
             return;
           }
@@ -557,23 +600,14 @@ export default function KelimeSofrasiOyunScreen() {
             router.replace('/(tabs)/eglence' as Href);
             return;
           }
-          if (progress.completedAt) {
-            const count = sofraTamamlamaSayisi(progress);
-            const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: count });
-            setProgress(next);
-            elapsedRef.current = 0;
-            setResultOpen(false);
-            setTimerRunning(true);
-            setSelectedPath([]);
-            setMessage(null);
-            void saveSofraProgress(next);
-            return;
-          }
           setResultOpen(false);
+          setTimerRunning(true);
+          setMessage(null);
+          notifiedRef.current = false;
         }}
         game="kelime_sofrasi"
-        periodKey={puzzle.id}
-        elapsedMs={elapsedRef.current || progress.elapsedMs}
+        periodKey={resultPuzzleIdRef.current ?? puzzle.id}
+        elapsedMs={resultElapsedRef.current || progress.elapsedMs}
       />
     </Screen>
   );

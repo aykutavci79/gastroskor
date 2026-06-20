@@ -31,6 +31,17 @@ def get_request_auth() -> RequestAuth | None:
     return _request_auth.get()
 
 
+def require_request_auth() -> RequestAuth:
+    """JWT oturumu zorunlu — AUTH_REQUIRE_BEARER ayarindan bagimsiz (maliyetli uclar icin)."""
+    auth = get_request_auth()
+    if auth is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Oturum gerekli. Google ile giris yapip tekrar deneyin.",
+        )
+    return auth
+
+
 def auth_require_bearer() -> bool:
     if settings.auth_require_bearer is not None:
         return bool(settings.auth_require_bearer)

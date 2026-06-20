@@ -95,6 +95,10 @@ class ReviewRead(ReviewCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReviewMineRead(ReviewRead):
+    restaurant_name: str = ""
+
+
 class ReviewAnalyzeResponse(BaseModel):
     review_id: str
     sentiment_label: str

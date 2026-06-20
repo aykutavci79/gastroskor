@@ -2,61 +2,65 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Screen } from '@/components/ui/Screen';
+import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
+import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
 import {
   CEVAP_SURE_MS,
   JOKER_SURE_BONUS_MS,
   TUR_SAYISI,
 } from '@/constants/kelime-yarismasi';
-import { useGastroTheme } from '@/context/theme-context';
 import { soruBankasiBosMu } from '@/lib/kelime-yarismasi/soru-paketi';
 
 export default function KelimeYarismasiLobbyScreen() {
   const router = useRouter();
-  const { colors } = useGastroTheme();
+  const t = eglenceLobbyTheme('kelime-yarismasi');
   const bos = soruBankasiBosMu();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         content: { padding: 16, gap: 16, paddingBottom: 32 },
-        baslik: { fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' },
-        alt: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 20 },
+        alt: { fontSize: 14, color: t.muted, textAlign: 'center', lineHeight: 20 },
         kutu: {
-          backgroundColor: colors.panel,
+          backgroundColor: t.panel,
           borderRadius: 12,
           padding: 16,
           gap: 8,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: t.border,
         },
-        kutuBaslik: { fontSize: 16, fontWeight: '700', color: colors.text },
-        madde: { fontSize: 14, color: colors.muted, lineHeight: 20 },
+        kutuBaslik: { fontSize: 16, fontWeight: '700', color: t.text },
+        madde: { fontSize: 14, color: t.muted, lineHeight: 20 },
         buton: {
-          backgroundColor: colors.accent,
+          backgroundColor: t.accent,
           borderRadius: 12,
           paddingVertical: 16,
           alignItems: 'center',
+          shadowColor: t.accent,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.28,
+          shadowRadius: 8,
+          elevation: 6,
         },
         butonPasif: { opacity: 0.45 },
         butonYazi: { fontSize: 17, fontWeight: '800', color: '#fff' },
         uyari: {
-          backgroundColor: colors.accentSoft,
+          backgroundColor: t.accentSoft,
           borderRadius: 12,
           padding: 14,
           borderWidth: 1,
-          borderColor: colors.accent,
+          borderColor: t.borderStrong,
         },
-        uyariBaslik: { fontSize: 15, fontWeight: '700', color: colors.accent },
-        uyariMetin: { fontSize: 13, color: colors.muted, lineHeight: 19, marginTop: 6 },
+        uyariBaslik: { fontSize: 15, fontWeight: '700', color: t.accent },
+        uyariMetin: { fontSize: 13, color: t.muted, lineHeight: 19, marginTop: 6 },
       }),
-    [colors],
+    [t],
   );
 
   return (
-    <Screen>
+    <EglenceGameLobbyScreen gameId="kelime-yarismasi" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.baslik}>Kelime Yarışması</Text>
+        <EglenceGameLobbyTitle gameId="kelime-yarismasi" title="Kelime Yarışması" />
         <Text style={styles.alt}>
           Günlük {TUR_SAYISI} tur · ipucu okurken süre işler · reklamsız
         </Text>
@@ -93,6 +97,6 @@ export default function KelimeYarismasiLobbyScreen() {
           <Text style={styles.butonYazi}>Oyuna Başla</Text>
         </Pressable>
       </ScrollView>
-    </Screen>
+    </EglenceGameLobbyScreen>
   );
 }

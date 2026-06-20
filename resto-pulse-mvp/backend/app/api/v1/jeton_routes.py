@@ -8,6 +8,8 @@ from app.constants.jeton import JETON_FREE_HINTS_PER_GAME, JETON_HINT_COST
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.jeton import (
+    DailyLoginClaimPayload,
+    DailyLoginClaimResponse,
     GameHintSpendPayload,
     GameHintSpendResponse,
     JetonLedgerItem,
@@ -16,8 +18,11 @@ from app.schemas.jeton import (
     WalletSummary,
 )
 from app.services.jeton_service import (
+    claim_daily_login,
     ensure_welcome_bonus,
     get_daily_earn_summary,
+    get_daily_login_granted_today,
+    get_follow_daily_progress,
     get_wallet_balance,
     list_ledger_entries,
     record_referral_click,
@@ -45,12 +50,18 @@ def get_my_wallet(
     ensure_welcome_bonus(db, user_id=user.id)
     db.commit()
     today_earned, cap_remaining = get_daily_earn_summary(db, user_id=user.id)
+    follow_count, follow_threshold, follow_granted = get_follow_daily_progress(db, user_id=user.id)
+    daily_login_granted = get_daily_login_granted_today(db, user_id=user.id)
     return WalletSummary(
         balance=get_wallet_balance(db, user_id=user.id),
         today_earned=today_earned,
         today_cap_remaining=cap_remaining,
         hint_cost=JETON_HINT_COST,
         free_hints_per_game=JETON_FREE_HINTS_PER_GAME,
+        follow_today_count=follow_count,
+        follow_bundle_threshold=follow_threshold,
+        follow_bundle_granted_today=follow_granted,
+        daily_login_granted_today=daily_login_granted,
     )
 
 
@@ -76,6 +87,35 @@ def get_my_ledger(
             for row in rows
         ],
         total=total,
+    )
+
+
+@router.post("/me/claim/daily-login", response_model=DailyLoginClaimResponse)
+def post_claim_daily_login(payload: DailyLoginClaimPayload, db: Session = Depends(get_db)):
+    user = _resolve_user(db, payload.user_email)
+    result = claim_daily_login(db, user_id=user.id)
+    db.commit()
+    if not result.granted and result.reason == "already_claimed":
+        return DailyLoginClaimResponse(
+            ok=False,
+            balance=result.balance,
+            amount=0,
+            reason="already_claimed",
+        )
+    if not result.granted and result.reason == "daily_cap":
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "code": "daily_jeton_cap",
+                "message": "Günlük jeton tavanına ulaşıldı.",
+                "balance": result.balance,
+            },
+        )
+    return DailyLoginClaimResponse(
+        ok=result.granted,
+        balance=result.balance,
+        amount=result.amount if result.granted else 0,
+        reason=result.reason,
     )
 
 

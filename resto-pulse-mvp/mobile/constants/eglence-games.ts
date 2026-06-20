@@ -24,9 +24,16 @@ export type EglenceGameDef = {
 
 export const EGLENCE_GAMES: EglenceGameDef[] = [
   {
+    id: 'kelime-sofrasi',
+    title: 'Kelime Sofrası',
+    subtitle: 'Harf çarkı · günlük ızgara · günde 5 tur',
+    icon: 'text-outline',
+    available: true,
+  },
+  {
     id: 'mini-sudoku',
-    title: 'Mini Sudoku 6×6',
-    subtitle: 'Herkes aynı tabloyu çözer',
+    title: 'Sudoku',
+    subtitle: 'Klasik 9×9 · günlük bulmaca',
     icon: 'grid-outline',
     available: true,
   },
@@ -42,13 +49,6 @@ export const EGLENCE_GAMES: EglenceGameDef[] = [
     title: 'Soru-Cevap',
     subtitle: 'Gurme odasında günlük yemek soruları',
     icon: 'help-circle-outline',
-    available: true,
-  },
-  {
-    id: 'kelime-sofrasi',
-    title: 'Kelime Sofrası',
-    subtitle: 'Harf çarkı · günlük ızgara · günde 5 tur',
-    icon: 'text-outline',
     available: true,
   },
 ];

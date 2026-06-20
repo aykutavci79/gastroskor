@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.constants.jeton import (
     ISTANBUL_TZ,
     JETON_DAILY_EARN_CAP,
+    JETON_DAILY_LOGIN_AMOUNT,
     JETON_FIRST_ORDER_BONUS,
     JETON_FOLLOW_BUNDLE_AMOUNT,
     JETON_FOLLOW_BUNDLE_THRESHOLD,
@@ -105,6 +106,67 @@ def get_daily_earn_summary(db: Session, *, user_id: UUID) -> tuple[int, int]:
     )
     earned = int(row.total_earned) if row else 0
     return earned, max(0, JETON_DAILY_EARN_CAP - earned)
+
+
+def get_follow_daily_progress(db: Session, *, user_id: UUID) -> tuple[int, int, bool]:
+    """Bugün ödüllendirilen yeni takip sayısı, eşik ve paket jetonu verildi mi."""
+    today = istanbul_today()
+    start = datetime.combine(today, datetime.min.time()).replace(tzinfo=ZoneInfo(ISTANBUL_TZ))
+    end = start + timedelta(days=1)
+    today_count = int(
+        db.scalar(
+            select(func.count(JetonFollowReward.id)).where(
+                JetonFollowReward.user_id == user_id,
+                JetonFollowReward.rewarded_at >= start,
+                JetonFollowReward.rewarded_at < end,
+            )
+        )
+        or 0
+    )
+    bundle_key = f"follow_daily_bundle:{user_id}:{today.isoformat()}"
+    bundle_granted = (
+        db.scalar(
+            select(JetonLedger.id).where(
+                JetonLedger.idempotency_key == bundle_key,
+                JetonLedger.status == JetonLedgerStatus.posted,
+            )
+        )
+        is not None
+    )
+    return today_count, JETON_FOLLOW_BUNDLE_THRESHOLD, bundle_granted
+
+
+def get_daily_login_granted_today(db: Session, *, user_id: UUID) -> bool:
+    today = istanbul_today()
+    key = f"daily_login:{user_id}:{today.isoformat()}"
+    return (
+        db.scalar(
+            select(JetonLedger.id).where(
+                JetonLedger.idempotency_key == key,
+                JetonLedger.status == JetonLedgerStatus.posted,
+            )
+        )
+        is not None
+    )
+
+
+def claim_daily_login(db: Session, *, user_id: UUID) -> EarnResult:
+    today = istanbul_today()
+    key = f"daily_login:{user_id}:{today.isoformat()}"
+    entry = _post_ledger_entry(
+        db,
+        user_id=user_id,
+        source=JetonLedgerSource.manual_adjustment,
+        source_id=f"daily_login:{today.isoformat()}",
+        amount=JETON_DAILY_LOGIN_AMOUNT,
+        idempotency_key=key,
+    )
+    balance = get_wallet_balance(db, user_id=user_id)
+    if entry and entry.status == JetonLedgerStatus.posted:
+        return EarnResult(granted=True, amount=JETON_DAILY_LOGIN_AMOUNT, balance=balance)
+    if entry and entry.status == JetonLedgerStatus.rejected:
+        return EarnResult(granted=False, balance=balance, reason="daily_cap")
+    return EarnResult(granted=False, balance=balance, reason="already_claimed")
 
 
 def _lock_daily_total(db: Session, *, user_id: UUID, earn_date: date) -> JetonDailyEarnTotal:

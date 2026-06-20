@@ -12,10 +12,14 @@ export type ReviewPhotoAsset = {
 type Props = {
   photos: ReviewPhotoAsset[];
   onChange: (photos: ReviewPhotoAsset[]) => void;
+  maxPhotos?: number;
 };
 
-export function ReviewPhotoPicker({ photos, onChange }: Props) {
+export function ReviewPhotoPicker({ photos, onChange, maxPhotos = 4 }: Props) {
+  const limit = Math.max(0, maxPhotos);
+
   async function pickPhotos() {
+    if (limit <= 0 || photos.length >= limit) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       return;
@@ -23,7 +27,7 @@ export function ReviewPhotoPicker({ photos, onChange }: Props) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      selectionLimit: Math.max(1, 4 - photos.length),
+      selectionLimit: Math.max(1, limit - photos.length),
       quality: 0.72,
     });
     if (result.canceled) return;
@@ -34,7 +38,7 @@ export function ReviewPhotoPicker({ photos, onChange }: Props) {
         fileName: asset.fileName ?? `photo-${Date.now()}-${index}.jpg`,
         mimeType: asset.mimeType ?? 'image/jpeg',
       })),
-    ].slice(0, 4);
+    ].slice(0, limit);
     onChange(next);
   }
 
@@ -44,9 +48,11 @@ export function ReviewPhotoPicker({ photos, onChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Pressable style={styles.addBtn} onPress={() => void pickPhotos()}>
-        <Text style={styles.addBtnText}>📸 Fotoğraf Ekle</Text>
-      </Pressable>
+      {limit > 0 && photos.length < limit ? (
+        <Pressable style={styles.addBtn} onPress={() => void pickPhotos()}>
+          <Text style={styles.addBtnText}>📸 Fotoğraf Ekle</Text>
+        </Pressable>
+      ) : null}
       {photos.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
           {photos.map((photo) => (

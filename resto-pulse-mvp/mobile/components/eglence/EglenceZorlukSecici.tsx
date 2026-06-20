@@ -4,56 +4,66 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   eglenceZorlukEtiket,
   SOFRA_KELIME_HEDEF,
-  SUDOKU_6X6_GIVENS,
+  SUDOKU_9X9_GIVENS,
   type EglenceZorluk,
 } from '@/constants/eglence-zorluk';
+import { eglenceLobbyTheme } from '@/constants/eglence-card-art-theme';
+import type { EglenceGameId } from '@/constants/eglence-games';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
   mode: 'sofra' | 'sudoku';
   value: EglenceZorluk;
   onChange: (z: EglenceZorluk) => void;
+  /** Koyu lobi arka planı — oyun ikon teması */
+  gameId?: EglenceGameId;
+  /** @deprecated gameId kullan */
+  tone?: 'default' | 'sudoku';
 };
 
 function zorlukAlt(mode: 'sofra' | 'sudoku', z: EglenceZorluk): string {
   if (mode === 'sofra') {
     return `${SOFRA_KELIME_HEDEF[z]} kelime`;
   }
-  if (z === 'kolay') return `6×6 · ${SUDOKU_6X6_GIVENS.kolay} ipucu`;
-  if (z === 'orta') return `6×6 · ${SUDOKU_6X6_GIVENS.orta} ipucu`;
-  return '9×9 · yakında';
+  return `9×9 · ${SUDOKU_9X9_GIVENS[z]} ipucu`;
 }
 
-function zorlukDisabled(mode: 'sofra' | 'sudoku', z: EglenceZorluk): boolean {
-  return mode === 'sudoku' && z === 'zor';
+function zorlukDisabled(_mode: 'sofra' | 'sudoku', _z: EglenceZorluk): boolean {
+  return false;
 }
 
-export function EglenceZorlukSecici({ mode, value, onChange }: Props) {
+export function EglenceZorlukSecici({ mode, value, onChange, gameId, tone = 'default' }: Props) {
   const { colors } = useGastroTheme();
+  const resolvedGameId = gameId ?? (tone === 'sudoku' ? 'mini-sudoku' : undefined);
+  const t = resolvedGameId ? eglenceLobbyTheme(resolvedGameId) : null;
+  const palette = t ?? colors;
   const styles = useMemo(
     () =>
       StyleSheet.create({
         wrap: { gap: 8 },
-        baslik: { fontSize: 15, fontWeight: '800', color: colors.text },
+        baslik: { fontSize: 15, fontWeight: '800', color: palette.text },
         row: { flexDirection: 'row', gap: 8 },
         chip: {
           flex: 1,
           borderRadius: 12,
           borderWidth: 1.5,
-          borderColor: colors.border,
-          backgroundColor: colors.panel,
+          borderColor: palette.border,
+          backgroundColor: t ? t.panel : colors.panel,
           paddingVertical: 10,
           paddingHorizontal: 8,
           alignItems: 'center',
           gap: 2,
         },
-        chipOn: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+        chipOn: {
+          borderColor: palette.accent,
+          backgroundColor: t ? t.accentSoft : colors.accentSoft,
+        },
         chipOff: { opacity: 0.45 },
-        chipLabel: { fontSize: 14, fontWeight: '800', color: colors.text },
-        chipLabelOn: { color: colors.accent },
-        chipSub: { fontSize: 10, color: colors.muted, textAlign: 'center', lineHeight: 13 },
+        chipLabel: { fontSize: 14, fontWeight: '800', color: palette.text },
+        chipLabelOn: { color: palette.accent },
+        chipSub: { fontSize: 10, color: palette.muted, textAlign: 'center', lineHeight: 13 },
       }),
-    [colors],
+    [colors, palette, t],
   );
 
   return (

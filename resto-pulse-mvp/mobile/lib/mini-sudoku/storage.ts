@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { STORAGE_PREFIX } from './constants';
+import { STORAGE_PREFIX, SIZE, SUDOKU_MAX_HINTS, SUDOKU_MAX_LIVES } from './constants';
 import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
 import { cloneGrid, emptyNotes } from './engine';
 import type { Grid, MiniSudokuProgress, MiniSudokuPuzzle } from './types';
@@ -14,14 +14,17 @@ export function freshProgress(puzzle: MiniSudokuPuzzle): MiniSudokuProgress {
     notes: emptyNotes(),
     completedAt: null,
     elapsedMs: 0,
+    lives: SUDOKU_MAX_LIVES,
+    hintsRemaining: SUDOKU_MAX_HINTS,
+    gameOver: false,
   };
 }
 
 function isGrid(raw: unknown): raw is Grid {
   return (
     Array.isArray(raw) &&
-    raw.length === 6 &&
-    raw.every((row) => Array.isArray(row) && row.length === 6 && row.every((n) => typeof n === 'number'))
+    raw.length === SIZE &&
+    raw.every((row) => Array.isArray(row) && row.length === SIZE && row.every((n) => typeof n === 'number'))
   );
 }
 
@@ -39,6 +42,10 @@ export async function loadProgress(puzzle: MiniSudokuPuzzle): Promise<MiniSudoku
       notes: parsed.notes ?? emptyNotes(),
       completedAt: parsed.completedAt ?? null,
       elapsedMs: typeof parsed.elapsedMs === 'number' ? parsed.elapsedMs : 0,
+      lives: typeof parsed.lives === 'number' ? parsed.lives : SUDOKU_MAX_LIVES,
+      hintsRemaining:
+        typeof parsed.hintsRemaining === 'number' ? parsed.hintsRemaining : SUDOKU_MAX_HINTS,
+      gameOver: parsed.gameOver === true,
     };
     if (!EGLENCE_GUNLUK_TEK_OYUN && progress.completedAt) {
       return freshProgress(puzzle);

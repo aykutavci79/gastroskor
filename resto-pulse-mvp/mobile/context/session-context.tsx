@@ -2,9 +2,11 @@ import { router } from 'expo-router';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { syncUser } from '@/lib/api';
+import { getApiV1Base } from '@/lib/api-base';
 import { setAuthFailureHandler } from '@/lib/auth-session-events';
 import {
   clearAllAuthTokens,
+  loadAccessToken,
   loadRefreshToken,
   persistAuthTokens,
   setAccessToken,
@@ -167,8 +169,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    const token = refreshToken ?? (await loadRefreshToken());
+    if (token) {
+      try {
+        await fetch(`${getApiV1Base()}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: token }),
+        });
+      } catch {
+        /* Ag hatasi — yerel cikis devam eder */
+      }
+    }
     await forceLogout();
-  }, [forceLogout]);
+  }, [forceLogout, refreshToken]);
 
   const value = useMemo(
     () => ({

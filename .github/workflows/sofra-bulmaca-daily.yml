@@ -1,0 +1,100 @@
+name: Sofra Bulmaca Daily
+
+on:
+  schedule:
+    # 13:30 UTC = 16:30 TR (17:00 reset oncesi)
+    - cron: "30 13 * * *"
+  workflow_dispatch:
+    inputs:
+      gun_id:
+        description: "Override gun_id (YYYY-MM-DD). Bos = Istanbul bugun"
+        required: false
+        type: string
+
+concurrency:
+  group: sofra-bulmaca-daily
+  cancel-in-progress: false
+
+jobs:
+  generate-and-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: resto-pulse-mvp/mobile/package-lock.json
+
+      - name: Install mobile deps (tsx)
+        working-directory: resto-pulse-mvp/mobile
+        run: npm ci
+
+      - name: Resolve gun_id (Europe/Istanbul)
+        id: gun
+        run: |
+          if [ -n "${{ github.event.inputs.gun_id }}" ]; then
+            GUN_ID="${{ github.event.inputs.gun_id }}"
+          else
+            GUN_ID=$(TZ=Europe/Istanbul date +%Y-%m-%d)
+          fi
+          echo "gun_id=$GUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Target gun_id: $GUN_ID"
+
+      - name: Generate 15 slots (3 zorluk x 5 tur)
+        working-directory: resto-pulse-mvp/mobile
+        run: |
+          npx tsx scripts/generate-sofra-pool.ts --gun-id "${{ steps.gun.outputs.gun_id }}" > /tmp/sofra-pool.json
+          OK=$(node -e "const d=require('/tmp/sofra-pool.json'); console.log(d.filter(x=>x.ok).length)")
+          TOTAL=$(node -e "const d=require('/tmp/sofra-pool.json'); console.log(d.length)")
+          echo "Generator: $OK/$TOTAL ok"
+          if [ "$OK" -lt "$TOTAL" ]; then
+            node -e "const d=require('/tmp/sofra-pool.json'); d.filter(x=>!x.ok).forEach(x=>console.log('FAIL', x.zorluk, 'tur', x.tur))"
+            echo "::warning::Bazi slotlar uretilemedi — import sirasinda onceki gun yedegi kullanilacak"
+          fi
+
+      - name: Import to production API
+        env:
+          CRON_SECRET: ${{ secrets.SOFRA_CRON_SECRET }}
+          API_BASE: ${{ secrets.SOFRA_API_BASE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$API_BASE" ]; then
+            echo "::error::SOFRA_CRON_SECRET ve SOFRA_API_BASE_URL GitHub secrets tanimli olmali"
+            exit 1
+          fi
+          BODY=$(node -e "
+            const fs = require('fs');
+            const puzzles = JSON.parse(fs.readFileSync('/tmp/sofra-pool.json','utf8'));
+            console.log(JSON.stringify({ gun_id: '${{ steps.gun.outputs.gun_id }}', puzzles }));
+          ")
+          HTTP=$(curl -sS -o /tmp/import-response.json -w '%{http_code}' \
+            -X POST "${API_BASE%/}/api/v1/internal/cron/sofra-bulmaca-import" \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            -d "$BODY")
+          echo "HTTP $HTTP"
+          cat /tmp/import-response.json
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::Import basarisiz (HTTP $HTTP)"
+            exit 1
+          fi
+          node -e "
+            const r = require('/tmp/import-response.json');
+            if (!r.ok) {
+              console.error('Import ok=false', JSON.stringify(r.stats?.errors || r));
+              process.exit(1);
+            }
+            console.log('Import OK:', r.stats?.generated, 'generated,', r.stats?.fallback, 'fallback,', r.stats?.failed, 'failed');
+          "
+
+      - name: Upload generator artifact (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sofra-pool-${{ steps.gun.outputs.gun_id }}
+          path: /tmp/sofra-pool.json
+          retention-days: 7

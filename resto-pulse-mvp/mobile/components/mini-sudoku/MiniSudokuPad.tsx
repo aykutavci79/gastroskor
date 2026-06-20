@@ -1,80 +1,75 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DIGITS } from '@/lib/mini-sudoku/constants';
+import { MINI_SUDOKU_THEME } from '@/constants/mini-sudoku-theme';
+import { DIGITS, SUDOKU_BOARD_COLORS } from '@/lib/mini-sudoku/constants';
 import type { Digit } from '@/lib/mini-sudoku/constants';
-import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
-  noteMode: boolean;
+  remaining: Record<Digit, number>;
   onPick: (digit: Digit) => void;
-  onErase: () => void;
   disabled?: boolean;
+  highlightDigit?: Digit | null;
 };
 
-export function MiniSudokuPad({ noteMode, onPick, onErase, disabled }: Props) {
-  const { colors } = useGastroTheme();
+export function MiniSudokuPad({ remaining, onPick, disabled, highlightDigit }: Props) {
+  const t = MINI_SUDOKU_THEME;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        wrap: { gap: 10, marginTop: 20 },
-        row: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+        wrap: {
+          marginTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: t.border,
+          paddingTop: 10,
+        },
+        row: { flexDirection: 'row', justifyContent: 'center' },
         key: {
-          width: 52,
-          height: 52,
-          borderRadius: 12,
+          flex: 1,
+          maxWidth: 42,
           alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.input,
-          borderWidth: 1,
-          borderColor: colors.border,
+          paddingVertical: 8,
+          borderRadius: 8,
         },
         keyPressed: { opacity: 0.85 },
-        keyText: { fontSize: 22, fontWeight: '700', color: colors.text },
-        erase: {
-          marginTop: 4,
-          alignSelf: 'center',
-          paddingHorizontal: 20,
-          paddingVertical: 10,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: colors.border,
+        keyHighlight: { backgroundColor: t.accentSoft },
+        keyText: { fontSize: 20, fontWeight: '700', color: t.text },
+        countText: {
+          marginTop: 2,
+          fontSize: 11,
+          fontWeight: '600',
+          color: SUDOKU_BOARD_COLORS.padCount,
         },
-        eraseText: { color: colors.muted, fontWeight: '600' },
-        hint: { textAlign: 'center', color: colors.muted, fontSize: 12, marginBottom: 4 },
+        countZero: { opacity: 0.35 },
       }),
-    [colors],
+    [t],
   );
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.hint}>{noteMode ? 'Not modu: rakama dokun' : 'Rakam sec veya sil'}</Text>
       <View style={styles.row}>
-        {DIGITS.slice(0, 3).map((digit) => (
-          <Pressable
-            key={digit}
-            disabled={disabled}
-            onPress={() => onPick(digit)}
-            style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}>
-            <Text style={styles.keyText}>{digit}</Text>
-          </Pressable>
-        ))}
+        {DIGITS.map((digit) => {
+          const left = remaining[digit] ?? 0;
+          const exhausted = left <= 0;
+          return (
+            <Pressable
+              key={digit}
+              disabled={disabled || exhausted}
+              onPress={() => onPick(digit)}
+              style={({ pressed }) => [
+                styles.key,
+                highlightDigit === digit && styles.keyHighlight,
+                pressed && styles.keyPressed,
+                exhausted && styles.countZero,
+              ]}>
+              <Text style={styles.keyText}>{digit}</Text>
+              <Text style={[styles.countText, exhausted && styles.countZero]}>{left}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-      <View style={styles.row}>
-        {DIGITS.slice(3).map((digit) => (
-          <Pressable
-            key={digit}
-            disabled={disabled}
-            onPress={() => onPick(digit)}
-            style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}>
-            <Text style={styles.keyText}>{digit}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <Pressable disabled={disabled} onPress={onErase} style={styles.erase}>
-        <Text style={styles.eraseText}>Sil</Text>
-      </Pressable>
     </View>
   );
 }

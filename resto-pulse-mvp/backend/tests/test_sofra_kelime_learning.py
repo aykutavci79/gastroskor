@@ -10,5 +10,5 @@ def test_sofra_kelime_buyuk_turkish():
 
 def test_sofra_kelime_gecerli_min_length():
     assert not sofra_kelime_gecerli("ab")
-    assert not sofra_kelime_gecerli("abc")
+    assert sofra_kelime_gecerli("abc")
     assert sofra_kelime_gecerli("kale")

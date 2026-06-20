@@ -21,6 +21,9 @@ export function SiteFooter() {
           <Link href="/yoresel-lezzetler/bursa-cantik" className="text-content-muted hover:text-accent">
             Bursa cantık
           </Link>
+          <Link href="/sss" className="text-content-muted hover:text-accent">
+            SSS
+          </Link>
           <Link href="/gizlilik" className="text-content-muted hover:text-accent">
             Gizlilik
           </Link>

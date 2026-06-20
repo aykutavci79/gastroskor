@@ -1,4 +1,5 @@
 import { getApiBase } from '@/lib/api-base';
+import { isLikelySslPinningError, SSL_PINNING_USER_MESSAGE } from '@/lib/ssl-pinning';
 
 /** FastAPI / JSON hata govdesinden okunabilir mesaj cikarir. */
 export function parseHttpErrorText(raw: string): string {
@@ -19,6 +20,13 @@ export function parseHttpErrorText(raw: string): string {
   return trimmed;
 }
 
+/** Ham response body'yi exception'a basmadan guvenli HTTP hata mesaji uretir. */
+export function httpErrorMessage(status: number, rawBody: string, context?: string): string {
+  const parsed = parseHttpErrorText(rawBody);
+  const base = parsed || `Istek basarisiz (${status})`;
+  return context ? `${context}: ${base}` : base;
+}
+
 export function formatApiError(err: unknown, context?: string): string {
   const base = getApiBase();
   const prefix = context ? `${context}: ` : '';
@@ -28,6 +36,10 @@ export function formatApiError(err: unknown, context?: string): string {
   }
 
   if (err instanceof TypeError && /network request failed/i.test(err.message)) {
+    const raw = err.message;
+    if (isLikelySslPinningError(raw)) {
+      return `${prefix}${SSL_PINNING_USER_MESSAGE}`;
+    }
     if (/127\.0\.0\.1|localhost/i.test(base)) {
       return (
         `${prefix}API'ye ulasilamadi (${base}). ` +
@@ -38,6 +50,9 @@ export function formatApiError(err: unknown, context?: string): string {
   }
 
   const raw = err instanceof Error ? err.message : 'Bilinmeyen hata';
+  if (isLikelySslPinningError(raw)) {
+    return `${prefix}${SSL_PINNING_USER_MESSAGE}`;
+  }
   if (/abortsignaltimeout|abort.*timeout/i.test(raw)) {
     return `${prefix}Istek zaman asimi (uygulama guncellemesi gerekli olabilir). Uygulamayi yeniden yukle (Expo Go: r).`;
   }

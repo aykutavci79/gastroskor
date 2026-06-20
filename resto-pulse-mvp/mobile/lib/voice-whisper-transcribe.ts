@@ -1,5 +1,5 @@
 import { getApiV1Base } from '@/lib/api-base';
-import { authHeaders } from '@/lib/auth-token';
+import { ensureAccessToken } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 
 export type VoiceTranscribeResponse = {
@@ -13,6 +13,11 @@ export async function transcribeVoiceAudio(
   mimeType = 'audio/m4a',
   fileName = 'voice.m4a',
 ): Promise<VoiceTranscribeResponse> {
+  const token = await ensureAccessToken();
+  if (!token) {
+    throw new Error('Ses araması için giriş yapmalısınız.');
+  }
+
   const form = new FormData();
   form.append('language', 'tr');
   form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
@@ -20,7 +25,7 @@ export async function transcribeVoiceAudio(
   const response = await fetch(`${getApiV1Base()}/voice/transcribe`, {
     method: 'POST',
     headers: {
-      ...authHeaders(),
+      Authorization: `Bearer ${token}`,
     },
     body: form,
     signal: createFetchTimeoutSignal(30_000),

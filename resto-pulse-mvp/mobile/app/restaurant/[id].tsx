@@ -93,14 +93,15 @@ export default function RestaurantDetailScreen() {
   const onFieldFocus = useKeyboardFieldFocus(scrollRef);
   const keyboardOffset = useScreenKeyboardOffset();
   const reviewFormOffsetY = useRef(0);
+  const reviewFormBottomY = useRef(0);
   const menuOffsetY = useRef(0);
   const reviewsSectionY = useRef(0);
   const reviewCardY = useRef<Record<string, number>>({});
   const pendingMenuFocus = useRef(focus === 'menu');
 
   const scrollToY = useCallback(
-    (targetY: number) => {
-      onFieldFocus(targetY, 48);
+    (targetY: number, capBottomY?: number) => {
+      onFieldFocus(targetY, { extraGap: 48, capBottomY });
     },
     [onFieldFocus],
   );
@@ -505,8 +506,7 @@ export default function RestaurantDetailScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets>
+          keyboardDismissMode="interactive">
         <View style={styles.section}>
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
@@ -735,6 +735,8 @@ export default function RestaurantDetailScreen() {
             <View
               onLayout={(event) => {
                 reviewFormOffsetY.current = event.nativeEvent.layout.y;
+                reviewFormBottomY.current =
+                  event.nativeEvent.layout.y + event.nativeEvent.layout.height;
               }}>
               <Text style={styles.subsectionTitle}>Yorum yap</Text>
               {sessionLoading ? (
@@ -757,7 +759,9 @@ export default function RestaurantDetailScreen() {
                   <TextInput
                     value={text}
                     onFocus={() => {
-                      scrollToY(reviewsSectionY.current + reviewFormOffsetY.current + 100);
+                      const formTop = reviewsSectionY.current + reviewFormOffsetY.current;
+                      const formBottom = reviewsSectionY.current + reviewFormBottomY.current;
+                      scrollToY(formTop + 80, formBottom);
                     }}
                     onChangeText={(value) => {
                       setText(value);

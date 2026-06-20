@@ -20,6 +20,7 @@ class RefreshTokenClaims:
     user_id: UUID
     email: str
     jti: str
+    expires_at: datetime
 
 
 def create_access_token(*, user_id: UUID, email: str) -> tuple[str, int]:
@@ -92,7 +93,8 @@ def decode_refresh_token(token: str) -> RefreshTokenClaims:
     sub = str(payload.get("sub") or "").strip()
     email = str(payload.get("email") or "").strip().lower()
     jti = str(payload.get("jti") or "").strip()
-    if not sub or not email or not jti:
+    exp = payload.get("exp")
+    if not sub or not email or not jti or exp is None:
         raise ValueError("Eksik yenileme bilgisi.")
 
     try:
@@ -100,7 +102,12 @@ def decode_refresh_token(token: str) -> RefreshTokenClaims:
     except ValueError as exc:
         raise ValueError("Gecersiz oturum kimligi.") from exc
 
-    return RefreshTokenClaims(user_id=user_id, email=email, jti=jti)
+    try:
+        expires_at = datetime.fromtimestamp(int(exp), tz=timezone.utc)
+    except (TypeError, ValueError, OSError) as exc:
+        raise ValueError("Gecersiz yenileme suresi.") from exc
+
+    return RefreshTokenClaims(user_id=user_id, email=email, jti=jti, expires_at=expires_at)
 
 
 def _decode_token(token: str) -> dict:

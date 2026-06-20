@@ -9,6 +9,10 @@ export const SOFRA_WHEEL_MAX = 7;
 export const SOFRA_MIN_HEDEF = 5;
 export const SOFRA_MAX_HEDEF = 7;
 
+/** Bulmacada en az bu kadar 3 harfli hedef kelime (köprü / sıkışmayı azaltır) */
+export const SOFRA_UC_HARF_MIN = 2;
+export const SOFRA_UC_HARF_MAX = 3;
+
 /** Oyunda kullanılabilecek ipucu sayısı */
 export const SOFRA_MAX_IPUCU = 8;
 
@@ -32,4 +36,5 @@ export const SOFRA_WHEEL_FONT_FAMILY = 'SofraMontserratBlack';
 export const SOFRA_BONUS_HINT_THRESHOLD = 3;
 
 /** Prod: ayni gunluk bulmacayi en fazla 5 kez bitir. Dev: sinirsiz tekrar. */
-export const SOFRA_GUNLUK_TAMAMLAMA_LIMIT = __DEV__ ? 999 : 5;
+export const SOFRA_GUNLUK_TAMAMLAMA_LIMIT =
+  typeof __DEV__ !== 'undefined' && __DEV__ ? 999 : 5;

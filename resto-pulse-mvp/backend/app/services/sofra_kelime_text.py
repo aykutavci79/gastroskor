@@ -26,4 +26,4 @@ def sofra_kelime_buyuk(raw: str) -> str:
 
 def sofra_kelime_gecerli(raw: str) -> bool:
     kelime = sofra_kelime_buyuk(raw)
-    return len(kelime) >= 4 and bool(re.fullmatch(r"[A-ZÇĞİÖŞÜI]+", kelime))
+    return len(kelime) >= 3 and bool(re.fullmatch(r"[A-ZÇĞİÖŞÜI]+", kelime))

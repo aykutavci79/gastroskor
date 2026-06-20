@@ -3,10 +3,12 @@
  * Çalıştır: npx tsx scripts/test-sofra-generator.ts
  */
 
+(globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
+
 import { SOFRA_KELIME_HEDEF } from '../constants/eglence-zorluk';
 import type { EglenceZorluk } from '../constants/eglence-zorluk';
 import { packCrosswordFromCandidates, type PackStats } from '../lib/kelime-sofrasi/crossword-pack';
-import { extractGridRuns, type GridMap } from '../lib/kelime-sofrasi/grid-runs';
+import { validateSofraCrossword, type GridMap } from '../lib/kelime-sofrasi/grid-runs';
 import { cantadanKelimeAdaylari } from '../lib/kelime-sofrasi/letter-bag';
 import { havuzKelimeFiltre, havuzZorlukFiltre } from '../lib/kelime-sofrasi/havuz';
 import { buildDailySofraPuzzle } from '../lib/kelime-sofrasi/puzzle';
@@ -51,10 +53,7 @@ function placedToGrid(words: SofraPlacedWord[]): GridMap {
 }
 
 function validateRuns(words: SofraPlacedWord[]): { ok: boolean; invalid: string[] } {
-  const lexicon = tdkLexicon();
-  const runs = extractGridRuns(placedToGrid(words));
-  const invalid = runs.filter((r) => r.length >= 2 && !lexicon.has(r));
-  return { ok: invalid.length === 0, invalid };
+  return validateSofraCrossword(words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU);
 }
 
 function isFallback(puzzle: ReturnType<typeof buildDailySofraPuzzle>, zorluk: EglenceZorluk): boolean {

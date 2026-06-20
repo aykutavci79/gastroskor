@@ -125,3 +125,25 @@ export function toggleNote(notes: Digit[][][], row: number, col: number, digit: 
   );
   return next;
 }
+
+function countDigitOnGrid(grid: Grid, digit: Digit): number {
+  let count = 0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r]![c] === digit) count += 1;
+    }
+  }
+  return count;
+}
+
+export function remainingDigitCounts(solution: Grid, values: Grid): Record<Digit, number> {
+  const counts = {} as Record<Digit, number>;
+  for (const digit of DIGITS) {
+    counts[digit] = Math.max(0, countDigitOnGrid(solution, digit) - countDigitOnGrid(values, digit));
+  }
+  return counts;
+}
+
+export function isWrongPlacement(solution: Grid, row: number, col: number, digit: Digit): boolean {
+  return solution[row]![col] !== digit;
+}

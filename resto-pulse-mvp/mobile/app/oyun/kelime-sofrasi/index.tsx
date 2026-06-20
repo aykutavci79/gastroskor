@@ -1,15 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useRouter, type Href } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
+import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { EglenceZorlukSecici } from '@/components/eglence/EglenceZorlukSecici';
-import { Screen } from '@/components/ui/Screen';
+import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { SOFRA_KELIME_HEDEF } from '@/constants/eglence-zorluk';
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
-import { useGastroTheme } from '@/context/theme-context';
 import {
   prefetchSofraOtherZorluklarIdle,
   prefetchSofraPuzzlesForToday,
@@ -18,10 +12,14 @@ import {
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 import type { SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { activePuzzleId, formatNextResetHint, formatPuzzlePeriodLabel } from '@/lib/mini-sudoku/schedule';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, type Href } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function KelimeSofrasiLobbyScreen() {
   const router = useRouter();
-  const { colors } = useGastroTheme();
+  const t = eglenceLobbyTheme('kelime-sofrasi');
   const puzzleId = activePuzzleId();
   const [zorluk, setZorluk] = useState<EglenceZorluk>('orta');
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
@@ -29,19 +27,19 @@ export default function KelimeSofrasiLobbyScreen() {
   const [limitDoldu, setLimitDoldu] = useState(false);
 
   useEffect(() => {
-    void loadSofraMetaStatus(puzzleId).then((meta) => {
+    void loadSofraMetaStatus(puzzleId, zorluk).then((meta) => {
       setTamamlamaSayisi(meta.tamamlamaSayisi);
       setLimitDoldu(meta.completed);
     });
-  }, [puzzleId]);
+  }, [puzzleId, zorluk]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadSofraMetaStatus(puzzleId).then((meta) => {
+      void loadSofraMetaStatus(puzzleId, zorluk).then((meta) => {
         setTamamlamaSayisi(meta.tamamlamaSayisi);
         setLimitDoldu(meta.completed);
       });
-    }, [puzzleId]),
+    }, [puzzleId, zorluk]),
   );
 
   useEffect(() => {
@@ -60,46 +58,43 @@ export default function KelimeSofrasiLobbyScreen() {
     () =>
       StyleSheet.create({
         content: { padding: 16, gap: 16, paddingBottom: 32 },
-        topBack: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          alignSelf: 'flex-start',
-          gap: 2,
-        },
-        topBackText: { color: colors.accent, fontSize: 16, fontWeight: '700' },
-        baslik: { fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' },
-        alt: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 20 },
+        alt: { fontSize: 14, color: t.muted, textAlign: 'center', lineHeight: 20 },
         kutu: {
-          backgroundColor: colors.panel,
+          backgroundColor: t.panel,
           borderRadius: 12,
           padding: 16,
           gap: 8,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: t.border,
         },
-        kutuBaslik: { fontSize: 16, fontWeight: '700', color: colors.text },
-        madde: { fontSize: 14, color: colors.muted, lineHeight: 20 },
+        kutuBaslik: { fontSize: 16, fontWeight: '700', color: t.text },
+        madde: { fontSize: 14, color: t.muted, lineHeight: 20 },
         schedulePill: {
-          backgroundColor: colors.accentSoft,
+          backgroundColor: t.accentSoft,
           borderWidth: 1,
-          borderColor: colors.accent,
+          borderColor: t.borderStrong,
           borderRadius: 10,
           paddingHorizontal: 12,
           paddingVertical: 10,
           gap: 4,
         },
-        scheduleTitle: { color: colors.text, fontSize: 13, fontWeight: '800' },
-        scheduleHint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+        scheduleTitle: { color: t.text, fontSize: 13, fontWeight: '800' },
+        scheduleHint: { color: t.muted, fontSize: 12, lineHeight: 17 },
         buton: {
-          backgroundColor: colors.accent,
+          backgroundColor: t.accent,
           borderRadius: 12,
           paddingVertical: 16,
           alignItems: 'center',
+          shadowColor: t.accent,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 6,
         },
         butonDisabled: { opacity: 0.45 },
         butonYazi: { fontSize: 17, fontWeight: '800', color: '#fff' },
       }),
-    [colors],
+    [t],
   );
 
   const hedefKelime = SOFRA_KELIME_HEDEF[zorluk];
@@ -108,22 +103,9 @@ export default function KelimeSofrasiLobbyScreen() {
   const oyunAcik = sofraHazir && !limitDoldu;
 
   return (
-    <Screen edges={['left', 'right', 'bottom']}>
+    <EglenceGameLobbyScreen gameId="kelime-sofrasi" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable
-          style={styles.topBack}
-          onPress={() => {
-            if (router.canGoBack()) router.back();
-            else router.replace('/(tabs)/eglence' as Href);
-          }}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Geri">
-          <Ionicons name="chevron-back" size={22} color={colors.accent} />
-          <Text style={styles.topBackText}>Geri</Text>
-        </Pressable>
-
-        <Text style={styles.baslik}>Kelime Sofrası</Text>
+        <EglenceGameLobbyTitle gameId="kelime-sofrasi" title="Kelime Sofrası" />
         <Text style={styles.alt}>Harf çarkı · çapraz kelime · reklamsız</Text>
 
         <View style={styles.schedulePill}>
@@ -131,7 +113,7 @@ export default function KelimeSofrasiLobbyScreen() {
           <Text style={styles.scheduleHint}>{formatNextResetHint()}</Text>
         </View>
 
-        <EglenceZorlukSecici mode="sofra" value={zorluk} onChange={setZorluk} />
+        <EglenceZorlukSecici mode="sofra" value={zorluk} onChange={setZorluk} gameId="kelime-sofrasi" />
 
         <View style={styles.kutu}>
           <Text style={styles.kutuBaslik}>Kurallar</Text>
@@ -144,7 +126,7 @@ export default function KelimeSofrasiLobbyScreen() {
           </Text>
           <Text style={styles.madde}>Takılırsan İpucu ile ızgarada rastgele bir harf açılır.</Text>
           <Text style={styles.madde}>
-            Aynı günlük sofrayı günde {SOFRA_GUNLUK_TAMAMLAMA_LIMIT} kez bitirebilirsin.
+            Her turda yeni kelimeler ve düzen gelir. Günde {SOFRA_GUNLUK_TAMAMLAMA_LIMIT} tur oynayabilirsin.
             {limitDoldu
               ? ' Bugünlük hakkın doldu.'
               : kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
@@ -169,6 +151,6 @@ export default function KelimeSofrasiLobbyScreen() {
           </Text>
         </Pressable>
       </ScrollView>
-    </Screen>
+    </EglenceGameLobbyScreen>
   );
 }

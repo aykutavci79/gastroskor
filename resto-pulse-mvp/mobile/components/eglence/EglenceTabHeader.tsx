@@ -9,9 +9,10 @@ type Props = {
   cityLabel: string;
   jetonBalance?: number | null;
   jetonLoading?: boolean;
+  onJetonPress?: () => void;
 };
 
-export function EglenceTabHeader({ cityLabel, jetonBalance = null, jetonLoading }: Props) {
+export function EglenceTabHeader({ cityLabel, jetonBalance = null, jetonLoading, onJetonPress }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -20,7 +21,7 @@ export function EglenceTabHeader({ cityLabel, jetonBalance = null, jetonLoading 
           <Text style={styles.kickerText}>Topluluk · {cityLabel}</Text>
         </View>
         <View style={styles.topActions}>
-          <JetonChip balance={jetonBalance} loading={jetonLoading} />
+          <JetonChip balance={jetonBalance} loading={jetonLoading} onPress={onJetonPress} />
           <DmAvatarButton />
         </View>
       </View>

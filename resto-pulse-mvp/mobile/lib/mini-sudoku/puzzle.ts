@@ -13,7 +13,7 @@ function generateSolution(rand: () => number): Grid {
   const grid = emptyGrid();
   const digitOrder = shuffled(DIGITS, rand).map(Number);
   if (!solveGrid(grid, digitOrder)) {
-    throw new Error('Mini sudoku cozum uretilemedi.');
+    throw new Error('Sudoku cozum uretilemedi.');
   }
   return grid;
 }

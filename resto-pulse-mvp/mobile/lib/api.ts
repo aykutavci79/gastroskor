@@ -35,6 +35,7 @@ import type {
   RegionalProductDiscoverResponse,
   RegionalProductListResponse,
   Review,
+  MyReview,
   ReviewAnalyzeResult,
   ReviewReply,
   CheckInResult,
@@ -50,6 +51,7 @@ import type {
   UserProfile,
   JetonWalletSummary,
   JetonLedgerListResponse,
+  DailyLoginClaimResponse,
   GameHintSpendResponse,
 } from '@/lib/types';
 
@@ -58,7 +60,7 @@ import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { notifyAuthFailure } from '@/lib/auth-session-events';
 import { authHeaders, ensureAccessToken, refreshAuthTokens } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
-import { formatApiError, parseHttpErrorText } from '@/lib/format-api-error';
+import { formatApiError, httpErrorMessage, parseHttpErrorText } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 import { setupSslPinning } from '@/lib/ssl-pinning';
 
@@ -118,7 +120,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text();
-    let message = text ? `${response.status}: ${text}` : `API error ${response.status}`;
+    let message = httpErrorMessage(response.status, text);
     try {
       const parsed = JSON.parse(text) as {
         detail?: string | Array<{ msg?: string }> | Record<string, unknown>;
@@ -383,6 +385,18 @@ export function listRestaurantReviews(
   return request<Review[]>(`/restaurants/${restaurantId}/reviews${query}`);
 }
 
+export function listMyReviews(
+  userEmail: string,
+  options?: { kind?: 'visit' | 'online_order'; limit?: number },
+) {
+  const params = new URLSearchParams();
+  params.set('author_email', userEmail.trim().toLowerCase());
+  if (options?.kind) params.set('review_kind', options.kind);
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request<MyReview[]>(`/reviews/mine${query}`);
+}
+
 export function createOrderReview(
   orderId: string,
   payload: {
@@ -506,7 +520,7 @@ export async function uploadReviewImage(
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Upload failed ${response.status}`);
+    throw new Error(httpErrorMessage(response.status, text, 'Yorum fotografi'));
   }
   return response.json() as Promise<Review>;
 }
@@ -591,14 +605,7 @@ export async function uploadUserAvatar(
   }
   if (!response.ok) {
     const text = await response.text();
-    let message = text ? `${response.status}: ${text}` : `Upload failed ${response.status}`;
-    try {
-      const parsed = JSON.parse(text) as { detail?: string };
-      if (typeof parsed.detail === 'string') message = parsed.detail;
-    } catch {
-      /* plain text */
-    }
-    throw new Error(formatApiError(new Error(message), 'Profil fotografi'));
+    throw new Error(formatApiError(new Error(httpErrorMessage(response.status, text)), 'Profil fotografi'));
   }
   return response.json() as Promise<UserProfile>;
 }
@@ -767,7 +774,7 @@ export async function requestSocialScan(params: {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `API error ${response.status}`);
+    throw new Error(httpErrorMessage(response.status, text, 'Sosyal tarama'));
   }
   const data = (await response.json()) as SocialProofStatus;
   return { data, status: response.status };
@@ -793,7 +800,7 @@ export async function discoverSearch(params: {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `API error ${response.status}`);
+    throw new Error(httpErrorMessage(response.status, text, 'Kesif aramasi'));
   }
   const data = (await response.json()) as DiscoverSearchResponse;
   return { data, status: response.status };
@@ -874,7 +881,7 @@ export async function uploadPanelMenuImage(
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Upload failed ${response.status}`);
+    throw new Error(httpErrorMessage(response.status, text, 'Menu fotografi'));
   }
   return response.json() as Promise<{
     menu_image_url: string;
@@ -1225,8 +1232,7 @@ export async function uploadFoodcastPhoto(params: {
   });
   if (!response.ok) {
     const text = await response.text();
-    const message = parseHttpErrorText(text) || `Yükleme başarısız (${response.status})`;
-    throw new Error(message);
+    throw new Error(httpErrorMessage(response.status, text, 'Foodcast fotografi'));
   }
   return response.json() as Promise<{ photo: FoodcastPhotoItem }>;
 }
@@ -1244,6 +1250,13 @@ export function reportFoodcastPhoto(
 export async function getJetonWallet(userEmail: string) {
   const query = new URLSearchParams({ user_email: userEmail });
   return request<JetonWalletSummary>(`/jeton/me/wallet?${query.toString()}`);
+}
+
+export async function claimDailyLogin(userEmail: string) {
+  return request<DailyLoginClaimResponse>('/jeton/me/claim/daily-login', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: userEmail }),
+  });
 }
 
 export async function getJetonLedger(userEmail: string, limit = 20, offset = 0) {

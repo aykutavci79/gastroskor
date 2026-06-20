@@ -14,4 +14,9 @@ export type MiniSudokuProgress = {
   notes: Digit[][][];
   completedAt: string | null;
   elapsedMs: number;
+  lives: number;
+  hintsRemaining: number;
+  gameOver: boolean;
 };
+
+export type SudokuSnapshot = Pick<MiniSudokuProgress, 'values' | 'notes' | 'lives' | 'gameOver'>;

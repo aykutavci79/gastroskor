@@ -16,7 +16,7 @@ export function buildEglenceChallengeShareText(
   if (game === 'mini_sudoku' && opts.elapsedMs != null) {
     const time = formatChallengeElapsed(opts.elapsedMs);
     return (
-      `GastroSkor'daki Mini Sudoku'yu ${time} sürede çözdüm. Challenge'e var mısın?\n` +
+      `GastroSkor'daki Sudoku'yu ${time} sürede çözdüm. Challenge'e var mısın?\n` +
       EGLENCE_SHARE_URL
     );
   }

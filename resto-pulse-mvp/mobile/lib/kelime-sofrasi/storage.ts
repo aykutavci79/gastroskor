@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { EglenceZorluk } from '@/constants/eglence-zorluk';
+import { sofraTurFromPuzzleId } from '@/constants/eglence-zorluk';
 import { SOFRA_STORAGE_PREFIX } from '@/constants/kelime-sofrasi';
 import { baslangicCarkSirasi } from '@/lib/kelime-sofrasi/engine';
 import {
@@ -37,7 +39,8 @@ export function freshProgress(
   puzzle: SofraPuzzle,
   opts?: { gunlukTamamlamaSayisi?: number },
 ): SofraProgress {
-  const rand = mulberry32(seedFromString(`${puzzle.id}:wheel`));
+  const round = opts?.gunlukTamamlamaSayisi ?? 0;
+  const rand = mulberry32(seedFromString(`${puzzle.id}:wheel:round:${round}`));
   return {
     puzzleId: puzzle.id,
     foundWordIds: [],
@@ -46,21 +49,61 @@ export function freshProgress(
     wheelOrder: baslangicCarkSirasi(puzzle.wheel, rand),
     completedAt: null,
     elapsedMs: 0,
-    gunlukTamamlamaSayisi: opts?.gunlukTamamlamaSayisi ?? 0,
+    gunlukTamamlamaSayisi: round,
   };
 }
 
-export async function loadSofraProgress(puzzle: SofraPuzzle): Promise<SofraProgress> {
+/** Tamamlanan tur sonrası yeni tur — diske yazar, bellek önbelleğini günceller. */
+export async function beginNextSofraRound(
+  puzzle: SofraPuzzle,
+  tamamlamaSayisi: number,
+): Promise<SofraProgress> {
+  const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlamaSayisi });
+  await saveSofraProgress(next);
+  return next;
+}
+
+function turTamamlamaSayisi(puzzle: SofraPuzzle, gunId: string, zorluk: EglenceZorluk): number {
+  return sofraTurFromPuzzleId(puzzle.id, gunId, zorluk);
+}
+
+/** Kayitli ilerlemeye gore hangi tur bulmacasi yuklenecek. */
+export async function resolveSofraSessionTur(
+  gunId: string,
+  zorluk: EglenceZorluk,
+): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as SofraProgress;
+    const prefix = `${gunId}:${zorluk}`;
+    if (!parsed.puzzleId.startsWith(prefix)) return 0;
+    if (parsed.completedAt && !sofraGunlukLimitDoldu(parsed)) {
+      return sofraTamamlamaSayisi(parsed);
+    }
+    return sofraTurFromPuzzleId(parsed.puzzleId, gunId, zorluk);
+  } catch {
+    return 0;
+  }
+}
+
+export async function loadSofraProgress(
+  puzzle: SofraPuzzle,
+  gunId?: string,
+  zorluk?: EglenceZorluk,
+): Promise<SofraProgress> {
   const store = (progress: SofraProgress) => {
     progressMemCache.set(progressCacheKey(puzzle), progress);
     return progress;
   };
+  const defaultTamamlama =
+    gunId && zorluk ? turTamamlamaSayisi(puzzle, gunId, zorluk) : 0;
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return store(freshProgress(puzzle));
+    if (!raw) return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
     const parsed = JSON.parse(raw) as SofraProgress;
     if (parsed.puzzleId !== puzzle.id || !Array.isArray(parsed.foundWordIds)) {
-      return store(freshProgress(puzzle));
+      return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
     }
     const wheelOrder =
       Array.isArray(parsed.wheelOrder) && parsed.wheelOrder.length === puzzle.wheel.length
@@ -82,13 +125,13 @@ export async function loadSofraProgress(puzzle: SofraPuzzle): Promise<SofraProgr
       gunlukTamamlamaSayisi: tamamlama,
     };
     if (progress.completedAt && !sofraGunlukLimitDoldu(progress)) {
-      return store(
-        freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlama }),
-      );
+      const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlama });
+      await saveSofraProgress(next);
+      return store(next);
     }
     return store(progress);
   } catch {
-    return store(freshProgress(puzzle));
+    return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
   }
 }
 
@@ -99,7 +142,8 @@ export async function saveSofraProgress(progress: SofraProgress): Promise<void> 
 
 /** Eğlence sekmesi / lobi için — ağır bulmaca üretimi olmadan durum okur. */
 export async function loadSofraMetaStatus(
-  puzzleId: string,
+  gunId: string,
+  zorluk: EglenceZorluk,
 ): Promise<{
   completed: boolean;
   inProgress: boolean;
@@ -112,7 +156,8 @@ export async function loadSofraMetaStatus(
       return { completed: false, inProgress: false, tamamlamaSayisi: 0, kalanTur: sofraKalanGunlukHak(null) };
     }
     const parsed = JSON.parse(raw) as SofraProgress;
-    if (!parsed.puzzleId.startsWith(puzzleId)) {
+    const prefix = `${gunId}:${zorluk}`;
+    if (!parsed.puzzleId.startsWith(prefix)) {
       return { completed: false, inProgress: false, tamamlamaSayisi: 0, kalanTur: sofraKalanGunlukHak(null) };
     }
     const tamamlama = sofraTamamlamaSayisi(parsed);

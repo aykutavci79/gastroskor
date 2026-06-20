@@ -2,8 +2,8 @@ import { getApiV1Base } from '@/lib/api-base';
 
 import { sofraKelimeBuyuk } from './turkce-harf';
 
-/** Gürültü filtresi — 3 harf ve altı loglanmaz. */
-const MIN_LOG_LENGTH = 4;
+/** Gürültü filtresi — 2 harf ve altı loglanmaz; 3 harfliler havuz genişletme için kritik. */
+const MIN_LOG_LENGTH = 3;
 
 /** Anonim çark denemesi — doğru/yanlış fark etmez; UI bloklanmaz. */
 export function logWheelAttempt(raw: string): void {

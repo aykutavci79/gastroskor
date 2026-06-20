@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import io
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.main import app
+from app.services.access_token import create_access_token
 from app.services.voice_transcription import VoiceTranscriptionResult, transcribe_voice_audio
 
 client = TestClient(app)
+
+
+def _auth_headers() -> dict[str, str]:
+    token, _ = create_access_token(user_id=uuid4(), email="voice-tester@example.com")
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_transcribe_voice_groq_success(monkeypatch) -> None:
@@ -70,8 +77,22 @@ def test_transcribe_endpoint_requires_provider_keys(monkeypatch) -> None:
         "/api/v1/voice/transcribe",
         files={"file": ("voice.m4a", io.BytesIO(b"abc"), "audio/m4a")},
         data={"language": "tr"},
+        headers=_auth_headers(),
     )
     assert response.status_code == 503
+
+
+def test_transcribe_endpoint_requires_auth(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "groq_api_key", "groq-test")
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.setattr(settings, "auth_require_bearer", False)
+
+    response = client.post(
+        "/api/v1/voice/transcribe",
+        files={"file": ("voice.m4a", io.BytesIO(b"abc"), "audio/m4a")},
+        data={"language": "tr"},
+    )
+    assert response.status_code == 401
 
 
 def test_transcribe_endpoint_success(monkeypatch) -> None:
@@ -87,6 +108,7 @@ def test_transcribe_endpoint_success(monkeypatch) -> None:
         "/api/v1/voice/transcribe",
         files={"file": ("voice.m4a", io.BytesIO(b"abc"), "audio/m4a")},
         data={"language": "tr"},
+        headers=_auth_headers(),
     )
     assert response.status_code == 200
     payload = response.json()

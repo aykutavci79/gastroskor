@@ -40,6 +40,10 @@ def _panel_admin_secret_trusted(request: Request) -> bool:
     return bool(header) and header == expected
 
 
+def _path_always_requires_bearer(path: str, method: str) -> bool:
+    return path == "/api/v1/voice/transcribe" and method == "POST"
+
+
 def _path_requires_auth(path: str, method: str) -> bool:
     if not path.startswith("/api/v1/"):
         return False
@@ -76,7 +80,7 @@ def _path_requires_auth(path: str, method: str) -> bool:
 
 
 def _rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitRule, str] | None:
-    if path.startswith("/api/v1/auth/google/") or path == "/api/v1/auth/refresh":
+    if path.startswith("/api/v1/auth/google/") or path in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}:
         return RateLimitRule(limit=20, window_sec=60), rate_limit_key("auth", client_ip)
     if path == "/api/v1/users/sync":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("sync", client_ip)
@@ -86,6 +90,8 @@ def _rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitR
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("voice", client_ip)
     if path == "/api/v1/eglence/kelime-sofrasi/attempts" and method == "POST":
         return RateLimitRule(limit=120, window_sec=60), rate_limit_key("sofra-attempt", client_ip)
+    if path == "/api/v1/eglence/kelime-sofrasi/puzzle" and method == "GET":
+        return RateLimitRule(limit=180, window_sec=60), rate_limit_key("sofra-puzzle", client_ip)
     if method == "POST" and path.endswith("/reviews"):
         return RateLimitRule(limit=20, window_sec=3600), rate_limit_key("reviews", client_ip)
     if path.startswith("/api/v1/social/"):
@@ -101,7 +107,6 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method.upper()
 
-        client_ip = request.client.host if request.client else "unknown"
         client_ip = request.client.host if request.client else "unknown"
         rule_info = _rate_limit_rule(path, method, client_ip)
         if rule_info is not None:
@@ -119,6 +124,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             token = auth_header[7:].strip()
 
         panel_admin_trusted = path.startswith("/api/v1/panel/admin/") and _panel_admin_secret_trusted(request)
+        always_requires_bearer = _path_always_requires_bearer(path, method)
 
         auth: RequestAuth | None = None
         if token:
@@ -127,11 +133,18 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 auth = RequestAuth.from_claims(claims)
                 set_request_auth(auth)
             except ValueError:
-                if auth_require_bearer() and _path_requires_auth(path, method) and not panel_admin_trusted:
+                if always_requires_bearer or (
+                    auth_require_bearer() and _path_requires_auth(path, method) and not panel_admin_trusted
+                ):
                     return JSONResponse(
                         status_code=401,
                         content={"detail": "Gecersiz veya suresi dolmus oturum."},
                     )
+        if always_requires_bearer and auth is None:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Oturum gerekli. Google ile giris yapip tekrar deneyin."},
+            )
         if auth_require_bearer() and _path_requires_auth(path, method) and auth is None and not panel_admin_trusted:
             return JSONResponse(
                 status_code=401,

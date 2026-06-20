@@ -24,6 +24,8 @@ type Props = {
   flush?: boolean;
   /** Stack header varken ust safe-area tekrarlanmasin */
   edges?: Edge[];
+  /** Varsayilan tema bg yerine (Sudoku gibi ozel zeminler) */
+  backgroundColor?: string;
 };
 
 export function Screen({
@@ -36,9 +38,10 @@ export function Screen({
   scrollRef,
   flush = false,
   edges = ['top', 'left', 'right'],
+  backgroundColor,
 }: Props) {
   const { colors } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors.bg), [colors.bg]);
+  const styles = useMemo(() => createStyles(backgroundColor ?? colors.bg), [backgroundColor, colors.bg]);
   const contentStyle = [flush ? styles.flush : styles.scroll, style];
 
   const body = scroll ? (

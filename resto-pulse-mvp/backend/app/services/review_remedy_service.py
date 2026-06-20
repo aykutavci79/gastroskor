@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import Restaurant, RestaurantOwnership, Review, ReviewRemedyOffer, User
 from app.schemas.review_remedy import ReviewRemedyOfferCreate
+from app.services.request_identity import resolve_authenticated_email
 
 REMEDY_MAX_RATING = 3
 RESTAURANT_WINDOW_HOURS = 24
@@ -167,7 +168,8 @@ def issue_remedy_offer(
 
 
 def accept_remedy_offer(db: Session, *, review_id: UUID, author_email: str) -> tuple[Review, ReviewRemedyOffer]:
-    user = db.scalar(select(User).where(User.email == author_email.strip().lower()).limit(1))
+    verified_email = resolve_authenticated_email(claimed_email=author_email)
+    user = db.scalar(select(User).where(User.email == verified_email).limit(1))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
 
@@ -194,7 +196,8 @@ def accept_remedy_offer(db: Session, *, review_id: UUID, author_email: str) -> t
 
 
 def reject_remedy_offer(db: Session, *, review_id: UUID, author_email: str) -> Review:
-    user = db.scalar(select(User).where(User.email == author_email.strip().lower()).limit(1))
+    verified_email = resolve_authenticated_email(claimed_email=author_email)
+    user = db.scalar(select(User).where(User.email == verified_email).limit(1))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
 
@@ -234,7 +237,8 @@ def list_pending_remedy_for_panel(db: Session, *, user_email: str) -> list[Revie
 
 
 def list_pending_remedy_for_user(db: Session, *, author_email: str) -> list[Review]:
-    user = db.scalar(select(User).where(User.email == author_email.strip().lower()).limit(1))
+    verified_email = resolve_authenticated_email(claimed_email=author_email)
+    user = db.scalar(select(User).where(User.email == verified_email).limit(1))
     if not user:
         return []
     rows = db.scalars(

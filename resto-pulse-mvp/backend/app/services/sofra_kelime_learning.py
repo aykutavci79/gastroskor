@@ -19,32 +19,47 @@ from app.services.tdk_lookup import tdk_kelime_dogrula
 
 logger = logging.getLogger(__name__)
 
-MIN_ATTEMPT_LOG_LENGTH = 4
+MIN_ATTEMPT_LOG_LENGTH = 3
 
 
 def _havuz_yollari() -> tuple[Path, ...]:
     paths: list[Path] = []
     if settings.sofra_havuz_json_path:
         paths.append(Path(settings.sofra_havuz_json_path))
+    mobile_data = BASE_DIR.parent / "mobile" / "data" / "kelime-sofrasi"
     paths.extend(
         [
             BASE_DIR / "app" / "data" / "kelime_sofrasi_havuz.json",
-            BASE_DIR.parent / "mobile" / "data" / "kelime-sofrasi" / "havuz.json",
+            mobile_data / "havuz.json",
+            mobile_data / "uc-harf-havuz.json",
         ]
     )
     return tuple(paths)
 
 
+def _havuz_kelime_formu(item: dict) -> str:
+    yazilis = str(item.get("yazilis") or "").strip()
+    kelime = yazilis or str(item.get("kelime") or "")
+    return sofra_kelime_buyuk(kelime)
+
+
 @lru_cache(maxsize=1)
 def sofra_havuz_kelimeleri() -> frozenset[str]:
+    kelimeler: set[str] = set()
+    loaded = False
     for yol in _havuz_yollari():
         if not yol.is_file():
             continue
         with yol.open(encoding="utf-8") as fh:
             data = json.load(fh)
-        kelimeler = {sofra_kelime_buyuk(str(item.get("kelime") or "")) for item in data}
-        kelimeler.discard("")
-        logger.info("Sofra havuz yuklendi: %s kelime (%s)", len(kelimeler), yol)
+        for item in data:
+            norm = _havuz_kelime_formu(item)
+            if norm:
+                kelimeler.add(norm)
+        loaded = True
+        logger.info("Sofra havuz parcasi yuklendi: %s (%s)", len(data), yol)
+    if loaded:
+        logger.info("Sofra havuz birlestirildi: %s kelime", len(kelimeler))
         return frozenset(kelimeler)
     logger.warning("Sofra havuz.json bulunamadi.")
     return frozenset()

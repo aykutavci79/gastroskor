@@ -560,6 +560,10 @@ export type Review = {
 
 export type DisplayReview = Review;
 
+export type MyReview = Review & {
+  restaurant_name: string;
+};
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -898,6 +902,17 @@ export type JetonWalletSummary = {
   today_cap_remaining: number;
   hint_cost: number;
   free_hints_per_game: number;
+  follow_today_count?: number;
+  follow_bundle_threshold?: number;
+  follow_bundle_granted_today?: boolean;
+  daily_login_granted_today?: boolean;
+};
+
+export type DailyLoginClaimResponse = {
+  ok: boolean;
+  balance: number;
+  amount: number;
+  reason?: string | null;
 };
 
 export type JetonLedgerItem = {

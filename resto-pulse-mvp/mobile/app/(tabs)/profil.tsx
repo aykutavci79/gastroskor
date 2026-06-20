@@ -106,6 +106,11 @@ export default function ProfilScreen() {
               <Text style={styles.btnOutlineText}>Telafi teklifleri</Text>
             </Pressable>
           </Link>
+          <Link href="/yorumlarim" asChild>
+            <Pressable style={styles.btnOutline}>
+              <Text style={styles.btnOutlineText}>Yorumlarım</Text>
+            </Pressable>
+          </Link>
           <Pressable style={styles.btnOutline} onPress={() => void signOut()}>
             <Text style={styles.btnOutlineText}>Cikis</Text>
           </Pressable>

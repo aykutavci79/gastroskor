@@ -2,15 +2,15 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.49",
-    "versionCode": 60,
-    "lastUpdated": "2026-06-19",
-    "_note": "Lokal AAB gastroskor-20260619-2155.aab — Sofra layout, gunluk 5 tur, disk cache, yorum fix"
+    "versionName": "1.0.50",
+    "versionCode": 61,
+    "lastUpdated": "2026-06-20",
+    "_note": "Lokal AAB — guvenlik (Sentry scrub, logout, voice JWT), api.ts fix, iOS 1.0.50/52 EAS"
   },
   "appStore": {
-    "version": "1.0.49",
-    "buildNumber": 51,
-    "lastUpdated": "2026-06-18",
-    "_note": "EAS iOS production 1.0.49 / build 51 — iOS hoparlor + jeton + Expo Go guard"
+    "version": "1.0.50",
+    "buildNumber": 52,
+    "lastUpdated": "2026-06-20",
+    "_note": "EAS iOS production 1.0.50 / build 52 — TestFlight submit"
   }
 }
