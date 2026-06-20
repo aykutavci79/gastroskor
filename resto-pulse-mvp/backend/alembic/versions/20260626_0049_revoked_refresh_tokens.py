@@ -6,6 +6,7 @@ Revises: 20260625_0048
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
 
 revision = "20260626_0049"
@@ -15,6 +16,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    insp = inspect(bind)
+    if insp.has_table("revoked_refresh_tokens"):
+        return
     op.create_table(
         "revoked_refresh_tokens",
         sa.Column("jti", sa.String(length=36), nullable=False),
