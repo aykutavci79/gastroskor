@@ -186,12 +186,52 @@ export function placedWordsToGrid(words: SofraPlacedWord[]): GridMap {
 }
 
 /** Izgara üzerindeki tüm 2+ harfli koşular sözlükte ve hedef kelimelerden biri olmalı. */
+/** Aynı satır/sütunda kısa kelime uzun kelimenin parçası mı? (DAM ⊂ IDAM) */
+export function isSameAxisSubstring(
+  short: SofraPlacedWord,
+  long: SofraPlacedWord,
+): boolean {
+  const shortNorm = sofraKelimeBuyuk(short.kelime);
+  const longNorm = sofraKelimeBuyuk(long.kelime);
+  if (shortNorm.length >= longNorm.length) return false;
+  if (short.direction !== long.direction) return false;
+
+  if (short.direction === 'h') {
+    if (short.row !== long.row) return false;
+    const sStart = short.col;
+    const sEnd = short.col + shortNorm.length;
+    const lStart = long.col;
+    const lEnd = long.col + longNorm.length;
+    return sStart >= lStart && sEnd <= lEnd;
+  }
+
+  if (short.col !== long.col) return false;
+  const sStart = short.row;
+  const sEnd = short.row + shortNorm.length;
+  const lStart = long.row;
+  const lEnd = long.row + longNorm.length;
+  return sStart >= lStart && sEnd <= lEnd;
+}
+
+export function hasSameAxisSubstringPair(words: SofraPlacedWord[]): boolean {
+  for (let i = 0; i < words.length; i++) {
+    for (let j = 0; j < words.length; j++) {
+      if (i === j) continue;
+      if (isSameAxisSubstring(words[i]!, words[j]!)) return true;
+    }
+  }
+  return false;
+}
+
 export function validateSofraCrossword(
   placed: SofraPlacedWord[],
   lexicon: ReadonlySet<string>,
   minWordLen = 3,
 ): { ok: boolean; invalid: string[] } {
   if (!placed.length) return { ok: false, invalid: ['empty'] };
+  if (hasSameAxisSubstringPair(placed)) {
+    return { ok: false, invalid: ['same_axis_substring'] };
+  }
   const targets = new Set(placed.map((w) => sofraKelimeBuyuk(w.kelime)));
   const audit = auditContiguousRuns(placedWordsToGrid(placed), targets, lexicon, minWordLen);
   return { ok: audit.ok, invalid: audit.invalid };

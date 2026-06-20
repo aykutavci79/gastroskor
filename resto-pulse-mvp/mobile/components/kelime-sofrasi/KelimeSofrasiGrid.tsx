@@ -9,11 +9,12 @@ import {
 } from '@/constants/kelime-sofrasi';
 import { hucreAcikMi } from '@/lib/kelime-sofrasi/engine';
 
-import type { SofraGridCell } from '@/lib/kelime-sofrasi/types';
+import type { SofraGridCell, SofraPlacedWord } from '@/lib/kelime-sofrasi/types';
 
 type Props = {
   grid: (SofraGridCell | null)[][];
   foundWordIds: string[];
+  words?: SofraPlacedWord[];
   hintedCells?: string[];
   cellSize?: number;
   compact?: boolean;
@@ -22,6 +23,7 @@ type Props = {
 export const KelimeSofrasiGrid = memo(function KelimeSofrasiGrid({
   grid,
   foundWordIds,
+  words = [],
   hintedCells = [],
   cellSize = 34,
   compact = false,
@@ -64,7 +66,7 @@ export const KelimeSofrasiGrid = memo(function KelimeSofrasiGrid({
             if (!cell) {
               return <View key={`${ri}-${ci}`} style={[styles.cell, styles.cellEmpty]} />;
             }
-            const revealed = hucreAcikMi(cell, foundWordIds, hinted);
+            const revealed = hucreAcikMi(cell, foundWordIds, hinted, words);
             return (
               <View
                 key={`${ri}-${ci}`}

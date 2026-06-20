@@ -1,4 +1,5 @@
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
+import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { getApiV1Base } from '@/lib/api-base';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 
@@ -28,30 +29,47 @@ function isValidPuzzle(raw: unknown, expectedId: string): raw is SofraPuzzle {
   );
 }
 
-/** Havuzdan günlük bulmaca — tüm kullanıcılar aynı kaydı alır. */
+export type SofraPoolFetchResult = {
+  puzzle: SofraPuzzle;
+  gunId: string;
+};
+
+/** Havuzdan günlük bulmaca — gun_id bos birakilirsa backend aktif donemi secer. */
 export async function fetchSofraPuzzleFromPool(
-  gunId: string,
   zorluk: EglenceZorluk,
   tur: number,
-  expectedId: string,
-): Promise<SofraPuzzle | null> {
+  clientGunId?: string,
+): Promise<SofraPoolFetchResult | null> {
   const params = new URLSearchParams({
     zorluk,
     tur: String(tur),
-    gun_id: gunId,
   });
-  const { signal, clear } = createFetchTimeoutSignal(12_000);
+  if (clientGunId) params.set('gun_id', clientGunId);
+  const signal = createFetchTimeoutSignal(12_000);
   try {
     const res = await fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/puzzle?${params}`, {
       signal,
+      headers: { Accept: 'application/json' },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('[sofra] puzzle API HTTP', res.status, clientGunId ?? '(server active)');
+      }
+      return null;
+    }
     const body = (await res.json()) as SofraPuzzleApiResponse;
-    if (!isValidPuzzle(body.puzzle, expectedId)) return null;
-    return body.puzzle;
-  } catch {
+    const expectedId = sofraPuzzleKey(body.gun_id, zorluk, tur);
+    if (!isValidPuzzle(body.puzzle, expectedId)) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
+        console.warn('[sofra] puzzle validation fail', expectedId, body.puzzle?.id);
+      }
+      return null;
+    }
+    return { puzzle: body.puzzle, gunId: body.gun_id };
+  } catch (err) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[sofra] puzzle fetch error', err);
+    }
     return null;
-  } finally {
-    clear();
   }
 }

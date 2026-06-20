@@ -76,7 +76,48 @@ def validate_puzzle_payload(puzzle: dict[str, Any], zorluk: str) -> tuple[bool, 
         kelime = str(w.get("kelime") or "").strip()
         if len(kelime) < 3:
             return False, "short_word"
+    if _has_same_axis_substring(words):
+        return False, "same_axis_substring"
     return True, "ok"
+
+
+def _has_same_axis_substring(words: list[Any]) -> bool:
+    """Aynı satır/sütunda kısa kelime uzun kelimenin parçası mı? (ALE ⊂ ALET)
+
+    Böyle çiftler oyunda spoiler yaratır: kısa kelime yazılınca uzun
+    kelimenin hücreleri açılır. Bu yerleşimleri havuza almayız.
+    """
+    placed = [w for w in words if isinstance(w, dict)]
+    for short in placed:
+        s_kelime = str(short.get("kelime") or "")
+        s_dir = short.get("direction")
+        s_row = short.get("row")
+        s_col = short.get("col")
+        if s_dir not in ("h", "v") or not isinstance(s_row, int) or not isinstance(s_col, int):
+            continue
+        for long in placed:
+            if long is short:
+                continue
+            l_kelime = str(long.get("kelime") or "")
+            if len(s_kelime) >= len(l_kelime):
+                continue
+            if long.get("direction") != s_dir:
+                continue
+            l_row = long.get("row")
+            l_col = long.get("col")
+            if not isinstance(l_row, int) or not isinstance(l_col, int):
+                continue
+            if s_dir == "h":
+                if s_row != l_row:
+                    continue
+                if l_col <= s_col and s_col + len(s_kelime) <= l_col + len(l_kelime):
+                    return True
+            else:
+                if s_col != l_col:
+                    continue
+                if l_row <= s_row and s_row + len(s_kelime) <= l_row + len(l_kelime):
+                    return True
+    return False
 
 
 def clone_puzzle_for_slot(source: dict[str, Any], puzzle_id: str, zorluk: str) -> dict[str, Any]:

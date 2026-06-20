@@ -38,15 +38,21 @@ async function resolvePuzzleFromSources(
   zorluk: EglenceZorluk,
   tur: number,
   expectedId: string,
-): Promise<SofraPuzzle | null> {
-  const fromApi = await fetchSofraPuzzleFromPool(gunId, zorluk, tur, expectedId);
+): Promise<{ puzzle: SofraPuzzle; gunId: string } | null> {
+  const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur);
   if (fromApi) return fromApi;
 
   const fromDisk = await loadSofraPuzzleFromDisk(gunId, zorluk, expectedId, tur);
-  if (fromDisk) return fromDisk;
+  if (fromDisk) return { puzzle: fromDisk, gunId };
 
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    return tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
+  // Havuz mimarisi: prod ve normal dev akisinda yalnizca API + disk (yerel uretim dakikalarca surer).
+  if (
+    typeof __DEV__ !== 'undefined' &&
+    __DEV__ &&
+    process.env.EXPO_PUBLIC_SOFRA_DEV_LOCAL_BUILD === '1'
+  ) {
+    const built = await tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
+    if (built) return { puzzle: built, gunId };
   }
   return null;
 }
@@ -94,8 +100,12 @@ function storePuzzle(
   zorluk: EglenceZorluk,
   tur: number,
   puzzle: SofraPuzzle,
+  aliasGunId?: string,
 ): SofraPuzzle {
   cache.set(cacheKey(gunId, zorluk, tur), puzzle);
+  if (aliasGunId && aliasGunId !== gunId) {
+    cache.set(cacheKey(aliasGunId, zorluk, tur), puzzle);
+  }
   saveSofraPuzzleToDisk(gunId, zorluk, puzzle, tur);
   puzzleReady(puzzle);
   return puzzle;
@@ -120,7 +130,7 @@ export function ensureSofraPuzzleAsync(
     if (!resolved) {
       throw new Error(`Sofra bulmacasi yuklenemedi: ${expectedId}`);
     }
-    return storePuzzle(gunId, zorluk, tur, resolved);
+    return storePuzzle(resolved.gunId, zorluk, tur, resolved.puzzle, gunId);
   })().finally(() => {
     inflight.delete(key);
   });
@@ -207,15 +217,27 @@ export function scheduleSofraPuzzleWarm(
   }
 
   let cancelled = false;
-  const task = InteractionManager.runAfterInteractions(() => {
-    void ensureSofraPuzzleAsync(gunId, zorluk, tur).then((puzzle) => {
-      if (!cancelled) onReady(puzzle);
-    });
-  });
+  let started = false;
+  const load = () => {
+    if (cancelled || started) return;
+    started = true;
+    void ensureSofraPuzzleAsync(gunId, zorluk, tur)
+      .then((puzzle) => {
+        if (!cancelled) onReady(puzzle);
+      })
+      .catch(() => {
+        /* API/disk/dev uretim basarisiz — lobi hazirlaniyor kalir */
+      });
+  };
+
+  load();
+  const task = InteractionManager.runAfterInteractions(load);
+  const fallbackTimer = setTimeout(load, 400);
 
   return () => {
     cancelled = true;
     task.cancel?.();
+    clearTimeout(fallbackTimer);
   };
 }
 

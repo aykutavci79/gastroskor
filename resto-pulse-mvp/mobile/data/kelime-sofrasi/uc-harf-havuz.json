@@ -89,7 +89,6 @@
   { "id": "uc-088", "kelime": "IMA", "yazilis": "İMA", "frekansSira": 102, "ipucu": "Anlam, ima" },
   { "id": "uc-089", "kelime": "MAN", "frekansSira": 106, "ipucu": "Erkek (argo)" },
   { "id": "uc-090", "kelime": "MAK", "frekansSira": 108, "ipucu": "Yapmak kısaltması" },
-  { "id": "uc-091", "kelime": "NAT", "frekansSira": 112, "ipucu": "Doğal kısaltma" },
   { "id": "uc-092", "kelime": "TIN", "yazilis": "TİN", "frekansSira": 116, "ipucu": "Kalay" },
   { "id": "uc-093", "kelime": "KAM", "frekansSira": 118, "ipucu": "Kam kısaltması" },
   { "id": "uc-094", "kelime": "AKT", "frekansSira": 122, "ipucu": "Aktif kısaltma" },

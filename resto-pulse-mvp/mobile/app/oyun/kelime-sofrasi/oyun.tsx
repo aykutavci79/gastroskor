@@ -37,8 +37,10 @@ import {
   hedefKelimeMi,
   hucreAnahtar,
   ipucuHakkiKaldi,
+  ipucuIleOtomatikBulunanKelimeIdleri,
   kelimeCarktanOlusur,
   normalizeKelime,
+  sameAxisSubstringSpoiler,
   sonrakiIpucuHucresi,
   sofraMaxIpucu,
 } from '@/lib/kelime-sofrasi/engine';
@@ -322,6 +324,90 @@ export default function KelimeSofrasiOyunScreen() {
     return () => clearTimeout(t);
   }, [message]);
 
+  const applyFoundWordIds = useCallback(
+    (baseProgress: SofraProgress, foundWordIds: string[], successMessage?: string) => {
+      if (!puzzle) return;
+      const done = bulmacaTamamlandi(puzzle, foundWordIds);
+      const nextTamamlama = done
+        ? sofraTamamlamaSayisi(baseProgress) + 1
+        : sofraTamamlamaSayisi(baseProgress);
+      if (done) {
+        const completedProgress: SofraProgress = {
+          ...baseProgress,
+          foundWordIds,
+          completedAt: new Date().toISOString(),
+          elapsedMs: elapsedRef.current,
+          gunlukTamamlamaSayisi: nextTamamlama,
+        };
+        const limitMsg =
+          nextTamamlama >= SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+            ? 'Sofra tamam! Bugünlük hakkın doldu.'
+            : `Sofra tamam! (${nextTamamlama}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT})`;
+        setMessage(successMessage ?? limitMsg);
+        setTimerRunning(false);
+        resultElapsedRef.current = elapsedRef.current;
+        resultPuzzleIdRef.current = puzzle.id;
+        setResultOpen(true);
+        if (!notifiedRef.current && user) {
+          notifiedRef.current = true;
+          void notifyFriendsEglenceActivity(user?.email, {
+            game: 'kelime_sofrasi',
+            puzzleId: puzzle.id,
+            elapsedMs: elapsedRef.current,
+          });
+        }
+        if (sofraGunlukLimitDoldu(completedProgress)) {
+          progressRef.current = completedProgress;
+          setProgress(completedProgress);
+          void saveSofraProgress(completedProgress);
+          return;
+        }
+        saveGenRef.current += 1;
+        const gunId = activePuzzleId();
+        void ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama).then((nextPuzzle) => {
+          void beginNextSofraRound(nextPuzzle, nextTamamlama).then((next) => {
+            setPuzzle(nextPuzzle);
+            progressRef.current = next;
+            setProgress(next);
+            elapsedRef.current = 0;
+            setSelectedPath([]);
+            setBgReady(false);
+            InteractionManager.runAfterInteractions(() => setBgReady(true));
+            if (nextTamamlama + 1 < SOFRA_GUNLUK_TAMAMLAMA_LIMIT) {
+              prefetchSofraTurIdle(gunId, zorluk, nextTamamlama + 1);
+            }
+          });
+        });
+        return;
+      }
+      setProgress({
+        ...baseProgress,
+        foundWordIds,
+        completedAt: null,
+        elapsedMs: elapsedRef.current,
+        gunlukTamamlamaSayisi: nextTamamlama,
+      });
+      if (successMessage) setMessage(successMessage);
+    },
+    [puzzle, user, zorluk],
+  );
+
+  useEffect(() => {
+    if (!puzzle || !progress || progress.completedAt || resultOpen) return;
+    const autoIds = ipucuIleOtomatikBulunanKelimeIdleri(
+      puzzle,
+      progress.foundWordIds,
+      progress.hintedCells,
+    );
+    if (!autoIds.length) return;
+    const foundWordIds = [...progress.foundWordIds, ...autoIds];
+    const labels = puzzle.words
+      .filter((w) => autoIds.includes(w.id))
+      .map((w) => w.kelime)
+      .join(', ');
+    applyFoundWordIds(progress, foundWordIds, labels ? `+ ${labels}` : undefined);
+  }, [applyFoundWordIds, puzzle, progress, resultOpen]);
+
   const submitPath = useCallback(
     (path: number[]) => {
       if (!puzzle || !progress || completed || resultOpen) {
@@ -329,6 +415,9 @@ export default function KelimeSofrasiOyunScreen() {
         return;
       }
       if (path.length < SOFRA_MIN_KELIME_UZUNLUGU) {
+        if (path.length === 2) {
+          setMessage('2 harf ayrı kelime değil — 3+ harfli ızgara kelimesi yaz');
+        }
         setSelectedPath([]);
         return;
       }
@@ -381,70 +470,21 @@ export default function KelimeSofrasiOyunScreen() {
         setSelectedPath([]);
         return;
       }
+      const spoiler = sameAxisSubstringSpoiler(puzzle.words, target, progress.foundWordIds);
+      if (spoiler) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        setMessage(
+          `${target.kelime} ipucu verir — önce ${spoiler.kelime} (${spoiler.kelime.length} harf) bul`,
+        );
+        setSelectedPath([]);
+        return;
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const foundWordIds = [...progress.foundWordIds, target.id];
-      const done = bulmacaTamamlandi(puzzle, foundWordIds);
-      const nextTamamlama = done ? sofraTamamlamaSayisi(progress) + 1 : sofraTamamlamaSayisi(progress);
       setSelectedPath([]);
-      if (done) {
-        const completedProgress: SofraProgress = {
-          ...progress,
-          foundWordIds,
-          completedAt: new Date().toISOString(),
-          elapsedMs: elapsedRef.current,
-          gunlukTamamlamaSayisi: nextTamamlama,
-        };
-        const limitMsg =
-          nextTamamlama >= SOFRA_GUNLUK_TAMAMLAMA_LIMIT
-            ? 'Sofra tamam! Bugünlük hakkın doldu.'
-            : `Sofra tamam! (${nextTamamlama}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT})`;
-        setMessage(limitMsg);
-        setTimerRunning(false);
-        resultElapsedRef.current = elapsedRef.current;
-        resultPuzzleIdRef.current = puzzle.id;
-        setResultOpen(true);
-        if (!notifiedRef.current && user) {
-          notifiedRef.current = true;
-          void notifyFriendsEglenceActivity(user?.email, {
-            game: 'kelime_sofrasi',
-            puzzleId: puzzle.id,
-            elapsedMs: elapsedRef.current,
-          });
-        }
-        if (sofraGunlukLimitDoldu(completedProgress)) {
-          progressRef.current = completedProgress;
-          setProgress(completedProgress);
-          void saveSofraProgress(completedProgress);
-          return;
-        }
-        saveGenRef.current += 1;
-        const gunId = activePuzzleId();
-        void ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama).then((nextPuzzle) => {
-          void beginNextSofraRound(nextPuzzle, nextTamamlama).then((next) => {
-            setPuzzle(nextPuzzle);
-            progressRef.current = next;
-            setProgress(next);
-            elapsedRef.current = 0;
-            setSelectedPath([]);
-            setBgReady(false);
-            InteractionManager.runAfterInteractions(() => setBgReady(true));
-            if (nextTamamlama + 1 < SOFRA_GUNLUK_TAMAMLAMA_LIMIT) {
-              prefetchSofraTurIdle(gunId, zorluk, nextTamamlama + 1);
-            }
-          });
-        });
-      } else {
-        setProgress({
-          ...progress,
-          foundWordIds,
-          completedAt: null,
-          elapsedMs: elapsedRef.current,
-          gunlukTamamlamaSayisi: nextTamamlama,
-        });
-        setMessage(`+ ${target.kelime}`);
-      }
+      applyFoundWordIds(progress, foundWordIds, `+ ${target.kelime}`);
     },
-    [completed, puzzle, progress, resultOpen, user, zorluk],
+    [applyFoundWordIds, completed, puzzle, progress, resultOpen],
   );
 
   const handlePathChange = useCallback((path: number[]) => {
@@ -500,14 +540,31 @@ export default function KelimeSofrasiOyunScreen() {
     const key = hucreAnahtar(cell.row, cell.col);
     if (progress.hintedCells.includes(key)) return;
 
-    setProgress({
+    const nextHinted = [...progress.hintedCells, key];
+    const autoIds = ipucuIleOtomatikBulunanKelimeIdleri(
+      puzzle,
+      progress.foundWordIds,
+      nextHinted,
+    );
+    const nextProgress: SofraProgress = {
       ...progress,
-      hintedCells: [...progress.hintedCells, key],
+      hintedCells: nextHinted,
       elapsedMs: elapsedRef.current,
-    });
+    };
     setMessage(`İpucu: ${cell.letter}`);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [completed, puzzle, progress, user?.email]);
+
+    if (autoIds.length) {
+      const foundWordIds = [...progress.foundWordIds, ...autoIds];
+      const labels = puzzle.words
+        .filter((w) => autoIds.includes(w.id))
+        .map((w) => w.kelime)
+        .join(', ');
+      applyFoundWordIds(nextProgress, foundWordIds, labels ? `+ ${labels}` : undefined);
+      return;
+    }
+    setProgress(nextProgress);
+  }, [applyFoundWordIds, completed, puzzle, progress, user?.email]);
 
   const hintsLeft = progress
     ? Math.max(0, sofraMaxIpucu(progress.bonusFound.length) - progress.hintedCells.length)
@@ -560,6 +617,7 @@ export default function KelimeSofrasiOyunScreen() {
             <KelimeSofrasiGrid
               grid={puzzle.grid}
               foundWordIds={progress.foundWordIds}
+              words={puzzle.words}
               hintedCells={progress.hintedCells}
               cellSize={layout.cellSize}
               compact={layout.compact}

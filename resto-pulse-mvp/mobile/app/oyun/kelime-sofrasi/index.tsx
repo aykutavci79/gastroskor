@@ -7,7 +7,7 @@ import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
 import {
   prefetchSofraOtherZorluklarIdle,
   prefetchSofraPuzzlesForToday,
-  scheduleSofraPuzzleWarm,
+  ensureSofraPuzzleAsync,
 } from '@/lib/kelime-sofrasi/puzzle-cache';
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 import type { SofraPuzzle } from '@/lib/kelime-sofrasi/types';
@@ -23,6 +23,8 @@ export default function KelimeSofrasiLobbyScreen() {
   const puzzleId = activePuzzleId();
   const [zorluk, setZorluk] = useState<EglenceZorluk>('orta');
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
   const [tamamlamaSayisi, setTamamlamaSayisi] = useState(0);
   const [limitDoldu, setLimitDoldu] = useState(false);
 
@@ -43,10 +45,26 @@ export default function KelimeSofrasiLobbyScreen() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     setPuzzle(null);
+    setLoadError(null);
     prefetchSofraPuzzlesForToday(puzzleId, zorluk);
-    return scheduleSofraPuzzleWarm(puzzleId, zorluk, setPuzzle);
-  }, [puzzleId, zorluk]);
+
+    void ensureSofraPuzzleAsync(puzzleId, zorluk, 0)
+      .then((loaded) => {
+        if (!cancelled) setPuzzle(loaded);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
+          if (__DEV__) console.warn('[sofra-lobby]', err);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [puzzleId, zorluk, retryTick]);
 
   useEffect(() => {
     if (puzzle?.zorluk === zorluk) {
@@ -102,6 +120,14 @@ export default function KelimeSofrasiLobbyScreen() {
   const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
   const oyunAcik = sofraHazir && !limitDoldu;
 
+  const handlePrimaryPress = () => {
+    if (loadError) {
+      setRetryTick((n) => n + 1);
+      return;
+    }
+    router.push(`/oyun/kelime-sofrasi/oyun?zorluk=${zorluk}` as Href);
+  };
+
   return (
     <EglenceGameLobbyScreen gameId="kelime-sofrasi" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -122,7 +148,9 @@ export default function KelimeSofrasiLobbyScreen() {
             Bu seviyede {hedefKelime} ızgara kelimesi.
             {puzzle
               ? ` Çarkta ${puzzle.wheel.length} harf, ${puzzle.bonusKelimeler.length} bonus kelime.`
-              : ' Sofra hazırlanıyor…'}
+              : loadError
+                ? ` ${loadError}`
+                : ' Sofra hazırlanıyor…'}
           </Text>
           <Text style={styles.madde}>Takılırsan İpucu ile ızgarada rastgele bir harf açılır.</Text>
           <Text style={styles.madde}>
@@ -137,19 +165,27 @@ export default function KelimeSofrasiLobbyScreen() {
         </View>
 
         <Pressable
-          style={[styles.buton, !oyunAcik ? styles.butonDisabled : null]}
-          disabled={!oyunAcik}
-          onPress={() => router.push(`/oyun/kelime-sofrasi/oyun?zorluk=${zorluk}` as Href)}>
+          style={[styles.buton, !oyunAcik && !loadError ? styles.butonDisabled : null]}
+          disabled={!oyunAcik && !loadError}
+          onPress={handlePrimaryPress}>
           <Text style={styles.butonYazi}>
             {limitDoldu
               ? 'Bugünlük hak doldu'
-              : sofraHazir
-                ? kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
-                  ? `Sofraya Otur (${kalanTur} tur kaldı)`
-                  : 'Sofraya Otur'
-                : 'Sofra hazırlanıyor…'}
+              : loadError
+                ? 'Tekrar dene'
+                : sofraHazir
+                  ? kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+                    ? `Sofraya Otur (${kalanTur} tur kaldı)`
+                    : 'Sofraya Otur'
+                  : 'Sofra hazırlanıyor…'}
           </Text>
         </Pressable>
+
+        {loadError ? (
+          <Text style={[styles.alt, { color: '#f87171' }]}>
+            Dönem: {puzzleId} · API: {process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}
+          </Text>
+        ) : null}
       </ScrollView>
     </EglenceGameLobbyScreen>
   );
