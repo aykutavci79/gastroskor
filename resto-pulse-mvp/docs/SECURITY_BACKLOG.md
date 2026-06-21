@@ -35,3 +35,10 @@
   - `GET /social/me/dm`, `eglence-leaderboard` — hâlâ per-row sorgu var
   - `GET /panel/menu` — restoran başına menü kalemi sayısında pratik sınır yok
 - **Tetikleyici:** Restoran/kullanıcı sayısı önemli ölçüde artıp bu endpoint'lerde gerçek yavaşlama şikayeti gelirse ele al.
+
+### 5. Sipariş Retention Cron'u Aktif Etme
+
+- **Durum:** Hazır ama kapalı (21.06.2026) — `ORDER_RETENTION_CRON_ENABLED=false`
+- **Sebep:** Şu an 5 yıldan eski sipariş kaydı yok (dry_run test: `anonymized=0`, `deleted=0`, `cutoff=2021-06-22`). Sistemin kendisi henüz bu kadar eski değil.
+- **Tetikleyici:** 2031 yılına yaklaşırken (ya da daha erken, ilk kez dry_run'da `anonymized`/`deleted` sayısı 0'dan büyük çıktığında) `ORDER_RETENTION_CRON_ENABLED=true` yap ve Railway/Vercel cron zamanlamasına bağla (günlük/haftalık `POST /internal/cron/order-retention`).
+- **Not:** Bu tarihe kadar periyodik olarak (örnek: yılda bir) `dry_run=true` ile kontrol edilip "hâlâ 0 mı" diye bakılabilir, zorunlu değil.
