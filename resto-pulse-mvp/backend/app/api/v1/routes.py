@@ -135,6 +135,7 @@ from app.constants.online_order_categories import normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
 from app.services.order_review import (
     OrderReviewError,
+    batch_avg_ratings,
     batch_order_rating_summaries,
     create_order_review,
     online_order_review_filter,
@@ -1168,6 +1169,7 @@ def list_restaurants(
                 google_place_ids[rid] = profile.external_id
 
     has_origin = origin_lat is not None and origin_lng is not None
+    avg_map = batch_avg_ratings(db, restaurant_ids, visit_only=True)
 
     result: list[dict] = []
     for restaurant in rows:
@@ -1175,12 +1177,7 @@ def list_restaurants(
         place_id = google_place_ids.get(rid)
         if is_tester_seed_place_id(place_id):
             continue
-        avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(
-                Review.restaurant_id == restaurant.id,
-                visit_review_filter(),
-            )
-        )
+        avg_rating = avg_map.get(rid)
         google_profile = google_profiles.get(rid)
         destination_query = build_destination_label(
             name=restaurant.name,
@@ -1211,7 +1208,7 @@ def list_restaurants(
             "city": restaurant.city,
             "district": restaurant.district,
             "category": restaurant.category,
-            "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "avg_rating": avg_rating,
             "google_rating": round(float(google_profile.avg_rating), 1)
             if google_profile and google_profile.avg_rating is not None
             else None,
@@ -1919,10 +1916,11 @@ def create_private_feedback_endpoint(payload: PrivateFeedbackCreate, db: Session
 def list_my_private_feedbacks(
     author_id: str | None = Query(default=None),
     email: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     user = resolve_actor_user(db, author_id=author_id, author_email=email)
-    rows = list_private_feedbacks_for_user(db, user_uuid=user.id)
+    rows = list_private_feedbacks_for_user(db, user_uuid=user.id, limit=limit)
     return [serialize_private_feedback(row) for row in rows]
 
 
@@ -2106,9 +2104,10 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
 @router.get("/reviews/remedy/pending", response_model=list[ReviewRemedyPendingRead])
 def list_pending_review_remedies(
     author_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    rows = list_pending_remedy_for_user(db, author_email=author_email)
+    rows = list_pending_remedy_for_user(db, author_email=author_email, limit=limit)
     return [ReviewRemedyPendingRead(**serialize_pending_remedy(row)) for row in rows]
 
 

@@ -219,7 +219,7 @@ def reject_remedy_offer(db: Session, *, review_id: UUID, author_email: str) -> R
     return review
 
 
-def list_pending_remedy_for_panel(db: Session, *, user_email: str) -> list[Review]:
+def list_pending_remedy_for_panel(db: Session, *, user_email: str, limit: int = 50) -> list[Review]:
     email = user_email.strip().lower()
     rows = db.scalars(
         select(Review)
@@ -232,11 +232,12 @@ def list_pending_remedy_for_panel(db: Session, *, user_email: str) -> list[Revie
         )
         .options(selectinload(Review.restaurant), selectinload(Review.remedy_offer))
         .order_by(Review.remedy_restaurant_deadline_at.asc())
+        .limit(max(1, min(limit, 200)))
     ).all()
     return list(rows)
 
 
-def list_pending_remedy_for_user(db: Session, *, author_email: str) -> list[Review]:
+def list_pending_remedy_for_user(db: Session, *, author_email: str, limit: int = 50) -> list[Review]:
     verified_email = resolve_authenticated_email(claimed_email=author_email)
     user = db.scalar(select(User).where(User.email == verified_email).limit(1))
     if not user:
@@ -252,6 +253,7 @@ def list_pending_remedy_for_user(db: Session, *, author_email: str) -> list[Revi
             selectinload(Review.remedy_offer),
         )
         .order_by(Review.created_at.desc())
+        .limit(max(1, min(limit, 200)))
     ).all()
     return list(rows)
 

@@ -246,11 +246,13 @@ async def submit_business_application(
 def admin_list_applications(
     user_email: str = Query(...),
     status_filter: str | None = Query(default=None, alias="status"),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
 ):
     assert_admin_grant_allowed(user_email=user_email, secret_header=x_panel_admin_secret)
-    return {"items": list_panel_applications(db, status_filter=status_filter)}
+    return {"items": list_panel_applications(db, status_filter=status_filter, limit=limit, offset=offset)}
 
 
 @panel_router.post("/admin/applications/{application_id}/approve")
@@ -811,7 +813,11 @@ def claim_tax_document(payload: TaxDocumentRequest, db: Session = Depends(get_db
 
 
 @panel_router.get("/competitors")
-def list_competitors(user_email: str = Query(...), db: Session = Depends(get_db)):
+def list_competitors(
+    user_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
     user = resolve_user_by_email(db, user_email)
     ownership = get_user_ownership(db, user.id)
     state = build_panel_access_state(db, ownership)
@@ -821,6 +827,7 @@ def list_competitors(user_email: str = Query(...), db: Session = Depends(get_db)
         select(RestaurantCompetitor)
         .where(RestaurantCompetitor.ownership_id == ownership.id)
         .order_by(RestaurantCompetitor.created_at.asc())
+        .limit(limit)
     ).all()
     return [
         {
@@ -1290,12 +1297,16 @@ def admin_activate_subscription_endpoint(
 
 @panel_router.get("/admin/pending-visits")
 def admin_pending_visits(
+    limit: int = Query(default=100, ge=1, le=200),
     db: Session = Depends(get_db),
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
 ):
     require_admin(x_panel_admin_secret)
     rows = db.scalars(
-        select(RestaurantOwnership).where(RestaurantOwnership.verification_status == "pending_visit")
+        select(RestaurantOwnership)
+        .where(RestaurantOwnership.verification_status == "pending_visit")
+        .order_by(RestaurantOwnership.created_at.desc())
+        .limit(limit)
     ).all()
     return [
         {
@@ -1324,7 +1335,7 @@ def admin_search_reviews(
         .order_by(Review.created_at.desc())
         .limit(limit)
     ).all()
-    return {"items": [_serialize_admin_review_row(db, row) for row in rows]}
+    return {"items": _serialize_admin_review_rows(db, rows)}
 
 
 @panel_router.get("/admin/reviews/recent")
@@ -1339,15 +1350,40 @@ def admin_list_recent_reviews(
         select(Review).order_by(Review.created_at.desc()).offset(offset).limit(limit)
     ).all()
     return {
-        "items": [_serialize_admin_review_row(db, row) for row in rows],
+        "items": _serialize_admin_review_rows(db, rows),
         "limit": limit,
         "offset": offset,
     }
 
 
-def _serialize_admin_review_row(db: Session, row: Review) -> dict:
-    restaurant = db.get(Restaurant, row.restaurant_id)
-    author = db.get(User, row.author_id) if row.author_id else None
+def _serialize_admin_review_rows(db: Session, rows: list[Review]) -> list[dict]:
+    if not rows:
+        return []
+    restaurant_ids = {row.restaurant_id for row in rows}
+    author_ids = {row.author_id for row in rows if row.author_id}
+    restaurants = {
+        restaurant.id: restaurant
+        for restaurant in db.scalars(select(Restaurant).where(Restaurant.id.in_(restaurant_ids))).all()
+    }
+    authors = (
+        {
+            user.id: user
+            for user in db.scalars(select(User).where(User.id.in_(author_ids))).all()
+        }
+        if author_ids
+        else {}
+    )
+    return [
+        _serialize_admin_review_row(row, restaurants.get(row.restaurant_id), authors.get(row.author_id))
+        for row in rows
+    ]
+
+
+def _serialize_admin_review_row(
+    row: Review,
+    restaurant: Restaurant | None,
+    author: User | None,
+) -> dict:
     return {
         "id": str(row.id),
         "restaurant_id": str(row.restaurant_id),
@@ -1379,13 +1415,17 @@ def list_panel_restaurant_followers(
 
 
 @panel_router.get("/follower-promotions", response_model=list[FollowerPromotionRead])
-def list_panel_follower_promotions(user_email: str = Query(...), db: Session = Depends(get_db)):
+def list_panel_follower_promotions(
+    user_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
     user = resolve_user_by_email(db, user_email)
     ownership = get_user_ownership(db, user.id)
     state = build_panel_access_state(db, ownership)
     if not ownership or not state.can_access_panel:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
-    return list_promotions_for_ownership(db, ownership.id)
+    return list_promotions_for_ownership(db, ownership.id, limit=limit)
 
 
 @panel_router.post("/follower-promotions", response_model=FollowerPromotionRead, status_code=status.HTTP_201_CREATED)
@@ -1445,9 +1485,10 @@ def redeem_panel_follower_coupon(payload: FollowerCouponRedeemRequest, db: Sessi
 @panel_router.get("/reviews/remedy/pending", response_model=list[ReviewRemedyPendingRead])
 def panel_list_pending_remedy_reviews(
     user_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    rows = list_pending_remedy_for_panel(db, user_email=user_email)
+    rows = list_pending_remedy_for_panel(db, user_email=user_email, limit=limit)
     return [ReviewRemedyPendingRead(**serialize_pending_remedy(row)) for row in rows]
 
 

@@ -173,11 +173,17 @@ async def _notify_application_received(app: RestaurantPanelApplication) -> None:
     )
 
 
-def list_panel_applications(db: Session, *, status_filter: str | None = None) -> list[dict]:
+def list_panel_applications(
+    db: Session,
+    *,
+    status_filter: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[dict]:
     stmt = select(RestaurantPanelApplication).order_by(RestaurantPanelApplication.created_at.desc())
     if status_filter:
         stmt = stmt.where(RestaurantPanelApplication.status == status_filter)
-    apps = db.scalars(stmt).all()
+    apps = db.scalars(stmt.offset(max(offset, 0)).limit(max(1, min(limit, 200)))).all()
     return [application_to_dict(app) for app in apps]
 
 

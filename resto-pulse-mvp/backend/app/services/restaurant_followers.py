@@ -39,23 +39,30 @@ def list_panel_followers(
     ).all()
 
     now = _utcnow()
-    items: list[dict] = []
-    for follow in follow_rows:
-        user = follow.user
-        if not user:
-            continue
-        coupon = db.scalars(
+    user_ids = [follow.user_id for follow in follow_rows if follow.user]
+    coupon_by_user: dict[UUID, FollowerCoupon] = {}
+    if user_ids:
+        coupon_rows = db.scalars(
             select(FollowerCoupon)
             .where(
-                FollowerCoupon.user_id == user.id,
                 FollowerCoupon.restaurant_id == restaurant_id,
+                FollowerCoupon.user_id.in_(user_ids),
                 FollowerCoupon.status == "issued",
                 FollowerCoupon.expires_at > now,
             )
             .options(selectinload(FollowerCoupon.promotion))
             .order_by(FollowerCoupon.created_at.desc())
-            .limit(1)
-        ).first()
+        ).all()
+        for coupon in coupon_rows:
+            if coupon.user_id not in coupon_by_user:
+                coupon_by_user[coupon.user_id] = coupon
+
+    items: list[dict] = []
+    for follow in follow_rows:
+        user = follow.user
+        if not user:
+            continue
+        coupon = coupon_by_user.get(user.id)
         discount = coupon.promotion.discount_percent if coupon and coupon.promotion else None
         items.append(
             {

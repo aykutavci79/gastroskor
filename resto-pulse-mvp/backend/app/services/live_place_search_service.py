@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.integrations.google_places_live import GooglePlacesLiveClient, LivePlaceResult
 from app.services.platform_profile_photo import google_photo_url_from_reference
 from app.integrations.maps_links import build_destination_label, build_google_maps_directions_url
-from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
+from app.models import PlatformName, Restaurant, RestaurantPlatformProfile
+from app.services.order_review import batch_avg_ratings
 from app.schemas.live_places import LivePlaceSearchItem, LivePlaceSearchResponse, ParsedSearchIntent
 from app.services.city_resolver import normalize_city_key, resolve_city_name
 from app.services.food_place_filter import is_food_related_place
@@ -353,10 +354,7 @@ def _enrich_with_partners(
         except ValueError:
             continue
     if uuid_ids:
-        for rid in uuid_ids:
-            avg = db.scalar(select(func.avg(Review.rating)).where(Review.restaurant_id == rid))
-            if avg is not None:
-                member_ratings[str(rid)] = round(float(avg), 1)
+        member_ratings = batch_avg_ratings(db, uuid_ids, visit_only=False)
     check_in_counts = visitor_counts_for_restaurants(db, uuid_ids) if uuid_ids else {}
 
     enriched: list[LivePlaceSearchItem] = []

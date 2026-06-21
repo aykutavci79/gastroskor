@@ -7,7 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.integrations.maps_links import build_destination_label, build_google_maps_directions_url
-from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review, User, UserRestaurantFollow
+from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, UserRestaurantFollow
+from app.services.order_review import batch_avg_ratings
 from app.schemas.geo_indication import GeoIndicationRead
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_check_in import merge_check_in_counts_into_rows
@@ -93,12 +94,12 @@ def build_restaurant_list_rows(db: Session, restaurants: list[Restaurant]) -> li
         if profile.external_id:
             google_place_ids[rid] = profile.external_id
 
+    avg_map = batch_avg_ratings(db, restaurant_ids, visit_only=False)
+
     result: list[dict] = []
     for restaurant in restaurants:
-        avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
-        )
         rid = str(restaurant.id)
+        avg_rating = avg_map.get(rid)
         google_profile = google_profiles.get(rid)
         place_id = google_place_ids.get(rid)
         maps_url = build_google_maps_directions_url(

@@ -86,8 +86,37 @@ def promotion_stats(db: Session, promotion_id: UUID) -> tuple[int, int]:
     return int(issued), int(redeemed)
 
 
-def promotion_to_dict(db: Session, promo: FollowerPromotion) -> dict:
-    issued, redeemed = promotion_stats(db, promo.id)
+def batch_promotion_stats(db: Session, promotion_ids: list[UUID]) -> dict[UUID, tuple[int, int]]:
+    if not promotion_ids:
+        return {}
+    issued_rows = db.execute(
+        select(FollowerCoupon.promotion_id, func.count(FollowerCoupon.id))
+        .where(FollowerCoupon.promotion_id.in_(promotion_ids))
+        .group_by(FollowerCoupon.promotion_id)
+    ).all()
+    redeemed_rows = db.execute(
+        select(FollowerCoupon.promotion_id, func.count(FollowerCoupon.id))
+        .where(
+            FollowerCoupon.promotion_id.in_(promotion_ids),
+            FollowerCoupon.status == "redeemed",
+        )
+        .group_by(FollowerCoupon.promotion_id)
+    ).all()
+    issued_map = {pid: int(count) for pid, count in issued_rows}
+    redeemed_map = {pid: int(count) for pid, count in redeemed_rows}
+    return {
+        pid: (issued_map.get(pid, 0), redeemed_map.get(pid, 0))
+        for pid in promotion_ids
+    }
+
+
+def promotion_to_dict(
+    db: Session,
+    promo: FollowerPromotion,
+    *,
+    stats: tuple[int, int] | None = None,
+) -> dict:
+    issued, redeemed = stats if stats is not None else promotion_stats(db, promo.id)
     return {
         "id": str(promo.id),
         "restaurant_id": str(promo.restaurant_id),
@@ -223,13 +252,15 @@ def create_follower_promotion(
     return promo, new_coupons
 
 
-def list_promotions_for_ownership(db: Session, ownership_id: UUID) -> list[dict]:
+def list_promotions_for_ownership(db: Session, ownership_id: UUID, *, limit: int = 50) -> list[dict]:
     promos = db.scalars(
         select(FollowerPromotion)
         .where(FollowerPromotion.ownership_id == ownership_id)
         .order_by(FollowerPromotion.created_at.desc())
+        .limit(max(1, min(limit, 100)))
     ).all()
-    return [promotion_to_dict(db, row) for row in promos]
+    stats_map = batch_promotion_stats(db, [row.id for row in promos])
+    return [promotion_to_dict(db, row, stats=stats_map.get(row.id, (0, 0))) for row in promos]
 
 
 def get_user_coupon_at_restaurant(

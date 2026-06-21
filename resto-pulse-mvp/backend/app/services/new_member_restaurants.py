@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import PlatformName, RestaurantOwnership, RestaurantPlatformProfile, Review
+from app.models import PlatformName, RestaurantOwnership, RestaurantPlatformProfile
+from app.services.order_review import batch_avg_ratings
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_partner import merge_partner_into_row, partner_listing_for_ownership
 from app.services.restaurant_promo import subscription_allows_promo
@@ -38,6 +39,8 @@ def list_new_member_restaurants(db: Session, *, limit: int = 12) -> list[dict]:
         ).all():
             google_profiles[str(profile.restaurant_id)] = profile
 
+    avg_map = batch_avg_ratings(db, restaurant_ids, visit_only=False)
+
     result: list[dict] = []
     for ownership in rows:
         if is_tester_seed_ownership(ownership):
@@ -47,9 +50,7 @@ def list_new_member_restaurants(db: Session, *, limit: int = 12) -> list[dict]:
         restaurant = ownership.restaurant
         if not restaurant or not restaurant.is_active:
             continue
-        avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
-        )
+        avg_rating = avg_map.get(str(restaurant.id))
         partner = partner_listing_for_ownership(ownership)
         row = {
             "id": str(restaurant.id),
@@ -57,7 +58,7 @@ def list_new_member_restaurants(db: Session, *, limit: int = 12) -> list[dict]:
             "city": restaurant.city,
             "district": restaurant.district,
             "category": restaurant.category,
-            "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "avg_rating": avg_rating,
             "geo_indications": [],
             "has_geographical_indication": restaurant.has_geographical_indication,
             "gi_product_name": restaurant.gi_product_name,

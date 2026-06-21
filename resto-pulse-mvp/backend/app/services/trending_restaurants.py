@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import PlatformName, Restaurant, RestaurantPlatformProfile, Review
 from app.schemas.geo_indication import GeoIndicationRead
+from app.services.order_review import batch_avg_ratings
 from app.services.gastro_score_ranking import haversine_meters, resolve_origin
 from app.services.platform_profile_photo import google_photo_url_for_profile
 from app.services.restaurant_check_in import merge_check_in_counts_into_rows
@@ -265,12 +266,11 @@ def _serialize_candidates(
             )
         ).all():
             google_profiles[str(profile.restaurant_id)] = profile
+    avg_map = batch_avg_ratings(db, restaurant_ids, visit_only=False)
     result: list[dict] = []
     for item in candidates:
         restaurant = item["restaurant"]
-        avg_rating = db.scalar(
-            select(func.avg(Review.rating)).where(Review.restaurant_id == restaurant.id)
-        )
+        avg_rating = avg_map.get(str(restaurant.id))
         distance_m = item.get("distance_meters")
         rid = str(restaurant.id)
         row = {
@@ -281,7 +281,7 @@ def _serialize_candidates(
             "category": restaurant.category,
             "latitude": restaurant.latitude,
             "longitude": restaurant.longitude,
-            "avg_rating": round(float(avg_rating), 1) if avg_rating is not None else None,
+            "avg_rating": avg_rating,
             "geo_indications": _parse_geo_indications(restaurant.geo_indications),
             "has_geographical_indication": restaurant.has_geographical_indication,
             "gi_product_name": restaurant.gi_product_name,

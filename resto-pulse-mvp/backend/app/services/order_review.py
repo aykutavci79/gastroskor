@@ -157,6 +157,45 @@ def batch_order_rating_summaries(db: Session, restaurant_ids: list[UUID]) -> dic
     return out
 
 
+def batch_avg_ratings(
+    db: Session,
+    restaurant_ids: list[UUID],
+    *,
+    visit_only: bool = False,
+) -> dict[str, float]:
+    """Restoran basina ortalama puan — tek grouped sorgu (N+1 onleme)."""
+    if not restaurant_ids:
+        return {}
+
+    def _query(*, visit: bool) -> dict[str, float]:
+        stmt = (
+            select(Review.restaurant_id, func.avg(Review.rating))
+            .where(Review.restaurant_id.in_(restaurant_ids))
+            .group_by(Review.restaurant_id)
+        )
+        if visit:
+            stmt = stmt.where(visit_review_filter())
+        rows = db.execute(stmt).all()
+        out: dict[str, float] = {}
+        for restaurant_id, avg in rows:
+            if avg is not None:
+                out[str(restaurant_id)] = round(float(avg), 1)
+        return out
+
+    if not visit_only:
+        return _query(visit=False)
+
+    try:
+        with db.begin_nested():
+            return _query(visit=True)
+    except Exception:
+        try:
+            with db.begin_nested():
+                return _query(visit=False)
+        except Exception:
+            return {}
+
+
 def raise_order_review_http(exc: OrderReviewError) -> None:
     from fastapi import HTTPException, status
 

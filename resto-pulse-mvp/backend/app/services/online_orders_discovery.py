@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
-from app.services.order_review import batch_order_rating_summaries, visit_review_filter
+from app.services.order_review import batch_avg_ratings, visit_review_filter
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
     haversine_meters,
@@ -167,6 +167,8 @@ def list_online_order_restaurants(
         ).all():
             google_profiles[str(profile.restaurant_id)] = profile
 
+    visit_avg_map = batch_avg_ratings(db, restaurant_ids, visit_only=True)
+
     voice_search = bool(voice_slug_set)
     items: list[dict] = []
     for ownership in rows:
@@ -195,7 +197,7 @@ def list_online_order_restaurants(
         )
         google_review_count = int(google_profile.review_count) if google_profile and google_profile.review_count else None
 
-        avg_rating = _visit_avg_rating(db, restaurant.id)
+        avg_rating = visit_avg_map.get(rid)
 
         rating_for_filter = google_rating if google_rating is not None else avg_rating
         if rating_for_filter is None or rating_for_filter < rating_floor:

@@ -79,9 +79,13 @@ def list_private_feedbacks_for_user(
     db: Session,
     *,
     user_uuid: UUID,
+    limit: int = 50,
 ) -> list[PrivateFeedback]:
     rows = db.scalars(
-        select(PrivateFeedback).where(PrivateFeedback.author_id == user_uuid).order_by(PrivateFeedback.created_at.desc())
+        select(PrivateFeedback)
+        .where(PrivateFeedback.author_id == user_uuid)
+        .order_by(PrivateFeedback.created_at.desc())
+        .limit(max(1, min(limit, 200)))
     ).all()
     return list(rows)
 

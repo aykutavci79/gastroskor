@@ -26,3 +26,12 @@
 - **Sebep:** Sentry mobil projesinde (gastroskor-mobile) birkaç haftadır açık/çözülmemiş gerçek hatalar birikmiş — örnek: "Panel erişimi yok" (8 events, 4 kullanıcı), "Sunucu hatası — migration eksik olabilir" (4 events), "Only one Recording object can be prepared" (19 events, 3 kullanıcı), "Cannot use href and tabBarButton together" (13 events, 8 kullanıcı, Escalating).
 - **Tetikleyici:** Bir sonraki sakin oturumda (acil değil, kullanıcı şikayeti gelmedikçe) Sentry Issues sekmesinden bu hataları tek tek incele, kaç kullanıcıyı etkilediğine göre önceliklendir, gerçek bug'ları düzelt.
 - **Not:** "Escalating" etiketli olanlar (artan trend) diğerlerinden öncelikli olmalı.
+
+### 4. Kalan N+1/Performans İyileştirmeleri (Düşük Öncelik)
+
+- **Durum:** Tespit edildi (21.06.2026), şimdilik ertelendi
+- **Kapsam:**
+  - `GET /restaurants/online-orders-open` — ownership filtrelemesi Python'da yapılıyor, SQL'e taşınmalı (ölçek büyüdükçe)
+  - `GET /social/me/dm`, `eglence-leaderboard` — hâlâ per-row sorgu var
+  - `GET /panel/menu` — restoran başına menü kalemi sayısında pratik sınır yok
+- **Tetikleyici:** Restoran/kullanıcı sayısı önemli ölçüde artıp bu endpoint'lerde gerçek yavaşlama şikayeti gelirse ele al.
