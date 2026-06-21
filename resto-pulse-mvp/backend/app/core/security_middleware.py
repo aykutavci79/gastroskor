@@ -10,7 +10,12 @@ from starlette.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.request_ip import get_client_ip
-from app.core.rate_limit import path_rate_limit_rule, rate_limiter, user_global_rate_limit_rule
+from app.core.rate_limit import (
+    path_rate_limit_rule,
+    rate_limiter,
+    user_account_deletion_rate_limit_rule,
+    user_global_rate_limit_rule,
+)
 from app.services.access_token import decode_access_token
 from app.services.active_user import ACCOUNT_DELETED_DETAIL, user_account_is_deleted
 from app.services.request_identity import RequestAuth, auth_require_bearer, set_request_auth
@@ -117,6 +122,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=401,
                     content={"detail": ACCOUNT_DELETED_DETAIL},
+                )
+        if auth is not None and path == "/api/v1/users/me" and method == "DELETE":
+            delete_rule, delete_key = user_account_deletion_rate_limit_rule(str(auth.user_id))
+            if not rate_limiter.allow(delete_key, delete_rule):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Hesap silme istegi limiti asildi. Lutfen bir saat sonra tekrar deneyin."},
                 )
         if auth is not None:
             user_rule, user_key = user_global_rate_limit_rule(str(auth.user_id))

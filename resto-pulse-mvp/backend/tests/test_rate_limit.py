@@ -12,6 +12,7 @@ from app.core.rate_limit import (
     RateLimitRule,
     RedisRateLimiter,
     path_rate_limit_rule,
+    user_account_deletion_rate_limit_rule,
     user_global_rate_limit_rule,
 )
 from app.main import app
@@ -99,6 +100,15 @@ def test_user_global_rate_limit_rule() -> None:
     assert user_id in key
 
 
+def test_user_account_deletion_rate_limit_rule() -> None:
+    user_id = str(uuid4())
+    rule, key = user_account_deletion_rate_limit_rule(user_id)
+    assert rule.limit == 3
+    assert rule.window_sec == 3600
+    assert user_id in key
+    assert "account-delete" in key
+
+
 def test_auth_refresh_returns_429_after_ip_limit() -> None:
     client = TestClient(app)
     path = "/api/v1/auth/refresh"
@@ -116,6 +126,7 @@ def test_authenticated_user_global_cap_returns_429(monkeypatch: pytest.MonkeyPat
     from app.core import rate_limit as rate_limit_module
     from app.services.access_token import create_access_token
 
+    monkeypatch.setattr("app.core.security_middleware.user_account_is_deleted", lambda _user_id: False)
     monkeypatch.setattr(rate_limit_module.settings, "rate_limit_user_global_per_minute", 2)
     monkeypatch.setattr(rate_limit_module.settings, "rate_limit_user_global_window_sec", 60)
 

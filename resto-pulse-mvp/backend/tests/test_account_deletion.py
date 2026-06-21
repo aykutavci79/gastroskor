@@ -127,6 +127,26 @@ def test_delete_my_account_rejects_wrong_confirmation(db: Session, monkeypatch: 
     assert user.deleted_at is None
 
 
+def test_delete_my_account_user_rate_limit_blocks_after_three_attempts(
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("app.services.request_identity.auth_require_bearer", lambda: True)
+    user = _make_end_user(db, email="rate-limit-delete@example.com")
+    headers = _auth_headers(user)
+    payload = {"confirmation": "SIL"}
+
+    for _ in range(3):
+        response = client.request("DELETE", "/api/v1/users/me", headers=headers, json=payload)
+        assert response.status_code == 422
+
+    blocked = client.request("DELETE", "/api/v1/users/me", headers=headers, json=payload)
+    assert blocked.status_code == 429
+    assert "Hesap silme istegi limiti" in blocked.json()["detail"]
+    db.refresh(user)
+    assert user.deleted_at is None
+
+
 def test_refresh_rejected_after_account_deletion(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.services.request_identity.auth_require_bearer", lambda: True)
     user = _make_end_user(db)
