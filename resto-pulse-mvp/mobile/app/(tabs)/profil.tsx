@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 
+import { AccountDeletionFlow } from '@/components/AccountDeletionFlow';
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { GastroBrandMark } from '@/components/GastroBrandMark';
 import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
@@ -23,8 +24,9 @@ import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
 export default function ProfilScreen() {
-  const { user, loading, signOut } = useSession();
+  const { user, loading, signOut, clearLocalSession } = useSession();
   const [error, setError] = useState<string | null>(null);
+  const [deleteFlowOpen, setDeleteFlowOpen] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
 
@@ -179,6 +181,24 @@ export default function ProfilScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {user ? (
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerTitle}>Tehlikeli bolge</Text>
+          <Text style={styles.dangerSub}>
+            Hesabini kalici olarak silmek geri alinamaz. Cikis yapmak icin yukaridaki Cikis dugmesini kullan.
+          </Text>
+          <Pressable style={styles.dangerBtn} onPress={() => setDeleteFlowOpen(true)}>
+            <Text style={styles.dangerBtnText}>Hesabimi Sil</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <AccountDeletionFlow
+        visible={deleteFlowOpen}
+        onClose={() => setDeleteFlowOpen(false)}
+        onDeleted={clearLocalSession}
+      />
     </Screen>
   );
 }
@@ -268,4 +288,25 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   debugWarn: { color: GastroColors.gold, fontSize: 11, lineHeight: 16 },
+  dangerZone: {
+    marginTop: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: GastroColors.bad,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    padding: 16,
+    gap: 10,
+  },
+  dangerTitle: { color: GastroColors.bad, fontSize: 14, fontWeight: '800' },
+  dangerSub: { color: GastroColors.muted, fontSize: 12, lineHeight: 18 },
+  dangerBtn: {
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GastroColors.bad,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  dangerBtnText: { color: GastroColors.bad, fontSize: 14, fontWeight: '800' },
 });

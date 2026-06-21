@@ -1293,3 +1293,50 @@ export async function recordReferralClick(referrerId: string, deviceHash: string
     body: JSON.stringify({ referrer_id: referrerId, device_hash: deviceHash }),
   });
 }
+
+export class AccountDeletionApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'AccountDeletionApiError';
+    this.status = status;
+  }
+}
+
+export async function deleteMyAccount(payload: {
+  confirmation: string;
+  refresh_token?: string | null;
+}): Promise<void> {
+  let response: Response;
+  try {
+    response = await performRequest('/users/me', {
+      method: 'DELETE',
+      body: JSON.stringify({
+        confirmation: payload.confirmation,
+        refresh_token: payload.refresh_token?.trim() || undefined,
+      }),
+    });
+    if (shouldAttemptAuthRefresh('/users/me', response.status)) {
+      const refreshed = await refreshAuthTokens();
+      if (refreshed) {
+        response = await performRequest('/users/me', {
+          method: 'DELETE',
+          body: JSON.stringify({
+            confirmation: payload.confirmation,
+            refresh_token: payload.refresh_token?.trim() || undefined,
+          }),
+        });
+      } else {
+        await notifyAuthFailure();
+      }
+    }
+  } catch (err) {
+    throw new Error(formatApiError(err, 'Hesap silme'));
+  }
+
+  if (response.status === 204) return;
+
+  const text = await response.text();
+  throw new AccountDeletionApiError(httpErrorMessage(response.status, text, 'Hesap silme'), response.status);
+}

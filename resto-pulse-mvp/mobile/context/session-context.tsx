@@ -36,6 +36,7 @@ type SessionContextValue = {
   ) => Promise<void>;
   applyProfile: (profile: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
+  clearLocalSession: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -191,9 +192,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogleProfile,
       applyProfile,
       signOut,
+      clearLocalSession: forceLogout,
       refreshProfile,
     }),
-    [user, loading, signInWithGoogleProfile, applyProfile, signOut, refreshProfile],
+    [user, loading, signInWithGoogleProfile, applyProfile, signOut, forceLogout, refreshProfile],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
