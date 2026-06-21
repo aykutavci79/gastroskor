@@ -25,7 +25,6 @@ from app.services.user_avatar_storage import user_avatars_dir
 logger = logging.getLogger(__name__)
 
 assert_production_secrets(settings)
-init_sentry()
 is_production = is_production_environment(settings.environment)
 
 app = FastAPI(
@@ -61,6 +60,7 @@ app.include_router(v1_router, prefix=settings.api_v1_prefix)
 
 @app.on_event("startup")
 def log_rate_limit_backend() -> None:
+    init_sentry()
     status = rate_limiter.status()
     logger.info("Rate limit backend: %s", status)
     if status.get("redis_configured") and not status.get("redis_ok"):

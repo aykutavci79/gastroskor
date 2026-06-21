@@ -639,6 +639,33 @@ def health(db: Session = Depends(get_db)):
     return body
 
 
+@router.post("/internal/cron/sentry-test")
+def cron_sentry_test(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    """Sentry baglanti testi — X-Cron-Secret gerekli. Issues'da test eventi olusur."""
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.core.sentry_setup import capture_sentry_test_event, init_sentry, is_sentry_initialized
+
+    if not is_sentry_initialized():
+        init_sentry()
+    if not is_sentry_initialized():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sentry not initialized — SENTRY_DSN kontrol et",
+        )
+    try:
+        event_id = capture_sentry_test_event()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Sentry capture failed: {type(exc).__name__}",
+        ) from exc
+    return {"ok": True, "event_id": event_id}
+
+
 @router.post("/dev/seed-tester-online-restaurants")
 def seed_tester_online_restaurants_route(db: Session = Depends(get_db)):
     """Test donemi — 5 deneme restorani (online siparis + menu)."""
