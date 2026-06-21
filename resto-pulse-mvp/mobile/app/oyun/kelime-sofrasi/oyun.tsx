@@ -30,6 +30,8 @@ import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { spendGameHint } from '@/lib/api';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
+import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
+import { scoreKelimeSofrasi } from '@/lib/eglence-scoring';
 import {
   bonusKelimeMi,
   bulmacaTamamlandi,
@@ -166,6 +168,7 @@ export default function KelimeSofrasiOyunScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [resultOpen, setResultOpen] = useState(false);
+  const [resultScore, setResultScore] = useState<{ score: number; detail: string } | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [bgReady, setBgReady] = useState(false);
   const elapsedRef = useRef(0);
@@ -346,6 +349,11 @@ export default function KelimeSofrasiOyunScreen() {
             : `Sofra tamam! (${nextTamamlama}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT})`;
         setMessage(successMessage ?? limitMsg);
         setTimerRunning(false);
+        const scoreResult = scoreKelimeSofrasi({
+          elapsedMs: elapsedRef.current,
+          hintsUsed: completedProgress.hintedCells.length,
+        });
+        setResultScore(scoreResult);
         resultElapsedRef.current = elapsedRef.current;
         resultPuzzleIdRef.current = puzzle.id;
         setResultOpen(true);
@@ -355,6 +363,7 @@ export default function KelimeSofrasiOyunScreen() {
             game: 'kelime_sofrasi',
             puzzleId: puzzle.id,
             elapsedMs: elapsedRef.current,
+            score: scoreResult.score,
           });
         }
         if (sofraGunlukLimitDoldu(completedProgress)) {
@@ -646,24 +655,16 @@ export default function KelimeSofrasiOyunScreen() {
 
       <EglenceResultModal
         visible={resultOpen}
-        onClose={() => {
-          if (!progress) {
-            setResultOpen(false);
-            return;
-          }
-          if (sofraGunlukLimitDoldu(progress)) {
-            setResultOpen(false);
-            router.replace('/(tabs)/eglence' as Href);
-            return;
-          }
+        onClose={() => setResultOpen(false)}
+        onDone={() => {
           setResultOpen(false);
-          setTimerRunning(true);
-          setMessage(null);
-          notifiedRef.current = false;
+          router.replace(EGLENCE_LOBBY_ROUTES['kelime-sofrasi'] as Href);
         }}
         game="kelime_sofrasi"
         periodKey={resultPuzzleIdRef.current ?? puzzle.id}
         elapsedMs={resultElapsedRef.current || progress.elapsedMs}
+        score={resultScore?.score}
+        scoreDetail={resultScore?.detail}
       />
     </Screen>
   );

@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Share,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { GunlukKelimeBoard } from '@/components/gunluk-kelime/GunlukKelimeBoard';
 import { GunlukKelimeKeyboard } from '@/components/gunluk-kelime/GunlukKelimeKeyboard';
 import { GUNLUK_KELIME_LENGTH, GUNLUK_KELIME_MAX_GUESSES } from '@/constants/gunluk-kelime';
@@ -22,7 +23,13 @@ import {
   tryScoreGunlukKelimeGuess,
   type LetterState,
 } from '@/lib/gunluk-kelime/engine';
-import { loadGunlukKelimeProgress, saveGunlukKelimeProgress } from '@/lib/gunluk-kelime/storage';
+import {
+  loadGunlukKelimeProgress,
+  resetGunlukKelimeSession,
+  saveGunlukKelimeDailyRecord,
+  saveGunlukKelimeProgress,
+} from '@/lib/gunluk-kelime/storage';
+import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import type { GunlukKelimeProgress } from '@/lib/gunluk-kelime/types';
 import { gunlukKelimeKanonik } from '@/lib/gunluk-kelime/words';
 import {
@@ -31,7 +38,8 @@ import {
   gunlukKelimeGraphemes,
   gunlukKelimeHarfSayisi,
 } from '@/lib/gunluk-kelime/grapheme';
-import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
+import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
+import { scoreGunlukKelime } from '@/lib/eglence-scoring';
 
 function safeHaptic(fn: () => Promise<unknown>): void {
   void fn().catch(() => undefined);
@@ -39,10 +47,16 @@ function safeHaptic(fn: () => Promise<unknown>): void {
 
 export default function GunlukKelimeOyunScreen() {
   const t = eglenceLobbyTheme('gunluk-kelime');
+  const router = useRouter();
+  const { oturum: oturumParam } = useLocalSearchParams<{ oturum?: string }>();
+  const oturumYeni = oturumParam === 'yeni';
   const puzzleId = activePuzzleId();
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<GunlukKelimeProgress | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
+  const [resultScore, setResultScore] = useState<{ score: number; detail: string } | null>(null);
+  const resultShownRef = useRef(false);
   const [current, setCurrent] = useState('');
   const [keyboard, setKeyboard] = useState<Record<string, LetterState>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -62,9 +76,18 @@ export default function GunlukKelimeOyunScreen() {
 
   const locked = useMemo(() => {
     if (!progress) return true;
-    if (EGLENCE_GUNLUK_TEK_OYUN && progress.completedAt) return true;
+    if (progress.completedAt) return true;
     return progress.guesses.length >= GUNLUK_KELIME_MAX_GUESSES || progress.won;
   }, [progress]);
+
+  const handleResultDone = useCallback(() => {
+    void resetGunlukKelimeSession(puzzleId).then(() => {
+      setResultOpen(false);
+      setResultScore(null);
+      resultShownRef.current = false;
+      router.replace(EGLENCE_LOBBY_ROUTES['gunluk-kelime'] as Href);
+    });
+  }, [puzzleId, router]);
 
   const styles = useMemo(
     () =>
@@ -91,9 +114,6 @@ export default function GunlukKelimeOyunScreen() {
           borderWidth: 1,
           borderColor: t.border,
         },
-        resultTitle: { color: t.text, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-        resultBody: { color: t.muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-        answer: { color: t.accent, fontWeight: '800' },
         shareBtn: {
           marginTop: 4,
           borderRadius: 10,
@@ -111,26 +131,34 @@ export default function GunlukKelimeOyunScreen() {
 
   useEffect(() => {
     let alive = true;
-    void loadGunlukKelimeProgress(puzzleId)
-      .then((p) => {
-        if (!alive) return;
-        setProgress(p);
-        let kb: Record<string, LetterState> = {};
-        for (const g of p.guesses) {
-          kb = mergeKeyboardStates(kb, g.word, g.states);
-        }
-        setKeyboard(kb);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setMessage('Oyun yüklenemedi — lobiden tekrar dene');
-        setLoading(false);
-      });
+    void (async () => {
+      let p = await loadGunlukKelimeProgress(puzzleId);
+      if (oturumYeni || (!EGLENCE_GUNLUK_TEK_OYUN && p.completedAt)) {
+        p = await resetGunlukKelimeSession(puzzleId);
+      }
+      if (!alive) return;
+      setProgress(p);
+      let kb: Record<string, LetterState> = {};
+      for (const g of p.guesses) {
+        kb = mergeKeyboardStates(kb, g.word, g.states);
+      }
+      setKeyboard(kb);
+      setLoading(false);
+      if (!oturumYeni && EGLENCE_GUNLUK_TEK_OYUN && p.completedAt && !resultShownRef.current) {
+        const scoreResult = scoreGunlukKelime({ won: p.won, guessCount: p.guesses.length });
+        setResultScore(scoreResult);
+        setResultOpen(true);
+        resultShownRef.current = true;
+      }
+    })().catch(() => {
+      if (!alive) return;
+      setMessage('Oyun yüklenemedi — lobiden tekrar dene');
+      setLoading(false);
+    });
     return () => {
       alive = false;
     };
-  }, [puzzleId]);
+  }, [oturumYeni, puzzleId]);
 
   const triggerShake = useCallback(() => {
     if (!progress) return;
@@ -198,6 +226,22 @@ export default function GunlukKelimeOyunScreen() {
 
       await persist(next);
 
+      if (done) {
+        const scoreResult = scoreGunlukKelime({ won, guessCount: guesses.length });
+        await saveGunlukKelimeDailyRecord({
+          puzzleId,
+          completedAt: next.completedAt!,
+          score: scoreResult.score,
+          won,
+          guessCount: guesses.length,
+        });
+        if (!resultShownRef.current) {
+          resultShownRef.current = true;
+          setResultScore(scoreResult);
+          setResultOpen(true);
+        }
+      }
+
       if (won) {
         safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
       } else if (done) {
@@ -242,7 +286,7 @@ export default function GunlukKelimeOyunScreen() {
     try {
       await Share.share({ message: body });
     } catch {
-      Alert.alert('Paylaş', 'Paylaşım iptal edildi.');
+      // paylaşım iptal
     }
   }, [progress, puzzleId]);
 
@@ -257,7 +301,8 @@ export default function GunlukKelimeOyunScreen() {
   const showResult = progress.completedAt != null;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.meta}>
         {progress.guesses.length}/{GUNLUK_KELIME_MAX_GUESSES} · {puzzleId}
       </Text>
@@ -278,23 +323,23 @@ export default function GunlukKelimeOyunScreen() {
 
       {showResult ? (
         <View style={styles.resultBox}>
-          <Text style={styles.resultTitle}>
-            {progress.won ? 'Tebrikler!' : 'Yarın tekrar dene'}
-          </Text>
-          <Text style={styles.resultBody}>
-            {progress.won
-              ? `Kelimeyi ${progress.guesses.length}. denemede buldun.`
-              : (
-                  <>
-                    Cevap: <Text style={styles.answer}>{progress.answer}</Text>
-                  </>
-                )}
-          </Text>
           <Pressable style={styles.shareBtn} onPress={() => void shareResult()}>
             <Text style={styles.shareText}>Sonucu paylaş</Text>
           </Pressable>
         </View>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+
+      <EglenceResultModal
+        visible={resultOpen}
+        onClose={() => setResultOpen(false)}
+        onDone={handleResultDone}
+        gameLabel="Günlük Kelime"
+        periodKey={puzzleId}
+        score={resultScore?.score}
+        scoreDetail={resultScore?.detail}
+        showLeaderboard={false}
+      />
+    </>
   );
 }

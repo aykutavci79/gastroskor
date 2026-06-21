@@ -8,6 +8,15 @@ import { gunlukKelimeCevabi } from './daily';
 import type { GunlukKelimeGuessRow, GunlukKelimeProgress } from './types';
 
 const KEY = `${GUNLUK_KELIME_STORAGE_PREFIX}:progress`;
+const DAILY_KEY = `${GUNLUK_KELIME_STORAGE_PREFIX}:daily-record`;
+
+export type GunlukKelimeDailyRecord = {
+  puzzleId: string;
+  completedAt: string;
+  score: number;
+  won: boolean;
+  guessCount: number;
+};
 
 function isValidAnswer(answer: string): boolean {
   return sofraKelimeBuyuk(answer).length === GUNLUK_KELIME_LENGTH;
@@ -57,20 +66,52 @@ export async function loadGunlukKelimeProgress(
   }
 }
 
+export async function saveGunlukKelimeDailyRecord(record: GunlukKelimeDailyRecord): Promise<void> {
+  await AsyncStorage.setItem(DAILY_KEY, JSON.stringify(record));
+}
+
+export async function loadGunlukKelimeDailyRecord(
+  puzzleId: string,
+): Promise<GunlukKelimeDailyRecord | null> {
+  try {
+    const raw = await AsyncStorage.getItem(DAILY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GunlukKelimeDailyRecord;
+    if (parsed.puzzleId !== puzzleId || typeof parsed.score !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function resetGunlukKelimeSession(puzzleId: string): Promise<GunlukKelimeProgress> {
+  const fresh = freshGunlukKelimeProgress(puzzleId);
+  await saveGunlukKelimeProgress(fresh);
+  return fresh;
+}
+
 export async function saveGunlukKelimeProgress(progress: GunlukKelimeProgress): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(progress));
 }
 
 export async function loadGunlukKelimeMetaStatus(
   puzzleId: string,
-): Promise<{ completed: boolean; inProgress: boolean }> {
+): Promise<{ completed: boolean; inProgress: boolean; score?: number }> {
   try {
+    const daily = await loadGunlukKelimeDailyRecord(puzzleId);
+    if (daily) {
+      return {
+        completed: EGLENCE_GUNLUK_TEK_OYUN,
+        inProgress: false,
+        score: daily.score,
+      };
+    }
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return { completed: false, inProgress: false };
     const parsed = JSON.parse(raw) as GunlukKelimeProgress;
     if (parsed.puzzleId !== puzzleId) return { completed: false, inProgress: false };
     return {
-      completed: EGLENCE_GUNLUK_TEK_OYUN && parsed.completedAt != null,
+      completed: false,
       inProgress: parsed.completedAt == null && parsed.guesses.length > 0,
     };
   } catch {

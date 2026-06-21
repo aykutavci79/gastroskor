@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -13,12 +13,15 @@ import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
 import { eglenceZorlukEtiket, parseEglenceZorluk } from '@/constants/eglence-zorluk';
 import { useSession } from '@/context/session-context';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
+import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
+import { scoreMiniSudoku } from '@/lib/eglence-scoring';
 import type { Digit } from '@/lib/mini-sudoku/constants';
 import { SUDOKU_AUTO_COMPLETE_THRESHOLD, SUDOKU_UNDO_LIMIT, SIZE } from '@/lib/mini-sudoku/constants';
 import {
   autoCompleteFromSolution,
   cloneGrid,
   countEmptyCells,
+  eliminateNotesForDigit,
   filledCellsMatchSolution,
   isGiven,
   isSolved,
@@ -28,7 +31,7 @@ import {
 } from '@/lib/mini-sudoku/engine';
 import { getDailyPuzzle, isSudokuZorluk } from '@/lib/mini-sudoku/puzzle-cache';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
-import { loadProgress, saveProgress } from '@/lib/mini-sudoku/storage';
+import { loadProgress, resetSudokuSession, saveProgress, saveSudokuDailyRecord } from '@/lib/mini-sudoku/storage';
 import type { MiniSudokuProgress, MiniSudokuPuzzle, SudokuSnapshot } from '@/lib/mini-sudoku/types';
 
 function formatElapsed(ms: number): string {
@@ -42,8 +45,6 @@ function snapshotProgress(progress: MiniSudokuProgress): SudokuSnapshot {
   return {
     values: cloneGrid(progress.values),
     notes: progress.notes.map((row) => row.map((cell) => [...cell])),
-    lives: progress.lives,
-    gameOver: progress.gameOver,
   };
 }
 
@@ -52,17 +53,20 @@ function applySnapshot(progress: MiniSudokuProgress, snap: SudokuSnapshot): Mini
     ...progress,
     values: snap.values,
     notes: snap.notes,
-    lives: snap.lives,
-    gameOver: snap.gameOver,
   };
 }
 
 export default function MiniSudokuOyunScreen() {
   const t = MINI_SUDOKU_THEME;
+  const router = useRouter();
   const { user } = useSession();
-  const { zorluk: zorlukParam } = useLocalSearchParams<{ zorluk?: string }>();
+  const { zorluk: zorlukParam, oturum: oturumParam } = useLocalSearchParams<{
+    zorluk?: string;
+    oturum?: string;
+  }>();
   const zorlukRaw = parseEglenceZorluk(zorlukParam);
   const zorluk = isSudokuZorluk(zorlukRaw) ? zorlukRaw : 'orta';
+  const oturumYeni = oturumParam === 'yeni';
 
   const [puzzle, setPuzzle] = useState<MiniSudokuPuzzle | null>(null);
   const [progress, setProgress] = useState<MiniSudokuProgress | null>(null);
@@ -70,6 +74,7 @@ export default function MiniSudokuOyunScreen() {
   const [noteMode, setNoteMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resultModalOpen, setResultModalOpen] = useState(false);
+  const [resultScore, setResultScore] = useState<{ score: number; detail: string } | null>(null);
   const resultShownRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const undoStackRef = useRef<SudokuSnapshot[]>([]);
@@ -162,14 +167,27 @@ export default function MiniSudokuOyunScreen() {
   const markComplete = useCallback(
     (next: MiniSudokuProgress) => {
       if (!puzzle || next.completedAt) return next;
+      const scoreResult = scoreMiniSudoku({
+        elapsedMs: next.elapsedMs,
+        livesRemaining: next.lives,
+        hintsRemaining: next.hintsRemaining,
+      });
       const done: MiniSudokuProgress = { ...next, completedAt: new Date().toISOString() };
+      void saveSudokuDailyRecord({
+        puzzleId: puzzle.id,
+        completedAt: done.completedAt!,
+        elapsedMs: done.elapsedMs,
+        score: scoreResult.score,
+      });
       notifyFriendsEglenceActivity(user?.email, {
         game: 'mini_sudoku',
         elapsedMs: done.elapsedMs,
+        score: scoreResult.score,
         puzzleId: puzzle.id,
       });
       if (!resultShownRef.current) {
         resultShownRef.current = true;
+        setResultScore(scoreResult);
         setResultModalOpen(true);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -177,6 +195,16 @@ export default function MiniSudokuOyunScreen() {
     },
     [puzzle, user?.email],
   );
+
+  const handleResultDone = useCallback(() => {
+    if (!puzzle) return;
+    void resetSudokuSession(puzzle).then(() => {
+      setResultModalOpen(false);
+      setResultScore(null);
+      resultShownRef.current = false;
+      router.replace(EGLENCE_LOBBY_ROUTES['mini-sudoku'] as Href);
+    });
+  }, [puzzle, router]);
 
   const applyProgress = useCallback(
     (before: MiniSudokuProgress, next: MiniSudokuProgress, recordUndo = true) => {
@@ -197,19 +225,30 @@ export default function MiniSudokuOyunScreen() {
       undoStackRef.current = [];
       setCanUndo(false);
       const daily = getDailyPuzzle(activePuzzleId(), zorluk);
-      const saved = await loadProgress(daily);
+      let saved = await loadProgress(daily);
+      if (oturumYeni || (!EGLENCE_GUNLUK_TEK_OYUN && saved.completedAt)) {
+        saved = await resetSudokuSession(daily);
+      }
       if (!alive) return;
       setPuzzle(daily);
       setProgress(saved);
       setLoading(false);
       if (!saved.completedAt && !saved.gameOver) startTimer();
-      else if (EGLENCE_GUNLUK_TEK_OYUN && saved.completedAt) setResultModalOpen(true);
+      else if (!oturumYeni && EGLENCE_GUNLUK_TEK_OYUN && saved.completedAt) {
+        const scoreResult = scoreMiniSudoku({
+          elapsedMs: saved.elapsedMs,
+          livesRemaining: saved.lives,
+          hintsRemaining: saved.hintsRemaining,
+        });
+        setResultScore(scoreResult);
+        setResultModalOpen(true);
+      }
     })();
     return () => {
       alive = false;
       stopTimer();
     };
-  }, [startTimer, stopTimer, zorluk]);
+  }, [oturumYeni, startTimer, stopTimer, zorluk]);
 
   useEffect(() => {
     if (!progress) return;
@@ -250,9 +289,7 @@ export default function MiniSudokuOyunScreen() {
       const before = progress;
       const values = cloneGrid(progress.values);
       values[row]![col] = digit;
-      const notes = progress.notes.map((r, ri) =>
-        r.map((cell, ci) => (ri === row && ci === col ? [] : [...cell])),
-      );
+      const notes = eliminateNotesForDigit(progress.notes, row, col, digit);
 
       let next: MiniSudokuProgress = { ...progress, values, notes };
       if (isWrongPlacement(puzzle.solution, row, col, digit)) {
@@ -297,10 +334,9 @@ export default function MiniSudokuOyunScreen() {
 
     const before = progress;
     const values = cloneGrid(progress.values);
-    values[row]![col] = puzzle.solution[row]![col]!;
-    const notes = progress.notes.map((r, ri) =>
-      r.map((cell, ci) => (ri === row && ci === col ? [] : [...cell])),
-    );
+    const hintDigit = puzzle.solution[row]![col]! as Digit;
+    values[row]![col] = hintDigit;
+    const notes = eliminateNotesForDigit(progress.notes, row, col, hintDigit);
     const next: MiniSudokuProgress = {
       ...progress,
       values,
@@ -392,9 +428,12 @@ export default function MiniSudokuOyunScreen() {
       <EglenceResultModal
         visible={resultModalOpen}
         onClose={() => setResultModalOpen(false)}
+        onDone={handleResultDone}
         game="mini_sudoku"
         periodKey={puzzle.id}
         elapsedMs={progress.elapsedMs}
+        score={resultScore?.score}
+        scoreDetail={resultScore?.detail}
       />
     </SudokuScreen>
   );

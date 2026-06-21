@@ -6,6 +6,8 @@ import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { Screen } from '@/components/ui/Screen';
 import { useGastroTheme } from '@/context/theme-context';
 import { eglenceActivityDayKey } from '@/lib/eglence-activity-day';
+import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
+import { scoreKelimeYarismasi } from '@/lib/eglence-scoring';
 import { sureMetni } from '@/lib/kelime-yarismasi/sure-yardimci';
 
 export default function KelimeYarismasiSonucScreen() {
@@ -21,6 +23,7 @@ export default function KelimeYarismasiSonucScreen() {
   const maksimumPuan = Number.parseInt(maksimum ?? '0', 10) || 0;
   const periodKey = eglenceActivityDayKey();
   const [resultModalOpen, setResultModalOpen] = useState(true);
+  const scoreResult = scoreKelimeYarismasi({ rawScore: toplam, maxScore: maksimumPuan });
 
   const styles = useMemo(
     () =>
@@ -70,9 +73,14 @@ export default function KelimeYarismasiSonucScreen() {
       <EglenceResultModal
         visible={resultModalOpen}
         onClose={() => setResultModalOpen(false)}
+        onDone={() => {
+          setResultModalOpen(false);
+          router.replace(EGLENCE_LOBBY_ROUTES['kelime-yarismasi']);
+        }}
         game="kelime_yarismasi"
         periodKey={periodKey}
-        score={toplam}
+        score={scoreResult.score}
+        scoreDetail={scoreResult.detail}
         elapsedMs={sureMs}
       />
     </Screen>

@@ -6,6 +6,14 @@ import { cloneGrid, emptyNotes } from './engine';
 import type { Grid, MiniSudokuProgress, MiniSudokuPuzzle } from './types';
 
 const KEY = `${STORAGE_PREFIX}:progress`;
+const DAILY_KEY = `${STORAGE_PREFIX}:daily-record`;
+
+export type SudokuDailyRecord = {
+  puzzleId: string;
+  completedAt: string;
+  elapsedMs: number;
+  score: number;
+};
 
 export function freshProgress(puzzle: MiniSudokuPuzzle): MiniSudokuProgress {
   return {
@@ -56,6 +64,28 @@ export async function loadProgress(puzzle: MiniSudokuPuzzle): Promise<MiniSudoku
   }
 }
 
+export async function saveSudokuDailyRecord(record: SudokuDailyRecord): Promise<void> {
+  await AsyncStorage.setItem(DAILY_KEY, JSON.stringify(record));
+}
+
+export async function loadSudokuDailyRecord(puzzleId: string): Promise<SudokuDailyRecord | null> {
+  try {
+    const raw = await AsyncStorage.getItem(DAILY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SudokuDailyRecord;
+    if (!parsed.puzzleId.startsWith(puzzleId) || typeof parsed.score !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function resetSudokuSession(puzzle: MiniSudokuPuzzle): Promise<MiniSudokuProgress> {
+  const fresh = freshProgress(puzzle);
+  await saveProgress(fresh);
+  return fresh;
+}
+
 export async function saveProgress(progress: MiniSudokuProgress): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(progress));
 }
@@ -71,17 +101,25 @@ function notesTouched(notes: MiniSudokuProgress['notes'] | undefined): boolean {
 /** Eğlence sekmesi için — bulmaca üretmeden durum okur. */
 export async function loadSudokuMetaStatus(
   puzzleId: string,
-): Promise<{ completed: boolean; inProgress: boolean }> {
+): Promise<{ completed: boolean; inProgress: boolean; score?: number }> {
   try {
+    const daily = await loadSudokuDailyRecord(puzzleId);
+    if (daily) {
+      return {
+        completed: EGLENCE_GUNLUK_TEK_OYUN,
+        inProgress: false,
+        score: daily.score,
+      };
+    }
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return { completed: false, inProgress: false };
     const parsed = JSON.parse(raw) as MiniSudokuProgress;
     if (!parsed.puzzleId.startsWith(puzzleId)) return { completed: false, inProgress: false };
     return {
-      completed: EGLENCE_GUNLUK_TEK_OYUN && parsed.completedAt != null,
+      completed: false,
       inProgress:
         parsed.completedAt == null &&
-        (parsed.elapsedMs > 0 || notesTouched(parsed.notes)),
+        (parsed.elapsedMs > 0 || notesTouched(parsed.notes) || parsed.gameOver),
     };
   } catch {
     return { completed: false, inProgress: false };

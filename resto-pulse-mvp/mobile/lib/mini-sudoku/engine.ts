@@ -126,6 +126,29 @@ export function toggleNote(notes: Digit[][][], row: number, col: number, digit: 
   return next;
 }
 
+function isPeerCell(row: number, col: number, peerRow: number, peerCol: number): boolean {
+  if (row === peerRow || col === peerCol) return true;
+  const boxRow = Math.floor(row / BOX_ROWS) * BOX_ROWS;
+  const boxCol = Math.floor(col / BOX_COLS) * BOX_COLS;
+  return peerRow >= boxRow && peerRow < boxRow + BOX_ROWS && peerCol >= boxCol && peerCol < boxCol + BOX_COLS;
+}
+
+/** Kesin rakam yerleştirildiğinde hücre notlarını ve aynı satır/sütün/kutu eşlerinden o rakamı kaldırır. */
+export function eliminateNotesForDigit(
+  notes: Digit[][][],
+  row: number,
+  col: number,
+  digit: Digit,
+): Digit[][][] {
+  return notes.map((r, ri) =>
+    r.map((cell, ci) => {
+      if (ri === row && ci === col) return [];
+      if (!isPeerCell(row, col, ri, ci) || !cell.includes(digit)) return [...cell];
+      return cell.filter((d) => d !== digit);
+    }),
+  );
+}
+
 function countDigitOnGrid(grid: Grid, digit: Digit): number {
   let count = 0;
   for (let r = 0; r < SIZE; r++) {
@@ -175,13 +198,14 @@ export function autoCompleteFromSolution(
   notes: Digit[][][],
   solution: Grid,
 ): { values: Grid; notes: Digit[][][] } {
-  const nextValues = cloneGrid(values);
-  const nextNotes = notes.map((row) => row.map((cell) => [...cell]));
+  let nextValues = cloneGrid(values);
+  let nextNotes = notes.map((row) => row.map((cell) => [...cell]));
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (nextValues[r]![c] === 0) {
-        nextValues[r]![c] = solution[r]![c]!;
-        nextNotes[r]![c] = [];
+        const digit = solution[r]![c]! as Digit;
+        nextValues[r]![c] = digit;
+        nextNotes = eliminateNotesForDigit(nextNotes, r, c, digit);
       }
     }
   }

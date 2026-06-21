@@ -1,15 +1,34 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
+import { loadGunlukKelimeMetaStatus } from '@/lib/gunluk-kelime/storage';
 import { formatNextResetHint, formatPuzzlePeriodLabel, activePuzzleId } from '@/lib/mini-sudoku/schedule';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function GunlukKelimeLobbyScreen() {
   const router = useRouter();
   const t = eglenceLobbyTheme('gunluk-kelime');
   const puzzleId = activePuzzleId();
+  const [inProgress, setInProgress] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [bestScore, setBestScore] = useState<number | null>(null);
+
+  const refreshMeta = useCallback(() => {
+    void loadGunlukKelimeMetaStatus(puzzleId).then((meta) => {
+      setInProgress(meta.inProgress);
+      setCompleted(meta.completed);
+      setBestScore(meta.score ?? null);
+    });
+  }, [puzzleId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshMeta();
+    }, [refreshMeta]),
+  );
 
   const styles = useMemo(
     () =>
@@ -47,6 +66,9 @@ export default function GunlukKelimeLobbyScreen() {
     [t],
   );
 
+  const oturum = inProgress && !completed ? 'devam' : 'yeni';
+  const butonYazi = inProgress && !completed ? 'Devam Et' : completed ? 'Tekrar Oyna' : 'Oyna';
+
   return (
     <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -61,10 +83,15 @@ export default function GunlukKelimeLobbyScreen() {
         <View style={styles.kutu}>
           <Text style={styles.madde}>🟩 Doğru yer · 🟨 Yanlış yer · ⬛ Yok</Text>
           <Text style={styles.madde}>TDK havuzundan 5 harfli Türkçe kelimeler.</Text>
+          {completed && bestScore != null ? (
+            <Text style={styles.madde}>Bugünkü skorun: {bestScore} puan</Text>
+          ) : null}
         </View>
 
-        <Pressable style={styles.buton} onPress={() => router.push('/oyun/gunluk-kelime/oyun')}>
-          <Text style={styles.butonYazi}>Oyna</Text>
+        <Pressable
+          style={styles.buton}
+          onPress={() => router.push(`/oyun/gunluk-kelime/oyun?oturum=${oturum}`)}>
+          <Text style={styles.butonYazi}>{butonYazi}</Text>
         </Pressable>
       </ScrollView>
     </EglenceGameLobbyScreen>

@@ -19,4 +19,4 @@ export type MiniSudokuProgress = {
   gameOver: boolean;
 };
 
-export type SudokuSnapshot = Pick<MiniSudokuProgress, 'values' | 'notes' | 'lives' | 'gameOver'>;
+export type SudokuSnapshot = Pick<MiniSudokuProgress, 'values' | 'notes'>;

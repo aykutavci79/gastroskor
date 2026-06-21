@@ -20,10 +20,15 @@ import type { EglenceLeaderboardEntry } from '@/lib/types';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  game: EglenceChallengeGame;
+  /** Tamam — genelde lobiye dönüş + oturum sıfırlama. */
+  onDone?: () => void;
+  game?: EglenceChallengeGame;
+  gameLabel?: string;
   periodKey: string;
   elapsedMs?: number;
   score?: number;
+  scoreDetail?: string;
+  showLeaderboard?: boolean;
 };
 
 const TABS = [
@@ -128,10 +133,14 @@ const pageStyles = StyleSheet.create({
 export function EglenceResultModal({
   visible,
   onClose,
+  onDone,
   game,
+  gameLabel,
   periodKey,
   elapsedMs,
   score,
+  scoreDetail,
+  showLeaderboard = true,
 }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useSession();
@@ -142,21 +151,44 @@ export function EglenceResultModal({
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingGlobal, setLoadingGlobal] = useState(false);
 
+  const resolvedLabel = useMemo(() => {
+    if (gameLabel) return gameLabel;
+    if (game === 'mini_sudoku') return 'Sudoku';
+    if (game === 'kelime_sofrasi') return 'Kelime Sofrası';
+    return 'Kelime Yarışması';
+  }, [game, gameLabel]);
+
+  const leaderboardEnabled = showLeaderboard && game != null;
   const cardWidth = Math.min(screenWidth - 40, 400);
   const pageWidth = cardWidth - 32;
 
   const headline = useMemo(() => {
-    if ((game === 'mini_sudoku' || game === 'kelime_sofrasi') && elapsedMs != null) {
-      return `Süren: ${formatChallengeElapsed(elapsedMs)}`;
-    }
     if (score != null) {
       return `${score} puan`;
+    }
+    if ((game === 'mini_sudoku' || game === 'kelime_sofrasi') && elapsedMs != null) {
+      return `Süren: ${formatChallengeElapsed(elapsedMs)}`;
     }
     return 'Harika iş!';
   }, [elapsedMs, game, score]);
 
+  const subline = useMemo(() => {
+    const parts: string[] = [];
+    if (scoreDetail) parts.push(scoreDetail);
+    if (score != null && elapsedMs != null && (game === 'mini_sudoku' || game === 'kelime_sofrasi')) {
+      parts.push(`Süre ${formatChallengeElapsed(elapsedMs)}`);
+    }
+    if (score != null && elapsedMs != null && game === 'kelime_yarismasi') {
+      parts.push(`Süre ${formatChallengeElapsed(elapsedMs)}`);
+    }
+    if (parts.length === 0 && (game === 'mini_sudoku' || game === 'kelime_sofrasi') && elapsedMs != null) {
+      return 'Skor tablosunda arkadaşlarınla yarış';
+    }
+    return parts.join(' · ');
+  }, [elapsedMs, game, score, scoreDetail]);
+
   const loadBoards = useCallback(() => {
-    if (!user?.email || !visible) return;
+    if (!user?.email || !visible || !leaderboardEnabled || !game) return;
     setLoadingFriends(true);
     setLoadingGlobal(true);
     void getEglenceLeaderboard(user.email, game, periodKey, 'friends')
@@ -167,7 +199,7 @@ export function EglenceResultModal({
       .then((data) => setGlobalItems(data.items))
       .catch(() => setGlobalItems([]))
       .finally(() => setLoadingGlobal(false));
-  }, [game, periodKey, user?.email, visible]);
+  }, [game, leaderboardEnabled, periodKey, user?.email, visible]);
 
   useEffect(() => {
     if (visible) {
@@ -262,6 +294,14 @@ export function EglenceResultModal({
           marginBottom: 6,
         },
         shareWrap: { marginTop: 12, paddingTop: 4 },
+        doneBtn: {
+          marginTop: 12,
+          borderRadius: 12,
+          paddingVertical: 14,
+          alignItems: 'center',
+          backgroundColor: '#FF6B00',
+        },
+        doneBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
       }),
     [cardWidth],
   );
@@ -279,69 +319,78 @@ export function EglenceResultModal({
             <Ionicons name="close" size={22} color="#333" />
           </Pressable>
 
-          <Text style={styles.kicker}>
-            {game === 'mini_sudoku'
-              ? 'Sudoku'
-              : game === 'kelime_sofrasi'
-                ? 'Kelime Sofrası'
-                : 'Kelime Yarışması'}
-          </Text>
-          <Text style={styles.title}>Tebrikler!</Text>
-          <Text style={styles.sub}>{headline}</Text>
+          <Text style={styles.kicker}>{resolvedLabel}</Text>
+          <Text style={styles.sub}>Tebrikler!</Text>
+          <Text style={styles.title}>{headline}</Text>
+          {subline ? <Text style={styles.sub}>{subline}</Text> : null}
 
-          <View style={styles.tabs}>
-            {TABS.map((tab, index) => (
-              <Pressable
-                key={tab.id}
-                style={[styles.tab, activeTab === index && styles.tabOn]}
-                onPress={() => goTab(index)}>
-                <Text style={[styles.tabText, activeTab === index && styles.tabTextOn]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.swipeHint}>Yana kaydır · sıralamayı değiştir</Text>
-          <View style={styles.dots}>
-            {TABS.map((tab, index) => (
-              <View key={tab.id} style={[styles.dot, activeTab === index && styles.dotOn]} />
-            ))}
-          </View>
-
-          <View style={styles.pagerWrap}>
-            <ScrollView
-              ref={pagerRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              onMomentumScrollEnd={(event) => {
-                const page = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
-                setActiveTab(page);
-              }}>
-              <View style={{ width: pageWidth, flex: 1 }}>
-                <LeaderboardPage
-                  game={game}
-                  items={friends}
-                  loading={loadingFriends}
-                  emptyHint="Henüz arkadaş skoru yok. Paylaş ile challenge gönder!"
-                />
+          {leaderboardEnabled ? (
+            <>
+              <View style={styles.tabs}>
+                {TABS.map((tab, index) => (
+                  <Pressable
+                    key={tab.id}
+                    style={[styles.tab, activeTab === index && styles.tabOn]}
+                    onPress={() => goTab(index)}>
+                    <Text style={[styles.tabText, activeTab === index && styles.tabTextOn]}>
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-              <View style={{ width: pageWidth, flex: 1 }}>
-                <LeaderboardPage
-                  game={game}
-                  items={globalItems}
-                  loading={loadingGlobal}
-                  emptyHint="Bu dönemde henüz kimse oynamamış."
-                />
-              </View>
-            </ScrollView>
-          </View>
 
-          <View style={styles.shareWrap}>
-            <EglenceChallengeShareButton game={game} elapsedMs={elapsedMs} score={score} />
-          </View>
+              <Text style={styles.swipeHint}>Yana kaydır · sıralamayı değiştir</Text>
+              <View style={styles.dots}>
+                {TABS.map((tab, index) => (
+                  <View key={tab.id} style={[styles.dot, activeTab === index && styles.dotOn]} />
+                ))}
+              </View>
+
+              <View style={styles.pagerWrap}>
+                <ScrollView
+                  ref={pagerRef}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(event) => {
+                    const page = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+                    setActiveTab(page);
+                  }}>
+                  <View style={{ width: pageWidth, flex: 1 }}>
+                    <LeaderboardPage
+                      game={game}
+                      items={friends}
+                      loading={loadingFriends}
+                      emptyHint="Henüz arkadaş skoru yok. Paylaş ile challenge gönder!"
+                    />
+                  </View>
+                  <View style={{ width: pageWidth, flex: 1 }}>
+                    <LeaderboardPage
+                      game={game}
+                      items={globalItems}
+                      loading={loadingGlobal}
+                      emptyHint="Bu dönemde henüz kimse oynamamış."
+                    />
+                  </View>
+                </ScrollView>
+              </View>
+            </>
+          ) : null}
+
+          {leaderboardEnabled ? (
+            <View style={styles.shareWrap}>
+              <EglenceChallengeShareButton game={game} elapsedMs={elapsedMs} score={score} />
+            </View>
+          ) : null}
+
+          <Pressable
+            style={styles.doneBtn}
+            onPress={onDone ?? onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Tamam">
+            <Text style={styles.doneBtnText}>Tamam</Text>
+          </Pressable>
         </View>
       </View>
     </Modal>
