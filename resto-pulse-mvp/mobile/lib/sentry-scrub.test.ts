@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createSentryBeforeSend, SENTRY_REDACTED, scrubSentryEvent } from './sentry-scrub';
+import { createSentryBeforeSend, SENTRY_REDACTED, scrubSentryEvent } from './sentry-scrub.ts';
 
 describe('sentry-scrub', () => {
   it('redacts sensitive headers and token fields', () => {
