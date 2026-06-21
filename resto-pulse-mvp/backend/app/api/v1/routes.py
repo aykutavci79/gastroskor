@@ -259,10 +259,10 @@ from app.services.live_search_metrics import record_live_search_metric
 from app.services.request_identity import (
     auth_require_bearer,
     get_request_auth,
-    resolve_authenticated_email,
     resolve_optional_viewer_email,
     resolve_soft_optional_viewer_email,
 )
+from app.services.active_user import get_active_user_by_id, get_active_user_for_auth, resolve_active_user_by_email
 
 logger = logging.getLogger(__name__)
 
@@ -409,10 +409,7 @@ def resolve_actor_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Oturum gerekli. Google ile giris yapip tekrar deneyin.",
             )
-        user = db.get(User, auth.user_id)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-        if author_id and str(user.id) != author_id:
+        if author_id and str(auth.user_id) != author_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Oturum ile uyusmayan kullanici.",
@@ -422,16 +419,14 @@ def resolve_actor_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Oturum ile uyusmayan e-posta.",
             )
-        return user
+        return get_active_user_for_auth(db, auth)
 
     if auth is not None:
-        user = db.get(User, auth.user_id)
-        if user:
-            if author_id and str(user.id) != author_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan kullanici.")
-            if author_email and author_email.strip().lower() != auth.email:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan e-posta.")
-            return user
+        if author_id and str(auth.user_id) != author_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan kullanici.")
+        if author_email and author_email.strip().lower() != auth.email:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan e-posta.")
+        return get_active_user_for_auth(db, auth)
 
     user_uuid = resolve_user_uuid(db, user_id=author_id, email=author_email)
     if not user_uuid:
@@ -439,21 +434,11 @@ def resolve_actor_user(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="author_id veya author_email gerekli ve kayitli olmali.",
         )
-    user = db.get(User, user_uuid)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    return user
+    return get_active_user_by_id(db, user_uuid)
 
 
 def load_authenticated_user_by_email(db: Session, email: str) -> User:
-    verified_email = resolve_authenticated_email(claimed_email=email)
-    user = db.scalar(select(User).where(User.email == verified_email))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    from app.services.account_deletion import assert_account_active
-
-    assert_account_active(user)
-    return user
+    return resolve_active_user_by_email(db, email)
 
 
 def assert_review_owner(user: User, review: Review) -> None:

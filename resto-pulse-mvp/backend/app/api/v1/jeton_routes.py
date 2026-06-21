@@ -35,17 +35,13 @@ from app.services.jeton_service import (
     record_referral_click,
     spend_game_hint,
 )
-from app.services.request_identity import resolve_authenticated_email
+from app.services.active_user import resolve_active_user_by_email
 
 router = APIRouter(prefix="/jeton", tags=["jeton"])
 
 
 def _resolve_user(db: Session, email: str) -> User:
-    verified_email = resolve_authenticated_email(claimed_email=email)
-    user = db.scalar(select(User).where(User.email == verified_email))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    return user
+    return resolve_active_user_by_email(db, email)
 
 
 @router.get("/me/wallet", response_model=WalletSummary)

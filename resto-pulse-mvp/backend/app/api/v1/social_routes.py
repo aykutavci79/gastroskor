@@ -46,17 +46,14 @@ from app.services.user_social import (
     serialize_public_user,
     start_dm_thread,
 )
-from app.services.request_identity import resolve_authenticated_email, resolve_optional_viewer_email
+from app.services.active_user import resolve_active_user_by_email
+from app.services.request_identity import resolve_optional_viewer_email
 
 router = APIRouter(prefix="/social", tags=["social"])
 
 
 def _resolve_user(db, email: str) -> User:
-    verified_email = resolve_authenticated_email(claimed_email=email)
-    user = db.scalar(select(User).where(User.email == verified_email))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    return user
+    return resolve_active_user_by_email(db, email)
 
 
 def _raise_social_error(exc: UserSocialError) -> None:

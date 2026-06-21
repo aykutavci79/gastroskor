@@ -4,6 +4,7 @@ import logging
 from typing import Callable
 
 from fastapi import Request, Response
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
@@ -11,6 +12,7 @@ from app.core.config import settings
 from app.core.request_ip import get_client_ip
 from app.core.rate_limit import path_rate_limit_rule, rate_limiter, user_global_rate_limit_rule
 from app.services.access_token import decode_access_token
+from app.services.active_user import ACCOUNT_DELETED_DETAIL, user_account_is_deleted
 from app.services.request_identity import RequestAuth, auth_require_bearer, set_request_auth
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                         status_code=401,
                         content={"detail": "Gecersiz veya suresi dolmus oturum."},
                     )
+        if auth is not None:
+            if await run_in_threadpool(user_account_is_deleted, auth.user_id):
+                set_request_auth(None)
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": ACCOUNT_DELETED_DETAIL},
+                )
         if auth is not None:
             user_rule, user_key = user_global_rate_limit_rule(str(auth.user_id))
             if not rate_limiter.allow(user_key, user_rule):

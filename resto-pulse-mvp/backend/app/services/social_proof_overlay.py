@@ -16,7 +16,7 @@ from app.schemas.social_proof import SocialProofStatus, SocialProofVenueResult
 from app.services.city_resolver import resolve_city_name
 from app.services.live_place_search_service import search_live_places_optimized
 from app.services.query_parser import parse_search_query
-from app.services.request_identity import get_request_auth
+from app.services.active_user import require_active_request_user, try_get_active_request_user
 from app.services.smart_filters import merge_criteria
 from app.services.social_proof_cache import (
     build_product_cache_key,
@@ -35,13 +35,7 @@ COLD_SCAN_DAILY_LIMIT = 10
 
 
 def _resolve_user(db: Session) -> User:
-    auth = get_request_auth()
-    if auth is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Giris gerekli.")
-    user = db.get(User, auth.user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    return user
+    return require_active_request_user(db)
 
 
 def _count_cold_scans_today(db: Session, user_id: UUID) -> int:

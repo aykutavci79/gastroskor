@@ -26,6 +26,7 @@ from app.services.foodcast import (
     report_foodcast_photo,
     serialize_foodcast_photo,
 )
+from app.services.active_user import get_active_user_for_auth, resolve_active_user_by_email
 from app.services.request_identity import get_request_auth
 from app.services.restaurant_claim import ensure_restaurant_for_place
 from app.services.restaurant_proximity import sync_restaurant_coordinates_from_google
@@ -34,21 +35,15 @@ router = APIRouter(prefix="/foodcast", tags=["foodcast"])
 
 
 def _resolve_user_by_email(db: Session, email: str) -> User:
-    user = db.scalar(select(User).where(User.email == email.strip().lower()).limit(1))
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
-    return user
+    return resolve_active_user_by_email(db, email)
 
 
 def _resolve_upload_user(db: Session, author_email: str) -> User:
     auth = get_request_auth()
     if auth is not None:
-        user = db.get(User, auth.user_id)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
         if author_email.strip().lower() != auth.email:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Oturum ile uyusmayan e-posta.")
-        return user
+        return get_active_user_for_auth(db, auth)
     return _resolve_user_by_email(db, author_email)
 
 

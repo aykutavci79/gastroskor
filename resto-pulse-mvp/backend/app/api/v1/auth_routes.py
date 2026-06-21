@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.services.user_accounts import get_or_create_user, serialize_user
-from app.services.account_deletion import assert_account_active
+from app.services.active_user import assert_account_active
 from app.services.jeton_service import try_process_referral_on_signup
 from app.core.config import settings
 from app.db.session import get_db

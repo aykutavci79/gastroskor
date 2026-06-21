@@ -79,14 +79,6 @@ def is_deletion_confirmation_valid(value: str | None) -> bool:
     return upper in {"EVET SIL", "EVET SİL"}
 
 
-def assert_account_active(user: User) -> None:
-    if user.deleted_at is not None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Hesap silinmis.",
-        )
-
-
 def deleted_user_email(user_id: UUID) -> str:
     return f"deleted-{user_id}@{DELETED_EMAIL_DOMAIN}"
 

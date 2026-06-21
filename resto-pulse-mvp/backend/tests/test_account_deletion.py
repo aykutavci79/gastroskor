@@ -62,8 +62,10 @@ def db() -> Session:
 
 
 @pytest.fixture(autouse=True)
-def override_db(db: Session):
+def override_db(db: Session, monkeypatch: pytest.MonkeyPatch):
     app.dependency_overrides[get_db] = lambda: db
+    test_session_local = sessionmaker(bind=db.get_bind(), autoflush=False, autocommit=False)
+    monkeypatch.setattr("app.services.active_user.SessionLocal", test_session_local)
     yield
     app.dependency_overrides.clear()
 
