@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.session import get_db
 from app.main import app
-from app.models.entities import User
+from app.models.entities import RevokedRefreshToken, User
 from app.services.access_token import create_access_token, create_refresh_token, decode_refresh_token
 
 client = TestClient(app)
