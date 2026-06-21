@@ -33,3 +33,6 @@ def assert_production_secrets(settings: Settings) -> None:
         raise RuntimeError(
             "PANEL_ADMIN_SECRET production ortaminda ayarlanmali (bos veya placeholder olamaz)."
         )
+
+    if _secret_invalid(settings.otp_pepper, frozenset({"", "dev-otp-pepper-change-me"})):
+        raise RuntimeError("OTP_PEPPER production ortaminda ayarlanmali (bos veya placeholder olamaz).")

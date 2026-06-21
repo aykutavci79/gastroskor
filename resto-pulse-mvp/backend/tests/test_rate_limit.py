@@ -76,6 +76,7 @@ def test_hybrid_falls_back_to_memory_when_redis_fails() -> None:
         ("/api/v1/users/sync", "POST", 30, 60),
         ("/api/v1/live/places/search", "GET", 60, 60),
         ("/api/v1/voice/transcribe", "POST", 30, 60),
+        ("/api/v1/jeton/referral/click", "POST", 10, 3600),
         ("/api/v1/eglence/kelime-sofrasi/attempts", "POST", 120, 60),
         ("/api/v1/eglence/kelime-sofrasi/puzzle", "GET", 180, 60),
         ("/api/v1/restaurants/abc/reviews", "POST", 20, 3600),

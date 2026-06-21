@@ -4,6 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyRecordingAudioMode } from '@/lib/gastro-audio-session';
 import { releaseRecordingAudioForSpeech } from '@/lib/gastro-speak';
 import { usesIosManualMicFinish } from '@/lib/voice-mic-copy';
+import {
+  createVoiceRecordingOwner,
+  isVoiceRecordingBusyFor,
+  releaseVoiceRecording,
+  takeVoiceRecording,
+  tryPrepareVoiceRecording,
+  type VoiceRecordingOwner,
+} from '@/lib/voice-recording-session';
 
 import {
   createVoiceSilenceVadState,
@@ -32,7 +40,7 @@ function mimeFromRecordingUri(uri: string): { mimeType: string; fileName: string
 }
 
 export function useVoiceWhisperRecorder() {
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const ownerRef = useRef<VoiceRecordingOwner>(createVoiceRecordingOwner());
   const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vadStateRef = useRef(createVoiceSilenceVadState(Date.now()));
   const autoStopInFlightRef = useRef(false);
@@ -55,22 +63,16 @@ export function useVoiceWhisperRecorder() {
   const cleanupRecording = useCallback(async () => {
     clearMaxDurationTimer();
     autoStopInFlightRef.current = false;
-    const active = recordingRef.current;
-    recordingRef.current = null;
-    detachStatusListener(active);
-    if (!active) return;
-    try {
-      await active.stopAndUnloadAsync();
-    } catch {
-      /* zaten durmus */
-    }
-  }, [clearMaxDurationTimer, detachStatusListener]);
+    await releaseVoiceRecording(ownerRef.current);
+    setRecording(false);
+  }, [clearMaxDurationTimer]);
 
   useEffect(() => {
+    const owner = ownerRef.current;
     return () => {
-      void cleanupRecording();
+      void releaseVoiceRecording(owner);
     };
-  }, [cleanupRecording]);
+  }, []);
 
   const requestMicPermission = useCallback(async () => {
     const permission = await Audio.requestPermissionsAsync();
@@ -94,7 +96,6 @@ export function useVoiceWhisperRecorder() {
   const handleRecordingStatus = useCallback(
     (status: Audio.RecordingStatus) => {
       if (!status.isRecording || autoStopInFlightRef.current) return;
-      // iOS metering guvenilir degil — kullanici dokunarak bitirir.
       if (usesIosManualMicFinish()) return;
 
       const nowMs = Date.now();
@@ -115,6 +116,7 @@ export function useVoiceWhisperRecorder() {
   const startRecording = useCallback(
     async (options?: { onAutoStop?: (reason: VoiceWhisperAutoStopReason) => void }): Promise<boolean> => {
       if (recording || transcribing) return false;
+      if (isVoiceRecordingBusyFor(ownerRef.current)) return false;
 
       onAutoStopRef.current = options?.onAutoStop ?? null;
       autoStopInFlightRef.current = false;
@@ -125,14 +127,17 @@ export function useVoiceWhisperRecorder() {
       await cleanupRecording();
       await applyRecordingAudioMode();
 
-      const created = new Audio.Recording();
-      await created.prepareToRecordAsync(getVoiceWhisperRecordingOptions());
+      const created = await tryPrepareVoiceRecording(
+        ownerRef.current,
+        getVoiceWhisperRecordingOptions(),
+      );
+      if (!created) return false;
+
       created.setProgressUpdateInterval(getVoiceVadConfig().statusPollMs);
       created.setOnRecordingStatusUpdate(handleRecordingStatus);
       await created.startAsync();
 
       vadStateRef.current = createVoiceSilenceVadState(Date.now());
-      recordingRef.current = created;
       setRecording(true);
 
       clearMaxDurationTimer();
@@ -160,11 +165,10 @@ export function useVoiceWhisperRecorder() {
     clearMaxDurationTimer();
     autoStopInFlightRef.current = false;
     onAutoStopRef.current = null;
-
-    const active = recordingRef.current;
-    recordingRef.current = null;
-    detachStatusListener(active);
     setRecording(false);
+
+    const active = await takeVoiceRecording(ownerRef.current);
+    detachStatusListener(active);
 
     if (!active) {
       return '';
@@ -190,7 +194,6 @@ export function useVoiceWhisperRecorder() {
     onAutoStopRef.current = null;
     await cleanupRecording();
     await releaseRecordingAudioForSpeech();
-    setRecording(false);
     setTranscribing(false);
   }, [cleanupRecording]);
 

@@ -153,6 +153,8 @@ def path_rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLi
         return RateLimitRule(limit=60, window_sec=60), rate_limit_key("search", client_ip)
     if path == "/api/v1/voice/transcribe" and method == "POST":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("voice", client_ip)
+    if path == "/api/v1/jeton/referral/click" and method == "POST":
+        return RateLimitRule(limit=10, window_sec=3600), rate_limit_key("referral-click", client_ip)
     if path == "/api/v1/eglence/kelime-sofrasi/attempts" and method == "POST":
         return RateLimitRule(limit=120, window_sec=60), rate_limit_key("sofra-attempt", client_ip)
     if path == "/api/v1/eglence/kelime-sofrasi/puzzle" and method == "GET":
@@ -182,6 +184,7 @@ PATH_RATE_LIMIT_RULES: tuple[tuple[str, str, int, int, str], ...] = (
     ("/api/v1/users/sync", "ANY", 30, 60, "sync"),
     ("/api/v1/live/places/search*", "ANY", 60, 60, "search"),
     ("/api/v1/voice/transcribe", "POST", 30, 60, "voice"),
+    ("/api/v1/jeton/referral/click", "POST", 10, 3600, "referral-click"),
     ("/api/v1/eglence/kelime-sofrasi/attempts", "POST", 120, 60, "sofra-attempt"),
     ("/api/v1/eglence/kelime-sofrasi/puzzle", "GET", 180, 60, "sofra-puzzle"),
     ("*/reviews", "POST", 20, 3600, "reviews"),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import logging
 import re
@@ -19,8 +20,17 @@ def generate_otp_code() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
+def _otp_pepper_bytes() -> bytes:
+    pepper = (settings.otp_pepper or "").strip()
+    if not pepper:
+        raise RuntimeError("OTP_PEPPER ayarlanmali.")
+    return pepper.encode("utf-8")
+
+
 def hash_otp_code(code: str) -> str:
-    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+    """HMAC-SHA256 + uygulama pepper'i — DB sizintisinda brute-force zorlasir."""
+    digest = hmac.new(_otp_pepper_bytes(), code.strip().encode("utf-8"), hashlib.sha256)
+    return digest.hexdigest()
 
 
 def verify_otp_code(code: str, code_hash: str) -> bool:

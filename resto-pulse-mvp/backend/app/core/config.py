@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     iletimerkezi_api_hash: str | None = None
     iletimerkezi_sender: str = "APITEST"
     otp_expiry_minutes: int = 10
+    otp_pepper: str = "dev-otp-pepper-change-me"
     # Virgulle: bu numaralar siparis SMS OTP atlanir (or. 05321234567,+905551112233)
     order_phone_test_bypass: str = ""
     panel_admin_secret: str | None = None

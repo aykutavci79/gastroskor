@@ -18,6 +18,7 @@ def _production_settings(**overrides: object) -> Settings:
         "jwt_secret": "prod-jwt-secret",
         "cron_secret": "prod-cron-secret",
         "panel_admin_secret": "prod-panel-secret",
+        "otp_pepper": "prod-otp-pepper-secret",
     }
     base.update(overrides)
     return Settings(**base)
@@ -31,6 +32,11 @@ def test_production_startup_rejects_missing_cron_secret() -> None:
 def test_production_startup_rejects_placeholder_panel_admin_secret() -> None:
     with pytest.raises(RuntimeError, match="PANEL_ADMIN_SECRET"):
         assert_production_secrets(_production_settings(panel_admin_secret="change-me-panel-admin"))
+
+
+def test_production_startup_rejects_placeholder_otp_pepper() -> None:
+    with pytest.raises(RuntimeError, match="OTP_PEPPER"):
+        assert_production_secrets(_production_settings(otp_pepper="dev-otp-pepper-change-me"))
 
 
 def test_production_startup_accepts_valid_secrets() -> None:

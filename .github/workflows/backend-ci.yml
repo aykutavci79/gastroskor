@@ -28,6 +28,7 @@ jobs:
       ENVIRONMENT: development
       JWT_SECRET: ci-github-actions-test-secret
       AUTH_REQUIRE_BEARER: "false"
+      OTP_PEPPER: ci-github-actions-test-otp-pepper
 
     steps:
       - name: Checkout

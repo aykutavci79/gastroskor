@@ -70,6 +70,7 @@ def test_transcribe_voice_falls_back_to_openai(monkeypatch) -> None:
 
 
 def test_transcribe_endpoint_requires_provider_keys(monkeypatch) -> None:
+    monkeypatch.setattr("app.core.security_middleware.user_account_is_deleted", lambda _user_id: False)
     monkeypatch.setattr(settings, "groq_api_key", None)
     monkeypatch.setattr(settings, "openai_api_key", None)
 
@@ -96,6 +97,7 @@ def test_transcribe_endpoint_requires_auth(monkeypatch) -> None:
 
 
 def test_transcribe_endpoint_success(monkeypatch) -> None:
+    monkeypatch.setattr("app.core.security_middleware.user_account_is_deleted", lambda _user_id: False)
     monkeypatch.setattr(settings, "groq_api_key", "groq-test")
     monkeypatch.setattr(settings, "openai_api_key", None)
 

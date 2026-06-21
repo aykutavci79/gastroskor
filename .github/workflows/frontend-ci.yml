@@ -1,0 +1,87 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "resto-pulse-mvp/frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "resto-pulse-mvp/frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: resto-pulse-mvp/frontend
+
+    env:
+      NEXTAUTH_SECRET: ci-github-actions-test-secret
+      GOOGLE_CLIENT_ID: ci-google-client-id.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: https://api.gastroskor.com.tr
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: resto-pulse-mvp/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (moderate/low — warning only)
+        run: |
+          npm audit --json > audit.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          let data;
+          try {
+            data = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
+          } catch {
+            console.log('::warning::npm audit JSON okunamadi');
+            process.exit(0);
+          }
+          const v = data.metadata?.vulnerabilities ?? {};
+          const moderate = v.moderate ?? 0;
+          const low = (v.low ?? 0) + (v.info ?? 0);
+          if (moderate > 0 || low > 0) {
+            console.log(
+              `::warning::npm audit: ${moderate} moderate, ${low} low/info — workflow devam ediyor`
+            );
+          } else {
+            console.log('npm audit: moderate/low yok');
+          }
+          NODE
+
+      - name: npm audit (high/critical — fail)
+        run: npm audit --audit-level=high
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: next build
+        run: npm run build
+
+      - name: Unit tests (if configured)
+        run: |
+          if node -e "const p=require('./package.json'); process.exit(p.scripts?.test ? 0 : 1)"; then
+            npm test
+          else
+            echo "package.json scripts.test yok — atlandi"
+          fi
