@@ -1,8 +1,8 @@
 export type VoiceAppState = 'active' | 'background' | 'inactive' | 'unknown' | 'extension';
 
 export interface VoiceRecordingLike {
-  prepareToRecordAsync(options: unknown): Promise<void>;
-  stopAndUnloadAsync?(): Promise<void>;
+  prepareToRecordAsync(options: unknown): Promise<unknown>;
+  stopAndUnloadAsync?(): Promise<unknown>;
 }
 
 function errorMessage(err: unknown): string {
@@ -30,11 +30,11 @@ export function shouldSkipVoicePrepare(state: VoiceAppState | null | undefined):
 }
 
 /** prepareToRecordAsync — foreground degilse veya arka plan hatasi ise null. */
-export async function prepareVoiceRecordingInstance(
-  recording: VoiceRecordingLike,
+export async function prepareVoiceRecordingInstance<T extends VoiceRecordingLike>(
+  recording: T,
   options: unknown,
   appState: VoiceAppState | null | undefined,
-): Promise<VoiceRecordingLike | null> {
+): Promise<T | null> {
   if (shouldSkipVoicePrepare(appState)) return null;
 
   const foreground = isAppStateForeground(appState);

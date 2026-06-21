@@ -53,7 +53,7 @@ export async function tryPrepareVoiceRecording(
     const created = new Audio.Recording();
     const prepared = await prepareVoiceRecordingInstance(created, options, currentAppState());
     if (!prepared) return null;
-    sharedRecording = prepared as Audio.Recording;
+    sharedRecording = prepared;
     activeOwner = owner;
     return sharedRecording;
   });

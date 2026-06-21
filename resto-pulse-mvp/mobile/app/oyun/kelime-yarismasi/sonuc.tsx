@@ -1,4 +1,4 @@
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -75,7 +75,7 @@ export default function KelimeYarismasiSonucScreen() {
         onClose={() => setResultModalOpen(false)}
         onDone={() => {
           setResultModalOpen(false);
-          router.replace(EGLENCE_LOBBY_ROUTES['kelime-yarismasi']);
+          router.replace(EGLENCE_LOBBY_ROUTES['kelime-yarismasi'] as Href);
         }}
         game="kelime_yarismasi"
         periodKey={periodKey}
