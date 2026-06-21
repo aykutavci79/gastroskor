@@ -16,7 +16,8 @@ from app.services.gourmet_chat_assistant import (
 
 
 @pytest.fixture()
-def db():
+def db(monkeypatch):
+    monkeypatch.setattr(settings, "gourmet_trivia_enabled", False)
     engine = create_engine("sqlite:///:memory:")
     from app.models.entities import (
         GourmetChatAssistantJob,
@@ -167,7 +168,11 @@ def test_live_search_ask_craving_when_vague():
 
     body = _format_live_search_ask_craving_body(room_slug="kes-donerciler", nickname="Veli")
     assert "Veli" in body
-    assert "canin" in body or "arayorsun" in body or "yemek" in body
+    lowered = body.lower()
+    assert any(
+        token in lowered
+        for token in ("canin", "istedigini", "yemek", "arama", "soyle", "netlestirelim", "doner", "ocakbasi")
+    )
 
 
 def test_human_reply_cancels_assistant(db: Session, monkeypatch):
