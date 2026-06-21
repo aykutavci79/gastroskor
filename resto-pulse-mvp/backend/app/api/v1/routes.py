@@ -4,7 +4,8 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
-from sqlalchemy import case, func, select
+from fastapi.responses import JSONResponse
+from sqlalchemy import case, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -618,12 +619,24 @@ def serialize_compensation_coupon(row: CompensationCoupon) -> CompensationCoupon
 
 
 @router.get("/health")
-def health():
-    return {
-        "status": "ok",
+def health(db: Session = Depends(get_db)):
+    db_ok = True
+    db_error: str | None = None
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:
+        db_ok = False
+        db_error = type(exc).__name__
+
+    body = {
+        "status": "ok" if db_ok else "degraded",
         "service": settings.app_name,
+        "database": {"ok": db_ok, **({"error": db_error} if db_error else {})},
         "rate_limit": rate_limiter.status(),
     }
+    if not db_ok:
+        return JSONResponse(status_code=503, content=body)
+    return body
 
 
 @router.post("/dev/seed-tester-online-restaurants")
