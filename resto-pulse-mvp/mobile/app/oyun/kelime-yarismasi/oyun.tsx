@@ -77,7 +77,7 @@ export default function KelimeYarismasiOyunScreen() {
     );
   }
 
-  return <OyunIcerik oyun={oyun} setOyun={setOyun} />;
+  return <OyunIcerik oyun={oyun} setOyun={setOyun as React.Dispatch<React.SetStateAction<OyunDurumu>>} />;
 }
 
 function OyunIcerik({

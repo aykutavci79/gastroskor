@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createSentryBeforeSend, SENTRY_REDACTED, scrubSentryEvent } from './sentry-scrub.ts';
+import { createSentryBeforeSend, SENTRY_REDACTED, scrubSentryEvent } from './sentry-scrub';
 
 describe('sentry-scrub', () => {
   it('redacts sensitive headers and token fields', () => {
@@ -45,16 +45,19 @@ describe('sentry-scrub', () => {
 
   it('scrubs embedded bearer tokens in exception messages', () => {
     const beforeSend = createSentryBeforeSend();
-    const scrubbed = beforeSend({
-      exception: {
-        values: [
-          {
-            type: 'Error',
-            value: '401: Authorization Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.a.b failed',
-          },
-        ],
-      },
-    });
+    const scrubbed = beforeSend(
+      {
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: '401: Authorization Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.a.b failed',
+            },
+          ],
+        },
+      } as Parameters<ReturnType<typeof createSentryBeforeSend>>[0],
+      {},
+    );
 
     const message = scrubbed?.exception?.values?.[0]?.value ?? '';
     assert.ok(message.includes(SENTRY_REDACTED));

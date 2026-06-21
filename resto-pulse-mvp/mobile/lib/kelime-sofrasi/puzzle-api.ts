@@ -61,7 +61,11 @@ export async function fetchSofraPuzzleFromPool(
     const expectedId = sofraPuzzleKey(body.gun_id, zorluk, tur);
     if (!isValidPuzzle(body.puzzle, expectedId)) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
-        console.warn('[sofra] puzzle validation fail', expectedId, body.puzzle?.id);
+        console.warn(
+          '[sofra] puzzle validation fail',
+          expectedId,
+          (body.puzzle as { id?: string } | undefined)?.id,
+        );
       }
       return null;
     }

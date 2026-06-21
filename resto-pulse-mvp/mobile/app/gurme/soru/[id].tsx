@@ -26,7 +26,7 @@ function param(value: string | string[] | undefined, fallback = '') {
 
 export default function GurmeQuestionScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const questionId = param(params.id);
   const roomTitle = param(params.roomTitle, 'Gurme Sohbet');
   const { user } = useSession();

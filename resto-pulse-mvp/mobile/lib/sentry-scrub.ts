@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { ErrorEvent, EventHint } from '@sentry/types';
 
 export const SENTRY_REDACTED = '[REDACTED]';
 
@@ -76,6 +76,10 @@ export function scrubSentryEvent<T extends Record<string, unknown>>(event: T): T
   return scrubUnknown(event) as T;
 }
 
-export function createSentryBeforeSend(): (event: Event) => Event | null {
-  return (event) => scrubSentryEvent(event as Record<string, unknown>) as Event;
+export function createSentryBeforeSend(): (
+  event: ErrorEvent,
+  hint: EventHint,
+) => ErrorEvent | null {
+  return (event, _hint) =>
+    scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as ErrorEvent;
 }

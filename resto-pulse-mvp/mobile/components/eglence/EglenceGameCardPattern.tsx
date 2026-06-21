@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
 import type { EglenceGameId } from '@/constants/eglence-games';
 
@@ -309,7 +309,7 @@ function SoruCevapBanner() {
 }
 
 function KelimeSofrasiBanner() {
-  const wheel = [
+  const wheel: { ch: string; top: DimensionValue; left: DimensionValue }[] = [
     { ch: 'A', top: '12%', left: '62%' },
     { ch: 'R', top: '24%', left: '78%' },
     { ch: 'Z', top: '48%', left: '80%' },

@@ -53,7 +53,7 @@ function friendlyOrderError(err: unknown): string {
 
 export default function SiparisDetayScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const orderId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user } = useSession();
   const { colors } = useGastroTheme();

@@ -89,7 +89,7 @@ function voiceQueryFromParams(params: Extract<OnlineOrderResultsParams, { mode: 
 export default function OnlineOrderResultsScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const routeParams = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const routeParams = useLocalSearchParams();
   const { user } = useSession();
   const { city, cityLabel, fallbackCoords } = useCity();
   const { colors, shadow } = useGastroTheme();

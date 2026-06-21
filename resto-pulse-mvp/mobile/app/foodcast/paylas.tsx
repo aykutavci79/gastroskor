@@ -20,6 +20,7 @@ import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useSession } from '@/context/session-context';
 import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
+import { useStackKeyboardOffset } from '@/lib/keyboard-layout';
 import { searchLivePlaces, uploadFoodcastPhoto } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import type { LivePlaceSearchItem } from '@/lib/types';
@@ -108,6 +109,10 @@ export default function FoodcastShareScreen() {
   }
 
   async function submit() {
+    if (!user?.email) {
+      Alert.alert('Giriş', 'Paylaşmak için giriş yap.');
+      return;
+    }
     if (!photo) {
       Alert.alert('FoodCast', 'Tabak fotoğrafı seç.');
       return;

@@ -34,7 +34,7 @@ function formatWhen(value: string) {
 export default function DmThreadScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const threadId = param(params.threadId);
   const fallbackNickname = param(params.nickname, 'Gurme');
   const { user } = useSession();

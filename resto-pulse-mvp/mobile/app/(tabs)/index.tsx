@@ -138,8 +138,12 @@ export default function ExploreScreen() {
   }, []);
 
   useEffect(() => {
-    const unsub = navigation.addListener('tabPress', () => {
-      if (!navigation.isFocused()) return;
+    const nav = navigation as {
+      addListener(event: 'tabPress', callback: () => void): () => void;
+      isFocused(): boolean;
+    };
+    const unsub = nav.addListener('tabPress', () => {
+      if (!nav.isFocused()) return;
       if (searchMode || searchFocused || kitchenBrowseMode) {
         resetKesfetVitrin();
       }

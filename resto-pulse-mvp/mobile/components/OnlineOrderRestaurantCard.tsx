@@ -11,7 +11,7 @@ import { coerceNumber } from '@/lib/coerce-number';
 import { ensureArray } from '@/lib/ensure-array';
 import { formatPriceTl } from '@/lib/format-price-tl';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
+import type { RestaurantListItem, RestaurantMenuItem, VoiceMenuMatch } from '@/lib/types';
 
 type Props = {
   restaurant: RestaurantListItem;
@@ -45,7 +45,7 @@ export function OnlineOrderRestaurantCard({
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const cover = resolveCardCoverUrl(restaurant);
-  const menuPreview = ensureArray(restaurant.menu_preview);
+  const menuPreview = ensureArray<RestaurantMenuItem>(restaurant.menu_preview);
   const visual = resolveCategoryVisual({
     category: restaurant.category,
     name: restaurant.name,

@@ -45,7 +45,7 @@ function param(value: string | string[] | undefined, fallback = '') {
 
 export default function GurmeRoomScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const { city, cityLabel } = useCity();
   const roomSlug = param(params.roomSlug);
   const roomTitle = param(params.title, 'Oda');

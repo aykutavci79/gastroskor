@@ -6,11 +6,12 @@ import { RestaurantPublicMenu } from '@/components/RestaurantPublicMenu';
 import { GastroColors } from '@/constants/theme';
 import {
   restaurantMenuItems,
+  type MenuCarrier,
 } from '@/lib/restaurant-menu';
-import type { RestaurantListItem, RestaurantMenuItem } from '@/lib/types';
+import type { RestaurantMenuItem } from '@/lib/types';
 
 type Props = {
-  restaurant: Pick<RestaurantListItem, 'name' | 'promo' | 'menu' | 'menu_preview' | 'menu_item_count'>;
+  restaurant: MenuCarrier & { name: string };
   /** Tam liste; karttan gelindiyse API'den gelen menu tercih edilir */
   menuOverride?: RestaurantMenuItem[];
 };

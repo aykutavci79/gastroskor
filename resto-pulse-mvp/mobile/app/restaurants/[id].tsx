@@ -2,7 +2,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 
 /** Universal Link: https://www.gastroskor.com.tr/restaurants/{uuid} */
 export default function RestaurantsUniversalLinkScreen() {
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const rawId = params.id;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   if (!id) {

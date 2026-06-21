@@ -34,6 +34,8 @@ export type SofraProgress = {
   puzzleId: string;
   foundWordIds: string[];
   bonusFound: string[];
+  /** @deprecated Eski kayitlar — hintedCells kullan */
+  hintedWordIds?: string[];
   hintedCells: string[];
   wheelOrder: number[];
   completedAt: string | null;

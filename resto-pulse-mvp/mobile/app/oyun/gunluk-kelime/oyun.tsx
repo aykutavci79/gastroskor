@@ -159,7 +159,7 @@ export default function GunlukKelimeOyunScreen() {
       return;
     }
 
-    const canonical = gunlukKelimeKanonik(word);
+    const canonical = gunlukKelimeKanonik(current);
     if (!canonical) {
       showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
       rejectGuess();

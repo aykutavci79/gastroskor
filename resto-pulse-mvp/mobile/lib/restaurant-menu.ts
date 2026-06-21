@@ -1,7 +1,7 @@
 import { ensureArray } from '@/lib/ensure-array';
 import type { RestaurantListItem, RestaurantMenuItem, RestaurantPromoPublic } from '@/lib/types';
 
-type MenuCarrier = {
+export type MenuCarrier = {
   menu?: RestaurantMenuItem[];
   menu_preview?: RestaurantMenuItem[];
   menu_item_count?: number;

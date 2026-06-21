@@ -52,6 +52,8 @@ import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { coerceNumber, formatNumber } from '@/lib/coerce-number';
 import { googleCardPhotosEnabled } from '@/lib/google-card-photos';
 import { ensureAccessToken } from '@/lib/auth-token';
+import { formatApiError } from '@/lib/format-api-error';
+import type { GastroScoreSnapshot } from '@/components/PlaceDetailInfo';
 import { useScreenKeyboardOffset } from '@/lib/keyboard-layout';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
@@ -59,11 +61,22 @@ import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, R
 
 export default function RestaurantDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
   const { user, loading: sessionLoading } = useSession();
-  const gastroScores = useMemo(() => parseLiveScoreParams(params), [params]);
+  const gastroScores = useMemo((): GastroScoreSnapshot | null => {
+    const live = parseLiveScoreParams(params);
+    if (!live) return null;
+    return {
+      gastro_score: live.gastro_score,
+      distance_score: live.distance_score,
+      rating_score: live.rating_score,
+      distance_meters: live.distance_meters,
+      distance_origin: live.distance_origin,
+      google_rating: live.rating,
+    };
+  }, [params]);
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [liveDetails, setLiveDetails] = useState<LivePlaceDetails | null>(null);

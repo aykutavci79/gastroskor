@@ -46,7 +46,7 @@ export function FollowingRestaurantAccordionRow({ restaurant }: Props) {
       </Pressable>
       {open ? (
         <View style={styles.body}>
-          <RestaurantCard restaurant={restaurant} compact />
+          <RestaurantCard restaurant={restaurant} />
         </View>
       ) : null}
     </View>

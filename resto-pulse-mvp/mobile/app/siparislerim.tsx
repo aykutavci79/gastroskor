@@ -152,7 +152,7 @@ export default function SiparislerimScreen() {
               Expo Go&apos;da Google girisi calismaz. Play dahili test veya TestFlight build kullan.
             </Text>
           ) : (
-            <GoogleSignInButton onError={() => undefined} />
+            <GoogleSignInButton consentAccepted={false} onError={() => undefined} />
           )}
           <Pressable style={styles.btnOutline} onPress={() => router.push('/(tabs)/profil' as never)}>
             <Text style={styles.btnOutlineText}>Hesap ayarlari</Text>

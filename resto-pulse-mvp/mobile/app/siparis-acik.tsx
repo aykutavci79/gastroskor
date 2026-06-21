@@ -40,7 +40,7 @@ const MAX_RATING = 5;
 export default function OnlineOrdersOpenScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const routeParams = useLocalSearchParams<Record<string, string | string[] | undefined>>();
+  const routeParams = useLocalSearchParams();
   const { cityLabel, fallbackCoords } = useCity();
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);

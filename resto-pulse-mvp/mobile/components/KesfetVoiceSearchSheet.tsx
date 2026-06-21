@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -35,7 +35,7 @@ const EXAMPLE_ITEMS = [
 
 type ChipPosition = (typeof EXAMPLE_ITEMS)[number]['position'];
 
-const CHIP_LAYOUT: Record<ChipPosition, { top?: string; bottom?: string; left?: string; right?: string }> = {
+const CHIP_LAYOUT: Record<ChipPosition, Pick<ViewStyle, 'top' | 'bottom' | 'left' | 'right'>> = {
   chipTopLeft: { top: '14%', left: '4%' },
   chipTopRight: { top: '18%', right: '2%' },
   chipMidLeft: { top: '38%', left: '0%' },

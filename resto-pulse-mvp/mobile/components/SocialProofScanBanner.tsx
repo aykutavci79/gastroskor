@@ -74,7 +74,7 @@ export function SocialProofScanBanner({ social, onRequestScan, scanLoading, logg
 function createStyles(colors: GastroColorScheme) {
   return StyleSheet.create({
     box: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: colors.panel,
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -88,7 +88,7 @@ function createStyles(colors: GastroColorScheme) {
       fontSize: 14,
     },
     sub: {
-      color: colors.textMuted,
+      color: colors.muted,
       fontSize: 12,
       marginTop: 4,
     },

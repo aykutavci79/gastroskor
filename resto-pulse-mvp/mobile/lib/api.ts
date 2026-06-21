@@ -168,12 +168,14 @@ export function listRestaurants(params: {
   city?: string;
   origin_lat?: number;
   origin_lng?: number;
+  limit?: number;
 }) {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);
   if (params.city) search.set('city', params.city);
   if (params.origin_lat != null) search.set('origin_lat', String(params.origin_lat));
   if (params.origin_lng != null) search.set('origin_lng', String(params.origin_lng));
+  if (params.limit != null) search.set('limit', String(params.limit));
   const query = search.toString();
   return request<RestaurantListItem[]>(`/restaurants${query ? `?${query}` : ''}`);
 }
@@ -424,7 +426,7 @@ export function createReview(payload: {
   review_text?: string;
   author_email?: string | null;
   author_name?: string | null;
-  author_name_display?: 'full' | 'masked';
+  author_name_display?: 'full' | 'masked' | 'nickname';
 }) {
   return request<Review>('/reviews', {
     method: 'POST',
