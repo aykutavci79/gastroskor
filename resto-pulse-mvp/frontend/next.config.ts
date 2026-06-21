@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { securityHeaders } from './lib/security-headers';
+
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
@@ -30,6 +32,14 @@ const nextConfig: NextConfig = {
         has: [{ type: 'host', value: 'gastroskor.com.tr' }],
         destination: 'https://www.gastroskor.com.tr/:path*',
         permanent: true,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders(),
       },
     ];
   },
