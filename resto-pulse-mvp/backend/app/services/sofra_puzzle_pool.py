@@ -129,14 +129,11 @@ def clone_puzzle_for_slot(source: dict[str, Any], puzzle_id: str, zorluk: str) -
 
 def _capture_pool_alert(message: str, extra: dict[str, Any] | None = None) -> None:
     logger.critical("SOFRA_POOL_ALERT: %s | %s", message, extra or {})
-    dsn = (settings.sentry_dsn or "").strip()
-    if not dsn:
+    if not (settings.sentry_dsn or "").strip():
         return
     try:
         import sentry_sdk
 
-        if not sentry_sdk.Hub.current.client:
-            sentry_sdk.init(dsn=dsn, traces_sample_rate=0.0)
         with sentry_sdk.push_scope() as scope:
             if extra:
                 for key, value in extra.items():

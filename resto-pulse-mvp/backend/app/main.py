@@ -15,6 +15,7 @@ from app.api.v1.routes import router as v1_router
 from app.core.config import settings
 from app.core.production_guard import assert_production_secrets, is_production_environment
 from app.core.rate_limit import rate_limiter
+from app.core.sentry_setup import init_sentry
 from app.core.security_middleware import SecurityMiddleware
 from app.services.menu_image_storage import menu_images_dir
 from app.services.foodcast_image_storage import foodcast_images_dir
@@ -24,6 +25,7 @@ from app.services.user_avatar_storage import user_avatars_dir
 logger = logging.getLogger(__name__)
 
 assert_production_secrets(settings)
+init_sentry()
 is_production = is_production_environment(settings.environment)
 
 app = FastAPI(

@@ -120,6 +120,7 @@ class Settings(BaseSettings):
     sofra_attempt_min_count: int = 3
     sofra_mobile_root: str | None = None
     sentry_dsn: str | None = None
+    sentry_traces_sample_rate: float | None = None
 
     # Sosyal kanit (discover/search) — last30days + Groq sentiment
     social_proof_groq_model: str = "llama-3.1-8b-instant"
