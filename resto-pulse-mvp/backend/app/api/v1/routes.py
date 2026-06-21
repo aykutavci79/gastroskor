@@ -450,6 +450,9 @@ def load_authenticated_user_by_email(db: Session, email: str) -> User:
     user = db.scalar(select(User).where(User.email == verified_email))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanici bulunamadi.")
+    from app.services.account_deletion import assert_account_active
+
+    assert_account_active(user)
     return user
 
 
@@ -2408,6 +2411,10 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
 
 router.include_router(auth_router)
 router.include_router(auth_refresh_router)
+
+from app.api.v1.user_account_routes import router as user_account_router
+
+router.include_router(user_account_router)
 router.include_router(panel_router)
 router.include_router(metrics_router)
 router.include_router(gourmet_chat_router)

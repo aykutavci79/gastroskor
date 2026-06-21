@@ -10,6 +10,7 @@ from app.services.refresh_token_revocation import (
     revoke_refresh_token,
 )
 from app.services.user_accounts import get_user_by_id
+from app.services.account_deletion import assert_account_active
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,6 +27,7 @@ def refresh_auth_tokens(payload: AuthRefreshPayload, db: Session = Depends(get_d
     user = get_user_by_id(db, claims.user_id)
     if user is None or user.email.strip().lower() != claims.email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum bulunamadi.")
+    assert_account_active(user)
 
     tokens = exchange_refresh_token(db, claims, email=user.email)
     db.commit()

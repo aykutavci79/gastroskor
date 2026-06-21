@@ -68,6 +68,7 @@ class User(Base):
     kvkk_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     kvkk_consent_version: Mapped[str | None] = mapped_column(String(32))
     first_order_bonus_claimed: Mapped[bool] = mapped_column(Boolean, default=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="author")
@@ -288,8 +289,8 @@ class JetonLedger(Base):
     __table_args__ = (UniqueConstraint("idempotency_key", name="uq_jeton_ledger_idempotency"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
     source: Mapped[JetonLedgerSource] = mapped_column(Enum(JetonLedgerSource), index=True)
     source_id: Mapped[str | None] = mapped_column(String(120))
@@ -325,11 +326,11 @@ class Referral(Base):
     __table_args__ = (UniqueConstraint("referred_id", name="uq_referrals_referred_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    referrer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    referrer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
-    referred_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    referred_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), unique=True
     )
     device_hash: Mapped[str | None] = mapped_column(String(128))
     ip_at_signup: Mapped[str | None] = mapped_column(String(64))
