@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { HubPressable } from '@/components/eglence/HubPressable';
 import { eglenceBannerTheme } from '@/components/eglence/EglenceGameCardPattern';
 import { eglenceCardArtTheme } from '@/constants/eglence-card-art-theme';
 import { EGLENCE_GAME_CARD_ART } from '@/constants/eglence-game-art';
 import { EGLENCE_GAMES, type EglenceGameId, type EglenceGameStatus } from '@/constants/eglence-games';
 import { HUB_GAME_JETON_LABEL } from '@/constants/eglence-hub';
+import { GastroCoinTheme } from '@/constants/gastrocoin-theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -130,12 +132,12 @@ function GameHubCard({
             ? fullBleedArt
               ? 'rgba(76, 175, 121, 0.28)'
               : 'rgba(76, 175, 121, 0.16)'
-            : 'rgba(255, 183, 3, 0.2)',
+            : GastroCoinTheme.chipBg,
         },
         jetonText: {
           fontSize: 10,
           fontWeight: '800',
-          color: isFree ? (fullBleedArt ? '#7DDFA8' : colors.success) : '#B45309',
+          color: isFree ? (fullBleedArt ? '#7DDFA8' : colors.success) : GastroCoinTheme.coinGoldLight,
         },
         btn: {
           borderRadius: 999,
@@ -171,7 +173,7 @@ function GameHubCard({
   );
 
   return (
-    <Pressable
+    <HubPressable
       disabled={disabled || status === 'yakinda'}
       onPress={onPress}
       style={({ pressed }) => [styles.card, (disabled || pressed) && styles.disabled]}>
@@ -201,7 +203,7 @@ function GameHubCard({
           <View style={styles.body}>{bodyContent}</View>
         </>
       )}
-    </Pressable>
+    </HubPressable>
   );
 }
 

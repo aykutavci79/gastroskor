@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePostHog } from 'posthog-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -39,6 +40,7 @@ type Props = {
 };
 
 export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onFieldFocus }: Props) {
+  const posthog = usePostHog();
   const menuItems = useMemo(
     () =>
       ensureArray<RestaurantMenuItem>(restaurant.menu ?? restaurant.menu_preview).filter(
@@ -278,15 +280,24 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
 
     setSubmitting(true);
     setError(null);
+    posthog.capture('order_started', {
+      restaurant_id: restaurant.id,
+      item_count: payloadLines.length,
+    });
     try {
       await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
       await AsyncStorage.setItem(ADDRESS_STORAGE_KEY, address.trim());
-      await submitRestaurantOrder(restaurant.id, {
+      const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
         customer_address: address.trim(),
         note: note.trim() || undefined,
         lines: payloadLines,
+      });
+      posthog.capture('order_completed', {
+        restaurant_id: restaurant.id,
+        order_total: order.total_tl,
+        payment_method: 'online',
       });
       await refreshActive();
       onOrderSent?.();

@@ -12,6 +12,7 @@ import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
 import { Screen } from '@/components/ui/Screen';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { DevSignInButton } from '@/components/DevSignInButton';
 import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
 import { LEGAL_URLS } from '@/constants/legal';
@@ -130,6 +131,7 @@ export default function ProfilScreen() {
               handleGoogleError(message);
             }}
           />
+          <DevSignInButton onError={handleGoogleError} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
       )}

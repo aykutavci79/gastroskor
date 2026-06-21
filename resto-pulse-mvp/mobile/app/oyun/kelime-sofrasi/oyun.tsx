@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,6 +31,7 @@ import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { spendGameHint } from '@/lib/api';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
+import { playHubSfx } from '@/lib/gastro-hub-sfx';
 import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
 import { scoreKelimeSofrasi } from '@/lib/eglence-scoring';
 import {
@@ -157,6 +159,7 @@ function useSofraLayout(puzzle: SofraPuzzle | null) {
 }
 
 export default function KelimeSofrasiOyunScreen() {
+  const posthog = usePostHog();
   const { colors } = useGastroTheme();
   const { user } = useSession();
   const router = useRouter();
@@ -177,6 +180,8 @@ export default function KelimeSofrasiOyunScreen() {
   const notifiedRef = useRef(false);
   const resultElapsedRef = useRef(0);
   const resultPuzzleIdRef = useRef<string | null>(null);
+  const wheelAttemptRef = useRef(0);
+  const loadStartedAtRef = useRef(0);
   const layout = useSofraLayout(puzzle);
 
   const styles = useMemo(
@@ -268,6 +273,8 @@ export default function KelimeSofrasiOyunScreen() {
     const gunId = activePuzzleId();
     let alive = true;
 
+    loadStartedAtRef.current = Date.now();
+    wheelAttemptRef.current = 0;
     setLoading(true);
     setPuzzle(null);
     setProgress(null);
@@ -288,6 +295,10 @@ export default function KelimeSofrasiOyunScreen() {
         progressRef.current = saved;
         elapsedRef.current = saved.elapsedMs;
         setLoading(false);
+        posthog.capture('game_load_time', {
+          screen: 'kelime_sofrasi',
+          duration_ms: Date.now() - loadStartedAtRef.current,
+        });
 
         if (!sofraGunlukLimitDoldu(saved)) {
           prefetchSofraTurIdle(gunId, zorluk, tur + 1);
@@ -299,9 +310,19 @@ export default function KelimeSofrasiOyunScreen() {
           return;
         }
         setTimerRunning(true);
+        posthog.capture('kelime_sofrasi_started', {
+          puzzle_id: daily.id,
+          difficulty: zorluk,
+        });
         notifiedRef.current = false;
-      } catch {
-        if (alive) setLoading(false);
+      } catch (err) {
+        if (alive) {
+          setLoading(false);
+          posthog.capture('game_error', {
+            screen: 'kelime_sofrasi',
+            error_message: err instanceof Error ? err.message : 'load_failed',
+          });
+        }
       }
     })();
 
@@ -316,7 +337,7 @@ export default function KelimeSofrasiOyunScreen() {
       bgTask.cancel?.();
       setTimerRunning(false);
     };
-  }, [zorluk]);
+  }, [zorluk, posthog]);
 
   const completed =
     progress?.completedAt != null || sofraGunlukLimitDoldu(progress);
@@ -331,11 +352,39 @@ export default function KelimeSofrasiOyunScreen() {
   const applyFoundWordIds = useCallback(
     (baseProgress: SofraProgress, foundWordIds: string[], successMessage?: string) => {
       if (!puzzle) return;
+      if (foundWordIds.length > baseProgress.foundWordIds.length) {
+        const prev = new Set(baseProgress.foundWordIds);
+        const newlyFound = puzzle.words.filter(
+          (w) => foundWordIds.includes(w.id) && !prev.has(w.id),
+        );
+        for (const word of newlyFound) {
+          posthog.capture('kelime_sofrasi_word_found', {
+            word: word.kelime,
+            attempt_number: wheelAttemptRef.current,
+          });
+        }
+        const maxLen = Math.max(
+          ...puzzle.words.map((w) => normalizeKelime(w.kelime).length),
+          0,
+        );
+        const foundLongest = puzzle.words.some(
+          (w) =>
+            foundWordIds.includes(w.id) &&
+            !prev.has(w.id) &&
+            normalizeKelime(w.kelime).length === maxLen,
+        );
+        if (foundLongest) playHubSfx('applause');
+      }
       const done = bulmacaTamamlandi(puzzle, foundWordIds);
       const nextTamamlama = done
         ? sofraTamamlamaSayisi(baseProgress) + 1
         : sofraTamamlamaSayisi(baseProgress);
       if (done) {
+        posthog.capture('kelime_sofrasi_completed', {
+          puzzle_id: puzzle.id,
+          duration_seconds: Math.round(elapsedRef.current / 1000),
+          success: true,
+        });
         const completedProgress: SofraProgress = {
           ...baseProgress,
           foundWordIds,
@@ -399,7 +448,7 @@ export default function KelimeSofrasiOyunScreen() {
       });
       if (successMessage) setMessage(successMessage);
     },
-    [puzzle, user, zorluk],
+    [puzzle, user, zorluk, posthog],
   );
 
   const submitPath = useCallback(
@@ -415,6 +464,7 @@ export default function KelimeSofrasiOyunScreen() {
         setSelectedPath([]);
         return;
       }
+      wheelAttemptRef.current += 1;
       const word = path.map((i) => puzzle.wheel[i]).join('');
       const norm = normalizeKelime(word);
       if (!kelimeCarktanOlusur(word, puzzle.wheel, path)) {
@@ -526,11 +576,12 @@ export default function KelimeSofrasiOyunScreen() {
           hintIndex,
         });
         if (!spend.ok) {
-          setMessage('Yeterli jeton yok');
+          setMessage('Yeterli GC yok');
           return;
         }
+        posthog.capture('jeton_spent', { amount: spend.charged, spent_on: 'game' });
       } catch {
-        setMessage('Jeton harcanamadı, tekrar dene');
+        setMessage('GastroCoin harcanamadı, tekrar dene');
         return;
       }
     }
@@ -571,7 +622,7 @@ export default function KelimeSofrasiOyunScreen() {
       return;
     }
     setProgress(nextProgress);
-  }, [applyFoundWordIds, completed, puzzle, progress, user?.email]);
+  }, [applyFoundWordIds, completed, puzzle, progress, user?.email, posthog]);
 
   const hintsLeft = progress
     ? Math.max(0, sofraMaxIpucu(progress.bonusFound.length) - progress.hintedCells.length)

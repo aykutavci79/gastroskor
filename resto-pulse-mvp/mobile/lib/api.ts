@@ -552,6 +552,20 @@ export function verifyGoogleMobileAuth(idToken: string, kvkkConsentAccepted: boo
   });
 }
 
+/** Production disi backend — Expo Go gelistirici oturumu. */
+export function devLogin(email = 'dev@gastroskor.local') {
+  return request<{
+    profile: UserProfile;
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    refresh_expires_in: number;
+  }>('/auth/dev/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+}
+
 export function refreshAuthSession(refreshToken: string) {
   return request<{
     access_token: string;

@@ -19,6 +19,7 @@ import {
   SOFRA_WHEEL_FONT_FAMILY,
 } from '@/constants/kelime-sofrasi';
 import { useGastroTheme } from '@/context/theme-context';
+import { playHubSfx } from '@/lib/gastro-hub-sfx';
 
 type Props = {
   wheel: string[];
@@ -77,6 +78,7 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
   const pathRef = useRef<number[]>([]);
   const fingerRef = useRef<Pt | null>(null);
   const fingerFrameRef = useRef<number | null>(null);
+  const hoverLetterRef = useRef<number | null>(null);
 
   const setFingerThrottled = useCallback((pt: Pt) => {
     fingerRef.current = pt;
@@ -139,7 +141,14 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
   const handlePoint = useCallback(
     (pt: Pt) => {
       const wheelIndex = findLetterAt(pt);
-      if (wheelIndex == null) return;
+      if (wheelIndex == null) {
+        hoverLetterRef.current = null;
+        return;
+      }
+      if (hoverLetterRef.current !== wheelIndex) {
+        hoverLetterRef.current = wheelIndex;
+        playHubSfx('waterdrop');
+      }
       const path = pathRef.current;
       const pos = path.indexOf(wheelIndex);
       if (pos === -1) {
@@ -165,6 +174,7 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
         onMoveShouldSetPanResponder: () => !disabled,
         onPanResponderGrant: (e: GestureResponderEvent) => {
           pathRef.current = [];
+          hoverLetterRef.current = null;
           const pt = { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
           setFinger(pt);
           handlePoint(pt);
@@ -176,11 +186,13 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
         },
         onPanResponderRelease: () => {
           setFinger(null);
+          hoverLetterRef.current = null;
           onCommit(pathRef.current);
           pathRef.current = [];
         },
         onPanResponderTerminate: () => {
           setFinger(null);
+          hoverLetterRef.current = null;
           onCommit(pathRef.current);
           pathRef.current = [];
         },

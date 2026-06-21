@@ -44,21 +44,17 @@ export function gunlukKelimeCevapHavuzu(): readonly string[] {
 }
 
 export function gunlukKelimeGecerliMi(word: string): boolean {
-  try {
-    if (gunlukKelimeGraphemes(word).length !== GUNLUK_KELIME_LENGTH) return false;
-    const norm = gunlukKelimeGraphemes(word).join('');
-    return TAHMIN_BY_ASCII.has(asciiKelimeAnahtar(norm));
-  } catch {
-    return false;
-  }
+  return gunlukKelimeKanonik(word) !== null;
 }
 
-/** Sözlükteki kanonik yazım (İ/Ş/Ğ doğru). */
+/** Sözlükteki kanonik yazım — klavyedeki harfler bire bir eşleşmeli (I≠İ, O≠Ö). */
 export function gunlukKelimeKanonik(word: string): string | null {
   try {
     if (gunlukKelimeGraphemes(word).length !== GUNLUK_KELIME_LENGTH) return null;
     const norm = gunlukKelimeGraphemes(word).join('');
-    return TAHMIN_BY_ASCII.get(asciiKelimeAnahtar(norm)) ?? null;
+    const canon = TAHMIN_BY_ASCII.get(asciiKelimeAnahtar(norm));
+    if (!canon || norm !== canon) return null;
+    return canon;
   } catch {
     return null;
   }

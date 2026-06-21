@@ -13,6 +13,7 @@ import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
 import { eglenceZorlukEtiket, parseEglenceZorluk } from '@/constants/eglence-zorluk';
 import { useSession } from '@/context/session-context';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
+import { playHubSfx } from '@/lib/gastro-hub-sfx';
 import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
 import { scoreMiniSudoku } from '@/lib/eglence-scoring';
 import type { Digit } from '@/lib/mini-sudoku/constants';
@@ -293,6 +294,7 @@ export default function MiniSudokuOyunScreen() {
 
       let next: MiniSudokuProgress = { ...progress, values, notes };
       if (isWrongPlacement(puzzle.solution, row, col, digit)) {
+        playHubSfx('buzzer');
         next = loseLife(next);
       }
       applyProgress(before, next);

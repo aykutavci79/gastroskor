@@ -140,7 +140,12 @@ export default function GunlukKelimeOyunScreen() {
       setProgress(p);
       let kb: Record<string, LetterState> = {};
       for (const g of p.guesses) {
-        kb = mergeKeyboardStates(kb, g.word, g.states);
+        try {
+          kb = mergeKeyboardStates(kb, g.word, g.states);
+        } catch {
+          kb = {};
+          break;
+        }
       }
       setKeyboard(kb);
       setLoading(false);
@@ -180,21 +185,21 @@ export default function GunlukKelimeOyunScreen() {
   const submitGuess = useCallback(async () => {
     if (!progress || locked) return;
 
-    const harfSayisi = gunlukKelimeHarfSayisi(current);
-    if (harfSayisi !== GUNLUK_KELIME_LENGTH) {
-      showMessage('5 harf gir', 'warn');
-      rejectGuess();
-      return;
-    }
-
-    const canonical = gunlukKelimeKanonik(current);
-    if (!canonical) {
-      showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
-      rejectGuess();
-      return;
-    }
-
     try {
+      const harfSayisi = gunlukKelimeHarfSayisi(current);
+      if (harfSayisi !== GUNLUK_KELIME_LENGTH) {
+        showMessage('5 harf gir', 'warn');
+        rejectGuess();
+        return;
+      }
+
+      const canonical = gunlukKelimeKanonik(current);
+      if (!canonical) {
+        showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
+        rejectGuess();
+        return;
+      }
+
       const answerChars = gunlukKelimeGraphemes(progress.answer);
       if (answerChars.length !== GUNLUK_KELIME_LENGTH) {
         showMessage('Günlük kelime yüklenemedi — lobiden tekrar gir', 'bad');
@@ -254,7 +259,7 @@ export default function GunlukKelimeOyunScreen() {
       showMessage('Tahmin işlenemedi — tekrar dene', 'bad');
       rejectGuess();
     }
-  }, [clearMessage, current, locked, persist, progress, rejectGuess, showMessage]);
+  }, [clearMessage, current, locked, persist, progress, puzzleId, rejectGuess, showMessage]);
 
   const onKey = useCallback(
     (key: string) => {

@@ -1,4 +1,4 @@
-import { asciiKelimeAnahtar, sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
+import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 import { GUNLUK_KELIME_LENGTH } from '@/constants/gunluk-kelime';
 
@@ -12,16 +12,17 @@ const STATE_RANK: Record<LetterState, number> = {
   correct: 3,
 };
 
+/** Wordle puanlama anahtarı — tam Türkçe harf; I≠İ, O≠Ö, U≠Ü, C≠Ç, S≠Ş, G≠Ğ. */
 function harfAnahtar(ch: string): string {
   if (!ch) return '';
   try {
-    return asciiKelimeAnahtar(ch);
+    return sofraKelimeBuyuk(ch);
   } catch {
     return '';
   }
 }
 
-/** Wordle tarzı harf durumu (İ/I eşlemesi + çift harf tüketimi). */
+/** Wordle tarzı harf durumu (bire bir Türkçe harf + çift harf tüketimi). */
 export function scoreGunlukKelimeGuess(answer: string, guess: string): LetterState[] {
   const a = [...sofraKelimeBuyuk(answer)];
   const g = [...sofraKelimeBuyuk(guess)];
@@ -79,12 +80,9 @@ function applyKeyState(
 ): void {
   if (!ch || st === 'empty' || st === 'typing') return;
   const rank = STATE_RANK[st];
-  const keys = ch === 'I' || ch === 'İ' ? (['I', 'İ'] as const) : [ch];
-  for (const key of keys) {
-    const prev = next[key];
-    if (!prev || rank > STATE_RANK[prev]) {
-      next[key] = st;
-    }
+  const prev = next[ch];
+  if (!prev || rank > STATE_RANK[prev]) {
+    next[ch] = st;
   }
 }
 
@@ -93,12 +91,16 @@ export function mergeKeyboardStates(
   word: string,
   states: readonly LetterState[],
 ): Record<string, LetterState> {
-  const next = { ...current };
-  const norm = [...sofraKelimeBuyuk(word)];
-  for (let i = 0; i < norm.length && i < states.length; i++) {
-    applyKeyState(next, norm[i]!, states[i] ?? 'absent');
+  try {
+    const next = { ...current };
+    const norm = [...sofraKelimeBuyuk(word)];
+    for (let i = 0; i < norm.length && i < states.length; i++) {
+      applyKeyState(next, norm[i]!, states[i] ?? 'absent');
+    }
+    return next;
+  } catch {
+    return current;
   }
-  return next;
 }
 
 export function gunlukKelimeShareEmoji(

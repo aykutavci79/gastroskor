@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -60,6 +61,7 @@ import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
 import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
+  const posthog = usePostHog();
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -111,6 +113,7 @@ export default function RestaurantDetailScreen() {
   const reviewsSectionY = useRef(0);
   const reviewCardY = useRef<Record<string, number>>({});
   const pendingMenuFocus = useRef(focus === 'menu');
+  const viewedRestaurantIdRef = useRef<string | null>(null);
 
   const scrollToY = useCallback(
     (targetY: number, capBottomY?: number) => {
@@ -337,6 +340,18 @@ export default function RestaurantDetailScreen() {
     const avg = averageGsRating(visitReviews);
     return avg != null ? coerceNumber(avg) : null;
   }, [restaurant?.avg_rating, visitReviews]);
+
+  useEffect(() => {
+    if (!restaurant || loading) return;
+    if (viewedRestaurantIdRef.current === restaurant.id) return;
+    viewedRestaurantIdRef.current = restaurant.id;
+    posthog.capture('restaurant_viewed', {
+      restaurant_id: restaurant.id,
+      restaurant_name: restaurant.name,
+      category: restaurant.category ?? '',
+      rating: visitRating ?? googleRating ?? 0,
+    });
+  }, [restaurant, loading, visitRating, googleRating, posthog]);
   const orderRatings = restaurant?.order_ratings;
   const deliveryRating = coerceNumber(orderRatings?.lezzet_avg);
   const showDeliveryChannel = Boolean(
@@ -456,6 +471,11 @@ export default function RestaurantDetailScreen() {
         created_at: saved.created_at ?? new Date().toISOString(),
       };
       setVisitReviews((prev) => sortReviewsWithViewerFirst([withMeta, ...prev], user?.email, user?.id));
+      posthog.capture('restaurant_review_submitted', {
+        restaurant_id: restaurant.id,
+        rating,
+        has_text: text.trim().length > 0,
+      });
       setText('');
       setPhotos([]);
       setRating(0);

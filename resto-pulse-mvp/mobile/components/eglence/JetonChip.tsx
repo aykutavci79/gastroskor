@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { HubPressable } from '@/components/eglence/HubPressable';
+import { GASTROCOIN_UNIT } from '@/constants/gastrocoin-theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -28,16 +30,16 @@ export function JetonChip({ balance, loading, onPress }: Props) {
         <Ionicons name="diamond" size={14} color={colors.gold} />
       )}
       <Text style={[styles.text, { color: colors.text }]}>{label}</Text>
-      <Text style={[styles.suffix, { color: colors.muted }]}>jeton</Text>
+      <Text style={[styles.suffix, { color: colors.muted }]}>{GASTROCOIN_UNIT}</Text>
     </View>
   );
 
   if (!onPress) return content;
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Jeton bakiyesi">
+    <HubPressable onPress={onPress} accessibilityRole="button" accessibilityLabel="GastroCoin bakiyesi">
       {content}
-    </Pressable>
+    </HubPressable>
   );
 }
 
@@ -54,6 +56,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 14,
     fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   suffix: {
     fontSize: 11,

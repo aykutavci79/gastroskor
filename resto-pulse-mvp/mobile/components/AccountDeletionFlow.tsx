@@ -30,7 +30,7 @@ type Props = {
 const LOSS_ITEMS = [
   'Hesap bilgilerin (e-posta, ad, profil fotografi) kalici olarak silinir veya anonimlestirilir.',
   'GastroSkor yorumlarin anonimlesir; metin restoran istatistikleri icin kalabilir.',
-  'Jeton bakiyen ve cuzdan kaydin silinir.',
+  'GastroCoin bakiyen ve cüzdan kaydın silinir.',
   'Arkadasliklarin ve ozel mesajlarin tamamen silinir.',
   'Gurme sohbet mesajlarin "[silindi]" olarak isaretlenir.',
   'Tamamlanmis siparis kayitlarindaki kisisel bilgiler anonimlestirilir (tutar/tarih yasal saklama icin kalir).',

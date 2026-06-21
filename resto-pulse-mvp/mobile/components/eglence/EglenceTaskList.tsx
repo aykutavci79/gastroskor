@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { HubPressable } from '@/components/eglence/HubPressable';
 import {
   HUB_TASKS,
   type HubFollowProgress,
@@ -11,6 +12,7 @@ import {
   type HubTaskState,
 } from '@/constants/eglence-hub';
 import { HUB_TASK_IMAGES } from '@/constants/hub-task-images';
+import { GASTROCOIN_SHORT, GastroCoinTheme } from '@/constants/gastrocoin-theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 /** Açıkken en fazla ~2 görev satırı — sayfa oyunları aşağı itmesin */
@@ -22,7 +24,7 @@ type Props = {
   dailyLoginGranted: boolean;
   expanded: boolean;
   onToggle: () => void;
-  onTaskPress: (task: HubTaskDef) => void;
+  onTaskPress: (task: HubTaskDef, anchor?: { x: number; y: number }) => void;
 };
 
 function isTaskDone(
@@ -117,9 +119,10 @@ function TaskRow({
   state: HubTaskState;
   followProgress: HubFollowProgress;
   dailyLoginGranted: boolean;
-  onPress: () => void;
+  onPress: (anchor?: { x: number; y: number }) => void;
 }) {
   const { colors } = useGastroTheme();
+  const ctaAnchorRef = useRef<View>(null);
   const isFollow = task.id === 'follow';
   const isDailyLogin = task.id === 'daily-login';
   const done = isFollow
@@ -135,6 +138,17 @@ function TaskRow({
       ? 'Ödülü al'
       : task.cta
     : task.cta;
+  const isClaimCta = ctaLabel === 'Ödülü al';
+
+  function handlePress() {
+    if (isClaimCta && ctaAnchorRef.current) {
+      ctaAnchorRef.current.measureInWindow((x, y, width, height) => {
+        onPress({ x: x + width / 2, y: y + height / 2 });
+      });
+      return;
+    }
+    onPress();
+  }
 
   return (
     <View
@@ -170,8 +184,8 @@ function TaskRow({
               {task.title}
             </Text>
             <View style={styles.rewardRow}>
-              <Ionicons name="star" size={12} color={colors.gold} />
-              <Text style={[styles.reward, { color: colors.success }]}>+{task.reward} jeton</Text>
+              <Ionicons name="logo-bitcoin" size={12} color={GastroCoinTheme.coinGold} />
+              <Text style={[styles.reward, { color: colors.success }]}>+{task.reward} {GASTROCOIN_SHORT}</Text>
             </View>
             {isFollow ? (
               <Text style={[styles.followSub, { color: colors.muted }]}>
@@ -185,15 +199,17 @@ function TaskRow({
               <Text style={[styles.doneText, { color: colors.success }]}>Tamamlandı</Text>
             </View>
           ) : (
-            <Pressable
-              onPress={onPress}
-              style={({ pressed }) => [
-                styles.cta,
-                { backgroundColor: followReady ? colors.gold : colors.accent },
-                pressed && { opacity: 0.9 },
-              ]}>
-              <Text style={[styles.ctaText, followReady && { color: '#1A1A1A' }]}>{ctaLabel}</Text>
-            </Pressable>
+            <View ref={ctaAnchorRef} style={styles.ctaAnchor} collapsable={false}>
+              <HubPressable
+                onPress={handlePress}
+                style={({ pressed }) => [
+                  styles.cta,
+                  { backgroundColor: followReady ? colors.gold : colors.accent },
+                  pressed && { opacity: 0.9 },
+                ]}>
+                <Text style={[styles.ctaText, followReady && { color: '#1A1A1A' }]}>{ctaLabel}</Text>
+              </HubPressable>
+            </View>
           )}
         </View>
         {isFollow && !done ? (
@@ -221,7 +237,7 @@ export function EglenceTaskList({
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.panel, borderColor: colors.border }]}>
-      <Pressable
+      <HubPressable
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
@@ -245,7 +261,7 @@ export function EglenceTaskList({
         <Text style={[styles.headerHint, { color: colors.accent }]}>
           {left > 0 ? `${left} kaldı` : 'Hepsi tamam'}
         </Text>
-      </Pressable>
+      </HubPressable>
       {expanded ? (
         <ScrollView
           style={styles.listScroll}
@@ -260,7 +276,7 @@ export function EglenceTaskList({
               state={taskStates[task.id]}
               followProgress={followProgress}
               dailyLoginGranted={dailyLoginGranted}
-              onPress={() => onTaskPress(task)}
+              onPress={(anchor) => onTaskPress(task, anchor)}
             />
           ))}
         </ScrollView>
@@ -325,6 +341,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressHint: { fontSize: 11, fontWeight: '800', minWidth: 28, textAlign: 'right' },
+  ctaAnchor: {
+    position: 'relative',
+    zIndex: 2,
+  },
   cta: {
     paddingHorizontal: 14,
     paddingVertical: 8,

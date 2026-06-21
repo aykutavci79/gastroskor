@@ -2,6 +2,8 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useRouter, type Href } from 'expo-router';
 
+import { usePostHog } from 'posthog-react-native';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -17,6 +19,8 @@ import { EglenceSectionHeader } from '@/components/eglence/EglenceSectionHeader'
 import { EglenceTaskList } from '@/components/eglence/EglenceTaskList';
 
 import { EglenceWalletCard } from '@/components/eglence/EglenceWalletCard';
+
+import { GastroCoinRewardBurstModal } from '@/components/eglence/GastroCoinRewardBurst';
 
 import { GastroMarketSection } from '@/components/eglence/GastroMarketSection';
 
@@ -46,12 +50,14 @@ import {
 } from '@/constants/eglence-hub';
 
 import { GastroColors } from '@/constants/theme';
+import { GASTROCOIN_SHORT } from '@/constants/gastrocoin-theme';
 
 import { useCity } from '@/context/city-context';
 
 import { useSession } from '@/context/session-context';
 
 import { listGourmetChatRooms, getJetonWallet, claimDailyLogin } from '@/lib/api';
+import { playHubSfx } from '@/lib/gastro-hub-sfx';
 
 import { warmSofraPuzzleCache, prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache';
 
@@ -93,6 +99,8 @@ function sofraStatus(completed: boolean, inProgress: boolean): EglenceGameStatus
 
 export default function EglenceTabScreen() {
 
+  const posthog = usePostHog();
+
   const { city } = useCity();
 
   const router = useRouter();
@@ -131,6 +139,7 @@ export default function EglenceTabScreen() {
     granted: false,
   });
   const [dailyLoginGranted, setDailyLoginGranted] = useState(false);
+  const [rewardBurstOrigin, setRewardBurstOrigin] = useState<{ x: number; y: number } | null>(null);
   const [hubEarn, setHubEarn] = useState({
     reviewToday: 0,
     reviewLimit: 1,
@@ -284,7 +293,24 @@ export default function EglenceTabScreen() {
       void loadSofraMeta();
       void loadGunlukKelimeMeta();
       void loadJeton();
-    }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton]),
+
+      let taskCountAvailable = 0;
+      if (!dailyLoginGranted) taskCountAvailable += 1;
+      if (hubEarn.referralToday < hubEarn.referralLimit) taskCountAvailable += 1;
+      if (!followProgress.granted) taskCountAvailable += 1;
+      if (hubEarn.reviewToday < hubEarn.reviewLimit) taskCountAvailable += 1;
+      if (hubEarn.orderToday < hubEarn.orderLimit) taskCountAvailable += 1;
+      posthog.capture('daily_task_viewed', { task_count_available: taskCountAvailable });
+    }, [
+      loadSudokuMeta,
+      loadSofraMeta,
+      loadGunlukKelimeMeta,
+      loadJeton,
+      dailyLoginGranted,
+      hubEarn,
+      followProgress.granted,
+      posthog,
+    ]),
   );
 
 
@@ -404,19 +430,37 @@ export default function EglenceTabScreen() {
 
 
 
-  function onTaskPress(task: HubTaskDef) {
+  function onTaskPress(task: HubTaskDef, anchor?: { x: number; y: number }) {
+    function playRewardBurst() {
+      if (anchor) setRewardBurstOrigin(anchor);
+    }
+
     if (task.id === 'daily-login') {
       if (!user?.email) {
-        Alert.alert('Giriş gerekli', 'Günlük giriş ödülü için Hesap sekmesinden giriş yap.');
+        Alert.alert(
+          'Giriş gerekli',
+          'Günlük giriş ödülü için önce giriş yapmalısın.\n\nExpo Go: Hesap → Geliştirici girişi\nTestFlight/Play: Google ile giriş',
+          [
+            { text: 'Tamam', style: 'cancel' },
+            { text: 'Hesaba git', onPress: () => router.push('/(tabs)/profil' as Href) },
+          ],
+        );
         return;
       }
       if (dailyLoginGranted) return;
       void claimDailyLogin(user.email)
         .then((result) => {
           if (result.ok) {
+            playRewardBurst();
+            playHubSfx('coin');
             setJetonBalance(result.balance);
             setDailyLoginGranted(true);
-            Alert.alert('Günlük giriş', `+${result.amount} jeton hesabına eklendi!`);
+            posthog.capture('daily_task_completed', {
+              task_id: 'daily-login',
+              jeton_earned: result.amount,
+            });
+            posthog.capture('jeton_earned', { amount: result.amount, source: 'task' });
+            Alert.alert('Günlük giriş', `+${result.amount} ${GASTROCOIN_SHORT} hesabına eklendi!`);
             return;
           }
           Alert.alert('Günlük giriş', 'Bugünkü ödülü zaten aldın.');
@@ -432,7 +476,7 @@ export default function EglenceTabScreen() {
 
     if (task.id === 'invite') {
       if (hubEarn.referralToday >= hubEarn.referralLimit) {
-        Alert.alert('Davet', 'Bugünkü davet jeton tavanına ulaştın.');
+        Alert.alert('Davet', `Bugünkü davet ${GASTROCOIN_SHORT} tavanına ulaştın.`);
         return;
       }
       setJetonSheetOpen(true);
@@ -443,7 +487,11 @@ export default function EglenceTabScreen() {
       if (followProgress.granted) return;
       if (followProgress.current >= followProgress.target) {
         void loadJeton().then(() => {
-          Alert.alert('Tebrikler', '+10 jeton hesabına eklendi!');
+          playRewardBurst();
+          playHubSfx('coin');
+          posthog.capture('daily_task_completed', { task_id: 'follow', jeton_earned: 10 });
+          posthog.capture('jeton_earned', { amount: 10, source: 'task' });
+          Alert.alert('Tebrikler', `+10 ${GASTROCOIN_SHORT} hesabına eklendi!`);
         });
         return;
       }
@@ -453,7 +501,7 @@ export default function EglenceTabScreen() {
 
     if (task.id === 'review') {
       if (hubEarn.reviewToday >= hubEarn.reviewLimit) {
-        Alert.alert('Yorum görevi', 'Bugünkü yorum jetonunu zaten aldın.');
+        Alert.alert('Yorum görevi', `Bugünkü yorum ${GASTROCOIN_SHORT} ödülünü zaten aldın.`);
         return;
       }
       router.push('/(tabs)/' as Href);
@@ -462,7 +510,7 @@ export default function EglenceTabScreen() {
 
     if (task.id === 'order') {
       if (hubEarn.orderToday >= hubEarn.orderLimit) {
-        Alert.alert('Sipariş görevi', 'Bugünkü sipariş jeton tavanına ulaştın.');
+        Alert.alert('Sipariş görevi', `Bugünkü sipariş ${GASTROCOIN_SHORT} tavanına ulaştın.`);
         return;
       }
       router.push('/(tabs)/' as Href);
@@ -477,7 +525,7 @@ export default function EglenceTabScreen() {
   function onGamePlayPurchase(product: HubGamePlayProduct) {
     Alert.alert(
       'Gastro-Market',
-      `${product.title} — sunucu bağlantısı çok yakında.\n\nFiyat: ${product.cost} jeton (onaylandı, henüz düşülmüyor).`,
+      `${product.title} — sunucu bağlantısı çok yakında.\n\nFiyat: ${product.cost} ${GASTROCOIN_SHORT} (onaylandı, henüz düşülmüyor).`,
     );
   }
 
@@ -549,6 +597,11 @@ export default function EglenceTabScreen() {
       </View>
 
 
+
+      <GastroCoinRewardBurstModal
+        origin={rewardBurstOrigin}
+        onComplete={() => setRewardBurstOrigin(null)}
+      />
 
       <EglenceSectionHeader
 

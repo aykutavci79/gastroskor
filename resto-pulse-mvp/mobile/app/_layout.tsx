@@ -1,5 +1,6 @@
 import 'react-native-gesture-handler';
 
+import { PostHogProvider } from 'posthog-react-native';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
@@ -151,17 +152,15 @@ function RootLayout() {
     return null;
   }
 
-  if (!splashDone) {
-    return (
-      <AppErrorBoundary>
-        <View style={splashGateStyles.gate}>
-          <GastroAnimatedSplash onFinish={handleSplashFinish} />
-        </View>
-      </AppErrorBoundary>
-    );
-  }
+  const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_KEY?.trim();
 
-  return (
+  const appTree = !splashDone ? (
+    <AppErrorBoundary>
+      <View style={splashGateStyles.gate}>
+        <GastroAnimatedSplash onFinish={handleSplashFinish} />
+      </View>
+    </AppErrorBoundary>
+  ) : (
     <AppErrorBoundary>
       <KeyboardProvider>
         <SessionProvider>
@@ -175,6 +174,21 @@ function RootLayout() {
         </SessionProvider>
       </KeyboardProvider>
     </AppErrorBoundary>
+  );
+
+  if (!posthogKey) {
+    return appTree;
+  }
+
+  return (
+    <PostHogProvider
+      apiKey={posthogKey}
+      options={{
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+        enableSessionReplay: true,
+      }}>
+      {appTree}
+    </PostHogProvider>
   );
 }
 

@@ -15,6 +15,7 @@ import { EglenceChallengeShareButton } from '@/components/eglence/EglenceFriendL
 import { useSession } from '@/context/session-context';
 import { formatChallengeElapsed, type EglenceChallengeGame } from '@/lib/eglence-challenge-share';
 import { getEglenceLeaderboard } from '@/lib/api';
+import { playHubSfx } from '@/lib/gastro-hub-sfx';
 import type { EglenceLeaderboardEntry } from '@/lib/types';
 
 type Props = {
@@ -145,6 +146,7 @@ export function EglenceResultModal({
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useSession();
   const pagerRef = useRef<ScrollView>(null);
+  const wasVisibleRef = useRef(false);
   const [activeTab, setActiveTab] = useState(0);
   const [friends, setFriends] = useState<EglenceLeaderboardEntry[]>([]);
   const [globalItems, setGlobalItems] = useState<EglenceLeaderboardEntry[]>([]);
@@ -202,6 +204,10 @@ export function EglenceResultModal({
   }, [game, leaderboardEnabled, periodKey, user?.email, visible]);
 
   useEffect(() => {
+    if (visible && !wasVisibleRef.current) {
+      playHubSfx('finish');
+    }
+    wasVisibleRef.current = visible;
     if (visible) {
       setActiveTab(0);
       pagerRef.current?.scrollTo({ x: 0, animated: false });

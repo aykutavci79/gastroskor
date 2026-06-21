@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { DmAvatarButton } from '@/components/DmAvatarButton';
 import { JetonChip } from '@/components/eglence/JetonChip';
+import { GASTROCOIN_LABEL } from '@/constants/gastrocoin-theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -26,7 +27,7 @@ export function EglenceHubHeader({ jetonBalance = null, jetonLoading, onJetonPre
             <View style={[styles.hubPill, { backgroundColor: colors.accentSoft, borderColor: colors.accent }]}>
               <Text style={[styles.hubLabel, { color: colors.accent }]}>GastroHub</Text>
             </View>
-            <Text style={[styles.hubSub, { color: colors.muted }]}>oyun · jeton · market</Text>
+            <Text style={[styles.hubSub, { color: colors.muted }]}>oyun · {GASTROCOIN_LABEL} · market</Text>
           </View>
         </View>
         <View style={styles.actions}>

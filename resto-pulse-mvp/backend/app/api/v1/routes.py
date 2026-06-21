@@ -246,6 +246,7 @@ from app.services.private_feedback_service import (
 from app.services.compensation_service import issue_compensation_coupon
 from app.api.v1.auth_routes import router as auth_router
 from app.api.v1.auth_refresh_routes import router as auth_refresh_router
+from app.api.v1.dev_auth_routes import router as dev_auth_router
 from app.api.v1.metrics_routes import metrics_router
 from app.api.v1.gourmet_chat_routes import router as gourmet_chat_router
 from app.api.v1.panel_routes import panel_router
@@ -2396,6 +2397,7 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
 
 router.include_router(auth_router)
 router.include_router(auth_refresh_router)
+router.include_router(dev_auth_router)
 
 from app.api.v1.user_account_routes import router as user_account_router
 

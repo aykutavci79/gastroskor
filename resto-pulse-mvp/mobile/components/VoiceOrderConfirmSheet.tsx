@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePostHog } from 'posthog-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -61,6 +62,7 @@ export function VoiceOrderConfirmSheet({
   onClose,
   onSuccess,
 }: Props) {
+  const posthog = usePostHog();
   const insets = useSafeAreaInsets();
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -78,6 +80,7 @@ export function VoiceOrderConfirmSheet({
   const spokeConfirmRef = useRef(false);
   const submittingRef = useRef(false);
   const autoBypassAttemptRef = useRef<string | null>(null);
+  const orderStartedRef = useRef(false);
 
   const resolved = useMemo(() => {
     if (!command || !restaurant) return { rows: [], blockingIssue: null };
@@ -105,6 +108,24 @@ export function VoiceOrderConfirmSheet({
 
   const budgetExceeded =
     command?.priceMaxBudget != null && orderTotal > command.priceMaxBudget;
+
+  useEffect(() => {
+    if (!visible) {
+      orderStartedRef.current = false;
+      setSelectedByLine({});
+      setError(null);
+      setOtpCode('');
+      setOtpSent(false);
+      setOtpInfo(null);
+      return;
+    }
+    if (!restaurant || !command || orderStartedRef.current) return;
+    orderStartedRef.current = true;
+    posthog.capture('order_started', {
+      restaurant_id: restaurant.id,
+      item_count: command.lines.length,
+    });
+  }, [visible, restaurant, command, posthog]);
 
   useEffect(() => {
     if (!visible) {
@@ -306,7 +327,7 @@ export function VoiceOrderConfirmSheet({
       await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
       await AsyncStorage.setItem(ADDRESS_STORAGE_KEY, address.trim());
 
-      await submitRestaurantOrder(restaurant.id, {
+      const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
         customer_address: address.trim(),
@@ -315,6 +336,11 @@ export function VoiceOrderConfirmSheet({
           menu_item_id: row.active!.menu_item_id,
           quantity: row.intent.quantity,
         })),
+      });
+      posthog.capture('order_completed', {
+        restaurant_id: restaurant.id,
+        order_total: order.total_tl,
+        payment_method: command.paymentNote?.trim() || 'online',
       });
       onSuccess();
       onClose();

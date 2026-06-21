@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { usePostHog } from 'posthog-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -63,6 +64,7 @@ type Coords = { lat: number; lng: number };
 const EMPTY_SOCIAL_INDEX: SocialResultsIndex = { byPlaceId: new Map(), byName: new Map() };
 
 export default function ExploreScreen() {
+  const posthog = usePostHog();
   const { city, cityLabel } = useCity();
   const { user } = useSession();
   const { colors } = useGastroTheme();
@@ -228,6 +230,7 @@ export default function ExploreScreen() {
     return;
     }
 
+    const isVoiceSearch = voiceSearchAnnounceRef.current;
     const pollToken = pollTokenRef.current + 1;
     pollTokenRef.current = pollToken;
 
@@ -274,6 +277,19 @@ export default function ExploreScreen() {
         }
       }
 
+      if (isVoiceSearch) {
+        posthog.capture('voice_search_used', {
+          query_text: q,
+          success: itemsForVoice.length > 0,
+        });
+      } else {
+        posthog.capture('restaurant_searched', {
+          query: q,
+          result_count: itemsForVoice.length,
+          city,
+        });
+      }
+
       if (voiceSearchAnnounceRef.current) {
         voiceSearchAnnounceRef.current = false;
         await ensureGastroPlaybackReady();
@@ -290,6 +306,9 @@ export default function ExploreScreen() {
       setError(formatApiError(err, 'Arama'));
       setSearchItems([]);
       setSearchCards([]);
+      if (isVoiceSearch) {
+        posthog.capture('voice_search_used', { query_text: q, success: false });
+      }
       if (voiceSearchAnnounceRef.current) {
         voiceSearchAnnounceRef.current = false;
         await ensureGastroPlaybackReady();
@@ -298,7 +317,7 @@ export default function ExploreScreen() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob]);
+  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob, posthog]);
 
   const handleRequestSocialScan = useCallback(async () => {
     const q = lastSearchQueryRef.current.trim();
@@ -324,12 +343,16 @@ export default function ExploreScreen() {
           return ordered;
         });
       }
+      posthog.capture('discover_search_used', {
+        mode: 'trend',
+        result_count: data.results?.length ?? 0,
+      });
     } catch (err) {
       setError(formatApiError(err, 'Sosyal tarama'));
     } finally {
       setSocialScanLoading(false);
     }
-  }, [city, pollSocialJob, socialScanLoading]);
+  }, [city, pollSocialJob, socialScanLoading, posthog]);
 
   const loadKitchenResults = useCallback(
     async (slug: string) => {
@@ -350,6 +373,10 @@ export default function ExploreScreen() {
         setSearchItems(sorted);
         setSearchCards(sorted.map(livePlaceToRestaurantCard));
         setLiveParsed(result.parsed);
+        posthog.capture('discover_search_used', {
+          mode: 'best',
+          result_count: sorted.length,
+        });
       } catch (err) {
         setError(formatApiError(err, 'Mutfak araması'));
         setSearchItems([]);
@@ -358,7 +385,7 @@ export default function ExploreScreen() {
         setLoadingSearch(false);
       }
     },
-    [refreshCoordsIfStale, ensureCoords, city],
+    [refreshCoordsIfStale, ensureCoords, city, posthog],
   );
 
   const handleVoiceTranscript = useCallback(

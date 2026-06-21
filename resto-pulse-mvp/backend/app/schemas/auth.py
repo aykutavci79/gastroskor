@@ -30,3 +30,7 @@ class AuthTokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     refresh_expires_in: int
+
+
+class DevLoginPayload(BaseModel):
+    email: str = Field(default="dev@gastroskor.local", min_length=3, max_length=120)

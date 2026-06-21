@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { HubPressable } from '@/components/eglence/HubPressable';
 import {
   HUB_GAME_PLAY_PRODUCTS,
   HUB_MARKET_ITEMS,
   type HubGamePlayProduct,
   type HubMarketItem,
 } from '@/constants/eglence-hub';
+import { GASTROCOIN_SHORT, GastroCoinTheme } from '@/constants/gastrocoin-theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -55,10 +57,10 @@ function GamePlayRow({
         </View>
       </View>
       <View style={styles.playActions}>
-        <View style={[styles.costPill, { backgroundColor: 'rgba(255, 183, 3, 0.18)' }]}>
-          <Text style={[styles.costText, { color: colors.gold }]}>{product.cost} jeton</Text>
+        <View style={[styles.costPill, { backgroundColor: GastroCoinTheme.chipBg }]}>
+          <Text style={[styles.costText, { color: GastroCoinTheme.coinGold }]}>{product.cost} {GASTROCOIN_SHORT}</Text>
         </View>
-        <Pressable
+        <HubPressable
           disabled={disabled}
           onPress={onPress}
           style={({ pressed }) => [
@@ -71,7 +73,7 @@ function GamePlayRow({
           <Text style={[styles.playBtnText, { color: disabled ? colors.muted : '#FFFFFF' }]}>
             {disabled ? 'Yetersiz' : 'Hak al'}
           </Text>
-        </Pressable>
+        </HubPressable>
       </View>
     </View>
   );
@@ -121,12 +123,12 @@ export function GastroMarketSection({ jetonBalance, isLoggedIn, onPurchase, onVi
       return;
     }
     if (jetonBalance == null || jetonBalance < product.cost) {
-      Alert.alert('Yeterli jeton yok', `Bu hak için ${product.cost} jeton gerekir.`);
+      Alert.alert('Yeterli GastroCoin yok', `Bu hak için ${product.cost} ${GASTROCOIN_SHORT} gerekir.`);
       return;
     }
     Alert.alert(
       product.title,
-      `${product.cost} jeton harcanarak oyun hakkı alınacak. Devam edilsin mi?`,
+      `${product.cost} ${GASTROCOIN_SHORT} harcanarak oyun hakkı alınacak. Devam edilsin mi?`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         { text: 'Hak al', onPress: () => onPurchase(product) },
@@ -141,7 +143,7 @@ export function GastroMarketSection({ jetonBalance, isLoggedIn, onPurchase, onVi
       <View style={styles.block}>
         <Text style={[styles.blockTitle, { color: colors.text }]}>Oyun Hakları</Text>
         <Text style={[styles.blockHint, { color: colors.muted }]}>
-          Jetonunla ekstra tur ve oyun aç
+          {GASTROCOIN_SHORT} ile ekstra tur ve oyun aç
         </Text>
         <View style={styles.list}>
           {HUB_GAME_PLAY_PRODUCTS.map((product) => {
@@ -161,7 +163,7 @@ export function GastroMarketSection({ jetonBalance, isLoggedIn, onPurchase, onVi
 
       <View style={styles.block}>
         <Text style={[styles.blockTitle, { color: colors.text }]}>İndirim Kuponları</Text>
-        <Pressable
+        <HubPressable
           onPress={onTeaserPress}
           style={({ pressed }) => [
             styles.teaser,
@@ -181,7 +183,7 @@ export function GastroMarketSection({ jetonBalance, isLoggedIn, onPurchase, onVi
             </View>
           </View>
           <Text style={[styles.teaserLink, { color: colors.muted }]}>Tüm ödülleri gör →</Text>
-        </Pressable>
+        </HubPressable>
 
         <View style={styles.list}>
           {HUB_MARKET_ITEMS.slice(0, 2).map((item) => (
