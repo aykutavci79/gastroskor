@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routes import router as v1_router
 from app.core.config import settings
+from app.core.exception_handlers import register_exception_handlers
 from app.core.production_guard import assert_production_secrets, is_production_environment
 from app.core.rate_limit import rate_limiter
 from app.core.sentry_setup import init_sentry
@@ -54,6 +55,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+register_exception_handlers(app)
 
 app.include_router(v1_router, prefix=settings.api_v1_prefix)
 
