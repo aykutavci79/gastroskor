@@ -1,0 +1,53 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "resto-pulse-mvp/backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "resto-pulse-mvp/backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: resto-pulse-mvp/backend
+
+    env:
+      ENVIRONMENT: development
+      JWT_SECRET: ci-github-actions-test-secret
+      AUTH_REQUIRE_BEARER: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: resto-pulse-mvp/backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pip-audit
+
+      - name: pip-audit (dependency security)
+        run: pip-audit -r requirements.txt
+
+      - name: pytest (all tests)
+        run: python -m pytest tests/ -v --tb=short
