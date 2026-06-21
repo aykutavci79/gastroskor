@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_use_tls: bool = True
     cron_secret: str | None = None
+    # Siparis retention cron — varsayilan kapali; Railway'de ORDER_RETENTION_CRON_ENABLED=true ile ac
+    order_retention_cron_enabled: bool = False
+    order_retention_years: int = 5
     # Günlük KPI e-postası (bos ise panel_admin_emails kullanilir)
     metrics_daily_report_emails: str = ""
 

@@ -2553,3 +2553,24 @@ def cron_sofra_bulmaca_import(
     db.commit()
     return {"ok": stats["failed"] == 0 and stats["coverage"]["ok"], "stats": stats, "stale_audit": stale}
 
+
+@router.post("/internal/cron/order-retention")
+def cron_order_retention(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    dry_run: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    if not settings.order_retention_cron_enabled and not dry_run:
+        return {
+            "ok": False,
+            "skipped": True,
+            "reason": "ORDER_RETENTION_CRON_ENABLED=false — dry_run=true ile onizleme yapilabilir.",
+        }
+    from app.services.order_retention import run_order_retention
+
+    stats = run_order_retention(db, dry_run=dry_run)
+    return {"ok": True, "stats": stats}
+

@@ -14,6 +14,7 @@ from app.core.rate_limit import (
     path_rate_limit_rule,
     rate_limiter,
     user_account_deletion_rate_limit_rule,
+    user_data_export_rate_limit_rule,
     user_global_rate_limit_rule,
 )
 from app.services.access_token import decode_access_token
@@ -129,6 +130,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Hesap silme istegi limiti asildi. Lutfen bir saat sonra tekrar deneyin."},
+                )
+        if auth is not None and path == "/api/v1/users/me/export" and method == "GET":
+            export_rule, export_key = user_data_export_rate_limit_rule(str(auth.user_id))
+            if not rate_limiter.allow(export_key, export_rule):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Veri indirme limiti asildi. Lutfen bir saat sonra tekrar deneyin."},
                 )
         if auth is not None:
             user_rule, user_key = user_global_rate_limit_rule(str(auth.user_id))

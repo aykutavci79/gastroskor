@@ -179,6 +179,11 @@ def user_account_deletion_rate_limit_rule(user_id: str) -> tuple[RateLimitRule, 
     return RateLimitRule(limit=3, window_sec=3600), rate_limit_key("account-delete", user_id)
 
 
+def user_data_export_rate_limit_rule(user_id: str) -> tuple[RateLimitRule, str]:
+    """GET /users/me/export — agir sorgu, saatte 5."""
+    return RateLimitRule(limit=5, window_sec=3600), rate_limit_key("data-export", user_id)
+
+
 PATH_RATE_LIMIT_RULES: tuple[tuple[str, str, int, int, str], ...] = (
     ("/api/v1/auth/*", "ANY", 20, 60, "auth"),
     ("/api/v1/users/sync", "ANY", 30, 60, "sync"),
