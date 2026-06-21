@@ -4,6 +4,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-
 
 import { GastroColors } from '@/constants/theme';
 import { waitForGastroAudioCueIdle } from '@/lib/gastro-audio-cues';
+import { isAppForeground } from '@/lib/app-foreground';
 import { gastroStopTtsOnly } from '@/lib/gastro-speak';
 import {
   useVoiceWhisperRecorder,
@@ -107,12 +108,16 @@ export function GastroVoiceMicButtonWhisper({
   }, [active, cancelRecording]);
 
   const beginRecording = useCallback(async () => {
+    if (!isAppForeground()) {
+      autoStartedRef.current = false;
+      return;
+    }
     await waitForGastroAudioCueIdle();
     gastroStopTtsOnly();
     updateHint(null);
     const started = await startRecording({ onAutoStop: handleAutoStop });
     if (!started) {
-      updateHint('Mikrofon izni gerekli.');
+      updateHint(isAppForeground() ? 'Mikrofon izni gerekli.' : null);
       autoStartedRef.current = false;
     }
   }, [handleAutoStop, startRecording, updateHint]);

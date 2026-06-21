@@ -18,6 +18,12 @@ import {
 } from '@/lib/gastro-tts-voice';
 import { applyTurkishTtsNumberWords } from '@/lib/turkish-tts-numbers';
 import { prepareTurkishSpeechText } from '@/lib/turkish-text-fold';
+import { isAppForeground } from '@/lib/app-foreground';
+import {
+  cancelAllVoicePrepSessions,
+  ensureVoiceAppStateGuard,
+  registerVoicePrepCancel,
+} from '@/lib/voice-prep-lifecycle';
 
 export { GASTRO_TTS } from '@/lib/gastro-tts-phrases';
 
@@ -71,6 +77,11 @@ export function gastroStopSpeaking(): void {
   gastroStopTtsOnly();
   void stopGastroAudioCue();
 }
+
+ensureVoiceAppStateGuard(() => {
+  cancelAllVoicePrepSessions();
+  gastroStopSpeaking();
+});
 
 /** Kayit / navigasyon sonrasi hoparlorden oynatma. */
 export async function ensureGastroPlaybackReady(): Promise<void> {
@@ -183,16 +194,25 @@ export function gastroPrepareWhisperInput(onReady?: () => void): () => void {
   gastroStopSpeaking();
   let cancelled = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  void prepareSpeechRecognitionAudioMode().then(() => {
-    if (cancelled) return;
-    const delay = Platform.OS === 'ios' ? 460 : 480;
-    timer = setTimeout(() => {
-      if (!cancelled) onReady?.();
-    }, delay);
-  });
-  return () => {
+
+  const cancel = () => {
     cancelled = true;
     if (timer) clearTimeout(timer);
+  };
+
+  const unregister = registerVoicePrepCancel(cancel);
+
+  void prepareSpeechRecognitionAudioMode().then(() => {
+    if (cancelled || !isAppForeground()) return;
+    const delay = Platform.OS === 'ios' ? 460 : 480;
+    timer = setTimeout(() => {
+      if (!cancelled && isAppForeground()) onReady?.();
+    }, delay);
+  });
+
+  return () => {
+    unregister();
+    cancel();
   };
 }
 
@@ -200,24 +220,33 @@ export function gastroPrepareWhisperInput(onReady?: () => void): () => void {
 export function gastroPrepareVoiceInput(onReady?: () => void): () => void {
   let cancelled = false;
   let innerCancel: (() => void) | null = null;
+  let bridgeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancel = () => {
+    cancelled = true;
+    if (bridgeTimer) clearTimeout(bridgeTimer);
+    innerCancel?.();
+    gastroStopSpeaking();
+  };
+
+  const unregister = registerVoicePrepCancel(cancel);
 
   const beginWhisperPrep = () => {
-    if (cancelled) return;
+    if (cancelled || !isAppForeground()) return;
     innerCancel = gastroPrepareWhisperInput(onReady);
   };
 
   playGastroPhrase('listening', {
     onDone: () => {
-      if (!cancelled) {
-        setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 300 : 360);
+      if (!cancelled && isAppForeground()) {
+        bridgeTimer = setTimeout(beginWhisperPrep, Platform.OS === 'android' ? 300 : 360);
       }
     },
   });
 
   return () => {
-    cancelled = true;
-    innerCancel?.();
-    gastroStopSpeaking();
+    unregister();
+    cancel();
   };
 }
 

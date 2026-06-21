@@ -76,10 +76,24 @@ export function scrubSentryEvent<T extends Record<string, unknown>>(event: T): T
   return scrubUnknown(event) as T;
 }
 
+function isBackgroundExpoAvNoise(event: ErrorEvent): boolean {
+  const chunks: string[] = [];
+  for (const value of event.exception?.values ?? []) {
+    if (value.type) chunks.push(value.type);
+    if (value.value) chunks.push(value.value);
+  }
+  if (event.message) chunks.push(event.message);
+  const text = chunks.join(' ');
+  if (!/EXModulesErrorDomain|Prepare encountered an error/i.test(text)) return false;
+  return /background|currently in the background/i.test(text);
+}
+
 export function createSentryBeforeSend(): (
   event: ErrorEvent,
   hint: EventHint,
 ) => ErrorEvent | null {
-  return (event, _hint) =>
-    scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as ErrorEvent;
+  return (event, _hint) => {
+    if (isBackgroundExpoAvNoise(event)) return null;
+    return scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as ErrorEvent;
+  };
 }

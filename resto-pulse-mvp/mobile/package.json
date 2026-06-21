@@ -27,6 +27,7 @@
     "preflight:full": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/run-code-preflight.ps1",
     "verify:voice-stt": "node ./scripts/verify-voice-stt-fixes.mjs",
     "test:sentry-scrub": "node --experimental-strip-types --test ./lib/sentry-scrub.test.ts",
+    "test:voice-prepare": "node --experimental-strip-types --test ./lib/voice-prepare-guard.test.ts",
     "build:android:prod:safe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -AndroidOnly -Apply; powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android",
     "setup:android": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/setup-android-build-windows.ps1",
     "setup:android:env": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-android-env-windows.ps1",

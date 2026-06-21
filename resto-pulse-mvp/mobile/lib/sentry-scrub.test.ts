@@ -64,4 +64,24 @@ describe('sentry-scrub', () => {
     assert.doesNotMatch(message, /eyJhbGci/);
     assert.doesNotMatch(message, /payload\.sig/);
   });
+
+  it('drops expo-av background prepare noise', () => {
+    const beforeSend = createSentryBeforeSend();
+    const dropped = beforeSend(
+      {
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value:
+                "Prepare encountered an error: Error Domain=EXModulesErrorDomain Code=0 'This experience is currently in the background, so audio recording cannot be configured.'",
+            },
+          ],
+        },
+      } as Parameters<ReturnType<typeof createSentryBeforeSend>>[0],
+      {},
+    );
+
+    assert.equal(dropped, null);
+  });
 });

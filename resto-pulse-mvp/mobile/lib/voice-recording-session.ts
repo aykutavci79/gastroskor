@@ -1,5 +1,8 @@
 import { Audio } from 'expo-av';
 
+import { currentAppState } from '@/lib/app-foreground';
+import { prepareVoiceRecordingInstance } from '@/lib/voice-prepare-guard';
+
 /** expo-av tek global Recording.prepare slot'u — tum mikrofon akislari buradan gecer. */
 
 export type VoiceRecordingOwner = symbol;
@@ -48,10 +51,11 @@ export async function tryPrepareVoiceRecording(
     }
     await unloadSharedRecording();
     const created = new Audio.Recording();
-    await created.prepareToRecordAsync(options);
-    sharedRecording = created;
+    const prepared = await prepareVoiceRecordingInstance(created, options, currentAppState());
+    if (!prepared) return null;
+    sharedRecording = prepared as Audio.Recording;
     activeOwner = owner;
-    return created;
+    return sharedRecording;
   });
 }
 
@@ -70,4 +74,11 @@ export async function takeVoiceRecording(owner: VoiceRecordingOwner): Promise<Au
     activeOwner = null;
     return recording;
   });
+}
+
+/** @internal test reset */
+export function __resetVoiceRecordingSessionForTests(): void {
+  operationChain = Promise.resolve();
+  sharedRecording = null;
+  activeOwner = null;
 }
