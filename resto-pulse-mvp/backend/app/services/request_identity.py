@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.core.config import settings
+from app.core.production_guard import is_production_environment
 from app.services.access_token import AccessTokenClaims
 
 
@@ -43,9 +44,11 @@ def require_request_auth() -> RequestAuth:
 
 
 def auth_require_bearer() -> bool:
+    if is_production_environment():
+        return True
     if settings.auth_require_bearer is not None:
         return bool(settings.auth_require_bearer)
-    return settings.environment.lower() == "production"
+    return False
 
 
 def normalize_email(email: str | None) -> str | None:

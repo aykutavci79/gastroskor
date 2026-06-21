@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models import RestaurantOwnership, User
+from app.services.request_identity import RequestAuth, require_request_auth, resolve_authenticated_email
 from app.services.panel_access import start_trial
 from app.services.restaurant_claim import ensure_restaurant_for_place
 
@@ -34,33 +35,40 @@ def is_panel_admin_email(email: str | None) -> bool:
 
 
 def assert_admin_grant_allowed(*, user_email: str, secret_header: str | None) -> None:
-    """Raise HTTPException if neither secret nor admin email list authorizes the grant."""
-    from fastapi import HTTPException, status
-
-    email_ok = is_panel_admin_email(user_email)
-    secret_configured = bool((settings.panel_admin_secret or "").strip())
-    secret_ok = secret_configured and secret_header == settings.panel_admin_secret
-
-    if secret_configured:
-        if secret_ok or email_ok:
-            return
+    """JWT (prod'da zorunlu) + admin e-posta + (secret tanimliysa) header eslesmesi."""
+    verified_email = resolve_authenticated_email(claimed_email=user_email)
+    if not is_panel_admin_email(verified_email):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                "Admin yetkisi yok. Railway'de PANEL_ADMIN_SECRET (Vercel ile ayni) veya "
-                f"PANEL_ADMIN_EMAILS icinde {user_email.strip().lower()} olmali."
+                "Admin yetkisi yok. PANEL_ADMIN_EMAILS icinde "
+                f"{verified_email.strip().lower()} olmali."
             ),
         )
 
-    if email_ok:
-        return
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail=(
-            "Railway'de PANEL_ADMIN_EMAILS tanimli degil veya bu e-posta listede yok. "
-            f"Ornek: PANEL_ADMIN_EMAILS={user_email.strip().lower()}"
-        ),
-    )
+    expected = (settings.panel_admin_secret or "").strip()
+    if expected and (secret_header or "").strip() != expected:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin secret required",
+        )
+
+
+def require_panel_admin_access(*, secret_header: str | None) -> RequestAuth:
+    """Panel admin uclari: JWT + admin e-posta + (secret tanimliysa) X-Panel-Admin-Secret."""
+    auth = require_request_auth()
+    if not is_panel_admin_email(auth.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin yetkisi yok.",
+        )
+    expected = (settings.panel_admin_secret or "").strip()
+    if expected and (secret_header or "").strip() != expected:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin secret required",
+        )
+    return auth
 
 
 def _utcnow() -> datetime:

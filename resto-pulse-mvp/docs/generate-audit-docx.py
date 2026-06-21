@@ -9,6 +9,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
 OUT = Path(__file__).with_name("GastroSkor-Teknik-Audit-Checklist.docx")
+AUDIT_SNAPSHOT = "21 Haziran 2026"
 
 
 def add_item(doc: Document, status: str, title: str, detail: str) -> None:
@@ -38,14 +39,16 @@ def main() -> None:
     meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
     meta.add_run(f"Tarih: {date.today().strftime('%d %B %Y')}\n").bold = True
     meta.add_run(
-        "Kaynak: resto-pulse-mvp/ monorepo\n"
+        f"Son guvenlik snapshot: {AUDIT_SNAPSHOT}\n"
+        "Kaynak: resto-pulse-mvp/ monorepo | docs/SECURITY_BACKLOG.md (ertelenen isler)\n"
         "Canli: API https://api.gastroskor.com.tr | Web https://www.gastroskor.com.tr"
     )
 
     doc.add_paragraph()
     legend = doc.add_paragraph(
         "Durum kodlari:  VAR = mevcut ve calisiyor  |  KISMI = var ama eksik/yetersiz  |  "
-        "YOK = hic yok  |  SISTEM = kullanilan teknoloji"
+        "YOK = hic yok  |  TAMAM = 21.06.2026 guvenlik isi tamamlandi  |  "
+        "SISTEM = kullanilan teknoloji"
     )
     legend.runs[0].italic = True
 
@@ -70,9 +73,9 @@ def main() -> None:
     doc.add_heading("2. Guvenlik", level=1)
     doc.add_heading("API Guvenligi", level=2)
     s2a = [
-        ("KISMI", "Tum endpoint'ler auth gerektiriyor mu?", "SecurityMiddleware korumali; cok sayida public GET endpoint var"),
-        ("KISMI", "Token olmadan erisilebilir endpoint'ler", "GET /health, /restaurants*, /live/places/*, /regional-flavors/*, /voice-products/catalog, POST /auth/google/*, POST /panel/applications, GET /media/*"),
-        ("VAR", "Rate limiting", "In-memory: Auth 20/dk, Sync 30/dk, Places 60/dk, Review POST 20/saat, Social 120/dk, Panel 180/dk"),
+        ("KISMI", "Tum endpoint'ler auth gerektiriyor mu?", "SecurityMiddleware korumali; kasitli public GET endpoint'ler var (restoran listesi, canli yerler)"),
+        ("KISMI", "Token olmadan erisilebilir endpoint'ler", "GET /health, /restaurants*, /live/places/*, /regional-flavors/*, /voice-products/catalog, POST /auth/google/*, POST /auth/refresh, POST /panel/applications, GET /media/* — POST /voice/transcribe artik JWT zorunlu"),
+        ("VAR", "Rate limiting", "Redis (primary) + in-memory fallback; path kurallari + kullanici global cap; /health rate_limit.redis_ok ile dogrulanir"),
         ("VAR", "CORS", "Whitelist: localhost, gastroskor.vercel.app, gastroskor.com.tr, www.gastroskor.com.tr"),
         ("VAR", "HTTPS", "Railway + Vercel production HTTPS; HTTP redirect Vercel otomatik"),
     ]
@@ -93,12 +96,29 @@ def main() -> None:
 
     doc.add_heading("Mobil Guvenlik", level=2)
     s2c = [
-        ("KISMI", "Hassas veri depolama", "JWT + session AsyncStorage'da; SecureStore/Keychain kullanilmiyor"),
-        ("KISMI", "JWT saklama yeri", "AsyncStorage (persist) + memory (auth-token.ts)"),
-        ("VAR", "Token expire", "720 saat (30 gun) - jwt_access_token_expire_hours: 720"),
-        ("YOK", "Refresh token", "Kullanici auth'ta refresh token yok; sure dolunca yeniden Google girisi"),
+        ("VAR", "Hassas veri depolama", "JWT + refresh token expo-secure-store (Keychain/Keystore); session ozeti session-secure-storage"),
+        ("VAR", "JWT saklama yeri", "SecureStore (auth-token.ts) + bellek cache; AsyncStorage'da token yok"),
+        ("VAR", "Token expire", "Access ~2 saat (jwt_access_token_expire_hours: 2); refresh ~30 gun"),
+        ("VAR", "Refresh token", "POST /auth/refresh; rotation + revoked_refresh_tokens tablosu (jti iptal listesi)"),
+        ("VAR", "Mobil token garantisi", "lib/api.ts request() oncesi ensureAccessToken(); voice-whisper-transcribe ayri cagiriyor"),
     ]
     for st, t, d in s2c:
+        add_item(doc, st, t, d)
+
+    doc.add_heading("Tamamlanan Guvenlik Islemleri (21 Haziran 2026)", level=2)
+    s2d = [
+        ("TAMAM", "Review / feedback IDOR", "resolve_authenticated_email ile JWT != claimed_email engeli; test_author_identity_idor.py"),
+        ("TAMAM", "Public voice/transcribe auth acigi", "POST /api/v1/voice/transcribe JWT zorunlu (middleware + require_request_auth); test_voice_transcription.py"),
+        ("TAMAM", "Mobil token garantisi", "ensureAccessToken() tum API isteklerinde; Whisper upload oncesi token kontrolu"),
+        ("TAMAM", "Refresh token rotation + revocation", "revoked_refresh_tokens migration; POST /auth/refresh yeni cift dondurur; eski jti iptal"),
+        ("TAMAM", "SecureStore migrasyonu", "access + refresh token AsyncStorage'dan SecureStore'a tasindi"),
+        ("TAMAM", "Redis rate limiting", "REDIS_URL ile dagitik limiter; Railway'de gastroskor:rl* anahtarlari"),
+        ("TAMAM", "CI/CD pipeline", "GitHub Actions: backend-ci.yml (pytest + pip-audit), mobile-ci.yml (npm audit high + tsc + test)"),
+        ("TAMAM", "npm audit high", "undici + tar duzeltildi; 0 high, 23 moderate (Expo ekosistemi — SECURITY_BACKLOG.md)"),
+        ("TAMAM", "Backend test suite", "260/260 pytest (SQLite JSONB/UUID compat conftest dahil)"),
+        ("TAMAM", "Mobile TypeScript CI", "tsc --noEmit 0 hata (21.06.2026)"),
+    ]
+    for st, t, d in s2d:
         add_item(doc, st, t, d)
 
     # --- 3. VERITABANI ---
@@ -122,7 +142,7 @@ def main() -> None:
         ("KISMI", "API hata loglama", "Python logging modulu; merkezi log aggregator yok"),
         ("VAR", "Uygulama crash", "AppErrorBoundary (root) + SpeechMicErrorBoundary; crash ekrani"),
         ("KISMI", "Network offline", "format-api-error.ts network mesaji; global offline modu/NetInfo yok"),
-        ("YOK", "Crash reporting", "Sentry/Bugsnag/Crashlytics entegrasyonu yok"),
+        ("VAR", "Crash reporting", "@sentry/react-native prod'da aktif; sentry-scrub PII redaction + beforeSend"),
     ]
     for st, t, d in s4:
         add_item(doc, st, t, d)
@@ -157,7 +177,7 @@ def main() -> None:
     # --- 7. TEST ---
     doc.add_heading("7. Test", level=1)
     s7 = [
-        ("KISMI", "Otomatik test", "Backend: 26 test dosyasi, ~116 test fonksiyonu (pytest). Mobil/frontend: yok"),
+        ("VAR", "Otomatik test", "Backend: 26+ test dosyasi, 260 pytest (CI'da). Mobil: sentry-scrub.test.ts (node:test)"),
         ("KISMI", "Kritik fonksiyon testleri", "Auth, siparis, OTP, voice catalog testli; odeme entegrasyonu yok"),
         ("KISMI", "Manuel test dokumantasyonu", "STORE.md, ROADMAP.md var; formal test case dokumani yok"),
     ]
@@ -168,7 +188,7 @@ def main() -> None:
     doc.add_heading("8. Deployment ve DevOps", level=1)
     s8 = [
         ("VAR", "Prod / dev ayri", "environment config; production'da Swagger kapali, dev seed 404"),
-        ("YOK", "CI/CD pipeline", ".github/ workflow yok; deploy manuel (EAS + Railway + Vercel)"),
+        ("VAR", "CI/CD pipeline", ".github/workflows: backend-ci.yml, mobile-ci.yml, sofra-bulmaca-daily.yml"),
         ("KISMI", "Env variable'lar", ".env.example kapsamli; Railway/Vercel dashboard dogrulanmadi"),
         ("YOK", "Railway memory/CPU", "Dashboard bilgisi kodda yok"),
         ("YOK", "Uptime monitoring", "UptimeRobot vb. yok; sadece /health endpoint"),
@@ -196,7 +216,7 @@ def main() -> None:
     doc.add_heading("10. Genel", level=1)
     s10 = [
         ("VAR", "README", "resto-pulse-mvp/README.md + mobile/README.md"),
-        ("KISMI", "npm audit", "Mobil: 15 moderate vulnerability; npm audit fix uygulanmamis"),
+        ("KISMI", "npm audit", "Mobil: 23 moderate, 0 high (21.06.2026); moderate Expo transitive — SECURITY_BACKLOG.md"),
         ("VAR", "Lisans sorunu", "Bilinen copyleft ihlali yok; formal audit yapilmamis"),
         ("KISMI", "KVKK / GDPR", "Gizlilik/KVKK sayfalari canli; hesap-sil e-posta ile talep; otomatik self-service silme yok"),
     ]
@@ -210,13 +230,13 @@ def main() -> None:
     table.style = "Table Grid"
     headers = ["Kategori", "Toplam Madde", "VAR", "KISMI", "YOK"]
     rows = [
-        ["Guvenlik", "15", "6", "7", "2"],
+        ["Guvenlik", "20", "12", "5", "0"],
         ["Veritabani", "6", "2", "2", "2"],
-        ["Hata Yonetimi", "6", "2", "2", "2"],
+        ["Hata Yonetimi", "6", "3", "2", "1"],
         ["Performans", "6", "0", "3", "3"],
         ["Kod Kalitesi", "7", "2", "5", "0"],
         ["Mobil", "9", "5", "4", "0"],
-        ["TOPLAM", "49", "17", "23", "9"],
+        ["TOPLAM", "54", "24", "21", "6"],
     ]
     for i, h in enumerate(headers):
         cell = table.rows[0].cells[i]
@@ -231,13 +251,12 @@ def main() -> None:
     # --- ONCELIKLI AKSIYONLAR ---
     doc.add_heading("Oncelikli Aksiyonlar", level=1)
     actions = [
-        ("Yuksek", "JWT AsyncStorage'da", "expo-secure-store'a tasi"),
-        ("Yuksek", "Crash reporting yok", "Sentry veya Expo Crashlytics ekle"),
-        ("Orta", "Refresh token yok", "Token yenileme veya silent re-auth"),
-        ("Orta", "CI/CD yok", "GitHub Actions: backend test + lint"),
-        ("Orta", "npm audit 15 moderate", "npm audit fix + dependency guncelleme"),
-        ("Dusuk", "Global error handler", "FastAPI merkezi exception handler"),
-        ("Dusuk", "API cache / pagination", "Liste endpoint'lerinde cursor pagination"),
+        ("Yuksek", "DB yedek / PITR yok", "Ilk gercek restoran + online siparis -> Railway Pro + PITR (SECURITY_BACKLOG.md)"),
+        ("Orta", "npm audit 23 moderate", "Expo SDK major upgrade ile birlikte npm audit fix --force (SECURITY_BACKLOG.md)"),
+        ("Orta", "Global error handler", "FastAPI merkezi exception handler"),
+        ("Orta", "API cache / pagination", "Liste endpoint'lerinde cursor pagination"),
+        ("Dusuk", "XSS / CSP audit", "Next.js security headers ve CSP politikasi gozden gecir"),
+        ("Dusuk", "Uptime monitoring", "UptimeRobot veya benzeri /health disi alarm"),
     ]
     for pri, konu, oneri in actions:
         add_item(doc, pri.upper(), konu, oneri)

@@ -33,14 +33,6 @@ PUBLIC_GET_PREFIXES = (
 )
 
 
-def _panel_admin_secret_trusted(request: Request) -> bool:
-    expected = (settings.panel_admin_secret or "").strip()
-    if not expected:
-        return False
-    header = (request.headers.get("x-panel-admin-secret") or "").strip()
-    return bool(header) and header == expected
-
-
 def _path_always_requires_bearer(path: str, method: str) -> bool:
     return path == "/api/v1/voice/transcribe" and method == "POST"
 
@@ -101,7 +93,6 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if auth_header.lower().startswith("bearer "):
             token = auth_header[7:].strip()
 
-        panel_admin_trusted = path.startswith("/api/v1/panel/admin/") and _panel_admin_secret_trusted(request)
         always_requires_bearer = _path_always_requires_bearer(path, method)
 
         auth: RequestAuth | None = None
@@ -112,7 +103,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 set_request_auth(auth)
             except ValueError:
                 if always_requires_bearer or (
-                    auth_require_bearer() and _path_requires_auth(path, method) and not panel_admin_trusted
+                    auth_require_bearer() and _path_requires_auth(path, method)
                 ):
                     return JSONResponse(
                         status_code=401,
@@ -131,7 +122,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 status_code=401,
                 content={"detail": "Oturum gerekli. Google ile giris yapip tekrar deneyin."},
             )
-        if auth_require_bearer() and _path_requires_auth(path, method) and auth is None and not panel_admin_trusted:
+        if auth_require_bearer() and _path_requires_auth(path, method) and auth is None:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Oturum gerekli. Google ile giris yapip tekrar deneyin."},

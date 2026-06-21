@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.services.panel_admin import require_panel_admin_access
 from app.db.session import get_db
 from app.schemas.app_metrics import AppMetricsSummaryResponse, AppUsageEventCreate
 from app.schemas.google_place_catalog import PlaceCatalogStatsResponse
@@ -14,9 +14,7 @@ metrics_router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 
 def require_admin(secret: str | None) -> None:
-    if settings.panel_admin_secret and secret == settings.panel_admin_secret:
-        return
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin secret required")
+    require_panel_admin_access(secret_header=secret)
 
 
 @metrics_router.post("/events", status_code=status.HTTP_201_CREATED)

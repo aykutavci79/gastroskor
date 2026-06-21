@@ -69,7 +69,7 @@ from app.services.google_business_service import (
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
-from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email
+from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email, require_panel_admin_access
 from app.services.panel_reset import (
     load_ownership_by_place_id,
     load_ownership_for_reset,
@@ -175,9 +175,7 @@ def resolve_user_by_email(db: Session, email: str) -> User:
 
 
 def require_admin(secret: str | None) -> None:
-    if settings.panel_admin_secret and secret == settings.panel_admin_secret:
-        return
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin secret required")
+    require_panel_admin_access(secret_header=secret)
 
 
 def serialize_access(state) -> PanelAccessRead:

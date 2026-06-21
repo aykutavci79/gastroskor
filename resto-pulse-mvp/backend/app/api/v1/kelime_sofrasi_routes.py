@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.services.panel_admin import require_panel_admin_access
 from app.db.session import get_db
 from app.models.entities import SofraBulmacaReviewStatus
 from app.schemas.sofra_kelime import SofraWheelAttemptPayload, SofraWheelAttemptResponse
@@ -19,14 +19,6 @@ from app.services.sofra_puzzle_pool import (
 )
 
 router = APIRouter(prefix="/eglence/kelime-sofrasi", tags=["kelime-sofrasi"])
-
-
-def _panel_admin_trusted(x_panel_admin_secret: str | None) -> bool:
-    expected = (settings.panel_admin_secret or "").strip()
-    if not expected:
-        return False
-    header = (x_panel_admin_secret or "").strip()
-    return bool(header) and header == expected
 
 
 @router.post("/attempts", response_model=SofraWheelAttemptResponse)
@@ -76,8 +68,7 @@ def list_sofra_daily_puzzles(
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
     db: Session = Depends(get_db),
 ):
-    if not _panel_admin_trusted(x_panel_admin_secret):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    require_panel_admin_access(secret_header=x_panel_admin_secret)
     rows, total = list_puzzles(db, gun_id=gun_id, limit=limit, offset=offset)
     items: list[SofraPuzzleListItem] = []
     for row in rows:
@@ -119,8 +110,7 @@ def review_sofra_daily_puzzle(
     x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
     db: Session = Depends(get_db),
 ):
-    if not _panel_admin_trusted(x_panel_admin_secret):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    require_panel_admin_access(secret_header=x_panel_admin_secret)
     if zorluk not in {"kolay", "orta", "zor"} or tur < 0 or tur > 4:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gecersiz slot")
     status_value = (
