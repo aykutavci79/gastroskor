@@ -1,5 +1,5 @@
-import { PostHogProvider, usePostHog, type PostHogEventProperties } from 'posthog-react-native';
-import type { ReactNode } from 'react';
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
+import type { ComponentType, ReactNode } from 'react';
 
 import {
   GastroPostHogContext,
@@ -11,7 +11,7 @@ function PostHogBridge({ children }: { children: ReactNode }) {
   const posthog = usePostHog();
   const client: GastroPostHogClient = {
     capture: (event, properties) => {
-      posthog.capture(event, properties as PostHogEventProperties | undefined);
+      posthog.capture(event, properties as never);
     },
   };
   return <GastroPostHogContext.Provider value={client}>{children}</GastroPostHogContext.Provider>;
@@ -30,9 +30,15 @@ export function GastroPostHogRoot({
     return <GastroPostHogContext.Provider value={noopPostHog}>{children}</GastroPostHogContext.Provider>;
   }
 
+  const Provider = PostHogProvider as ComponentType<{
+    apiKey: string;
+    options?: { host?: string };
+    children: ReactNode;
+  }>;
+
   return (
-    <PostHogProvider apiKey={apiKey} options={{ host }}>
+    <Provider apiKey={apiKey} options={{ host }}>
       <PostHogBridge>{children}</PostHogBridge>
-    </PostHogProvider>
+    </Provider>
   );
 }

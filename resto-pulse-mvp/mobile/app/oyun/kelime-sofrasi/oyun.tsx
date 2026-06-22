@@ -790,7 +790,7 @@ export default function KelimeSofrasiOyunScreen() {
         </View>
 
         {roundComplete ? (
-          <View style={styles.completeBar} pointerEvents="box-auto">
+          <View style={styles.completeBar} pointerEvents="auto">
             <Text style={styles.completeTitle}>
               {resultScore
                 ? `${resultScore.score} puan · ${formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs)}`
