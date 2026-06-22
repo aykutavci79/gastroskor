@@ -1,6 +1,5 @@
 import 'react-native-gesture-handler';
 
-import { PostHogProvider } from 'posthog-react-native';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
 import { useFonts } from 'expo-font';
@@ -20,6 +19,7 @@ import { CityProvider } from '@/context/city-context';
 import { GastroThemeProvider, useGastroTheme } from '@/context/theme-context';
 import { SessionProvider } from '@/context/session-context';
 import { createSentryBeforeSend } from '@/lib/sentry-scrub';
+import { GastroPostHogRoot } from '@/lib/GastroPostHogRoot';
 import { registerSslPinningErrorListener, setupSslPinning } from '@/lib/ssl-pinning';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
@@ -153,6 +153,7 @@ function RootLayout() {
   }
 
   const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_KEY?.trim();
+  const posthogHost = process.env.EXPO_PUBLIC_POSTHOG_HOST?.trim();
 
   const appTree = !splashDone ? (
     <AppErrorBoundary>
@@ -176,19 +177,10 @@ function RootLayout() {
     </AppErrorBoundary>
   );
 
-  if (!posthogKey) {
-    return appTree;
-  }
-
   return (
-    <PostHogProvider
-      apiKey={posthogKey}
-      options={{
-        host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
-        enableSessionReplay: true,
-      }}>
+    <GastroPostHogRoot apiKey={posthogKey} host={posthogHost}>
       {appTree}
-    </PostHogProvider>
+    </GastroPostHogRoot>
   );
 }
 

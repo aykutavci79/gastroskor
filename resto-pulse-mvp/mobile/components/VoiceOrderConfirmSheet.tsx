@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { usePostHog } from 'posthog-react-native';
+import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -62,7 +62,7 @@ export function VoiceOrderConfirmSheet({
   onClose,
   onSuccess,
 }: Props) {
-  const posthog = usePostHog();
+  const posthog = useGastroPostHog();
   const insets = useSafeAreaInsets();
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');

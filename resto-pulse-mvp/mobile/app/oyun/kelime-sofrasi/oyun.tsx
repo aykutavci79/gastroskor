@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { usePostHog } from 'posthog-react-native';
+import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -44,7 +44,7 @@ import {
   autoSolveFullyRevealedWordIds,
   kelimeCarktanOlusur,
   normalizeKelime,
-  sameAxisPrefixOfUnfoundLonger,
+  partialOfUnfoundLongerTarget,
   sameAxisSubstringSpoiler,
   sonrakiIpucuHucresi,
   sofraMaxIpucu,
@@ -159,7 +159,7 @@ function useSofraLayout(puzzle: SofraPuzzle | null) {
 }
 
 export default function KelimeSofrasiOyunScreen() {
-  const posthog = usePostHog();
+  const posthog = useGastroPostHog();
   const { colors } = useGastroTheme();
   const { user } = useSession();
   const router = useRouter();
@@ -475,7 +475,7 @@ export default function KelimeSofrasiOyunScreen() {
       if (norm.length >= SOFRA_MIN_KELIME_UZUNLUGU) {
         logWheelAttempt(norm);
       }
-      const longerKutu = sameAxisPrefixOfUnfoundLonger(
+      const longerKutu = partialOfUnfoundLongerTarget(
         puzzle.words,
         norm,
         progress.foundWordIds,
@@ -483,7 +483,7 @@ export default function KelimeSofrasiOyunScreen() {
       if (longerKutu) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         setMessage(
-          `${longerKutu.kelime.length} harfli kutu — ${longerKutu.kelime} yaz (${norm.length} harf yetmez)`,
+          `${longerKutu.kelime.length} harfli kelime — tamamını yaz: ${longerKutu.kelime} (${norm.length} harf yetmez)`,
         );
         setSelectedPath([]);
         return;

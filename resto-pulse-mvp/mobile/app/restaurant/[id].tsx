@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { usePostHog } from 'posthog-react-native';
+import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -61,7 +61,7 @@ import { isUuid, parseLiveScoreParams } from '@/lib/uuid';
 import type { CheckInStatus, DisplayReview, LivePlaceDetails, LivePlaceReview, Restaurant } from '@/lib/types';
 
 export default function RestaurantDetailScreen() {
-  const posthog = usePostHog();
+  const posthog = useGastroPostHog();
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;

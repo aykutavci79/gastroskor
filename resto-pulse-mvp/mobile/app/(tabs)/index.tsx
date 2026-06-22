@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { usePostHog } from 'posthog-react-native';
+import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -64,7 +64,7 @@ type Coords = { lat: number; lng: number };
 const EMPTY_SOCIAL_INDEX: SocialResultsIndex = { byPlaceId: new Map(), byName: new Map() };
 
 export default function ExploreScreen() {
-  const posthog = usePostHog();
+  const posthog = useGastroPostHog();
   const { city, cityLabel } = useCity();
   const { user } = useSession();
   const { colors } = useGastroTheme();

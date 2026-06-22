@@ -2,10 +2,10 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.52",
-    "versionCode": 63,
-    "lastUpdated": "2026-06-20",
-    "_note": "Lokal AAB — gastro-lexicon (5302 tahmin), Günlük Kelime tahmin/cevap ayrımı"
+    "versionName": "1.0.54",
+    "versionCode": 66,
+    "lastUpdated": "2026-06-22",
+    "_note": "Android PostHog native modulu devre disi — acilis crash hotfix"
   },
   "appStore": {
     "version": "1.0.50",
