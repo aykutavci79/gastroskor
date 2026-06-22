@@ -2,10 +2,10 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.55",
-    "versionCode": 67,
+    "versionName": "1.0.56",
+    "versionCode": 69,
     "lastUpdated": "2026-06-22",
-    "_note": "PostHog analytics Android+iOS, session-replay paketi kaldirildi"
+    "_note": "Android PostHog native bundle disi (noop); iOS event analytics devam"
   },
   "appStore": {
     "version": "1.0.50",
