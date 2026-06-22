@@ -2,10 +2,10 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.58",
-    "versionCode": 73,
+    "versionName": "1.0.59",
+    "versionCode": 74,
     "lastUpdated": "2026-06-22",
-    "_note": "Eglence useFocusEffect sonsuz dongu fix + Android KeyboardProvider kaldirildi"
+    "_note": "Eglence Android: coin wobble rotateZ + prefetch defer"
   },
   "appStore": {
     "version": "1.0.50",
