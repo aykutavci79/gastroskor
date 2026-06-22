@@ -41,9 +41,9 @@ export const GASTRO_FAQ_ITEMS: FaqItem[] = [
       'Eğlence sekmesinde günlük mini oyunlar (Kelime Sofrası, klasik 9×9 Sudoku vb.) bulunur. Kelime Sofrası, harf çarkından kelime bularak ızgara ve bonus kelimeleri tamamlama oyunudur. Kısa kelimeler ipucu kazandırabilir; oyunlar eğlence amaçlıdır, restoran puanını etkilemez.',
   },
   {
-    question: 'Jeton nedir?',
+    question: 'GastroCoin (GC) nedir?',
     answer:
-      'Jeton, uygulama içi eğlence ve ipucu gibi özelliklerde kullanılan sanal birimdir. Günlük görevler ve oyunlarla jeton kazanabilirsiniz. Jeton gerçek para ile satın alınamaz ve dışarıya devredilemez.',
+      'GastroCoin (kısaca GC), Eğlence sekmesindeki cüzdanında biriken uygulama içi sanal birimdir. Günlük giriş, takip, yorum, sipariş ve mini oyunlarla GC kazanabilir; oyunlarda ek ipucu gibi özelliklerde harcayabilirsiniz. GC gerçek para değildir, ödeme aracı sayılmaz ve restoran siparişinde TL’nin yerine geçmez. Gerçek parayla satın alınamaz, nakde çevrilemez ve başka hesaplara devredilemez.',
   },
   {
     question: 'Hesabımı ve verilerimi nasıl silerim?',
