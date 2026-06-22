@@ -19,7 +19,7 @@ import { CityProvider } from '@/context/city-context';
 import { GastroThemeProvider, useGastroTheme } from '@/context/theme-context';
 import { SessionProvider } from '@/context/session-context';
 import { createSentryBeforeSend } from '@/lib/sentry-scrub';
-import { GastroPostHogRoot } from '@/lib/GastroPostHogRoot';
+import { GastroPostHogRoot } from '@/lib/gastro-posthog';
 import { registerSslPinningErrorListener, setupSslPinning } from '@/lib/ssl-pinning';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
