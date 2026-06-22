@@ -128,6 +128,14 @@ export default function EglenceTabScreen() {
         referralToday: wallet.referral_earn_today ?? 0,
         referralLimit: wallet.referral_daily_limit ?? 5,
       });
+
+      let taskCountAvailable = 0;
+      if (!wallet.daily_login_granted_today) taskCountAvailable += 1;
+      if ((wallet.referral_earn_today ?? 0) < (wallet.referral_daily_limit ?? 5)) taskCountAvailable += 1;
+      if (!wallet.follow_bundle_granted_today) taskCountAvailable += 1;
+      if ((wallet.review_earn_today ?? 0) < (wallet.review_daily_limit ?? 1)) taskCountAvailable += 1;
+      if ((wallet.order_earn_today ?? 0) < (wallet.order_daily_limit ?? 2)) taskCountAvailable += 1;
+      posthog.capture('daily_task_viewed', { task_count_available: taskCountAvailable });
     } catch {
       setJetonBalance(null);
       setFollowProgress({ current: 0, target: HUB_FOLLOW_TARGET, granted: false });
@@ -143,7 +151,7 @@ export default function EglenceTabScreen() {
     } finally {
       setJetonLoading(false);
     }
-  }, [user?.email]);
+  }, [user?.email, posthog]);
 
   const loadSudokuMeta = useCallback(async () => {
     const puzzleId = activePuzzleId();
@@ -194,24 +202,7 @@ export default function EglenceTabScreen() {
       void loadSofraMeta();
       void loadGunlukKelimeMeta();
       void loadJeton();
-
-      let taskCountAvailable = 0;
-      if (!dailyLoginGranted) taskCountAvailable += 1;
-      if (hubEarn.referralToday < hubEarn.referralLimit) taskCountAvailable += 1;
-      if (!followProgress.granted) taskCountAvailable += 1;
-      if (hubEarn.reviewToday < hubEarn.reviewLimit) taskCountAvailable += 1;
-      if (hubEarn.orderToday < hubEarn.orderLimit) taskCountAvailable += 1;
-      posthog.capture('daily_task_viewed', { task_count_available: taskCountAvailable });
-    }, [
-      loadSudokuMeta,
-      loadSofraMeta,
-      loadGunlukKelimeMeta,
-      loadJeton,
-      dailyLoginGranted,
-      hubEarn,
-      followProgress.granted,
-      posthog,
-    ]),
+    }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton]),
   );
 
   const gameStatus = useMemo(

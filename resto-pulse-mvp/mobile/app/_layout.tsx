@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { KeyboardRoot } from '@/lib/KeyboardRoot';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { GastroAnimatedSplash } from '@/components/GastroAnimatedSplash';
@@ -163,7 +163,7 @@ function RootLayout() {
     </AppErrorBoundary>
   ) : (
     <AppErrorBoundary>
-      <KeyboardProvider>
+      <KeyboardRoot>
         <SessionProvider>
           <GastroThemeProvider>
             <CityProvider>
@@ -173,7 +173,7 @@ function RootLayout() {
             </CityProvider>
           </GastroThemeProvider>
         </SessionProvider>
-      </KeyboardProvider>
+      </KeyboardRoot>
     </AppErrorBoundary>
   );
 
