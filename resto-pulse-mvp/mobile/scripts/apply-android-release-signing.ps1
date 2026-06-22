@@ -96,7 +96,8 @@ if ($gradleText -match 'GASTROSKOR_STORE_FILE') {
 }
 
 $gradleText = $gradleText -replace '(?ms)(buildTypes\s*\{\s*debug\s*\{\s*)signingConfig signingConfigs\.release', '$1signingConfig signingConfigs.debug'
-$gradleText = $gradleText -replace '(?ms)(buildTypes\s*\{\s*release\s*\{[^\}]*?)signingConfig signingConfigs\.debug', '$1signingConfig signingConfigs.release'
+# release blogu: yorum satirlari arasinda kalan debug imzasini duzelt
+$gradleText = $gradleText -replace '(?ms)(release\s*\{.*?)signingConfig signingConfigs\.debug', '$1signingConfig signingConfigs.release'
 
 if ($gradleText -notmatch 'release\s*\{[^\}]*signingConfig signingConfigs\.release') {
   $gradleText = $gradleText -replace '(?ms)(buildTypes\s*\{\s*release\s*\{)', "`$1`n            signingConfig signingConfigs.release"

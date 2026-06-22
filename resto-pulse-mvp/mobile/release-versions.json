@@ -3,7 +3,7 @@
   "play": {
     "track": "Kapali test - Gastroskor-test2",
     "versionName": "1.0.57",
-    "versionCode": 71,
+    "versionCode": 72,
     "lastUpdated": "2026-06-20",
     "_note": "expo-device SDK54 uyumu (56.x crash fix); Android PostHog noop"
   },

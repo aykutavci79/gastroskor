@@ -75,7 +75,7 @@ module.exports = ({ config }) => ({
       foregroundImage: './assets/logo.png',
     },
     package: 'com.gastroskor.app',
-    versionCode: 71,
+    versionCode: 72,
     softwareKeyboardLayoutMode: 'resize',
     intentFilters: [appLinkIntentFilter],
   },
