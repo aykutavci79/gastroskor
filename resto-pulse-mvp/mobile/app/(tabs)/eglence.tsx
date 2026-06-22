@@ -4,9 +4,9 @@ import { useRouter, type Href } from 'expo-router';
 
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, InteractionManager, StyleSheet, View } from 'react-native';
 
 import { EglenceGameCarousel } from '@/components/eglence/EglenceGameCarousel';
 
@@ -188,20 +188,21 @@ export default function EglenceTabScreen() {
     }
   }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton]);
 
-  useEffect(() => {
-    void refreshAll();
-  }, [refreshAll]);
-
   useFocusEffect(
     useCallback(() => {
       setTasksExpanded(true);
-      const gunId = activePuzzleId();
-      warmSofraPuzzleCache(gunId);
-      prefetchSofraPuzzlesForToday(gunId, 'orta');
       void loadSudokuMeta();
       void loadSofraMeta();
       void loadGunlukKelimeMeta();
       void loadJeton();
+
+      const deferTask = InteractionManager.runAfterInteractions(() => {
+        const gunId = activePuzzleId();
+        warmSofraPuzzleCache(gunId);
+        prefetchSofraPuzzlesForToday(gunId, 'orta');
+      });
+
+      return () => deferTask.cancel?.();
     }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton]),
   );
 

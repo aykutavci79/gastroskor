@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 
 import { GastroCoinMark } from '@/components/eglence/GastroCoinMark';
 
@@ -7,12 +7,13 @@ type Props = {
   size: number;
 };
 
-/** Hafif Y ekseni salinimi — tam tur yok, alt kirpma ve edge-on gorunum yok. */
+/** Hafif salinim — iOS: Y ekseni; Android: rotateZ (perspective+rotateY native driver ile donma yapabiliyor). */
 export function SpinningWalletCoin({ size }: Props) {
   const wobble = useRef(new Animated.Value(0)).current;
   const renderSize = Math.round(size * 0.96);
   const boxW = Math.round(size * 1.1);
   const boxH = Math.round(size * 1.16);
+  const useIosTilt = Platform.OS === 'ios';
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -35,10 +36,14 @@ export function SpinningWalletCoin({ size }: Props) {
     return () => loop.stop();
   }, [wobble]);
 
-  const rotateY = wobble.interpolate({
+  const tilt = wobble.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-22deg', '22deg'],
+    outputRange: useIosTilt ? ['-22deg', '22deg'] : ['-7deg', '7deg'],
   });
+
+  const transform = useIosTilt
+    ? [{ perspective: 720 }, { rotateY: tilt }]
+    : [{ rotate: tilt }];
 
   return (
     <View style={[styles.stage, { width: boxW, height: boxH }]}>
@@ -48,7 +53,7 @@ export function SpinningWalletCoin({ size }: Props) {
           {
             width: boxW,
             height: boxH,
-            transform: [{ perspective: 720 }, { rotateY }],
+            transform,
           },
         ]}>
         <GastroCoinMark variant="wallet-coin" size={renderSize} />
