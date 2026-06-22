@@ -1,8 +1,9 @@
+import { EglenceCollapsibleLeaderboard } from '@/components/eglence/EglenceCollapsibleLeaderboard';
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { EglenceZorlukSecici } from '@/components/eglence/EglenceZorlukSecici';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
-import { SOFRA_KELIME_HEDEF } from '@/constants/eglence-zorluk';
+import { sofraKelimeHedefEtiket, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
 import {
   prefetchSofraOtherZorluklarIdle,
@@ -115,7 +116,9 @@ export default function KelimeSofrasiLobbyScreen() {
     [t],
   );
 
-  const hedefKelime = SOFRA_KELIME_HEDEF[zorluk];
+  const hedefKelime = sofraKelimeHedefEtiket(zorluk);
+  const leaderboardPeriodKey =
+    puzzle?.id ?? sofraPuzzleKey(puzzleId, zorluk, Math.max(0, tamamlamaSayisi - 1));
   const sofraHazir = puzzle?.zorluk === zorluk;
   const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
   const oyunAcik = sofraHazir && !limitDoldu;
@@ -145,7 +148,7 @@ export default function KelimeSofrasiLobbyScreen() {
           <Text style={styles.kutuBaslik}>Kurallar</Text>
           <Text style={styles.madde}>Harf çarkından kelime oluştur — her harf bir kez kullanılır.</Text>
           <Text style={styles.madde}>
-            Bu seviyede {hedefKelime} ızgara kelimesi.
+            Bu seviyede {hedefKelime}.
             {puzzle
               ? ` Çarkta ${puzzle.wheel.length} harf, ${puzzle.bonusKelimeler.length} bonus kelime.`
               : loadError
@@ -163,6 +166,12 @@ export default function KelimeSofrasiLobbyScreen() {
           </Text>
           <Text style={styles.madde}>{formatNextResetHint()}</Text>
         </View>
+
+        <EglenceCollapsibleLeaderboard
+          game="kelime_sofrasi"
+          periodKey={leaderboardPeriodKey}
+          gameId="kelime-sofrasi"
+        />
 
         <Pressable
           style={[styles.buton, !oyunAcik && !loadError ? styles.butonDisabled : null]}

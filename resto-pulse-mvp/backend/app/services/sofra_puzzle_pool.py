@@ -17,12 +17,15 @@ from sqlalchemy.orm import Session
 
 from app.core.config import BASE_DIR, settings
 from app.models.entities import SofraBulmacaReviewStatus, SofraDailyPuzzle
+from app.services.sofra_grid_runs import validate_sofra_crossword, validate_stored_grid
 
 logger = logging.getLogger(__name__)
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 DAILY_RESET_HOUR = 17
-SOFRA_KELIME_HEDEF: dict[str, int] = {"kolay": 5, "orta": 6, "zor": 7}
+SOFRA_KELIME_MIN: dict[str, int] = {"kolay": 5, "orta": 6, "zor": 5}
+SOFRA_KELIME_MAX: dict[str, int] = {"kolay": 5, "orta": 6, "zor": 6}
+SOFRA_KELIME_HEDEF: dict[str, int] = SOFRA_KELIME_MAX
 ZORLUKLAR = ("kolay", "orta", "zor")
 SOFRA_TUR_SAYISI = 5
 EXPECTED_SLOTS_PER_DAY = len(ZORLUKLAR) * SOFRA_TUR_SAYISI
@@ -54,14 +57,15 @@ def shift_gun_id(gun_id: str, delta_days: int) -> str:
 
 
 def validate_puzzle_payload(puzzle: dict[str, Any], zorluk: str) -> tuple[bool, str]:
-    hedef = SOFRA_KELIME_HEDEF.get(zorluk)
-    if hedef is None:
+    lo = SOFRA_KELIME_MIN.get(zorluk)
+    hi = SOFRA_KELIME_MAX.get(zorluk)
+    if lo is None or hi is None:
         return False, "invalid_zorluk"
     words = puzzle.get("words")
     if not isinstance(words, list):
         return False, "missing_words"
-    if len(words) != hedef:
-        return False, f"word_count={len(words)} expected={hedef}"
+    if len(words) < lo or len(words) > hi:
+        return False, f"word_count={len(words)} expected={lo}-{hi}"
     if any(str(w.get("id", "")).startswith("fb-") for w in words if isinstance(w, dict)):
         return False, "fallback_ids"
     wheel = puzzle.get("wheel")
@@ -78,7 +82,33 @@ def validate_puzzle_payload(puzzle: dict[str, Any], zorluk: str) -> tuple[bool, 
             return False, "short_word"
     if _has_same_axis_substring(words):
         return False, "same_axis_substring"
+    if _has_partial_word_pair(words):
+        return False, "partial_word_pair"
+    ok, reason = validate_sofra_crossword(words)
+    if not ok:
+        return False, reason
+    ok, reason = validate_stored_grid(puzzle)
+    if not ok:
+        return False, reason
     return True, "ok"
+
+
+def _has_partial_word_pair(words: list[Any]) -> bool:
+    """Önek/sonek çiftleri — GEL ⊂ GELİN."""
+    placed = [w for w in words if isinstance(w, dict)]
+    for short in placed:
+        s_kelime = str(short.get("kelime") or "").strip().upper()
+        if len(s_kelime) < 3:
+            continue
+        for long in placed:
+            if long is short:
+                continue
+            l_kelime = str(long.get("kelime") or "").strip().upper()
+            if len(l_kelime) <= len(s_kelime):
+                continue
+            if l_kelime.startswith(s_kelime) or l_kelime.endswith(s_kelime):
+                return True
+    return False
 
 
 def _has_same_axis_substring(words: list[Any]) -> bool:
@@ -415,17 +445,35 @@ def fetch_puzzle_for_client(
 ) -> SofraDailyPuzzle | None:
     row = get_puzzle_row(db, gun_id, zorluk, tur)
     if row is not None:
-        return row
+        ok, reason = validate_puzzle_payload(row.puzzle_data, zorluk)
+        if ok:
+            return row
+        logger.warning(
+            "Sofra gecersiz bulmaca atlandi (havuz yenileme gerekli): %s %s t%s — %s",
+            gun_id,
+            zorluk,
+            tur,
+            reason,
+        )
+        _capture_pool_alert(
+            "Kelime Sofrasi havuzda gecersiz bulmaca",
+            {"gun_id": gun_id, "zorluk": zorluk, "tur": tur, "reason": reason},
+        )
+
     prev_gun = shift_gun_id(gun_id, -1)
     prev = get_puzzle_row(db, prev_gun, zorluk, tur)
-    if prev is None:
+    if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
         _capture_pool_alert(
-            "Kelime Sofrasi bulmaca bulunamadi — havuz bos",
+            "Kelime Sofrasi bulmaca bulunamadi — havuz bos veya gecersiz",
             {"requested_gun_id": gun_id, "zorluk": zorluk, "tur": tur},
         )
         return None
     puzzle_id = sofra_puzzle_key(gun_id, zorluk, tur)
     cloned = clone_puzzle_for_slot(prev.puzzle_data, puzzle_id, zorluk)
+    ok, reason = validate_puzzle_payload(cloned, zorluk)
+    if not ok:
+        logger.error("Sofra yedek bulmaca da gecersiz: %s", reason)
+        return None
     return upsert_puzzle_row(
         db,
         gun_id=gun_id,

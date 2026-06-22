@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   eglenceZorlukEtiket,
-  SOFRA_KELIME_HEDEF,
+  sofraKelimeHedefEtiket,
   SUDOKU_9X9_GIVENS,
   type EglenceZorluk,
 } from '@/constants/eglence-zorluk';
@@ -23,7 +23,7 @@ type Props = {
 
 function zorlukAlt(mode: 'sofra' | 'sudoku', z: EglenceZorluk): string {
   if (mode === 'sofra') {
-    return `${SOFRA_KELIME_HEDEF[z]} kelime`;
+    return sofraKelimeHedefEtiket(z);
   }
   return `9×9 · ${SUDOKU_9X9_GIVENS[z]} ipucu`;
 }

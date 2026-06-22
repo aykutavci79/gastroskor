@@ -5,7 +5,7 @@
 
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
 
-import { SOFRA_KELIME_HEDEF } from '../constants/eglence-zorluk';
+import { SOFRA_KELIME_MAX, SOFRA_KELIME_MIN, sofraKelimeSayisiGecerli } from '../constants/eglence-zorluk';
 import type { EglenceZorluk } from '../constants/eglence-zorluk';
 import { packCrosswordFromCandidates, type PackStats } from '../lib/kelime-sofrasi/crossword-pack';
 import { validateSofraCrossword, type GridMap } from '../lib/kelime-sofrasi/grid-runs';
@@ -57,8 +57,7 @@ function validateRuns(words: SofraPlacedWord[]): { ok: boolean; invalid: string[
 }
 
 function isFallback(puzzle: ReturnType<typeof buildDailySofraPuzzle>, zorluk: EglenceZorluk): boolean {
-  const hedef = SOFRA_KELIME_HEDEF[zorluk];
-  return puzzle.words.length !== hedef || puzzle.words.some((w) => w.id.startsWith('fb-'));
+  return !sofraKelimeSayisiGecerli(zorluk, puzzle.words.length) || puzzle.words.some((w) => w.id.startsWith('fb-'));
 }
 
 function wheelFromSeed(seed: string, rand: () => number): string[] {
@@ -84,7 +83,8 @@ function main() {
     ok: boolean;
     ms: number;
     words: number;
-    hedef: number;
+    hedefMin: number;
+    hedefMax: number;
     fallback: boolean;
     lexiconOk: boolean;
     invalidRuns: string[];
@@ -99,10 +99,11 @@ function main() {
       const t0 = performance.now();
       const puzzle = buildDailySofraPuzzle(gunId, zorluk);
       const ms = performance.now() - t0;
-      const hedef = SOFRA_KELIME_HEDEF[zorluk];
+      const hedefMin = SOFRA_KELIME_MIN[zorluk];
+      const hedefMax = SOFRA_KELIME_MAX[zorluk];
       const fallback = isFallback(puzzle, zorluk);
       const { ok: lexiconOk, invalid } = validateRuns(puzzle.words);
-      const ok = !fallback && lexiconOk && puzzle.words.length === hedef;
+      const ok = !fallback && lexiconOk && sofraKelimeSayisiGecerli(zorluk, puzzle.words.length);
 
       rows.push({
         gunId,
@@ -110,7 +111,8 @@ function main() {
         ok,
         ms,
         words: puzzle.words.length,
-        hedef,
+        hedefMin,
+        hedefMax,
         fallback,
         lexiconOk,
         invalidRuns: invalid,
@@ -118,7 +120,7 @@ function main() {
 
       if (!ok) {
         stalls.push(
-          `${gunId}/${zorluk}: fallback=${fallback} words=${puzzle.words.length}/${hedef} invalidRuns=${invalid.join(',') || '-'}`,
+          `${gunId}/${zorluk}: fallback=${fallback} words=${puzzle.words.length}/${hedefMin}-${hedefMax} invalidRuns=${invalid.join(',') || '-'}`,
         );
       }
     }
@@ -159,10 +161,11 @@ function main() {
   const wheel = wheelFromSeed(anchor.kelime, rand);
   const candidates = cantadanKelimeAdaylari(wheel, pool);
   const stats: PackStats = { lexiconRejections: 0, placementsTried: 0, backtracks: 0 };
-  const hedef = SOFRA_KELIME_HEDEF[zorluk];
-  const placed = packCrosswordFromCandidates(candidates, rand, hedef, hedef, stats);
+  const minWords = SOFRA_KELIME_MIN[zorluk];
+  const maxWords = SOFRA_KELIME_MAX[zorluk];
+  const placed = packCrosswordFromCandidates(candidates, rand, minWords, maxWords, stats);
   console.log(`anchor: ${anchor.kelime} | candidates: ${candidates.length}`);
-  console.log(`placed: ${placed?.length ?? 0}/${hedef}`);
+  console.log(`placed: ${placed?.length ?? 0}/${minWords}-${maxWords}`);
   console.log(`lexiconRejections: ${stats.lexiconRejections}`);
   console.log(`placementsTried: ${stats.placementsTried}`);
   console.log(`backtracks: ${stats.backtracks}`);

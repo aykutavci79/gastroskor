@@ -6,7 +6,7 @@ import {
   SOFRA_WHEEL_MIN,
 } from '@/constants/kelime-sofrasi';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
-import { SOFRA_KELIME_HEDEF, sofraPuzzleKey } from '@/constants/eglence-zorluk';
+import { SOFRA_KELIME_MAX, SOFRA_KELIME_MIN, sofraKelimeSayisiGecerli, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { packCrosswordFromCandidates, packCrosswordFromCandidatesAsync } from '@/lib/kelime-sofrasi/crossword-pack';
 import { validateSofraCrossword } from '@/lib/kelime-sofrasi/grid-runs';
 import { tdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
@@ -108,7 +108,6 @@ function buildPuzzleFromWheel(
   wheel: string[],
   rand: () => number,
   zorluk: EglenceZorluk,
-  kelimeHedef: number,
   anchorKelime?: string,
 ): SofraPuzzle | null {
   const pool = poolForZorluk(zorluk);
@@ -116,15 +115,17 @@ function buildPuzzleFromWheel(
   const anchorCandidate = anchorKelime
     ? candidates.find((c) => sofraKelimeEsit(c.kelime, anchorKelime))
     : undefined;
+  const minWords = SOFRA_KELIME_MIN[zorluk];
+  const maxWords = SOFRA_KELIME_MAX[zorluk];
   const placed = packCrosswordFromCandidates(
     candidates,
     rand,
-    kelimeHedef,
-    kelimeHedef,
+    minWords,
+    maxWords,
     undefined,
     anchorCandidate,
   );
-  if (!placed || placed.length !== kelimeHedef) return null;
+  if (!placed || !sofraKelimeSayisiGecerli(zorluk, placed.length)) return null;
 
   const { grid, rows, cols } = compileGrid(placed);
   return {
@@ -144,7 +145,6 @@ async function buildPuzzleFromWheelAsync(
   wheel: string[],
   rand: () => number,
   zorluk: EglenceZorluk,
-  kelimeHedef: number,
   anchorKelime?: string,
 ): Promise<SofraPuzzle | null> {
   const pool = poolForZorluk(zorluk);
@@ -152,15 +152,17 @@ async function buildPuzzleFromWheelAsync(
   const anchorCandidate = anchorKelime
     ? candidates.find((c) => sofraKelimeEsit(c.kelime, anchorKelime))
     : undefined;
+  const minWords = SOFRA_KELIME_MIN[zorluk];
+  const maxWords = SOFRA_KELIME_MAX[zorluk];
   const placed = await packCrosswordFromCandidatesAsync(
     candidates,
     rand,
-    kelimeHedef,
-    kelimeHedef,
+    minWords,
+    maxWords,
     undefined,
     anchorCandidate,
   );
-  if (!placed || placed.length !== kelimeHedef) return null;
+  if (!placed || !sofraKelimeSayisiGecerli(zorluk, placed.length)) return null;
 
   const { grid, rows, cols } = compileGrid(placed);
   return {
@@ -182,12 +184,11 @@ function yieldToUi(): Promise<void> {
 }
 
 function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZorluk): SofraPuzzle {
-  const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
   for (let i = 0; i < FALLBACK_SEEDS.length; i++) {
     const seed = FALLBACK_SEEDS[i]!;
     const wheel = wheelFromSeed(seed, rand);
     const retryRand = mulberry32(seedFromString(`${puzzleId}:fallback:${i}`));
-    const built = buildPuzzleFromWheel(puzzleId, wheel, retryRand, zorluk, kelimeHedef);
+    const built = buildPuzzleFromWheel(puzzleId, wheel, retryRand, zorluk);
     if (
       built &&
       validateSofraCrossword(built.words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU).ok
@@ -251,7 +252,6 @@ function tryBuildDailySofraPuzzleInternal(
   asyncPack: boolean,
 ): SofraPuzzle | null | Promise<SofraPuzzle | null> {
   const puzzleId = sofraPuzzleKey(gunId, zorluk, tur);
-  const kelimeHedef = SOFRA_KELIME_HEDEF[zorluk];
   const seedWords = seedWordsForZorluk(zorluk);
   const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
   if (!seedWords.length) return asyncPack ? Promise.resolve(null) : null;
@@ -264,11 +264,11 @@ function tryBuildDailySofraPuzzleInternal(
       const anchor = seedWords[(start + attempt) % seedWords.length]!;
       const wheel = wheelFromSeed(anchor.kelime, rand);
       const built = asyncPack
-        ? await buildPuzzleFromWheelAsync(puzzleId, wheel, rand, zorluk, kelimeHedef, anchor.kelime)
-        : buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, kelimeHedef, anchor.kelime);
+        ? await buildPuzzleFromWheelAsync(puzzleId, wheel, rand, zorluk, anchor.kelime)
+        : buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, anchor.kelime);
       if (
         built &&
-        built.words.length === kelimeHedef &&
+        sofraKelimeSayisiGecerli(zorluk, built.words.length) &&
         validateSofraCrossword(built.words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU).ok
       ) {
         return built;
@@ -281,10 +281,10 @@ function tryBuildDailySofraPuzzleInternal(
     for (let attempt = 0; attempt < MAX_SEED_ATTEMPTS; attempt++) {
       const anchor = seedWords[(start + attempt) % seedWords.length]!;
       const wheel = wheelFromSeed(anchor.kelime, rand);
-      const built = buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, kelimeHedef, anchor.kelime);
+      const built = buildPuzzleFromWheel(puzzleId, wheel, rand, zorluk, anchor.kelime);
       if (
         built &&
-        built.words.length === kelimeHedef &&
+        sofraKelimeSayisiGecerli(zorluk, built.words.length) &&
         validateSofraCrossword(built.words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU).ok
       ) {
         return built;

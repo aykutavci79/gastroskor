@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   InteractionManager,
+  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -13,7 +14,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { KelimeSofrasiGrid } from '@/components/kelime-sofrasi/KelimeSofrasiGrid';
 import { KelimeSofrasiWheel } from '@/components/kelime-sofrasi/KelimeSofrasiWheel';
 import { SofraBonusBadge } from '@/components/kelime-sofrasi/SofraBonusBadge';
@@ -31,6 +31,7 @@ import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
 import { spendGameHint } from '@/lib/api';
 import { notifyFriendsEglenceActivity } from '@/lib/eglence-friend-activity';
+import { formatChallengeElapsed } from '@/lib/eglence-challenge-share';
 import { playHubSfx } from '@/lib/gastro-hub-sfx';
 import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
 import { scoreKelimeSofrasi } from '@/lib/eglence-scoring';
@@ -163,6 +164,7 @@ export default function KelimeSofrasiOyunScreen() {
   const { colors } = useGastroTheme();
   const { user } = useSession();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { zorluk: zorlukParam } = useLocalSearchParams<{ zorluk?: string }>();
   const zorluk = parseEglenceZorluk(zorlukParam);
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
@@ -170,7 +172,8 @@ export default function KelimeSofrasiOyunScreen() {
   const [selectedPath, setSelectedPath] = useState<number[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [resultOpen, setResultOpen] = useState(false);
+  const [roundComplete, setRoundComplete] = useState(false);
+  const [nextRoundLoading, setNextRoundLoading] = useState(false);
   const [resultScore, setResultScore] = useState<{ score: number; detail: string } | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [bgReady, setBgReady] = useState(false);
@@ -219,8 +222,56 @@ export default function KelimeSofrasiOyunScreen() {
           height: MESSAGE_H,
           lineHeight: MESSAGE_H,
         },
+        completeBar: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 12,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 10),
+          backgroundColor: 'rgba(8, 8, 12, 0.92)',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: 'rgba(255,255,255,0.12)',
+          gap: 10,
+        },
+        completeTitle: {
+          color: '#fff',
+          fontSize: 18,
+          fontWeight: '900',
+          textAlign: 'center',
+        },
+        completeSub: {
+          color: 'rgba(255,255,255,0.72)',
+          fontSize: 13,
+          textAlign: 'center',
+          lineHeight: 18,
+        },
+        completeActions: {
+          flexDirection: 'row',
+          gap: 10,
+        },
+        completeBtn: {
+          flex: 1,
+          borderRadius: 12,
+          paddingVertical: 14,
+          alignItems: 'center',
+        },
+        completeBtnPrimary: {
+          backgroundColor: colors.accent,
+        },
+        completeBtnSecondary: {
+          backgroundColor: 'rgba(255,255,255,0.12)',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.18)',
+        },
+        completeBtnText: {
+          color: '#fff',
+          fontSize: 15,
+          fontWeight: '800',
+        },
       }),
-    [colors.text],
+    [colors.accent, colors.text, insets.bottom],
   );
 
   const onElapsed = useCallback((ms: number) => {
@@ -281,6 +332,8 @@ export default function KelimeSofrasiOyunScreen() {
     setBgReady(false);
     setSelectedPath([]);
     setMessage(null);
+    setRoundComplete(false);
+    setResultScore(null);
     setTimerRunning(false);
 
     void (async () => {
@@ -306,7 +359,14 @@ export default function KelimeSofrasiOyunScreen() {
 
         if (sofraGunlukLimitDoldu(saved)) {
           setTimerRunning(false);
-          setResultOpen(true);
+          const scoreResult = scoreKelimeSofrasi({
+            elapsedMs: saved.elapsedMs,
+            hintsUsed: saved.hintedCells.length,
+          });
+          setResultScore(scoreResult);
+          resultElapsedRef.current = saved.elapsedMs;
+          resultPuzzleIdRef.current = daily.id;
+          setRoundComplete(true);
           return;
         }
         setTimerRunning(true);
@@ -340,7 +400,51 @@ export default function KelimeSofrasiOyunScreen() {
   }, [zorluk, posthog]);
 
   const completed =
-    progress?.completedAt != null || sofraGunlukLimitDoldu(progress);
+    progress?.completedAt != null || sofraGunlukLimitDoldu(progress) || roundComplete;
+
+  const handleExitToLobby = useCallback(() => {
+    router.replace(EGLENCE_LOBBY_ROUTES['kelime-sofrasi'] as Href);
+  }, [router]);
+
+  const handleNextRound = useCallback(async () => {
+    const current = progressRef.current;
+    if (!current || sofraGunlukLimitDoldu(current)) return;
+
+    const nextTamamlama = sofraTamamlamaSayisi(current);
+    const gunId = activePuzzleId();
+
+    setRoundComplete(false);
+    setResultScore(null);
+    setMessage(null);
+    setSelectedPath([]);
+    setNextRoundLoading(true);
+
+    try {
+      const nextPuzzle = await ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama);
+      const next = await beginNextSofraRound(nextPuzzle, nextTamamlama);
+      setPuzzle(nextPuzzle);
+      progressRef.current = next;
+      setProgress(next);
+      elapsedRef.current = 0;
+      setBgReady(false);
+      setTimerRunning(true);
+      notifiedRef.current = false;
+      wheelAttemptRef.current = 0;
+      InteractionManager.runAfterInteractions(() => setBgReady(true));
+      if (nextTamamlama + 1 < SOFRA_GUNLUK_TAMAMLAMA_LIMIT) {
+        prefetchSofraTurIdle(gunId, zorluk, nextTamamlama + 1);
+      }
+    } catch (err) {
+      posthog.capture('game_error', {
+        screen: 'kelime_sofrasi',
+        error_message: err instanceof Error ? err.message : 'next_round_failed',
+      });
+      setMessage('Sonraki tur yüklenemedi');
+      setRoundComplete(true);
+    } finally {
+      setNextRoundLoading(false);
+    }
+  }, [posthog, zorluk]);
 
   useEffect(() => {
     if (!message) return;
@@ -405,7 +509,11 @@ export default function KelimeSofrasiOyunScreen() {
         setResultScore(scoreResult);
         resultElapsedRef.current = elapsedRef.current;
         resultPuzzleIdRef.current = puzzle.id;
-        setResultOpen(true);
+        progressRef.current = completedProgress;
+        setProgress(completedProgress);
+        void saveSofraProgress(completedProgress);
+        playHubSfx('finish');
+        setRoundComplete(true);
         if (!notifiedRef.current && user) {
           notifiedRef.current = true;
           void notifyFriendsEglenceActivity(user?.email, {
@@ -415,28 +523,6 @@ export default function KelimeSofrasiOyunScreen() {
             score: scoreResult.score,
           });
         }
-        if (sofraGunlukLimitDoldu(completedProgress)) {
-          progressRef.current = completedProgress;
-          setProgress(completedProgress);
-          void saveSofraProgress(completedProgress);
-          return;
-        }
-        saveGenRef.current += 1;
-        const gunId = activePuzzleId();
-        void ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama).then((nextPuzzle) => {
-          void beginNextSofraRound(nextPuzzle, nextTamamlama).then((next) => {
-            setPuzzle(nextPuzzle);
-            progressRef.current = next;
-            setProgress(next);
-            elapsedRef.current = 0;
-            setSelectedPath([]);
-            setBgReady(false);
-            InteractionManager.runAfterInteractions(() => setBgReady(true));
-            if (nextTamamlama + 1 < SOFRA_GUNLUK_TAMAMLAMA_LIMIT) {
-              prefetchSofraTurIdle(gunId, zorluk, nextTamamlama + 1);
-            }
-          });
-        });
         return;
       }
       setProgress({
@@ -453,7 +539,7 @@ export default function KelimeSofrasiOyunScreen() {
 
   const submitPath = useCallback(
     (path: number[]) => {
-      if (!puzzle || !progress || completed || resultOpen) {
+      if (!puzzle || !progress || completed || roundComplete) {
         setSelectedPath([]);
         return;
       }
@@ -541,7 +627,7 @@ export default function KelimeSofrasiOyunScreen() {
       setSelectedPath([]);
       applyFoundWordIds(progress, foundWordIds, `+ ${target.kelime}`);
     },
-    [applyFoundWordIds, completed, puzzle, progress, resultOpen],
+    [applyFoundWordIds, completed, puzzle, progress, roundComplete],
   );
 
   const handlePathChange = useCallback((path: number[]) => {
@@ -694,7 +780,7 @@ export default function KelimeSofrasiOyunScreen() {
                 onShuffle={onShuffle}
                 onHint={onHint}
                 hintsLeft={hintsLeft}
-                disabled={completed || resultOpen}
+                disabled={completed || roundComplete}
               />
               <View style={styles.bonusBadgeAnchor} pointerEvents="box-none">
                 <SofraBonusBadge bonusFoundCount={bonusCount} />
@@ -702,21 +788,48 @@ export default function KelimeSofrasiOyunScreen() {
             </View>
           </View>
         </View>
-      </View>
 
-      <EglenceResultModal
-        visible={resultOpen}
-        onClose={() => setResultOpen(false)}
-        onDone={() => {
-          setResultOpen(false);
-          router.replace(EGLENCE_LOBBY_ROUTES['kelime-sofrasi'] as Href);
-        }}
-        game="kelime_sofrasi"
-        periodKey={resultPuzzleIdRef.current ?? puzzle.id}
-        elapsedMs={resultElapsedRef.current || progress.elapsedMs}
-        score={resultScore?.score}
-        scoreDetail={resultScore?.detail}
-      />
+        {roundComplete ? (
+          <View style={styles.completeBar} pointerEvents="box-auto">
+            <Text style={styles.completeTitle}>
+              {resultScore
+                ? `${resultScore.score} puan · ${formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs)}`
+                : 'Sofra tamam!'}
+            </Text>
+            {resultScore?.detail ? (
+              <Text style={styles.completeSub}>{resultScore.detail}</Text>
+            ) : message ? (
+              <Text style={styles.completeSub}>{message}</Text>
+            ) : null}
+            <View style={styles.completeActions}>
+              {!sofraGunlukLimitDoldu(progress) ? (
+                <Pressable
+                  style={[styles.completeBtn, styles.completeBtnPrimary]}
+                  onPress={() => void handleNextRound()}
+                  disabled={nextRoundLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Yeni bulmaca">
+                  <Text style={styles.completeBtnText}>
+                    {nextRoundLoading ? 'Hazırlanıyor…' : 'Yeni bulmaca'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                style={[
+                  styles.completeBtn,
+                  sofraGunlukLimitDoldu(progress)
+                    ? styles.completeBtnPrimary
+                    : styles.completeBtnSecondary,
+                ]}
+                onPress={handleExitToLobby}
+                accessibilityRole="button"
+                accessibilityLabel="Çıkış">
+                <Text style={styles.completeBtnText}>Çıkış</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+      </View>
     </Screen>
   );
 }

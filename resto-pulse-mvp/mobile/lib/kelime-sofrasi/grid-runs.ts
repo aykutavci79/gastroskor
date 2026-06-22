@@ -1,5 +1,6 @@
-import type { SofraDirection, SofraPlacedWord } from './types';
+import type { SofraDirection, SofraGridCell, SofraPlacedWord } from './types';
 import { sofraKelimeBuyuk } from './turkce-harf';
+import { isTdkKelime, tdkLexicon } from './tdk-lexicon';
 
 export type GridMap = Map<string, { letter: string; wordIds: string[] }>;
 
@@ -147,7 +148,7 @@ export function auditContiguousRuns(
   for (const run of runs) {
     if (run.length < 2) continue;
     const normRun = sofraKelimeBuyuk(run);
-    if (!lexicon.has(normRun)) {
+    if (!isTdkKelime(normRun)) {
       invalid.push(normRun);
       continue;
     }
@@ -183,6 +184,37 @@ export function placedWordsToGrid(words: SofraPlacedWord[]): GridMap {
     }
   }
   return grid;
+}
+
+/** API/disk grid JSON → GridMap (oyun ekranındaki ızgara). */
+export function gridMatrixToMap(grid: (SofraGridCell | null)[][]): GridMap {
+  const out: GridMap = new Map();
+  for (let rowIdx = 0; rowIdx < grid.length; rowIdx++) {
+    const row = grid[rowIdx];
+    if (!row) continue;
+    for (let colIdx = 0; colIdx < row.length; colIdx++) {
+      const cell = row[colIdx];
+      if (!cell?.letter) continue;
+      const r = cell.row ?? rowIdx;
+      const c = cell.col ?? colIdx;
+      out.set(gridKey(r, c), {
+        letter: sofraKelimeBuyuk(cell.letter),
+        wordIds: [...cell.wordIds],
+      });
+    }
+  }
+  return out;
+}
+
+/** Kayıtlı grid üzerinde koşu denetimi — words yerleşimi ile aynı kural. */
+export function validateStoredSofraGrid(
+  grid: (SofraGridCell | null)[][],
+  words: SofraPlacedWord[],
+  minWordLen = 3,
+): { ok: boolean; invalid: string[] } {
+  const targets = new Set(words.map((w) => sofraKelimeBuyuk(w.kelime)));
+  const audit = auditContiguousRuns(gridMatrixToMap(grid), targets, tdkLexicon(), minWordLen);
+  return { ok: audit.ok, invalid: audit.invalid };
 }
 
 /** Izgara üzerindeki tüm 2+ harfli koşular sözlükte ve hedef kelimelerden biri olmalı. */
@@ -223,6 +255,20 @@ export function hasSameAxisSubstringPair(words: SofraPlacedWord[]): boolean {
   return false;
 }
 
+/** Önek/sonek çiftleri — GEL ⊂ GELİN gibi kafa karıştıran bulmacalar. */
+export function hasPartialWordPair(words: SofraPlacedWord[]): boolean {
+  for (let i = 0; i < words.length; i++) {
+    for (let j = 0; j < words.length; j++) {
+      if (i === j) continue;
+      const short = sofraKelimeBuyuk(words[i]!.kelime);
+      const long = sofraKelimeBuyuk(words[j]!.kelime);
+      if (short.length >= long.length) continue;
+      if (long.startsWith(short) || long.endsWith(short)) return true;
+    }
+  }
+  return false;
+}
+
 export function validateSofraCrossword(
   placed: SofraPlacedWord[],
   lexicon: ReadonlySet<string>,
@@ -231,6 +277,9 @@ export function validateSofraCrossword(
   if (!placed.length) return { ok: false, invalid: ['empty'] };
   if (hasSameAxisSubstringPair(placed)) {
     return { ok: false, invalid: ['same_axis_substring'] };
+  }
+  if (hasPartialWordPair(placed)) {
+    return { ok: false, invalid: ['partial_word_pair'] };
   }
   const targets = new Set(placed.map((w) => sofraKelimeBuyuk(w.kelime)));
   const audit = auditContiguousRuns(placedWordsToGrid(placed), targets, lexicon, minWordLen);

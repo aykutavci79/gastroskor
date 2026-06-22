@@ -8,20 +8,23 @@
 
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '../constants/kelime-sofrasi';
 import type { EglenceZorluk } from '../constants/eglence-zorluk';
-import { SOFRA_KELIME_HEDEF } from '../constants/eglence-zorluk';
+import { sofraKelimeSayisiGecerli } from '../constants/eglence-zorluk';
 import { validateSofraCrossword } from '../lib/kelime-sofrasi/grid-runs';
 import { sofraPuzzleKey } from '../constants/eglence-zorluk';
 import { tryBuildDailySofraPuzzle } from '../lib/kelime-sofrasi/puzzle';
+import { tryBuildSofraPuzzleAiAssisted } from '../lib/kelime-sofrasi/build-ai-puzzle';
 import { tdkLexicon } from '../lib/kelime-sofrasi/tdk-lexicon';
 import { activePuzzleId } from '../lib/mini-sudoku/schedule';
 import { SOFRA_MIN_KELIME_UZUNLUGU } from '../constants/kelime-sofrasi';
 
 const ZORLUKLAR: EglenceZorluk[] = ['kolay', 'orta', 'zor'];
 
-function parseGunId(argv: string[]): string {
+function parseFlags(argv: string[]): { gunId: string; useAi: boolean; useQa: boolean } {
+  const useAi = !argv.includes('--no-ai');
+  const useQa = !argv.includes('--no-qa');
   const idx = argv.indexOf('--gun-id');
-  if (idx >= 0 && argv[idx + 1]) return argv[idx + 1]!;
-  return activePuzzleId();
+  const gunId = idx >= 0 && argv[idx + 1] ? argv[idx + 1]! : activePuzzleId();
+  return { gunId, useAi, useQa };
 }
 
 function turSayisi(): number {
@@ -31,30 +34,64 @@ function turSayisi(): number {
 }
 
 function isValid(puzzle: NonNullable<ReturnType<typeof tryBuildDailySofraPuzzle>>, zorluk: EglenceZorluk): boolean {
-  const hedef = SOFRA_KELIME_HEDEF[zorluk];
-  if (puzzle.words.length !== hedef) return false;
+  if (!sofraKelimeSayisiGecerli(zorluk, puzzle.words.length)) return false;
   if (puzzle.words.some((w) => w.id.startsWith('fb-'))) return false;
   return validateSofraCrossword(puzzle.words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU).ok;
 }
 
-function main() {
-  const gunId = parseGunId(process.argv.slice(2));
+async function main() {
+  const argv = process.argv.slice(2);
+  const { gunId, useAi, useQa } = parseFlags(argv);
   const turlar = turSayisi();
   const out: Array<Record<string, unknown>> = [];
+  const aiOn =
+    useAi && Boolean(process.env.GROQ_API_KEY?.trim() || process.env.OPENAI_API_KEY?.trim());
+  const total = ZORLUKLAR.length * turlar;
+  let done = 0;
+
+  console.error(`[sofra-pool] gun_id=${gunId} slots=${total} ai=${aiOn} qa=${useQa && aiOn}`);
 
   for (const zorluk of ZORLUKLAR) {
     for (let tur = 0; tur < turlar; tur++) {
+      done += 1;
       const puzzleId = sofraPuzzleKey(gunId, zorluk, tur);
+      console.error(`[sofra-pool] ${done}/${total} ${zorluk} tur ${tur}…`);
       const t0 = performance.now();
-      const puzzle = tryBuildDailySofraPuzzle(gunId, zorluk, tur);
+      let puzzle = null as ReturnType<typeof tryBuildDailySofraPuzzle> | null;
+      let aiUsed = false;
+
+      if (aiOn) {
+        try {
+          const built = await tryBuildSofraPuzzleAiAssisted(puzzleId, zorluk, {
+            useAi: true,
+            useQa,
+          });
+          if (built.puzzle) {
+            puzzle = built.puzzle;
+            aiUsed = built.aiUsed;
+          }
+        } catch (err) {
+          console.error(
+            `[sofra-pool]   AI hata (${zorluk} t${tur}): ${err instanceof Error ? err.message : err}`,
+          );
+        }
+      }
+      if (!puzzle) {
+        puzzle = tryBuildDailySofraPuzzle(gunId, zorluk, tur);
+      }
+
       const generation_ms = Math.round(performance.now() - t0);
       const ok = puzzle != null && puzzle.id === puzzleId && isValid(puzzle, zorluk);
+      console.error(
+        `[sofra-pool]   → ${ok ? 'OK' : 'FAIL'} ai=${aiUsed} ${generation_ms}ms`,
+      );
       out.push({
         gun_id: gunId,
         zorluk,
         tur,
         puzzle_id: puzzleId,
         ok,
+        ai_used: aiUsed,
         generation_ms,
         puzzle: ok ? puzzle : null,
       });
@@ -64,4 +101,7 @@ function main() {
   process.stdout.write(JSON.stringify(out));
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

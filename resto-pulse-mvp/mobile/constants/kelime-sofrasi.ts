@@ -5,9 +5,9 @@ export const SOFRA_MIN_KELIME_UZUNLUGU = 3;
 export const SOFRA_WHEEL_MIN = 5;
 export const SOFRA_WHEEL_MAX = 7;
 
-/** Günlük bulmaca — ızgaraya yerleşen kelime sayısı (zorlukla 5–7) */
+/** Günlük bulmaca — ızgaraya yerleşen kelime sayısı (zorlukla 5–6) */
 export const SOFRA_MIN_HEDEF = 5;
-export const SOFRA_MAX_HEDEF = 7;
+export const SOFRA_MAX_HEDEF = 6;
 
 /** Bulmacada en az bu kadar 3 harfli hedef kelime (köprü / sıkışmayı azaltır) */
 export const SOFRA_UC_HARF_MIN = 2;

@@ -6,6 +6,7 @@ import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
 import { fetchSofraPuzzleFromPool } from '@/lib/kelime-sofrasi/puzzle-api';
 import { tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
+import { isSofraPuzzleStructurallyValid } from '@/lib/kelime-sofrasi/puzzle-validate';
 import {
   loadSofraPuzzleFromDisk,
   saveSofraPuzzleToDisk,
@@ -39,11 +40,19 @@ async function resolvePuzzleFromSources(
   tur: number,
   expectedId: string,
 ): Promise<{ puzzle: SofraPuzzle; gunId: string } | null> {
-  const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur);
-  if (fromApi) return fromApi;
+  const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur, gunId);
+  if (fromApi && isSofraPuzzleStructurallyValid(fromApi.puzzle, zorluk)) return fromApi;
+  if (fromApi && typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.warn('[sofra] API bulmaca yapısal doğrulama başarısız', expectedId);
+  }
 
   const fromDisk = await loadSofraPuzzleFromDisk(gunId, zorluk, expectedId, tur);
-  if (fromDisk) return { puzzle: fromDisk, gunId };
+  if (fromDisk && isSofraPuzzleStructurallyValid(fromDisk, zorluk)) {
+    return { puzzle: fromDisk, gunId };
+  }
+  if (fromDisk && typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.warn('[sofra] disk bulmaca yapısal doğrulama başarısız', expectedId);
+  }
 
   // Havuz mimarisi: prod ve normal dev akisinda yalnizca API + disk (yerel uretim dakikalarca surer).
   if (
@@ -52,7 +61,7 @@ async function resolvePuzzleFromSources(
     process.env.EXPO_PUBLIC_SOFRA_DEV_LOCAL_BUILD === '1'
   ) {
     const built = await tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
-    if (built) return { puzzle: built, gunId };
+    if (built && isSofraPuzzleStructurallyValid(built, zorluk)) return { puzzle: built, gunId };
   }
   return null;
 }
