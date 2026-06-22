@@ -63,4 +63,12 @@ if (($needAndroid -and -not $IosOnly) -or ($needIos -and -not $AndroidOnly)) {
   }
 }
 
+Write-Host ""
+Write-Host "expo install --check (SDK uyumu)..." -ForegroundColor Yellow
+npx expo install --check 2>&1 | Out-Host
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "HATA: Expo paket surumleri SDK ile uyumsuz. Once: npx expo install --fix" -ForegroundColor Red
+  exit 1
+}
+
 exit 0

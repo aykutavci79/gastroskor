@@ -1,0 +1,43 @@
+---
+description: Mobil çökme teşhisi — kanıt olmadan fix yok, çok kaynaklı sorgulama
+alwaysApply: true
+---
+
+# Çökme teşhisi (zorunlu süreç)
+
+**Kural:** Çökme nedeni stack trace / log ile doğrulanmadan fix, paket kaldırma veya yeni build önerme. "Muhtemelen X" ile işlem yok.
+
+## Teşhis öncesi yasaklar
+
+- Son eklenen özelliği (PostHog, analytics vb.) suçlamadan kod değiştirme
+- Semptom üzerinden tahminle `noop` / rollback / yeni native paket
+- Kanıtsız "bir build daha dene" döngüsü
+
+## Minimum kanıt (en az 2 kaynak veya 1 net stack)
+
+| Kaynak | Ne aranır |
+|--------|-----------|
+| **Play Console → Android Vitals → Crashes** | Tam stack, etkilenen sürüm, cihaz/OS |
+| **Sentry** | Issue + release tag (`gastroskor@version+code`); source map yoksa önce upload |
+| **adb logcat** | `FATAL`, `NoClassDefFoundError`, `ClassNotFoundException`, modül adı |
+| **`npx expo install --check`** | SDK 54 ile uyumsuz expo paket sürümü (ör. `expo-device@56`) |
+| **`git log` / `package.json` diff** | Crash zamanıyla örtüşen dependency değişikliği |
+
+## Karar sırası
+
+1. Stack'teki **sınıf/modül adını** oku (`expo.modules.device`, `posthog`, vb.)
+2. `package.json` + `node_modules/<pkg>/package.json` sürümünü Expo SDK ile karşılaştır
+3. Hipotezi **tek cümle** yaz; kanıtı maddele
+4. Fix scope'u minimal tut (yanlış paketi düzelt, tüm analytics'i silme)
+5. Native modül değiştiyse **prebuild zorunlu** (`-SkipPrebuild` yasak)
+
+## Fix sonrası
+
+- Sürüm bump + `release-versions.json`
+- Kullanıcıya: ne kırıldı, hangi kanıt, ne değişti (3 madde)
+
+## Örnek (expo-device)
+
+- Kanıt: Play Vitals `NoClassDefFoundError` @ `DeviceModule.kt`
+- Doğrulama: `expo-device@56` + Expo SDK 54 → `npx expo install --check` fail
+- Fix: `expo install expo-device` → `~8.0.10`, temiz prebuild, 1.0.57

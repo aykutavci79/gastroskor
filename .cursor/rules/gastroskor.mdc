@@ -40,8 +40,10 @@ Yeni canlı oda özellikleri için REST polling kurma — FastAPI WebSockets + R
 
 ## Hata & Sentry
 
+- **Çökme fix:** Kanıt olmadan işlem yok — bkz. `crash-investigation.mdc` (Play Vitals + Sentry + logcat + `expo install --check`).
 - Prod'da `@sentry/react-native` aktif (`EXPO_PUBLIC_SENTRY_DSN`). Rapor gelince önce Sentry; tahmin değil.
 - Kritik yeni akışlarda `Sentry.captureException`; sessiz catch bırakma.
+- Release öncesi: `npx expo install --check` (SDK uyumsuz native paketleri erken yakalar).
 
 ## Stack
 

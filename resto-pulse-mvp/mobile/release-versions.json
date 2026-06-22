@@ -2,10 +2,10 @@
   "_comment": "Play Console / App Store Connect / son EAS production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.56",
-    "versionCode": 69,
-    "lastUpdated": "2026-06-22",
-    "_note": "Android PostHog native bundle disi (noop); iOS event analytics devam"
+    "versionName": "1.0.57",
+    "versionCode": 71,
+    "lastUpdated": "2026-06-20",
+    "_note": "expo-device SDK54 uyumu (56.x crash fix); Android PostHog noop"
   },
   "appStore": {
     "version": "1.0.50",
