@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
+import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
 import { loadGunlukKelimeMetaStatus } from '@/lib/gunluk-kelime/storage';
+import { warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
 import { formatNextResetHint, formatPuzzlePeriodLabel, activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -27,6 +29,10 @@ export default function GunlukKelimeLobbyScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshMeta();
+      const task = InteractionManager.runAfterInteractions(() => {
+        warmGunlukKelimeLexicon();
+      });
+      return () => task.cancel();
     }, [refreshMeta]),
   );
 
@@ -66,8 +72,20 @@ export default function GunlukKelimeLobbyScreen() {
     [t],
   );
 
-  const oturum = inProgress && !completed ? 'devam' : 'yeni';
-  const butonYazi = inProgress && !completed ? 'Devam Et' : completed ? 'Tekrar Oyna' : 'Oyna';
+  const oturum =
+    completed && EGLENCE_GUNLUK_TEK_OYUN
+      ? 'sonuc'
+      : inProgress && !completed
+        ? 'devam'
+        : 'yeni';
+  const butonYazi =
+    completed && EGLENCE_GUNLUK_TEK_OYUN
+      ? 'Sonuçları Gör'
+      : inProgress && !completed
+        ? 'Devam Et'
+        : completed
+          ? 'Tekrar Oyna'
+          : 'Oyna';
 
   return (
     <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']}>

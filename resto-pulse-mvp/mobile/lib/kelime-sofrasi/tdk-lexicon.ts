@@ -11,6 +11,11 @@ export function tdkLexicon(): ReadonlySet<string> {
   return lexiconCache;
 }
 
+/** Sofra kelime doğrulama setini erken yükle. */
+export function warmTdkLexicon(): void {
+  tdkLexicon();
+}
+
 export function isTdkKelime(kelime: string): boolean {
   const canon = sofraKelimeBuyuk(kelime);
   if (tdkLexicon().has(canon)) return true;

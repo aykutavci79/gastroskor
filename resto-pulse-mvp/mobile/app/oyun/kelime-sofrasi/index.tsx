@@ -6,17 +6,19 @@ import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraKelimeHedefEtiket, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
 import {
+  prefetchSofraBackgroundForPuzzle,
   prefetchSofraOtherZorluklarIdle,
   prefetchSofraPuzzlesForToday,
   ensureSofraPuzzleAsync,
 } from '@/lib/kelime-sofrasi/puzzle-cache';
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
+import { warmTdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
 import type { SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { activePuzzleId, formatNextResetHint, formatPuzzlePeriodLabel } from '@/lib/mini-sudoku/schedule';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function KelimeSofrasiLobbyScreen() {
   const router = useRouter();
@@ -49,21 +51,32 @@ export default function KelimeSofrasiLobbyScreen() {
     let cancelled = false;
     setPuzzle(null);
     setLoadError(null);
-    prefetchSofraPuzzlesForToday(puzzleId, zorluk);
 
-    void ensureSofraPuzzleAsync(puzzleId, zorluk, 0)
-      .then((loaded) => {
-        if (!cancelled) setPuzzle(loaded);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
-          if (__DEV__) console.warn('[sofra-lobby]', err);
-        }
-      });
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      prefetchSofraPuzzlesForToday(puzzleId, zorluk);
+
+      void ensureSofraPuzzleAsync(puzzleId, zorluk, 0)
+        .then((loaded) => {
+          if (!cancelled) {
+            setPuzzle(loaded);
+            prefetchSofraBackgroundForPuzzle(loaded.id);
+            InteractionManager.runAfterInteractions(() => {
+              warmTdkLexicon();
+            });
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
+            if (__DEV__) console.warn('[sofra-lobby]', err);
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
+      task.cancel();
     };
   }, [puzzleId, zorluk, retryTick]);
 

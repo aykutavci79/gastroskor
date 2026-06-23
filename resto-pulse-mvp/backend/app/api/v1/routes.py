@@ -458,6 +458,38 @@ def assert_gs_review_editable(review: Review) -> None:
         )
 
 
+def _commit_review_with_side_effects(
+    db: Session,
+    *,
+    review: Review,
+    user_id: UUID,
+    usage_event_type: str,
+    load_remedy_offer: bool,
+) -> None:
+    """Yorum kaydini tamamla; jeton/metrik hatalari 500 dondurmesin."""
+    try:
+        with db.begin_nested():
+            try_earn_review_submitted(db, user_id=user_id, review_id=review.id)
+    except Exception:
+        logger.exception("Jeton review earn failed review=%s", review.id)
+
+    db.commit()
+    refresh_attrs = ["author", "images", "category_scores"]
+    if load_remedy_offer:
+        refresh_attrs.append("remedy_offer")
+    db.refresh(review, attribute_names=refresh_attrs)
+
+    try:
+        record_app_usage_event(
+            db,
+            event_type=usage_event_type,
+            user_id=user_id,
+            platform="api",
+        )
+    except Exception:
+        logger.exception("Review usage metric failed review=%s", review.id)
+
+
 def load_review_or_404(db: Session, review_id: UUID) -> Review:
     review = db.scalar(
         select(Review)
@@ -1532,11 +1564,14 @@ async def post_order_review(order_id: UUID, payload: OrderReviewCreate, db: Sess
     except OrderReviewError as exc:
         raise_order_review_http(exc)
 
-    maybe_init_review_remedy(db, review=review)
-    try_earn_review_submitted(db, user_id=user.id, review_id=review.id)
-    db.commit()
-    db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
-    record_app_usage_event(db, event_type="order_review_created", user_id=user.id, platform="api")
+    remedy_pending = maybe_init_review_remedy(db, review=review)
+    _commit_review_with_side_effects(
+        db,
+        review=review,
+        user_id=user.id,
+        usage_event_type="order_review_created",
+        load_remedy_offer=remedy_pending,
+    )
     return serialize_review(review, viewer_user_id=user.id)
 
 
@@ -2063,11 +2098,14 @@ async def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     )
     db.add(review)
     db.flush()
-    maybe_init_review_remedy(db, review=review)
-    try_earn_review_submitted(db, user_id=author_uuid, review_id=review.id)
-    db.commit()
-    db.refresh(review, attribute_names=["author", "images", "category_scores", "remedy_offer"])
-    record_app_usage_event(db, event_type="review_created", user_id=author_uuid, platform="api")
+    remedy_pending = maybe_init_review_remedy(db, review=review)
+    _commit_review_with_side_effects(
+        db,
+        review=review,
+        user_id=author_uuid,
+        usage_event_type="review_created",
+        load_remedy_offer=remedy_pending,
+    )
 
     ownership = db.scalar(
         select(RestaurantOwnership)

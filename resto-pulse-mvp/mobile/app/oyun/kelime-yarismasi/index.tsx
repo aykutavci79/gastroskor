@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
@@ -9,12 +9,20 @@ import {
   JOKER_SURE_BONUS_MS,
   TUR_SAYISI,
 } from '@/constants/kelime-yarismasi';
-import { soruBankasiBosMu } from '@/lib/kelime-yarismasi/soru-paketi';
-
 export default function KelimeYarismasiLobbyScreen() {
   const router = useRouter();
   const t = eglenceLobbyTheme('kelime-yarismasi');
-  const bos = soruBankasiBosMu();
+  const [bos, setBos] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      void import('@/lib/kelime-yarismasi/soru-paketi').then((m) => {
+        m.warmSoruBankasi();
+        setBos(m.soruBankasiBosMu());
+      });
+    });
+    return () => task.cancel();
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -91,10 +99,10 @@ export default function KelimeYarismasiLobbyScreen() {
         ) : null}
 
         <Pressable
-          style={[styles.buton, bos && styles.butonPasif]}
-          disabled={bos}
+          style={[styles.buton, bos !== false && styles.butonPasif]}
+          disabled={bos !== false}
           onPress={() => router.push('/oyun/kelime-yarismasi/oyun')}>
-          <Text style={styles.butonYazi}>Oyuna Başla</Text>
+          <Text style={styles.butonYazi}>{bos === null ? 'Hazırlanıyor…' : 'Oyuna Başla'}</Text>
         </Pressable>
       </ScrollView>
     </EglenceGameLobbyScreen>

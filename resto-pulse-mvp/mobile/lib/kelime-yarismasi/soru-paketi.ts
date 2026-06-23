@@ -8,19 +8,29 @@ import { cevapNormalize } from '@/lib/kelime-yarismasi/turkce-metin';
 
 export type { Soru } from '@/lib/kelime-yarismasi/soru-tipleri';
 
-const havuz: Soru[] = (sorularRaw as Soru[]).filter((s) => {
-  const len = cevapNormalize(s.cevap).length;
-  if (len !== s.harfSayisi || s.harfSayisi < 4 || s.harfSayisi > 13) {
-    return false;
-  }
-  return !cevapIpucundaTamGeciyor(s.cevap, s.ipucu);
-});
+let havuzCache: Soru[] | null = null;
+let havuzIndeksCache: Map<number, Soru[]> | null = null;
 
-const havuzIndeks = new Map<number, Soru[]>();
-for (const s of havuz) {
-  const liste = havuzIndeks.get(s.harfSayisi) ?? [];
-  liste.push(s);
-  havuzIndeks.set(s.harfSayisi, liste);
+function ensureHavuz(): { havuz: Soru[]; havuzIndeks: Map<number, Soru[]> } {
+  if (havuzCache && havuzIndeksCache) {
+    return { havuz: havuzCache, havuzIndeks: havuzIndeksCache };
+  }
+  const havuz = (sorularRaw as Soru[]).filter((s) => {
+    const len = cevapNormalize(s.cevap).length;
+    if (len !== s.harfSayisi || s.harfSayisi < 4 || s.harfSayisi > 13) {
+      return false;
+    }
+    return !cevapIpucundaTamGeciyor(s.cevap, s.ipucu);
+  });
+  const havuzIndeks = new Map<number, Soru[]>();
+  for (const s of havuz) {
+    const liste = havuzIndeks.get(s.harfSayisi) ?? [];
+    liste.push(s);
+    havuzIndeks.set(s.harfSayisi, liste);
+  }
+  havuzCache = havuz;
+  havuzIndeksCache = havuzIndeks;
+  return { havuz, havuzIndeks };
 }
 
 function soruKolaylikBonus(s: Soru): number {
@@ -56,7 +66,11 @@ function turSorusuSec(adaylar: Soru[], kullanilan: Set<string>): Soru {
 }
 
 export function soruBankasiBosMu(): boolean {
-  return havuz.length === 0;
+  return ensureHavuz().havuz.length === 0;
+}
+
+export function warmSoruBankasi(): void {
+  ensureHavuz();
 }
 
 function gunlukHarfPlani(tarih = new Date()): number[] {
@@ -67,6 +81,7 @@ function gunlukHarfPlani(tarih = new Date()): number[] {
 }
 
 export function turPaketiOlustur(): TurKayit[] {
+  const { havuz, havuzIndeks } = ensureHavuz();
   if (havuz.length === 0) {
     throw new Error('Soru bankası boş.');
   }

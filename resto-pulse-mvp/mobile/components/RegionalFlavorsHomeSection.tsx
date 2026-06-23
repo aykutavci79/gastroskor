@@ -18,10 +18,10 @@ export function RegionalFlavorsHomeSection() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!expanded || loaded) return;
-
+    if (!expanded) return;
     let cancelled = false;
     setLoading(true);
+    setLoaded(false);
     listRegionalProducts({ city })
       .then((data) => {
         if (!cancelled) setItems(data.items.slice(0, PREVIEW_COUNT));
@@ -38,7 +38,10 @@ export function RegionalFlavorsHomeSection() {
     return () => {
       cancelled = true;
     };
-  }, [expanded, loaded, city]);
+  }, [expanded, city]);
+
+  const moreLabel =
+    items.length > 0 ? `Tüm ${cityLabel} lezzetleri` : `${cityLabel} listesine git`;
 
   return (
     <View style={styles.section}>
@@ -86,7 +89,12 @@ export function RegionalFlavorsHomeSection() {
 
           {loaded && items.length > 0 ? (
             <Pressable style={styles.moreBtn} onPress={() => router.push('/yoresel' as Href)}>
-              <Text style={styles.moreBtnText}>Tüm Bursa lezzetleri</Text>
+              <Text style={styles.moreBtnText}>{moreLabel}</Text>
+            </Pressable>
+          ) : null}
+          {loaded && items.length === 0 ? (
+            <Pressable style={styles.moreBtn} onPress={() => router.push('/yoresel' as Href)}>
+              <Text style={styles.moreBtnText}>{moreLabel}</Text>
             </Pressable>
           ) : null}
         </View>

@@ -58,17 +58,6 @@ export async function fetchSofraPuzzleFromPool(
       return null;
     }
     const body = (await res.json()) as SofraPuzzleApiResponse;
-    if (body.is_fallback) {
-      if (typeof __DEV__ !== 'undefined' && __DEV__) {
-        console.warn(
-          '[sofra] API yedek bulmaca dondu (cron/import eksik)',
-          body.gun_id,
-          '←',
-          body.source_gun_id,
-        );
-      }
-      return null;
-    }
     const expectedId = sofraPuzzleKey(body.gun_id, zorluk, tur);
     if (!isValidPuzzle(body.puzzle, expectedId)) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
@@ -79,6 +68,14 @@ export async function fetchSofraPuzzleFromPool(
         );
       }
       return null;
+    }
+    if (body.is_fallback && typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn(
+        '[sofra] API yedek bulmaca (havuz import eksik olabilir)',
+        body.gun_id,
+        '←',
+        body.source_gun_id,
+      );
     }
     return { puzzle: body.puzzle, gunId: body.gun_id };
   } catch (err) {

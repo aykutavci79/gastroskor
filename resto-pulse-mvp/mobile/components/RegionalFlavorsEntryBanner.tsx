@@ -32,6 +32,7 @@ function buildSlides(items: RegionalProductItem[]): Slide[] {
   return slides;
 }
 
+/** Ana ekran vitrin — seçili ile göre yöresel ürünler (boş ilde de görünür). */
 export function RegionalFlavorsEntryBanner({ style }: Props) {
   const { city, cityLabel } = useCity();
   const router = useRouter();
@@ -45,7 +46,7 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
         setSlides(buildSlides(data.items));
       })
       .catch(() => {
-        setCount(null);
+        setCount(0);
         setSlides([]);
       });
   }, [city]);
@@ -59,13 +60,11 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
   const safeSlides = useMemo(() => slides, [slides]);
   const { opacityA, opacityB, indexA, indexB } = useBannerCrossfade(safeSlides.length);
 
-  if (count === 0) return null;
-
   const countLine =
     count == null
-      ? `${cityLabel} · yöresel ürünler`
+      ? `${cityLabel} · yükleniyor…`
       : count === 0
-        ? `${cityLabel} · yakında liste`
+        ? `${cityLabel} · tescilli ürün listesi yakında`
         : `${cityLabel} · ${count} tescilli ürün`;
 
   const slideA = safeSlides[indexA];
@@ -79,7 +78,7 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
         router.push('/yoresel' as never);
       }}
       accessibilityRole="button"
-      accessibilityLabel="Yoresel lezzetler">
+      accessibilityLabel="Yöresel lezzetler">
       <View style={styles.mediaClip} pointerEvents="none">
         {slideA ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityA }]}>
@@ -92,7 +91,9 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
             />
           </Animated.View>
         ) : (
-          <View style={styles.mediaFallback} />
+          <View style={styles.mediaFallback}>
+            <Text style={styles.fallbackEmoji}>🏺</Text>
+          </View>
         )}
         {slideB ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityB }]}>
@@ -154,7 +155,10 @@ const styles = StyleSheet.create({
   mediaFallback: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#2a2018',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  fallbackEmoji: { fontSize: 28, opacity: 0.55 },
   content: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',

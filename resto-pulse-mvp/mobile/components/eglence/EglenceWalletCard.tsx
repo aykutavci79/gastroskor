@@ -10,6 +10,8 @@ type Props = {
   loading?: boolean;
   weeklyHint?: number;
   onPress?: () => void;
+  /** Bisect adım 5 — dönen GC ikonu (önce statik kart). */
+  animateCoin?: boolean;
 };
 
 const COIN_SLOT = 120;
@@ -17,7 +19,13 @@ const COIN_SLOT = 120;
 const COIN_SPIN_SIZE = 80;
 const CARD_MIN_H = 150;
 
-export function EglenceWalletCard({ balance, loading, weeklyHint = 0, onPress }: Props) {
+export function EglenceWalletCard({
+  balance,
+  loading,
+  weeklyHint = 0,
+  onPress,
+  animateCoin = true,
+}: Props) {
   const display = balance == null ? '—' : balance.toLocaleString('tr-TR');
 
   const content = (
@@ -58,7 +66,7 @@ export function EglenceWalletCard({ balance, loading, weeklyHint = 0, onPress }:
         <View
           style={[styles.goldGlow, { width: COIN_SLOT, height: COIN_SLOT, borderRadius: COIN_SLOT / 2 }]}
         />
-        <SpinningWalletCoin size={COIN_SPIN_SIZE} />
+        {animateCoin ? <SpinningWalletCoin size={COIN_SPIN_SIZE} /> : null}
       </View>
     </View>
   );

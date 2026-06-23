@@ -31,7 +31,25 @@ function cacheKey(gunId: string, zorluk: EglenceZorluk, tur: number): string {
 
 function puzzleReady(puzzle: SofraPuzzle): void {
   warmSofraProgress(puzzle);
-  scheduleBackgroundPrefetch(puzzle.id);
+}
+
+/** Yöresel lezzet JPG — yalnizca Sofra lobi/oyun (Eglence sekmesinde degil). */
+export function prefetchSofraBackgroundForPuzzle(puzzleId: string): void {
+  prefetchTask?.cancel?.();
+  prefetchTask = InteractionManager.runAfterInteractions(() => {
+    void prefetchSofraBackground(puzzleId);
+  });
+}
+
+async function prefetchSofraBackground(puzzleId: string): Promise<void> {
+  try {
+    const source = sofraBackgroundForPuzzle(puzzleId);
+    if (typeof source === 'number') {
+      await Asset.fromModule(source).downloadAsync();
+    }
+  } catch {
+    // Arka plan prefetch basarisiz — oyun yine acilir
+  }
 }
 
 async function resolvePuzzleFromSources(
@@ -41,7 +59,9 @@ async function resolvePuzzleFromSources(
   expectedId: string,
 ): Promise<{ puzzle: SofraPuzzle; gunId: string } | null> {
   const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur, gunId);
-  if (fromApi && isSofraPuzzleStructurallyValid(fromApi.puzzle, zorluk)) return fromApi;
+  if (fromApi && isSofraPuzzleStructurallyValid(fromApi.puzzle, zorluk, { skipLexicon: true })) {
+    return fromApi;
+  }
   if (fromApi && typeof __DEV__ !== 'undefined' && __DEV__) {
     console.warn('[sofra] API bulmaca yapısal doğrulama başarısız', expectedId);
   }
@@ -84,24 +104,6 @@ export function isSofraPuzzleCached(
   tur = 0,
 ): boolean {
   return cache.has(cacheKey(gunId, zorluk, tur));
-}
-
-async function prefetchSofraBackground(puzzleId: string): Promise<void> {
-  try {
-    const source = sofraBackgroundForPuzzle(puzzleId);
-    if (typeof source === 'number') {
-      await Asset.fromModule(source).downloadAsync();
-    }
-  } catch {
-    // Arka plan prefetch basarisiz — oyun yine acilir
-  }
-}
-
-function scheduleBackgroundPrefetch(puzzleId: string): void {
-  prefetchTask?.cancel?.();
-  prefetchTask = InteractionManager.runAfterInteractions(() => {
-    void prefetchSofraBackground(puzzleId);
-  });
 }
 
 function storePuzzle(
@@ -204,7 +206,6 @@ export function warmSofraPuzzleCache(gunId = activePuzzleId()): void {
     const hit = cache.get(cacheKey(gunId, zorluk, 0));
     if (hit) {
       warmSofraProgress(hit);
-      scheduleBackgroundPrefetch(hit.id);
       return;
     }
   }

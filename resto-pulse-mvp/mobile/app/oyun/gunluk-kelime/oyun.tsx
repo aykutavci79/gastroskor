@@ -31,7 +31,7 @@ import {
 } from '@/lib/gunluk-kelime/storage';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import type { GunlukKelimeProgress } from '@/lib/gunluk-kelime/types';
-import { gunlukKelimeKanonik } from '@/lib/gunluk-kelime/words';
+import { gunlukKelimeKanonik, warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
 import {
   gunlukKelimeAppendHarf,
   gunlukKelimeBackspace,
@@ -81,12 +81,16 @@ export default function GunlukKelimeOyunScreen() {
   }, [progress]);
 
   const handleResultDone = useCallback(() => {
-    void resetGunlukKelimeSession(puzzleId).then(() => {
-      setResultOpen(false);
-      setResultScore(null);
-      resultShownRef.current = false;
-      router.replace(EGLENCE_LOBBY_ROUTES['gunluk-kelime'] as Href);
-    });
+    setResultOpen(false);
+    setResultScore(null);
+    resultShownRef.current = false;
+    if (!EGLENCE_GUNLUK_TEK_OYUN) {
+      void resetGunlukKelimeSession(puzzleId).then(() => {
+        router.replace(EGLENCE_LOBBY_ROUTES['gunluk-kelime'] as Href);
+      });
+      return;
+    }
+    router.replace(EGLENCE_LOBBY_ROUTES['gunluk-kelime'] as Href);
   }, [puzzleId, router]);
 
   const styles = useMemo(
@@ -132,8 +136,13 @@ export default function GunlukKelimeOyunScreen() {
   useEffect(() => {
     let alive = true;
     void (async () => {
+      warmGunlukKelimeLexicon();
       let p = await loadGunlukKelimeProgress(puzzleId);
-      if (oturumYeni || (!EGLENCE_GUNLUK_TEK_OYUN && p.completedAt)) {
+      if (oturumYeni) {
+        if (!EGLENCE_GUNLUK_TEK_OYUN) {
+          p = await resetGunlukKelimeSession(puzzleId);
+        }
+      } else if (!EGLENCE_GUNLUK_TEK_OYUN && p.completedAt) {
         p = await resetGunlukKelimeSession(puzzleId);
       }
       if (!alive) return;

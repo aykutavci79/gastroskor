@@ -48,6 +48,16 @@ export default function YoreselLezzetlerScreen() {
 
         {loading ? <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} /> : null}
 
+        {!loading && items.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>{cityLabel} için henüz ürün yok</Text>
+            <Text style={styles.emptySub}>
+              Coğrafi işaretli ürünler il il ekleniyor. Şimdilik Bursa listesi dolu — üstteki şehir
+              seçicisinden Bursa&apos;ya geçebilirsin.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.list}>
           {items.map((item) => (
             <Pressable
@@ -93,6 +103,18 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
     },
     title: { color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8 },
     sub: { color: colors.muted, marginTop: 8, lineHeight: 20, fontSize: 14 },
+    emptyBox: {
+      marginTop: 20,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(245, 158, 11, 0.25)',
+      backgroundColor: colors.panel,
+      padding: 16,
+      gap: 8,
+      ...shadow.card,
+    },
+    emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+    emptySub: { color: colors.muted, fontSize: 13, lineHeight: 19 },
     list: { marginTop: 20, gap: 12 },
     card: {
       borderRadius: 16,

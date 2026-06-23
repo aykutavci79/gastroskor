@@ -187,7 +187,7 @@ function TaskRow({
               <Ionicons name="logo-bitcoin" size={12} color={GastroCoinTheme.coinGold} />
               <Text style={[styles.reward, { color: colors.success }]}>+{task.reward} {GASTROCOIN_SHORT}</Text>
             </View>
-            {isFollow ? (
+            {isFollow && !done ? (
               <Text style={[styles.followSub, { color: colors.muted }]}>
                 {followRemainingLabel(followProgress)}
               </Text>

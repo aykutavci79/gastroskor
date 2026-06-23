@@ -4,7 +4,6 @@ import { GUNLUK_KELIME_LENGTH, GUNLUK_KELIME_STORAGE_PREFIX } from '@/constants/
 import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
-import { gunlukKelimeCevabi } from './daily';
 import type { GunlukKelimeGuessRow, GunlukKelimeProgress } from './types';
 
 const KEY = `${GUNLUK_KELIME_STORAGE_PREFIX}:progress`;
@@ -22,7 +21,8 @@ function isValidAnswer(answer: string): boolean {
   return sofraKelimeBuyuk(answer).length === GUNLUK_KELIME_LENGTH;
 }
 
-export function freshGunlukKelimeProgress(puzzleId: string): GunlukKelimeProgress {
+export async function freshGunlukKelimeProgress(puzzleId: string): Promise<GunlukKelimeProgress> {
+  const { gunlukKelimeCevabi } = await import('./daily');
   return {
     puzzleId,
     answer: gunlukKelimeCevabi(puzzleId),
@@ -43,16 +43,16 @@ export async function loadGunlukKelimeProgress(
 ): Promise<GunlukKelimeProgress> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return freshGunlukKelimeProgress(puzzleId);
+    if (!raw) return await freshGunlukKelimeProgress(puzzleId);
     const parsed = JSON.parse(raw) as GunlukKelimeProgress;
     if (parsed.puzzleId !== puzzleId || typeof parsed.answer !== 'string' || !isValidAnswer(parsed.answer)) {
-      return freshGunlukKelimeProgress(puzzleId);
+      return await freshGunlukKelimeProgress(puzzleId);
     }
     if (!Array.isArray(parsed.guesses) || !parsed.guesses.every(isGuessRow)) {
-      return freshGunlukKelimeProgress(puzzleId);
+      return await freshGunlukKelimeProgress(puzzleId);
     }
     if (!EGLENCE_GUNLUK_TEK_OYUN && parsed.completedAt) {
-      return freshGunlukKelimeProgress(puzzleId);
+      return await freshGunlukKelimeProgress(puzzleId);
     }
     return {
       puzzleId: parsed.puzzleId,
@@ -62,7 +62,7 @@ export async function loadGunlukKelimeProgress(
       won: Boolean(parsed.won),
     };
   } catch {
-    return freshGunlukKelimeProgress(puzzleId);
+    return await freshGunlukKelimeProgress(puzzleId);
   }
 }
 
@@ -85,7 +85,7 @@ export async function loadGunlukKelimeDailyRecord(
 }
 
 export async function resetGunlukKelimeSession(puzzleId: string): Promise<GunlukKelimeProgress> {
-  const fresh = freshGunlukKelimeProgress(puzzleId);
+  const fresh = await freshGunlukKelimeProgress(puzzleId);
   await saveGunlukKelimeProgress(fresh);
   return fresh;
 }
@@ -110,9 +110,10 @@ export async function loadGunlukKelimeMetaStatus(
     if (!raw) return { completed: false, inProgress: false };
     const parsed = JSON.parse(raw) as GunlukKelimeProgress;
     if (parsed.puzzleId !== puzzleId) return { completed: false, inProgress: false };
+    const finished = parsed.completedAt != null;
     return {
-      completed: false,
-      inProgress: parsed.completedAt == null && parsed.guesses.length > 0,
+      completed: finished && EGLENCE_GUNLUK_TEK_OYUN,
+      inProgress: !finished && parsed.guesses.length > 0,
     };
   } catch {
     return { completed: false, inProgress: false };
