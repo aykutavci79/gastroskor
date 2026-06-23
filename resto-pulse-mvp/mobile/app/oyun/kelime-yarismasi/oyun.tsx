@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardStickyView } from 'react-native-keyboard-controller';
+
+import { KeyboardAvoidingView } from '@/components/ui/AppKeyboardAvoidingView';
+import { useStackKeyboardOffset } from '@/lib/keyboard-layout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KelimeYarismasiHarfKutulari } from '@/components/kelime-yarismasi/KelimeYarismasiHarfKutulari';
@@ -91,6 +94,7 @@ function OyunIcerik({
   const { colors } = useGastroTheme();
   const { user } = useSession();
   const insets = useSafeAreaInsets();
+  const keyboardOffset = useStackKeyboardOffset();
   const [tahmin, setTahmin] = useState('');
   const [cevapKalanSn, setCevapKalanSn] = useState(CEVAP_SURE_MS / 1000);
   const [bildirildi, setBildirildi] = useState(false);
@@ -370,16 +374,19 @@ function OyunIcerik({
           : '';
 
   return (
-    <View style={styles.kok}>
+    <KeyboardAvoidingView
+      style={styles.kok}
+      behavior="padding"
+      keyboardVerticalOffset={keyboardOffset}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollIcerik,
-          oyun.asama === 'cevap' ? { paddingBottom: 12 } : { paddingBottom: Math.max(insets.bottom, 16) },
+          oyun.asama === 'cevap' ? { paddingBottom: 8 } : { paddingBottom: Math.max(insets.bottom, 16) },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        automaticallyAdjustKeyboardInsets>
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <View style={styles.ust}>
           <View>
             <Text style={styles.tur}>
@@ -455,26 +462,24 @@ function OyunIcerik({
       </ScrollView>
 
       {oyun.asama === 'cevap' ? (
-        <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
-          <View style={[styles.cevapAlani, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-            <TextInput
-              ref={tahminInputRef}
-              style={styles.input}
-              value={tahmin}
-              onChangeText={setTahmin}
-              placeholder="Cevabını yaz..."
-              placeholderTextColor={colors.placeholder}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              onSubmitEditing={gonder}
-              returnKeyType="done"
-            />
-            <Pressable style={styles.gonder} onPress={gonder}>
-              <Text style={styles.gonderYazi}>Gönder</Text>
-            </Pressable>
-          </View>
-        </KeyboardStickyView>
+        <View style={[styles.cevapAlani, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <TextInput
+            ref={tahminInputRef}
+            style={styles.input}
+            value={tahmin}
+            onChangeText={setTahmin}
+            placeholder="Cevabını yaz..."
+            placeholderTextColor={colors.placeholder}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            onSubmitEditing={gonder}
+            returnKeyType="done"
+          />
+          <Pressable style={styles.gonder} onPress={gonder}>
+            <Text style={styles.gonderYazi}>Gönder</Text>
+          </Pressable>
+        </View>
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }

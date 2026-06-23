@@ -2,10 +2,10 @@
   "_comment": "Play Console / son local production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.68",
-    "versionCode": 88,
-    "lastUpdated": "2026-06-23",
-    "_note": "Hub bisect adim 3: jeton chip + gorev fix + yorum backend fix"
+    "versionName": "1.0.69",
+    "versionCode": 89,
+    "lastUpdated": "2026-06-24",
+    "_note": "Hub bisect adim 4: cuzdan karti + kelime yarismasi klavye fix (Android KAV)"
   },
   "appStore": {
     "version": "1.0.50",
