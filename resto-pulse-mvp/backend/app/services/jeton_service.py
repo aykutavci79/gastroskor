@@ -21,6 +21,8 @@ from app.constants.jeton import (
     JETON_FOLLOW_BUNDLE_THRESHOLD,
     JETON_FREE_HINTS_PER_GAME,
     JETON_HINT_COST,
+    JETON_KELIME_BUL_FREE_PLAYS,
+    JETON_KELIME_BUL_PLAY_COST,
     JETON_ORDER_AMOUNT,
     JETON_ORDER_DAILY_LIMIT,
     JETON_ORDER_MIN_TL,
@@ -55,6 +57,12 @@ class EarnResult:
     amount: int = 0
     balance: int = 0
     reason: str | None = None
+
+
+@dataclass
+class GamePlaySpendResult(EarnResult):
+    plays_today: int = 0
+    free_remaining: int = 0
 
 
 def _utcnow() -> datetime:
@@ -607,3 +615,217 @@ def spend_game_hint(
 
     _apply_wallet_delta(wallet, -JETON_HINT_COST)
     return EarnResult(granted=True, amount=-JETON_HINT_COST, balance=wallet.balance)
+
+
+def kelime_bul_play_idempotency_key(*, user_id: UUID, puzzle_id: str) -> str:
+    return f"game_spend:{user_id}:kelime_bul:{puzzle_id}:play"
+
+
+def _eglence_period_bounds(period_id: str | None = None) -> tuple[datetime, datetime]:
+    from app.services.sofra_puzzle_pool import DAILY_RESET_HOUR, active_sofra_gun_id, parse_gun_id
+
+    pid = period_id or active_sofra_gun_id()
+    start_date = parse_gun_id(pid)
+    tz = ZoneInfo(ISTANBUL_TZ)
+    start = datetime(
+        start_date.year,
+        start_date.month,
+        start_date.day,
+        DAILY_RESET_HOUR,
+        0,
+        0,
+        tzinfo=tz,
+    )
+    return start, start + timedelta(days=1)
+
+
+def count_kelime_bul_plays_in_period(
+    db: Session,
+    *,
+    user_id: UUID,
+    period_id: str | None = None,
+) -> int:
+    start, end = _eglence_period_bounds(period_id)
+    prefix = f"game_spend:{user_id}:kelime_bul:"
+    suffix = ":play"
+    count = db.scalar(
+        select(func.count())
+        .select_from(JetonLedger)
+        .where(
+            JetonLedger.user_id == user_id,
+            JetonLedger.status == JetonLedgerStatus.posted,
+            JetonLedger.idempotency_key.like(f"{prefix}%{suffix}"),
+            JetonLedger.created_at >= start,
+            JetonLedger.created_at < end,
+        )
+    )
+    return int(count or 0)
+
+
+def spend_game_play(
+    db: Session,
+    *,
+    user_id: UUID,
+    game: str,
+    puzzle_id: str,
+    paid_only: bool = False,
+) -> GamePlaySpendResult:
+    if game != "kelime_bul":
+        balance = get_wallet_balance(db, user_id=user_id)
+        return GamePlaySpendResult(granted=False, balance=balance, reason="unknown_game")
+
+    key = kelime_bul_play_idempotency_key(user_id=user_id, puzzle_id=puzzle_id)
+    existing = db.scalar(select(JetonLedger).where(JetonLedger.idempotency_key == key))
+    if existing:
+        wallet = _lock_wallet(db, user_id)
+        plays = count_kelime_bul_plays_in_period(db, user_id=user_id)
+        free_remaining = max(0, JETON_KELIME_BUL_FREE_PLAYS - plays)
+        return GamePlaySpendResult(
+            granted=True,
+            amount=0,
+            balance=wallet.balance,
+            reason="already_spent",
+            plays_today=plays,
+            free_remaining=free_remaining,
+        )
+
+    plays_before = count_kelime_bul_plays_in_period(db, user_id=user_id)
+    must_charge = paid_only or plays_before >= JETON_KELIME_BUL_FREE_PLAYS
+    charge = JETON_KELIME_BUL_PLAY_COST if must_charge else 0
+
+    wallet = _lock_wallet(db, user_id)
+    if charge > 0 and wallet.balance < charge:
+        free_remaining = max(0, JETON_KELIME_BUL_FREE_PLAYS - plays_before)
+        return GamePlaySpendResult(
+            granted=False,
+            balance=wallet.balance,
+            reason="insufficient_balance",
+            plays_today=plays_before,
+            free_remaining=free_remaining,
+        )
+
+    entry = JetonLedger(
+        user_id=user_id,
+        source=JetonLedgerSource.game_spend,
+        source_id=f"kelime_bul:{puzzle_id}",
+        amount=-charge,
+        status=JetonLedgerStatus.posted,
+        idempotency_key=key,
+    )
+    db.add(entry)
+    try:
+        with db.begin_nested():
+            db.flush()
+    except IntegrityError:
+        wallet = _lock_wallet(db, user_id)
+        plays = count_kelime_bul_plays_in_period(db, user_id=user_id)
+        free_remaining = max(0, JETON_KELIME_BUL_FREE_PLAYS - plays)
+        return GamePlaySpendResult(
+            granted=True,
+            amount=0,
+            balance=wallet.balance,
+            reason="already_spent",
+            plays_today=plays,
+            free_remaining=free_remaining,
+        )
+
+    if charge > 0:
+        _apply_wallet_delta(wallet, -charge)
+
+    plays_after = count_kelime_bul_plays_in_period(db, user_id=user_id)
+    free_remaining = max(0, JETON_KELIME_BUL_FREE_PLAYS - plays_after)
+    return GamePlaySpendResult(
+        granted=True,
+        amount=-charge if charge > 0 else 0,
+        balance=wallet.balance,
+        plays_today=plays_after,
+        free_remaining=free_remaining,
+        reason="free_play" if charge == 0 else None,
+    )
+
+
+def archive_unlock_idempotency_key(*, user_id: UUID, game: str, gun_id: str) -> str:
+    return f"archive_unlock:{user_id}:{game}:{gun_id}"
+
+
+def is_archive_day_unlocked(db: Session, *, user_id: UUID, game: str, gun_id: str) -> bool:
+    key = archive_unlock_idempotency_key(user_id=user_id, game=game, gun_id=gun_id)
+    return (
+        db.scalar(
+            select(JetonLedger.id).where(
+                JetonLedger.idempotency_key == key,
+                JetonLedger.status == JetonLedgerStatus.posted,
+            )
+        )
+        is not None
+    )
+
+
+def list_archive_unlocked_gun_ids(
+    db: Session,
+    *,
+    user_id: UUID,
+    game: str,
+    gun_ids: list[str] | None = None,
+) -> list[str]:
+    prefix = f"archive_unlock:{user_id}:{game}:"
+    rows = db.scalars(
+        select(JetonLedger.idempotency_key).where(
+            JetonLedger.user_id == user_id,
+            JetonLedger.status == JetonLedgerStatus.posted,
+            JetonLedger.idempotency_key.like(f"{prefix}%"),
+        )
+    ).all()
+    unlocked = [str(key).removeprefix(prefix) for key in rows if str(key).startswith(prefix)]
+    if gun_ids is None:
+        return sorted(unlocked)
+    allowed = set(gun_ids)
+    return sorted(g for g in unlocked if g in allowed)
+
+
+def unlock_archive_day(
+    db: Session,
+    *,
+    user_id: UUID,
+    game: str,
+    gun_id: str,
+    active_gun_id: str,
+) -> EarnResult:
+    from app.constants.eglence_archive import JETON_ARCHIVE_DAY_COST
+
+    if gun_id >= active_gun_id:
+        balance = get_wallet_balance(db, user_id=user_id)
+        return EarnResult(granted=True, amount=0, balance=balance, reason="active_day_free")
+
+    cost = JETON_ARCHIVE_DAY_COST.get(game)
+    if cost is None:
+        balance = get_wallet_balance(db, user_id=user_id)
+        return EarnResult(granted=False, balance=balance, reason="unknown_game")
+
+    key = archive_unlock_idempotency_key(user_id=user_id, game=game, gun_id=gun_id)
+    if is_archive_day_unlocked(db, user_id=user_id, game=game, gun_id=gun_id):
+        balance = get_wallet_balance(db, user_id=user_id)
+        return EarnResult(granted=True, amount=0, balance=balance, reason="already_unlocked")
+
+    wallet = _lock_wallet(db, user_id)
+    if wallet.balance < cost:
+        return EarnResult(granted=False, balance=wallet.balance, reason="insufficient_balance")
+
+    entry = JetonLedger(
+        user_id=user_id,
+        source=JetonLedgerSource.game_spend,
+        source_id=f"archive:{game}:{gun_id}",
+        amount=-cost,
+        status=JetonLedgerStatus.posted,
+        idempotency_key=key,
+    )
+    db.add(entry)
+    try:
+        with db.begin_nested():
+            db.flush()
+    except IntegrityError:
+        wallet = _lock_wallet(db, user_id)
+        return EarnResult(granted=True, amount=0, balance=wallet.balance, reason="already_unlocked")
+
+    _apply_wallet_delta(wallet, -cost)
+    return EarnResult(granted=True, amount=-cost, balance=wallet.balance)

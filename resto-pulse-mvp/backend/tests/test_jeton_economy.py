@@ -102,3 +102,206 @@ def test_review_daily_limit_blocks_second_earn():
     result = try_earn_review_submitted(db, user_id=user_id, review_id=review_id)  # type: ignore[arg-type]
     assert result.granted is False
     assert result.reason == "review_daily_limit"
+
+
+def test_spend_kelime_bul_free_play():
+    from app.services.jeton_service import spend_game_play
+
+    user_id = uuid4()
+    wallet = SimpleNamespace(user_id=user_id, balance=10, updated_at=None)
+    ledgers: list = []
+
+    class _Db:
+        def scalar(self, stmt):
+            sql = str(stmt)
+            if "count(" in sql.lower():
+                return sum(
+                    1
+                    for entry in ledgers
+                    if entry.idempotency_key.startswith(f"game_spend:{user_id}:kelime_bul:")
+                )
+            if "idempotency_key" in sql:
+                for entry in ledgers:
+                    if "game_spend:" in entry.idempotency_key:
+                        return entry
+                return None
+            if "Wallet" in sql or "wallets" in sql.lower():
+                return wallet
+            return None
+
+        def add(self, obj):
+            if hasattr(obj, "idempotency_key"):
+                obj.id = uuid4()
+                ledgers.append(obj)
+
+        def flush(self):
+            return None
+
+        def begin_nested(self):
+            class _Ctx:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    return False
+
+            return _Ctx()
+
+    db = _Db()
+    first = spend_game_play(
+        db,  # type: ignore[arg-type]
+        user_id=user_id,
+        game="kelime_bul",
+        puzzle_id="1719234567890",
+    )
+    assert first.granted is True
+    assert first.amount == 0
+    assert first.plays_today == 1
+    assert first.free_remaining == 2
+
+
+def test_spend_kelime_bul_paid_after_free_quota():
+    from app.models.entities import JetonLedger
+    from app.services.jeton_service import kelime_bul_play_idempotency_key, spend_game_play
+
+    user_id = uuid4()
+    wallet = SimpleNamespace(user_id=user_id, balance=10, updated_at=None)
+    ledger_by_key: dict[str, JetonLedger] = {}
+
+    class _Db:
+        def scalar(self, stmt):
+            sql = str(stmt)
+            if "count(" in sql.lower():
+                return len(ledger_by_key)
+            if "idempotency_key" in sql:
+                for key, entry in ledger_by_key.items():
+                    if key in sql:
+                        return entry
+                return None
+            if "Wallet" in sql or "wallets" in sql.lower():
+                return wallet
+            return None
+
+        def add(self, obj):
+            if isinstance(obj, JetonLedger):
+                obj.id = uuid4()
+                ledger_by_key[obj.idempotency_key] = obj
+
+        def flush(self):
+            return None
+
+        def begin_nested(self):
+            class _Ctx:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    return False
+
+            return _Ctx()
+
+    db = _Db()
+    for i in range(3):
+        puzzle_id = f"puzzle-{i}"
+        result = spend_game_play(
+            db,  # type: ignore[arg-type]
+            user_id=user_id,
+            game="kelime_bul",
+            puzzle_id=puzzle_id,
+        )
+        assert result.granted is True
+        assert result.amount == 0
+        assert kelime_bul_play_idempotency_key(user_id=user_id, puzzle_id=puzzle_id) in ledger_by_key
+
+    paid = spend_game_play(
+        db,  # type: ignore[arg-type]
+        user_id=user_id,
+        game="kelime_bul",
+        puzzle_id="puzzle-paid",
+    )
+    assert paid.granted is True
+    assert paid.amount == -5
+    assert wallet.balance == 5
+
+
+def test_unlock_archive_day_active_is_free():
+    from app.services.jeton_service import unlock_archive_day
+
+    user_id = uuid4()
+
+    class _Db:
+        def scalar(self, *_a, **_k):
+            return SimpleNamespace(balance=10)
+
+    result = unlock_archive_day(
+        _Db(),  # type: ignore[arg-type]
+        user_id=user_id,
+        game="kelime_sofrasi",
+        gun_id="2026-06-25",
+        active_gun_id="2026-06-25",
+    )
+    assert result.granted is True
+    assert result.reason == "active_day_free"
+
+
+def test_unlock_archive_day_charges_once():
+    from app.models.entities import JetonLedger, JetonLedgerStatus
+    from app.services.jeton_service import is_archive_day_unlocked, unlock_archive_day
+
+    user_id = uuid4()
+    wallet = SimpleNamespace(user_id=user_id, balance=20, updated_at=None)
+    ledgers: list[JetonLedger] = []
+    unlock_key = f"archive_unlock:{user_id}:kelime_sofrasi:2026-06-24"
+
+    class _Db:
+        def scalar(self, stmt):
+            sql = str(stmt)
+            if "idempotency_key" in sql:
+                for entry in ledgers:
+                    if entry.idempotency_key == unlock_key:
+                        return entry.id
+                return None
+            if "Wallet" in sql or "wallets" in sql.lower():
+                return wallet
+            return None
+
+        def add(self, obj):
+            if isinstance(obj, JetonLedger):
+                obj.id = uuid4()
+                ledgers.append(obj)
+
+        def flush(self):
+            return None
+
+        def begin_nested(self):
+            class _Ctx:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    return False
+
+            return _Ctx()
+
+    db = _Db()
+    first = unlock_archive_day(
+        db,  # type: ignore[arg-type]
+        user_id=user_id,
+        game="kelime_sofrasi",
+        gun_id="2026-06-24",
+        active_gun_id="2026-06-25",
+    )
+    assert first.granted is True
+    assert first.amount == -15
+    assert wallet.balance == 5
+
+    second = unlock_archive_day(
+        db,  # type: ignore[arg-type]
+        user_id=user_id,
+        game="kelime_sofrasi",
+        gun_id="2026-06-24",
+        active_gun_id="2026-06-25",
+    )
+    assert second.granted is True
+    assert second.reason == "already_unlocked"
+    assert is_archive_day_unlocked(db, user_id=user_id, game="kelime_sofrasi", gun_id="2026-06-24")  # type: ignore[arg-type]

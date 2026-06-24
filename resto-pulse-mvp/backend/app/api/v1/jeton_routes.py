@@ -14,10 +14,15 @@ from app.constants.jeton import (
 from app.db.session import get_db
 from app.models.entities import User
 from app.schemas.jeton import (
+    ArchiveDayUnlockPayload,
+    ArchiveDayUnlockResponse,
+    ArchiveUnlockListResponse,
     DailyLoginClaimPayload,
     DailyLoginClaimResponse,
     GameHintSpendPayload,
     GameHintSpendResponse,
+    GamePlaySpendPayload,
+    GamePlaySpendResponse,
     JetonLedgerItem,
     JetonLedgerListResponse,
     ReferralClickPayload,
@@ -31,9 +36,12 @@ from app.services.jeton_service import (
     get_follow_daily_progress,
     get_hub_task_earn_counts,
     get_wallet_balance,
+    list_archive_unlocked_gun_ids,
     list_ledger_entries,
     record_referral_click,
     spend_game_hint,
+    spend_game_play,
+    unlock_archive_day,
 )
 from app.services.active_user import resolve_active_user_by_email
 
@@ -159,6 +167,40 @@ def post_spend_game_hint(payload: GameHintSpendPayload, db: Session = Depends(ge
     )
 
 
+@router.post("/me/spend/game-play", response_model=GamePlaySpendResponse)
+def post_spend_game_play(payload: GamePlaySpendPayload, db: Session = Depends(get_db)):
+    from app.constants.jeton import JETON_KELIME_BUL_PLAY_COST
+
+    user = _resolve_user(db, payload.user_email)
+    result = spend_game_play(
+        db,
+        user_id=user.id,
+        game=payload.game,
+        puzzle_id=payload.puzzle_id,
+        paid_only=payload.paid_only,
+    )
+    db.commit()
+    if not result.granted and result.reason == "insufficient_balance":
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "code": "insufficient_jeton",
+                "message": "Yeterli jeton yok.",
+                "balance": result.balance,
+                "play_cost": JETON_KELIME_BUL_PLAY_COST,
+            },
+        )
+    charged = abs(result.amount) if result.amount < 0 else 0
+    return GamePlaySpendResponse(
+        ok=result.granted,
+        balance=result.balance,
+        charged=charged,
+        plays_today=result.plays_today,
+        free_remaining=result.free_remaining,
+        reason=result.reason,
+    )
+
+
 @router.post("/referral/click")
 def post_referral_click(payload: ReferralClickPayload, db: Session = Depends(get_db)):
     referrer = db.get(User, payload.referrer_id)
@@ -171,3 +213,68 @@ def post_referral_click(payload: ReferralClickPayload, db: Session = Depends(get
     )
     db.commit()
     return {"ok": True}
+
+
+@router.get("/me/archive-unlocks", response_model=ArchiveUnlockListResponse)
+def get_my_archive_unlocks(
+    user_email: str = Query(..., min_length=3),
+    game: str = Query(..., pattern="^(kelime_sofrasi|gunluk_kelime|mini_sudoku|kelime_yarismasi)$"),
+    db: Session = Depends(get_db),
+):
+    from app.constants.eglence_archive import JETON_ARCHIVE_DAY_COST
+
+    user = _resolve_user(db, user_email)
+    return ArchiveUnlockListResponse(
+        game=game,
+        gun_ids=list_archive_unlocked_gun_ids(db, user_id=user.id, game=game),
+        costs=JETON_ARCHIVE_DAY_COST,
+    )
+
+
+@router.post("/me/spend/archive-day", response_model=ArchiveDayUnlockResponse)
+def post_unlock_archive_day(payload: ArchiveDayUnlockPayload, db: Session = Depends(get_db)):
+    from app.constants.eglence_archive import JETON_ARCHIVE_DAY_COST
+    from app.services.sofra_puzzle_pool import active_sofra_gun_id, validate_client_gun_id
+
+    user = _resolve_user(db, payload.user_email)
+
+    if payload.game == "kelime_sofrasi":
+        ok, reason = validate_client_gun_id(payload.gun_id)
+        if not ok:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Gecersiz arsiv tarihi ({reason}).",
+            )
+        active_gun = active_sofra_gun_id()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Bu oyun icin arsiv henuz acik degil.",
+        )
+
+    result = unlock_archive_day(
+        db,
+        user_id=user.id,
+        game=payload.game,
+        gun_id=payload.gun_id,
+        active_gun_id=active_gun,
+    )
+    db.commit()
+    if not result.granted and result.reason == "insufficient_balance":
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "code": "insufficient_jeton",
+                "message": "Yeterli GastroCoin yok.",
+                "balance": result.balance,
+                "cost": JETON_ARCHIVE_DAY_COST.get(payload.game, 0),
+            },
+        )
+    charged = abs(result.amount) if result.amount < 0 else 0
+    return ArchiveDayUnlockResponse(
+        ok=result.granted,
+        balance=result.balance,
+        charged=charged,
+        already_unlocked=result.reason in {"already_unlocked", "active_day_free"},
+        reason=result.reason,
+    )

@@ -17,6 +17,10 @@ JETON_REFERRAL_DAILY_LIMIT = 5
 JETON_HINT_COST = 5
 JETON_FREE_HINTS_PER_GAME = 2
 
+# Kelime Bul — günlük ücretsiz tur + ek bulmaca maliyeti
+JETON_KELIME_BUL_FREE_PLAYS = 3
+JETON_KELIME_BUL_PLAY_COST = 5
+
 # Hoş geldin hediyesi — hesap başına bir kez
 JETON_WELCOME_BONUS = 10
 
