@@ -79,9 +79,14 @@ def _load_lexicon() -> tuple[frozenset[str], frozenset[str], dict[str, str]]:
     return canon, ascii_set, yazilis
 
 
+def _lexicon_available() -> bool:
+    canon, ascii_set, _ = _load_lexicon()
+    return bool(canon or ascii_set)
+
+
 def lexicon_has_kelime(kelime: str) -> bool:
     canon, ascii_set, yazilis = _load_lexicon()
-    if not canon:
+    if not canon and not ascii_set:
         return True
     norm = sofra_kelime_buyuk(kelime)
     mapped = yazilis.get(ascii_kelime_anahtar(norm), norm)
@@ -185,8 +190,11 @@ def audit_contiguous_runs(
 ) -> tuple[bool, list[str]]:
     """Bitişik 2+ harf koşusu TDK'da olmalı; 3+ hedef kelime değilse geçersiz."""
     invalid: list[str] = []
+    lexicon_available = _lexicon_available()
     for run in extract_grid_runs(grid):
         if len(run) < 2:
+            continue
+        if not lexicon_available:
             continue
         norm = sofra_kelime_buyuk(run)
         if not lexicon_has_kelime(norm):

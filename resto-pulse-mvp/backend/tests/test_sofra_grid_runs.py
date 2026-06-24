@@ -48,6 +48,20 @@ def test_validate_sofra_crossword_rejects_phantom_run():
     assert reason.startswith("invalid_grid_run:")
 
 
+def test_validate_sofra_crossword_skips_orphan_audit_without_lexicon(monkeypatch):
+    """Backend image does not ship mobile lexicon; imported TS-validated grids should not false-fail."""
+    import app.services.sofra_grid_runs as grid_runs
+
+    monkeypatch.setattr(grid_runs, "_load_lexicon", lambda: (frozenset(), frozenset(), {}))
+    words = [
+        {"id": "w-bal", "kelime": "BAL", "row": 0, "col": 0, "direction": "h"},
+        {"id": "w-lik", "kelime": "LIK", "row": 0, "col": 2, "direction": "h"},
+    ]
+    ok, reason = grid_runs.validate_sofra_crossword(words)
+    assert ok is True
+    assert reason == "ok"
+
+
 def test_audit_rejects_aaşik_in_stored_grid():
     """Kayıtlı grid'de TDK dışı koşu yakalanır."""
     grid = [
