@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.services import sofra_grid_runs
 from app.services.sofra_grid_runs import (
     audit_contiguous_runs,
     grid_matrix_to_map,
@@ -63,6 +64,25 @@ def test_audit_rejects_aaşik_in_stored_grid():
     ok, invalid = audit_contiguous_runs(grid_matrix_to_map(grid), targets)
     assert ok is False
     assert any("AAŞIK" in item or item == "AAŞIK" for item in invalid)
+
+
+def test_audit_skips_orphan_classification_when_lexicon_missing(monkeypatch):
+    """Backend image lexicon'suz kalırsa generator-valid slotlar sahte orphan olmaz."""
+    monkeypatch.setattr(
+        sofra_grid_runs,
+        "_load_lexicon",
+        lambda: (frozenset(), frozenset(), {}),
+    )
+    grid = {
+        (0, 0): ("N", []),
+        (0, 1): ("E", []),
+        (0, 2): ("T", []),
+    }
+
+    ok, invalid = sofra_grid_runs.audit_contiguous_runs(grid, frozenset({"ALAN"}))
+
+    assert ok is True
+    assert invalid == []
 
 
 def test_validate_stored_grid_matches_words():
