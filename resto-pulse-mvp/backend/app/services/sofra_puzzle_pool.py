@@ -363,7 +363,6 @@ def generate_daily_puzzles(
         target_gun = upcoming_sofra_gun_id()
     else:
         target_gun = active_sofra_gun_id()
-    prev_gun = shift_gun_id(target_gun, -1)
     generated = pregenerated if pregenerated is not None else run_node_generator(target_gun)
 
     stats: dict[str, Any] = {
@@ -397,11 +396,11 @@ def generate_daily_puzzles(
                     stats["errors"].append(f"{puzzle_id}: invalid_generated ({reason})")
 
             if puzzle_data is None:
-                prev_row = get_puzzle_row(db, prev_gun, zorluk, tur)
-                if prev_row and validate_puzzle_payload(prev_row.puzzle_data, zorluk)[0]:
+                fb = _find_fallback_source(db, target_gun, zorluk, tur)
+                if fb:
+                    prev_row, source_gun_id = fb
                     puzzle_data = clone_puzzle_for_slot(prev_row.puzzle_data, puzzle_id, zorluk)
                     is_fallback = True
-                    source_gun_id = prev_row.gun_id if prev_row.is_fallback else prev_gun
                     stats["fallback"] += 1
                 else:
                     stats["failed"] += 1

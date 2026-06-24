@@ -9,13 +9,11 @@
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '../constants/kelime-sofrasi';
 import type { EglenceZorluk } from '../constants/eglence-zorluk';
 import { sofraKelimeSayisiGecerli } from '../constants/eglence-zorluk';
-import { validateSofraCrossword } from '../lib/kelime-sofrasi/grid-runs';
+import { isSofraPuzzleStructurallyValid } from '../lib/kelime-sofrasi/puzzle-validate';
 import { sofraPuzzleKey } from '../constants/eglence-zorluk';
 import { tryBuildDailySofraPuzzle } from '../lib/kelime-sofrasi/puzzle';
 import { tryBuildSofraPuzzleAiAssisted } from '../lib/kelime-sofrasi/build-ai-puzzle';
-import { tdkLexicon } from '../lib/kelime-sofrasi/tdk-lexicon';
 import { activePuzzleId } from '../lib/mini-sudoku/schedule';
-import { SOFRA_MIN_KELIME_UZUNLUGU } from '../constants/kelime-sofrasi';
 
 const ZORLUKLAR: EglenceZorluk[] = ['kolay', 'orta', 'zor'];
 
@@ -36,7 +34,8 @@ function turSayisi(): number {
 function isValid(puzzle: NonNullable<ReturnType<typeof tryBuildDailySofraPuzzle>>, zorluk: EglenceZorluk): boolean {
   if (!sofraKelimeSayisiGecerli(zorluk, puzzle.words.length)) return false;
   if (puzzle.words.some((w) => w.id.startsWith('fb-'))) return false;
-  return validateSofraCrossword(puzzle.words, tdkLexicon(), SOFRA_MIN_KELIME_UZUNLUGU).ok;
+  if (puzzle.id.includes(':fb-')) return false;
+  return isSofraPuzzleStructurallyValid(puzzle, zorluk);
 }
 
 async function main() {
