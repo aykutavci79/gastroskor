@@ -206,3 +206,29 @@ def test_find_fallback_source_scans_multiple_days():
     prev, source_gun = result
     assert prev is old_row
     assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_uses_same_zorluk_other_tur_when_exact_missing():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    valid_puzzle = _sample_puzzle("kolay")
+    candidate = MagicMock()
+    candidate.puzzle_data = valid_puzzle
+    candidate.is_fallback = False
+    candidate.gun_id = "2026-06-21"
+    candidate.source_gun_id = None
+    candidate.tur = 1
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    scalar_result = MagicMock()
+    scalar_result.all.return_value = [candidate]
+    db.scalars = MagicMock(return_value=scalar_result)
+
+    result = _find_fallback_source(db, "2026-06-23", "kolay", 3)  # type: ignore[arg-type]
+    assert result is not None
+    prev, source_gun = result
+    assert prev is candidate
+    assert source_gun == "2026-06-21"
