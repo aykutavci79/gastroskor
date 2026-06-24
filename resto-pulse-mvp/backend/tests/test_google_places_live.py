@@ -7,6 +7,7 @@ import pytest
 from app.integrations.google_places_live import (
     GooglePlacesLiveClient,
     LivePlaceResult,
+    is_usable_google_place_id,
     prefers_open_text_search,
     resolve_google_nearby_place_type,
 )
@@ -24,6 +25,15 @@ def test_prefers_open_text_for_named_pastane() -> None:
     assert prefers_open_text_search("rojen")
     assert prefers_open_text_search("doner")
     assert not prefers_open_text_search("ad")
+
+
+def test_is_usable_google_place_id() -> None:
+    assert is_usable_google_place_id("ChIJUSMCe84VyhQRfhVow42KqbM")
+    assert not is_usable_google_place_id(None)
+    assert not is_usable_google_place_id("")
+    assert not is_usable_google_place_id("gastro-tester-deneme-1")
+    assert not is_usable_google_place_id("short")
+    assert not is_usable_google_place_id("has space id")
 
 
 @pytest.mark.asyncio

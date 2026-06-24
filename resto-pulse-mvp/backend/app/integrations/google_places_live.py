@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import httpx
@@ -118,6 +119,19 @@ def merge_live_place_rows(
             seen.add(row.place_id)
             merged.append(row)
     return merged
+
+
+_GOOGLE_PLACE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{10,}$")
+
+
+def is_usable_google_place_id(place_id: str | None) -> bool:
+    """Google Details API'ye gonderilebilir place_id mi? (bos/test/sentetik haric)."""
+    pid = (place_id or "").strip()
+    if not pid:
+        return False
+    if pid.startswith("gastro-tester-"):
+        return False
+    return bool(_GOOGLE_PLACE_ID_RE.match(pid))
 
 
 class GooglePlacesLiveClient:
@@ -304,6 +318,8 @@ class GooglePlacesLiveClient:
     async def get_place_details(self, place_id: str) -> dict:
         if not settings.google_places_api_key:
             raise ValueError("GOOGLE_PLACES_API_KEY is not configured.")
+        if not is_usable_google_place_id(place_id):
+            raise ValueError(f"Invalid or unsupported place_id: {place_id!r}")
 
         params = {
             "place_id": place_id,

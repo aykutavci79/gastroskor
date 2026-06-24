@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "marketing-psychology": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/marketing-psychology/SKILL.md",
+      "computedHash": "d057044710ce7b7f9b90b84b3ab64e9359aaf47982b922ec10daca3822185ede"
+    },
+    "product-marketing": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/product-marketing/SKILL.md",
+      "computedHash": "3c8b5ada0a4296f0b44e9445f01fe851dffa05ae55d48246157a5f03c15998eb"
+    },
+    "social": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/social/SKILL.md",
+      "computedHash": "0aeba6a8a0177130d6a699e670c801d04d757b5dcfa24c9b6322e68c930bda63"
+    },
+    "video": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/video/SKILL.md",
+      "computedHash": "3b222617f41c03a3eb870747977d07159bf92861c905ea6b5af2de15d51bcabb"
+    }
+  }
+}

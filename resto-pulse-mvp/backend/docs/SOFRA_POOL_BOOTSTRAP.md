@@ -29,8 +29,25 @@ python -m alembic upgrade head
 ### A) GitHub Actions (önerilen)
 
 1. GitHub → **Settings** → **Secrets and variables** → **Actions**
-2. Secret ekle: `SOFRA_CRON_SECRET`, `SOFRA_API_BASE_URL`
+2. Secret ekle (Railway `CRON_SECRET` ile **birebir ayni**):
+   - `SOFRA_CRON_SECRET`
+   - `SOFRA_API_BASE_URL` = `https://api.gastroskor.com.tr`
 3. **Actions** → **Sofra Bulmaca Daily** → **Run workflow**
+
+Secret yoksa veya Railway ile eslesmiyorsa cron calismaz; API `is_fallback: true` ile dunun bulmacasini kopyalar.
+
+### A2) Manuel push (lokal makine)
+
+Railway Dashboard → backend → Variables → `CRON_SECRET` degerini kopyala:
+
+```powershell
+cd resto-pulse-mvp\mobile
+$env:SOFRA_CRON_SECRET = 'RAILWAY_CRON_SECRET_BURAYA'
+$env:SOFRA_API_BASE_URL = 'https://api.gastroskor.com.tr'
+.\scripts\push-sofra-pool-prod.ps1 -AlsoTomorrow
+```
+
+Beklenen dogrulama: `is_fallback false`
 
 ### B) Manuel import (deploy sonrası)
 

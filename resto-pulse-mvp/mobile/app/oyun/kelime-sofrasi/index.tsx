@@ -5,6 +5,7 @@ import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraKelimeHedefEtiket, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
+import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
 import {
   prefetchSofraBackgroundForPuzzle,
   prefetchSofraOtherZorluklarIdle,
@@ -54,6 +55,7 @@ export default function KelimeSofrasiLobbyScreen() {
 
     const task = InteractionManager.runAfterInteractions(() => {
       if (cancelled) return;
+      sofraHavuzu();
       prefetchSofraPuzzlesForToday(puzzleId, zorluk);
 
       void ensureSofraPuzzleAsync(puzzleId, zorluk, 0)
@@ -62,6 +64,7 @@ export default function KelimeSofrasiLobbyScreen() {
             setPuzzle(loaded);
             prefetchSofraBackgroundForPuzzle(loaded.id);
             InteractionManager.runAfterInteractions(() => {
+              sofraHavuzu();
               warmTdkLexicon();
             });
           }
@@ -205,7 +208,9 @@ export default function KelimeSofrasiLobbyScreen() {
 
         {loadError ? (
           <Text style={[styles.alt, { color: '#f87171' }]}>
-            Dönem: {puzzleId} · API: {process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}
+            {__DEV__
+              ? `Dönem: ${puzzleId} · API: ${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}`
+              : 'Sofra hazırlanamadı. Bağlantını kontrol edip tekrar dene.'}
           </Text>
         ) : null}
       </ScrollView>

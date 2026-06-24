@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.integrations.google_places_live import GooglePlacesLiveClient
+from app.integrations.google_places_live import GooglePlacesLiveClient, is_usable_google_place_id
 from app.models import PanelNotification, RestaurantCompetitor, RestaurantOwnership, Review
 from app.services.panel_access import build_panel_access_state
 from app.services.panel_ai_quota import resolve_interval_days, scheduled_analysis_available
@@ -238,16 +238,31 @@ async def sync_competitor_and_review_alerts(db: Session) -> dict[str, int]:
 
 
 async def _poll_google_negative_reviews(db: Session, ownership: RestaurantOwnership, stats: dict) -> None:
-    if not ownership.google_place_id:
+    place_id = (ownership.google_place_id or "").strip()
+    if not is_usable_google_place_id(place_id):
+        if place_id:
+            logger.info(
+                "Google negative review poll skipped — invalid place_id ownership=%s place_id=%r",
+                ownership.id,
+                place_id,
+            )
         return
-    details = await google_client.get_place_details(ownership.google_place_id)
+    try:
+        details = await google_client.get_place_details(place_id)
+    except ValueError as exc:
+        logger.info(
+            "Google negative review poll skipped ownership=%s: %s",
+            ownership.id,
+            exc,
+        )
+        return
     for review in details.get("reviews") or []:
         rating = review.get("rating")
         if rating is None or float(rating) > 2:
             continue
         author = review.get("author_name") or "Google kullanicisi"
         review_time = review.get("time")
-        dedupe = f"negative_review:google:{ownership.google_place_id}:{review_time}:{author}"
+        dedupe = f"negative_review:google:{place_id}:{review_time}:{author}"
         existing = db.scalar(
             select(PanelNotification.id).where(
                 PanelNotification.ownership_id == ownership.id,
@@ -278,7 +293,24 @@ async def _sync_competitor_row(
     competitor: RestaurantCompetitor,
     stats: dict,
 ) -> None:
-    details = await google_client.get_place_details(competitor.google_place_id)
+    place_id = (competitor.google_place_id or "").strip()
+    if not is_usable_google_place_id(place_id):
+        logger.info(
+            "Competitor sync skipped — invalid place_id competitor=%s name=%r place_id=%r",
+            competitor.id,
+            competitor.competitor_name,
+            place_id or None,
+        )
+        return
+    try:
+        details = await google_client.get_place_details(place_id)
+    except ValueError as exc:
+        logger.info(
+            "Competitor sync skipped competitor=%s: %s",
+            competitor.id,
+            exc,
+        )
+        return
     new_rating = details.get("rating")
     new_count = details.get("user_ratings_total")
     old_count = competitor.last_review_count

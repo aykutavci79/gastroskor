@@ -29,6 +29,7 @@ SOFRA_KELIME_HEDEF: dict[str, int] = SOFRA_KELIME_MAX
 ZORLUKLAR = ("kolay", "orta", "zor")
 SOFRA_TUR_SAYISI = 5
 EXPECTED_SLOTS_PER_DAY = len(ZORLUKLAR) * SOFRA_TUR_SAYISI
+FALLBACK_SCAN_DAYS = 14
 
 
 def sofra_puzzle_key(gun_id: str, zorluk: str, tur: int = 0) -> str:
@@ -437,6 +438,38 @@ def generate_daily_puzzles(
     return stats
 
 
+def _find_fallback_source(
+    db: Session,
+    gun_id: str,
+    zorluk: str,
+    tur: int,
+    *,
+    max_days: int = FALLBACK_SCAN_DAYS,
+) -> tuple[SofraDailyPuzzle, str] | None:
+    """Onceki gunlerde gecerli bulmaca; yoksa havuzdaki en yeni gecerli slot."""
+    for delta in range(1, max_days + 1):
+        prev_gun = shift_gun_id(gun_id, -delta)
+        prev = get_puzzle_row(db, prev_gun, zorluk, tur)
+        if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
+            continue
+        source_gun = prev.gun_id if prev.is_fallback else prev_gun
+        return prev, source_gun
+
+    latest = db.scalar(
+        select(SofraDailyPuzzle)
+        .where(
+            SofraDailyPuzzle.zorluk == zorluk,
+            SofraDailyPuzzle.tur == tur,
+        )
+        .order_by(SofraDailyPuzzle.gun_id.desc())
+        .limit(1)
+    )
+    if latest is None or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
+        return None
+    source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
+    return latest, source_gun
+
+
 def fetch_puzzle_for_client(
     db: Session,
     gun_id: str,
@@ -461,19 +494,36 @@ def fetch_puzzle_for_client(
         )
 
     prev_gun = shift_gun_id(gun_id, -1)
-    prev = get_puzzle_row(db, prev_gun, zorluk, tur)
-    if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
+    fallback = _find_fallback_source(db, gun_id, zorluk, tur)
+    if fallback is None:
+        pool_days = db.scalar(
+            select(func.count(func.distinct(SofraDailyPuzzle.gun_id))).select_from(SofraDailyPuzzle)
+        )
         _capture_pool_alert(
             "Kelime Sofrasi bulmaca bulunamadi — havuz bos veya gecersiz",
-            {"requested_gun_id": gun_id, "zorluk": zorluk, "tur": tur},
+            {
+                "requested_gun_id": gun_id,
+                "zorluk": zorluk,
+                "tur": tur,
+                "distinct_gun_ids_in_pool": int(pool_days or 0),
+            },
         )
         return None
+    prev, source_gun_id = fallback
     puzzle_id = sofra_puzzle_key(gun_id, zorluk, tur)
     cloned = clone_puzzle_for_slot(prev.puzzle_data, puzzle_id, zorluk)
     ok, reason = validate_puzzle_payload(cloned, zorluk)
     if not ok:
         logger.error("Sofra yedek bulmaca da gecersiz: %s", reason)
         return None
+    if prev_gun != gun_id and prev.gun_id != gun_id:
+        logger.warning(
+            "Sofra fallback: %s %s t%s icin %s gununden kopyalandi",
+            gun_id,
+            zorluk,
+            tur,
+            source_gun_id,
+        )
     return upsert_puzzle_row(
         db,
         gun_id=gun_id,
@@ -482,7 +532,7 @@ def fetch_puzzle_for_client(
         puzzle_id=puzzle_id,
         puzzle_data=cloned,
         is_fallback=True,
-        source_gun_id=prev.gun_id if prev.is_fallback else prev_gun,
+        source_gun_id=source_gun_id,
         generation_ms=None,
         review_status=SofraBulmacaReviewStatus.approved,
     )

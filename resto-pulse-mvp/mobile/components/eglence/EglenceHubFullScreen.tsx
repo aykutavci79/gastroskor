@@ -4,7 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Alert, InteractionManager, StyleSheet, Text, View } from 'react-native';
 
@@ -47,7 +47,9 @@ import { GASTROCOIN_SHORT } from '@/constants/gastrocoin-theme';
 import { useSession } from '@/context/session-context';
 import { useGastroTheme } from '@/context/theme-context';
 
-import { getJetonWallet, claimDailyLogin } from '@/lib/api';
+import { warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
+import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
+import { warmTdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
 import { playHubSfx } from '@/lib/gastro-hub-sfx';
 
 import { prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache';
@@ -207,6 +209,31 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       setRefreshing(false);
     }
   }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton, loadGameMeta, needsJetonApi]);
+
+  /** Kelime oyunları lexicon/havuz — Eğlence sekmesinde kademeli ısıt (UI thread bloklamasın). */
+  useEffect(() => {
+    let cancelled = false;
+    let sofraTimer: ReturnType<typeof setTimeout> | undefined;
+    let tdkTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      warmGunlukKelimeLexicon();
+      sofraTimer = setTimeout(() => {
+        if (!cancelled) sofraHavuzu();
+      }, 500);
+      tdkTimer = setTimeout(() => {
+        if (!cancelled) warmTdkLexicon();
+      }, 1000);
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel?.();
+      if (sofraTimer) clearTimeout(sofraTimer);
+      if (tdkTimer) clearTimeout(tdkTimer);
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -470,16 +497,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       ) : null}
 
       <View style={styles.hubStack}>
-        {showTasks ? (
-          <EglenceTaskList
-            taskStates={hubTaskStates}
-            followProgress={followProgress}
-            dailyLoginGranted={dailyLoginGranted}
-            expanded={tasksExpanded}
-            onToggle={() => setTasksExpanded((prev) => !prev)}
-            onTaskPress={onTaskPress}
-          />
-        ) : null}
+        {showCarousel ? <EglenceGameCarousel gameStatus={gameStatus} onPlay={openGame} /> : null}
 
         {showWallet ? (
           <EglenceWalletCard
@@ -490,7 +508,16 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
           />
         ) : null}
 
-        {showCarousel ? <EglenceGameCarousel gameStatus={gameStatus} onPlay={openGame} /> : null}
+        {showTasks ? (
+          <EglenceTaskList
+            taskStates={hubTaskStates}
+            followProgress={followProgress}
+            dailyLoginGranted={dailyLoginGranted}
+            expanded={tasksExpanded}
+            onToggle={() => setTasksExpanded((prev) => !prev)}
+            onTaskPress={onTaskPress}
+          />
+        ) : null}
 
         {showMarket ? (
           <GastroMarketSection

@@ -47,7 +47,7 @@ def main() -> int:
         print(f"Dosya bulunamadi: {args.file}", file=sys.stderr)
         return 1
 
-    with args.file.open(encoding="utf-8") as fh:
+    with args.file.open(encoding="utf-8-sig") as fh:
         puzzles = json.load(fh)
     if not isinstance(puzzles, list):
         print("JSON array bekleniyor", file=sys.stderr)

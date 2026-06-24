@@ -153,9 +153,10 @@ def _product_payload(product: RegionalProductCatalogItem) -> dict:
 
 
 def list_regional_products(*, city: str = "Bursa") -> dict:
-    catalog = catalog_for_city(city)
+    city_clean = city.strip() or "Bursa"
+    catalog = catalog_for_city(city_clean)
     items = [_product_payload(product) for product in catalog]
-    return {"city": city.strip() or "Bursa", "items": items, "registry_note": registry_note()}
+    return {"city": city_clean, "items": items, "registry_note": registry_note()}
 
 
 def get_regional_product(*, slug: str, city: str = "Bursa") -> dict | None:

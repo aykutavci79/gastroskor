@@ -176,3 +176,33 @@ def test_active_sofra_gun_id_before_reset():
 def test_upcoming_sofra_gun_id():
     dt = datetime(2026, 6, 20, 16, 30, tzinfo=ZoneInfo("Europe/Istanbul"))
     assert upcoming_sofra_gun_id(dt) == "2026-06-20"
+
+
+def test_find_fallback_source_scans_multiple_days():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    valid_puzzle = _sample_puzzle("orta")
+    old_row = MagicMock()
+    old_row.puzzle_data = valid_puzzle
+    old_row.is_fallback = False
+    old_row.gun_id = "2026-06-18"
+    old_row.source_gun_id = None
+
+    db = MagicMock()
+
+    def scalar_side_effect(stmt):
+        sql = str(stmt)
+        if "distinct" in sql.lower():
+            return 2
+        if "order by" in sql.lower() and "limit" in sql.lower():
+            return old_row
+        return None
+
+    db.scalar = MagicMock(side_effect=scalar_side_effect)
+    result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
+    assert result is not None
+    prev, source_gun = result
+    assert prev is old_row
+    assert source_gun == "2026-06-18"

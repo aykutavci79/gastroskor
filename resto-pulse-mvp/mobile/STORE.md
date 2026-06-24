@@ -2,6 +2,8 @@
 
 **EAS cloud ucretinden kacinmak icin:** [STORE_LOCAL.md](./STORE_LOCAL.md) — Windows Android + Mac iOS ucretsiz yukleme.
 
+**Gorsel / ikon / yoresel lezzet / upload kurallari:** [docs/MEDIA_IMAGES.md](../docs/MEDIA_IMAGES.md) · mobil bundle: [assets/README.md](./assets/README.md)
+
 Bu dosya App Store / Play Store ve ic test (TestFlight, internal track) icin adim adim rehberdir.
 
 ## 1. On kosullar

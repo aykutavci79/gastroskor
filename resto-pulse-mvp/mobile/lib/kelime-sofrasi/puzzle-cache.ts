@@ -5,7 +5,7 @@ import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
 import { fetchSofraPuzzleFromPool } from '@/lib/kelime-sofrasi/puzzle-api';
-import { tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
+import { buildDailySofraPuzzleAsync, tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
 import { isSofraPuzzleStructurallyValid } from '@/lib/kelime-sofrasi/puzzle-validate';
 import {
   loadSofraPuzzleFromDisk,
@@ -83,6 +83,16 @@ async function resolvePuzzleFromSources(
     const built = await tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
     if (built && isSofraPuzzleStructurallyValid(built, zorluk)) return { puzzle: built, gunId };
   }
+
+  // API + disk bos (or. havuzda zor slotu yok): tek slot icin cihazda uret — oyuncu bloklanmasin.
+  const localBuilt = await buildDailySofraPuzzleAsync(gunId, zorluk, tur);
+  if (localBuilt && isSofraPuzzleStructurallyValid(localBuilt, zorluk)) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn('[sofra] yerel yedek bulmaca', expectedId);
+    }
+    return { puzzle: localBuilt, gunId };
+  }
+
   return null;
 }
 

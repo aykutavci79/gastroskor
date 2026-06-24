@@ -36,17 +36,24 @@ function mapHavuzRow(row: HavuzKaynak): HavuzKelime {
   };
 }
 
-const HAVUZ: HavuzKelime[] = [
-  ...(havuzJson as HavuzKaynak[]).map(mapHavuzRow),
-  ...(ucHarfJson as HavuzKaynak[]).map(mapHavuzRow),
-];
+function buildHavuz(): HavuzKelime[] {
+  return [
+    ...(havuzJson as HavuzKaynak[]).map(mapHavuzRow),
+    ...(ucHarfJson as HavuzKaynak[]).map(mapHavuzRow),
+  ];
+}
+
+let havuzCache: HavuzKelime[] | null = null;
 
 export function sofraHavuzu(): readonly HavuzKelime[] {
-  return HAVUZ;
+  if (!havuzCache) {
+    havuzCache = buildHavuz();
+  }
+  return havuzCache;
 }
 
 export function havuzKelimeFiltre(minLen: number, maxLen: number): HavuzKelime[] {
-  return HAVUZ.filter((w) => w.kelime.length >= minLen && w.kelime.length <= maxLen);
+  return sofraHavuzu().filter((w) => w.kelime.length >= minLen && w.kelime.length <= maxLen);
 }
 
 /** frekansSira kucuk = daha sik kullanilan kelime */
