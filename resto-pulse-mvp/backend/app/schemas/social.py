@@ -56,7 +56,7 @@ class EglenceFriendActivityPayload(BaseModel):
     user_email: str
     game: Literal["mini_sudoku", "kelime_yarismasi", "kelime_sofrasi"]
     elapsed_ms: int | None = Field(default=None, ge=0, le=3_600_000)
-    score: int | None = Field(default=None, ge=0, le=500)
+    score: int | None = Field(default=None, ge=0)
     puzzle_id: str | None = Field(default=None, max_length=32)
 
 

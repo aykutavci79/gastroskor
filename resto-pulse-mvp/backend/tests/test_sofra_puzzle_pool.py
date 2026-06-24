@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from app.services.sofra_puzzle_pool import (
     active_sofra_gun_id,
+    archive_window_bounds,
     clone_puzzle_for_slot,
     shift_gun_id,
     sofra_puzzle_key,
     upcoming_sofra_gun_id,
+    validate_client_gun_id,
     validate_puzzle_payload,
 )
 
@@ -178,6 +181,39 @@ def test_upcoming_sofra_gun_id():
     assert upcoming_sofra_gun_id(dt) == "2026-06-20"
 
 
+def test_validate_client_gun_id_archive_window():
+    dt = datetime(2026, 6, 25, 18, 0, tzinfo=ZoneInfo("Europe/Istanbul"))
+    bounds = archive_window_bounds(dt)
+    assert bounds.active_gun_id == "2026-06-25"
+    assert bounds.min_gun_id == "2026-06-25"
+    assert bounds.max_gun_id == "2026-06-25"
+
+    ok, reason = validate_client_gun_id("2026-06-25", dt)
+    assert ok is True
+    assert reason == "ok"
+
+    ok, reason = validate_client_gun_id("2026-06-26", dt)
+    assert ok is False
+    assert reason == "future"
+
+    ok, reason = validate_client_gun_id("2026-06-24", dt)
+    assert ok is False
+    assert reason == "before_archive_epoch"
+
+
+def test_validate_client_gun_id_lookback():
+    dt = datetime(2026, 9, 24, 18, 0, tzinfo=ZoneInfo("Europe/Istanbul"))
+    bounds = archive_window_bounds(dt)
+    assert bounds.active_gun_id == "2026-09-24"
+    assert bounds.min_gun_id == "2026-06-26"
+
+    ok, _ = validate_client_gun_id("2026-06-26", dt)
+    assert ok is True
+    ok, reason = validate_client_gun_id("2026-06-25", dt)
+    assert ok is False
+    assert reason == "too_old"
+
+
 def test_find_fallback_source_scans_multiple_days():
     from unittest.mock import MagicMock
 
@@ -200,9 +236,66 @@ def test_find_fallback_source_scans_multiple_days():
             return old_row
         return None
 
+    scalar_result = MagicMock()
+    scalar_result.all.return_value = [old_row]
     db.scalar = MagicMock(side_effect=scalar_side_effect)
+    db.scalars = MagicMock(return_value=scalar_result)
     result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
     assert result is not None
     prev, source_gun = result
     assert prev is old_row
     assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_skips_invalid_latest_row():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    invalid_row = MagicMock()
+    invalid_row.puzzle_data = {"words": [], "wheel": [], "grid": []}
+    invalid_row.is_fallback = False
+    invalid_row.gun_id = "2026-06-22"
+    invalid_row.source_gun_id = None
+
+    valid_row = MagicMock()
+    valid_row.puzzle_data = _sample_puzzle("orta")
+    valid_row.is_fallback = False
+    valid_row.gun_id = "2026-06-18"
+    valid_row.source_gun_id = None
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    scalar_result = MagicMock()
+    scalar_result.all.return_value = [invalid_row, valid_row]
+    db.scalars = MagicMock(return_value=scalar_result)
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
+
+    assert result is not None
+    prev, source_gun = result
+    assert prev is valid_row
+    assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_uses_same_zorluk_sibling_slot():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    sibling_row = MagicMock()
+    sibling_row.puzzle_data = _sample_puzzle("orta")
+    sibling_row.is_fallback = False
+    sibling_row.gun_id = "2026-06-22"
+    sibling_row.source_gun_id = None
+    sibling_row.tur = 3
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    db.scalars = MagicMock(return_value=SimpleNamespace(all=lambda: [sibling_row]))
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 1)  # type: ignore[arg-type]
+    assert result is not None
+    prev, source_gun = result
+    assert prev is sibling_row
+    assert source_gun == "2026-06-22"

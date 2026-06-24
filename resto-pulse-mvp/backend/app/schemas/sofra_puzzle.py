@@ -63,3 +63,18 @@ class SofraPuzzleListItem(BaseModel):
 class SofraPuzzleListResponse(BaseModel):
     items: list[SofraPuzzleListItem]
     total: int
+
+
+class SofraArchiveDayItem(BaseModel):
+    gun_id: str
+    slot_count: int
+    complete: bool
+
+
+class SofraArchiveDaysResponse(BaseModel):
+    active_gun_id: str
+    min_gun_id: str
+    max_gun_id: str
+    archive_epoch: str
+    max_lookback_days: int
+    days: list[SofraArchiveDayItem]

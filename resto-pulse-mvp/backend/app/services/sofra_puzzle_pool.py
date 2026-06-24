@@ -7,6 +7,7 @@ import json
 import logging
 import subprocess
 from datetime import date, datetime, timedelta, timezone
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -30,6 +31,43 @@ ZORLUKLAR = ("kolay", "orta", "zor")
 SOFRA_TUR_SAYISI = 5
 EXPECTED_SLOTS_PER_DAY = len(ZORLUKLAR) * SOFRA_TUR_SAYISI
 FALLBACK_SCAN_DAYS = 14
+SOFRA_ARCHIVE_EPOCH = "2026-06-25"
+SOFRA_ARCHIVE_MAX_DAYS = 90
+
+
+@dataclass(frozen=True)
+class SofraArchiveBounds:
+    min_gun_id: str
+    max_gun_id: str
+    active_gun_id: str
+
+
+def parse_gun_id(gun_id: str) -> date:
+    y, m, d = (int(x) for x in gun_id.split("-"))
+    return date(y, m, d)
+
+
+def archive_window_bounds(now: datetime | None = None) -> SofraArchiveBounds:
+    """Mobil takvim: epoch .. aktif gun, en fazla SOFRA_ARCHIVE_MAX_DAYS geriye."""
+    dt = now or datetime.now(ISTANBUL)
+    active = active_sofra_gun_id(dt)
+    active_date = parse_gun_id(active)
+    epoch_date = parse_gun_id(SOFRA_ARCHIVE_EPOCH)
+    min_date = max(epoch_date, active_date - timedelta(days=SOFRA_ARCHIVE_MAX_DAYS))
+    return SofraArchiveBounds(
+        min_gun_id=min_date.isoformat(),
+        max_gun_id=active,
+        active_gun_id=active,
+    )
+
+
+def validate_client_gun_id(gun_id: str, now: datetime | None = None) -> tuple[bool, str]:
+    bounds = archive_window_bounds(now)
+    if gun_id < bounds.min_gun_id:
+        return False, "before_archive_epoch" if gun_id < SOFRA_ARCHIVE_EPOCH else "too_old"
+    if gun_id > bounds.max_gun_id:
+        return False, "future"
+    return True, "ok"
 
 
 def sofra_puzzle_key(gun_id: str, zorluk: str, tur: int = 0) -> str:
@@ -454,19 +492,39 @@ def _find_fallback_source(
         source_gun = prev.gun_id if prev.is_fallback else prev_gun
         return prev, source_gun
 
-    latest = db.scalar(
+    latest_rows = db.scalars(
         select(SofraDailyPuzzle)
         .where(
             SofraDailyPuzzle.zorluk == zorluk,
             SofraDailyPuzzle.tur == tur,
         )
         .order_by(SofraDailyPuzzle.gun_id.desc())
-        .limit(1)
-    )
-    if latest is None or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
-        return None
-    source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
-    return latest, source_gun
+        .limit(max_days)
+    ).all()
+    for latest in latest_rows:
+        if not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
+            continue
+        source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
+        return latest, source_gun
+
+    for delta in range(1, max_days + 1):
+        prev_gun = shift_gun_id(gun_id, -delta)
+        siblings = db.scalars(
+            select(SofraDailyPuzzle)
+            .where(
+                SofraDailyPuzzle.gun_id == prev_gun,
+                SofraDailyPuzzle.zorluk == zorluk,
+                SofraDailyPuzzle.tur != tur,
+            )
+            .order_by(SofraDailyPuzzle.tur.asc())
+        ).all()
+        for sibling in siblings:
+            if not validate_puzzle_payload(sibling.puzzle_data, zorluk)[0]:
+                continue
+            source_gun = sibling.gun_id if sibling.is_fallback and sibling.source_gun_id else prev_gun
+            return sibling, source_gun
+
+    return None
 
 
 def fetch_puzzle_for_client(
@@ -535,6 +593,39 @@ def fetch_puzzle_for_client(
         generation_ms=None,
         review_status=SofraBulmacaReviewStatus.approved,
     )
+
+
+def list_archive_pool_days(db: Session, now: datetime | None = None) -> dict[str, Any]:
+    """Takvimde havuz dolu gunler — en az bir gecerli slot."""
+    bounds = archive_window_bounds(now)
+    rows = db.execute(
+        select(
+            SofraDailyPuzzle.gun_id,
+            func.count(SofraDailyPuzzle.id).label("slot_count"),
+        )
+        .where(SofraDailyPuzzle.gun_id >= bounds.min_gun_id)
+        .where(SofraDailyPuzzle.gun_id <= bounds.max_gun_id)
+        .group_by(SofraDailyPuzzle.gun_id)
+        .order_by(SofraDailyPuzzle.gun_id)
+    ).all()
+    days: list[dict[str, Any]] = []
+    for gun_id, slot_count in rows:
+        count = int(slot_count or 0)
+        days.append(
+            {
+                "gun_id": gun_id,
+                "slot_count": count,
+                "complete": count >= EXPECTED_SLOTS_PER_DAY,
+            }
+        )
+    return {
+        "active_gun_id": bounds.active_gun_id,
+        "min_gun_id": bounds.min_gun_id,
+        "max_gun_id": bounds.max_gun_id,
+        "archive_epoch": SOFRA_ARCHIVE_EPOCH,
+        "max_lookback_days": SOFRA_ARCHIVE_MAX_DAYS,
+        "days": days,
+    }
 
 
 def list_puzzles(

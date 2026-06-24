@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.services import sofra_grid_runs
 from app.services.sofra_grid_runs import (
     audit_contiguous_runs,
     grid_matrix_to_map,
@@ -46,6 +47,18 @@ def test_validate_sofra_crossword_rejects_phantom_run():
     ok, reason = validate_sofra_crossword(words)
     assert ok is False
     assert reason.startswith("invalid_grid_run:")
+
+
+def test_validate_sofra_crossword_skips_orphan_audit_without_lexicon(monkeypatch):
+    """Backend image may not ship mobile lexicon; TS-validated grids should not false-fail."""
+    monkeypatch.setattr(sofra_grid_runs, "_load_lexicon", lambda: (frozenset(), frozenset(), {}))
+    words = [
+        {"id": "w-bal", "kelime": "BAL", "row": 0, "col": 0, "direction": "h"},
+        {"id": "w-lik", "kelime": "LIK", "row": 0, "col": 2, "direction": "h"},
+    ]
+    ok, reason = validate_sofra_crossword(words)
+    assert ok is True
+    assert reason == "ok"
 
 
 def test_audit_rejects_aaşik_in_stored_grid():
