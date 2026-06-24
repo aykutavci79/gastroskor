@@ -45,8 +45,10 @@ function runsInLine(letters: (string | null)[]): string[] {
       buf += ch;
     } else if (buf.length >= 2) {
       runs.push(buf);
+      buf = '';
+    } else {
+      buf = '';
     }
-    buf = '';
   }
   if (buf.length >= 2) runs.push(buf);
   return runs;
