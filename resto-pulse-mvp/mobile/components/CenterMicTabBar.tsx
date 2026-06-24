@@ -38,7 +38,9 @@ function TabButton({
   colors: GastroColorScheme;
 }) {
   const { route, index, options } = entry;
-  const color = isFocused ? colors.accent : colors.muted;
+  const tabAccent =
+    typeof options.tabBarActiveTintColor === 'string' ? options.tabBarActiveTintColor : colors.accent;
+  const color = isFocused ? tabAccent : colors.muted;
   const label =
     options.tabBarLabel !== undefined
       ? String(options.tabBarLabel)
@@ -69,7 +71,7 @@ function TabButton({
       {icon}
       <Text style={[styles.label, { color }, isFocused && styles.labelOn]}>{label}</Text>
       {options.tabBarBadge != null ? (
-        <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+        <View style={[styles.badge, { backgroundColor: tabAccent }]}>
           <Text style={styles.badgeText}>{String(options.tabBarBadge)}</Text>
         </View>
       ) : null}

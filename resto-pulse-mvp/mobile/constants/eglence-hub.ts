@@ -98,6 +98,7 @@ export const HUB_GAME_JETON_LABEL: Record<EglenceGameId, string> = {
   'mini-sudoku': 'Ücretsiz',
   'kelime-sofrasi': 'Günlük ücretsiz',
   'gunluk-kelime': 'Günlük ücretsiz',
+  'kelime-bul': '3 ücretsiz / gün',
   'kelime-yarismasi': '10 GC',
   'soru-cevap': 'Ücretsiz',
 };

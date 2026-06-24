@@ -148,6 +148,29 @@ const GAME_ART: Record<EglenceGameId, GameArtConfig> = {
       sceneBottomScrim: 'rgba(10, 12, 10, 0.55)',
     },
   },
+  'kelime-bul': {
+    carousel: {
+      borderColor: 'rgba(56, 189, 248, 0.45)',
+      overlay: 'rgba(4, 10, 18, 0.16)',
+      scrim: 'rgba(6, 12, 22, 0.46)',
+      bg: '#081018',
+    },
+    lobby: {
+      bg: '#081018',
+      headerBg: '#081018',
+      text: '#F0F9FF',
+      muted: '#94A3B8',
+      accent: '#38BDF8',
+      accentSoft: 'rgba(56, 189, 248, 0.18)',
+      panel: 'rgba(12, 20, 32, 0.9)',
+      border: 'rgba(56, 189, 248, 0.28)',
+      borderStrong: 'rgba(56, 189, 248, 0.52)',
+      artOpacity: 1,
+      artScale: 1.08,
+      sceneOverlay: 'rgba(4, 10, 18, 0.42)',
+      sceneBottomScrim: 'rgba(6, 12, 22, 0.52)',
+    },
+  },
 };
 
 export function eglenceCardArtTheme(gameId: EglenceGameId): EglenceCardArtTheme {

@@ -13,6 +13,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
         "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "EXPO_PUBLIC_SSL_PINNING_ENABLED": "false",
         "EXPO_PUBLIC_API_SSL_PIN_PRIMARY": "LgDrXyrrJ6boLV3qqT7W6x1BMKbLCL2G7ymtPvxAD9A=",
         "EXPO_PUBLIC_API_SSL_PIN_BACKUP": "brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4="
@@ -28,6 +29,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.gastroskor.com.tr",
         "EXPO_PUBLIC_SITE_URL": "https://www.gastroskor.com.tr",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "EXPO_PUBLIC_SENTRY_DSN": "https://3cdc58929d96bb4218a21e5000ced449@o4511548636528640.ingest.de.sentry.io/4511548646817872",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SSL_PINNING_ENABLED": "true",

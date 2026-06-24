@@ -13,13 +13,39 @@ import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
 
 import type { SofraProgress, SofraPuzzle } from './types';
 
-const KEY = `${SOFRA_STORAGE_PREFIX}:progress`;
+const LEGACY_KEY = `${SOFRA_STORAGE_PREFIX}:progress`;
+
+function progressStorageKey(gunId: string, zorluk: EglenceZorluk): string {
+  return `${SOFRA_STORAGE_PREFIX}:progress:${gunId}:${zorluk}`;
+}
 
 /** Oyun acilisinda AsyncStorage beklemesini keser — lobi/oyun warm ile dolar. */
 const progressMemCache = new Map<string, SofraProgress>();
 
 function progressCacheKey(puzzle: SofraPuzzle): string {
   return puzzle.id;
+}
+
+function memKey(gunId: string, zorluk: EglenceZorluk): string {
+  return `${gunId}:${zorluk}`;
+}
+
+async function readStoredProgress(
+  gunId: string,
+  zorluk: EglenceZorluk,
+): Promise<SofraProgress | null> {
+  const key = progressStorageKey(gunId, zorluk);
+  let raw = await AsyncStorage.getItem(key);
+  if (raw) return JSON.parse(raw) as SofraProgress;
+
+  raw = await AsyncStorage.getItem(LEGACY_KEY);
+  if (!raw) return null;
+  const parsed = JSON.parse(raw) as SofraProgress;
+  const prefix = `${gunId}:${zorluk}`;
+  if (!parsed.puzzleId.startsWith(prefix)) return null;
+  await AsyncStorage.setItem(key, raw);
+  await AsyncStorage.removeItem(LEGACY_KEY);
+  return parsed;
 }
 
 export function getCachedSofraProgress(puzzle: SofraPuzzle): SofraProgress | null {
@@ -30,7 +56,10 @@ export function getCachedSofraProgress(puzzle: SofraPuzzle): SofraProgress | nul
 export function warmSofraProgress(puzzle: SofraPuzzle): void {
   const key = progressCacheKey(puzzle);
   if (progressMemCache.has(key)) return;
-  void loadSofraProgress(puzzle).then((saved) => {
+  const gunParts = puzzle.id.split(':');
+  const gunId = gunParts[0] ?? '';
+  const zorluk = (gunParts[1] ?? 'orta') as EglenceZorluk;
+  void loadSofraProgress(puzzle, gunId, zorluk).then((saved) => {
     progressMemCache.set(key, saved);
   });
 }
@@ -57,9 +86,11 @@ export function freshProgress(
 export async function beginNextSofraRound(
   puzzle: SofraPuzzle,
   tamamlamaSayisi: number,
+  gunId?: string,
+  zorluk?: EglenceZorluk,
 ): Promise<SofraProgress> {
   const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlamaSayisi });
-  await saveSofraProgress(next);
+  await saveSofraProgress(next, gunId, zorluk);
   return next;
 }
 
@@ -73,9 +104,8 @@ export async function resolveSofraSessionTur(
   zorluk: EglenceZorluk,
 ): Promise<number> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw) as SofraProgress;
+    const parsed = await readStoredProgress(gunId, zorluk);
+    if (!parsed) return 0;
     const prefix = `${gunId}:${zorluk}`;
     if (!parsed.puzzleId.startsWith(prefix)) return 0;
     if (parsed.completedAt && !sofraGunlukLimitDoldu(parsed)) {
@@ -92,16 +122,19 @@ export async function loadSofraProgress(
   gunId?: string,
   zorluk?: EglenceZorluk,
 ): Promise<SofraProgress> {
+  const resolvedGunId = gunId ?? puzzle.id.split(':')[0] ?? '';
+  const resolvedZorluk = zorluk ?? ((puzzle.id.split(':')[1] ?? 'orta') as EglenceZorluk);
   const store = (progress: SofraProgress) => {
     progressMemCache.set(progressCacheKey(puzzle), progress);
+    progressMemCache.set(memKey(resolvedGunId, resolvedZorluk), progress);
     return progress;
   };
-  const defaultTamamlama =
-    gunId && zorluk ? turTamamlamaSayisi(puzzle, gunId, zorluk) : 0;
+  const defaultTamamlama = turTamamlamaSayisi(puzzle, resolvedGunId, resolvedZorluk);
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
-    const parsed = JSON.parse(raw) as SofraProgress;
+    const parsed = await readStoredProgress(resolvedGunId, resolvedZorluk);
+    if (!parsed) {
+      return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
+    }
     if (parsed.puzzleId !== puzzle.id || !Array.isArray(parsed.foundWordIds)) {
       return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
     }
@@ -126,7 +159,7 @@ export async function loadSofraProgress(
     };
     if (progress.completedAt && !sofraGunlukLimitDoldu(progress)) {
       const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlama });
-      await saveSofraProgress(next);
+      await saveSofraProgress(next, resolvedGunId, resolvedZorluk);
       return store(next);
     }
     return store(progress);
@@ -135,9 +168,20 @@ export async function loadSofraProgress(
   }
 }
 
-export async function saveSofraProgress(progress: SofraProgress): Promise<void> {
+export async function saveSofraProgress(
+  progress: SofraProgress,
+  gunId?: string,
+  zorluk?: EglenceZorluk,
+): Promise<void> {
   progressMemCache.set(progress.puzzleId, progress);
-  await AsyncStorage.setItem(KEY, JSON.stringify(progress));
+  const parts = progress.puzzleId.split(':');
+  const resolvedGunId = gunId ?? parts[0] ?? '';
+  const resolvedZorluk = zorluk ?? ((parts[1] ?? 'orta') as EglenceZorluk);
+  progressMemCache.set(memKey(resolvedGunId, resolvedZorluk), progress);
+  await AsyncStorage.setItem(
+    progressStorageKey(resolvedGunId, resolvedZorluk),
+    JSON.stringify(progress),
+  );
 }
 
 /** Eğlence sekmesi / lobi için — ağır bulmaca üretimi olmadan durum okur. */
@@ -151,11 +195,10 @@ export async function loadSofraMetaStatus(
   kalanTur: number;
 }> {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) {
+    const parsed = await readStoredProgress(gunId, zorluk);
+    if (!parsed) {
       return { completed: false, inProgress: false, tamamlamaSayisi: 0, kalanTur: sofraKalanGunlukHak(null) };
     }
-    const parsed = JSON.parse(raw) as SofraProgress;
     const prefix = `${gunId}:${zorluk}`;
     if (!parsed.puzzleId.startsWith(prefix)) {
       return { completed: false, inProgress: false, tamamlamaSayisi: 0, kalanTur: sofraKalanGunlukHak(null) };

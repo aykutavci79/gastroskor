@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
 import { EGLENCE_GUNLUK_TEK_OYUN } from '@/constants/eglence-games';
+import { warmEglenceGame } from '@/lib/eglence-warm';
 import { loadGunlukKelimeMetaStatus } from '@/lib/gunluk-kelime/storage';
-import { warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
 import { formatNextResetHint, formatPuzzlePeriodLabel, activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -29,10 +29,7 @@ export default function GunlukKelimeLobbyScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshMeta();
-      const task = InteractionManager.runAfterInteractions(() => {
-        warmGunlukKelimeLexicon();
-      });
-      return () => task.cancel();
+      warmEglenceGame('gunluk-kelime');
     }, [refreshMeta]),
   );
 

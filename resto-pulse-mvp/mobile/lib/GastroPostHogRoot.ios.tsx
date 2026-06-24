@@ -13,6 +13,12 @@ function PostHogBridge({ children }: { children: ReactNode }) {
     capture: (event, properties) => {
       posthog.capture(event, properties as never);
     },
+    identify: (distinctId, properties) => {
+      posthog.identify(distinctId, properties as never);
+    },
+    reset: () => {
+      posthog.reset();
+    },
   };
   return <GastroPostHogContext.Provider value={client}>{children}</GastroPostHogContext.Provider>;
 }

@@ -2,7 +2,7 @@ import havuzJson from '@/data/kelime-sofrasi/havuz.json';
 import ucHarfJson from '@/data/kelime-sofrasi/uc-harf-havuz.json';
 import yazilisMap from '@/data/kelime-sofrasi/kelime-yazilis.json';
 
-import { gastroYazilisByAscii } from '@/lib/gastro-lexicon';
+import { gastroYazilisByAscii } from '@/lib/gastro-lexicon/yazilis';
 import { asciiKelimeAnahtar, sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 export type HavuzKelime = {

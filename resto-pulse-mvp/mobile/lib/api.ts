@@ -53,6 +53,7 @@ import type {
   JetonLedgerListResponse,
   DailyLoginClaimResponse,
   GameHintSpendResponse,
+  GamePlaySpendResponse,
 } from '@/lib/types';
 
 import { getApiV1Base } from '@/lib/api-base';
@@ -1297,6 +1298,23 @@ export async function spendGameHint(payload: {
       game: payload.game,
       puzzle_id: payload.puzzleId,
       hint_index: payload.hintIndex,
+    }),
+  });
+}
+
+export async function spendGamePlay(payload: {
+  userEmail: string;
+  game: 'kelime_bul';
+  puzzleId: string;
+  paidOnly?: boolean;
+}) {
+  return request<GamePlaySpendResponse>('/jeton/me/spend/game-play', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_email: payload.userEmail,
+      game: payload.game,
+      puzzle_id: payload.puzzleId,
+      paid_only: Boolean(payload.paidOnly),
     }),
   });
 }

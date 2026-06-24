@@ -32,6 +32,7 @@ import { ReviewPhotoPicker, type ReviewPhotoAsset } from '@/components/ReviewPho
 import { ReviewTextHighlight } from '@/components/ReviewTextHighlight';
 import { StarRatingPicker } from '@/components/StarRatingPicker';
 import { GastroColors } from '@/constants/theme';
+import { GASTROCOIN_SHORT } from '@/constants/gastrocoin-theme';
 import { useSession } from '@/context/session-context';
 import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
 import {
@@ -480,6 +481,10 @@ export default function RestaurantDetailScreen() {
       setPhotos([]);
       setRating(0);
       setModerationHighlights([]);
+      Alert.alert(
+        'Yorumun kaydedildi',
+        `Günlük yorum görevi için +5 ${GASTROCOIN_SHORT} hesabına işlendi (günde bir kez).`,
+      );
     } catch (err) {
       if (err instanceof ReviewModerationApiError) {
         setSubmitError(err.message);

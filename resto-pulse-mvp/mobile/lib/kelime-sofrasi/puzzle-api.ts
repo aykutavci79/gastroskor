@@ -34,17 +34,42 @@ export type SofraPoolFetchResult = {
   gunId: string;
 };
 
+type SofraArchiveDaysResponse = {
+  active_gun_id: string;
+  min_gun_id: string;
+  max_gun_id: string;
+  days: Array<{ gun_id: string; slot_count: number; complete: boolean }>;
+};
+
+/** Takvimde havuz dolu gunler (nokta gostergesi). */
+export async function fetchSofraArchiveDays(): Promise<string[]> {
+  const signal = createFetchTimeoutSignal(8_000);
+  try {
+    const res = await fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/archive-days`, {
+      signal,
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as SofraArchiveDaysResponse;
+    return body.days.filter((d) => d.slot_count > 0).map((d) => d.gun_id);
+  } catch {
+    return [];
+  }
+}
+
 /** Havuzdan günlük bulmaca — gun_id bos birakilirsa backend aktif donemi secer. */
 export async function fetchSofraPuzzleFromPool(
   zorluk: EglenceZorluk,
   tur: number,
   clientGunId?: string,
+  userEmail?: string | null,
 ): Promise<SofraPoolFetchResult | null> {
   const params = new URLSearchParams({
     zorluk,
     tur: String(tur),
   });
   if (clientGunId) params.set('gun_id', clientGunId);
+  if (userEmail) params.set('user_email', userEmail);
   const signal = createFetchTimeoutSignal(12_000);
   try {
     const res = await fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/puzzle?${params}`, {

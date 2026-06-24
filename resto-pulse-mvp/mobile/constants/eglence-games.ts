@@ -12,7 +12,8 @@ export type EglenceGameId =
   | 'soru-cevap'
   | 'kelime-yarismasi'
   | 'kelime-sofrasi'
-  | 'gunluk-kelime';
+  | 'gunluk-kelime'
+  | 'kelime-bul';
 
 export type EglenceGameStatus = 'oyna' | 'devam' | 'tamamlandi' | 'yakinda';
 
@@ -40,6 +41,13 @@ export const EGLENCE_GAMES: EglenceGameDef[] = [
     title: 'Günlük Kelime',
     subtitle: 'Wordle tarzı · 5 harf · 5300+ kelime',
     icon: 'text-outline',
+    available: true,
+  },
+  {
+    id: 'kelime-bul',
+    title: 'Kelime Bul',
+    subtitle: 'Kelime avı · 10×10 · günde 3 ücretsiz',
+    icon: 'grid-outline',
     available: true,
   },
   {

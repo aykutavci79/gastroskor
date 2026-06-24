@@ -5,6 +5,7 @@ export const EGLENCE_LOBBY_ROUTES: Record<EglenceGameId, string> = {
   'gunluk-kelime': '/oyun/gunluk-kelime',
   'kelime-sofrasi': '/oyun/kelime-sofrasi',
   'kelime-yarismasi': '/oyun/kelime-yarismasi',
+  'kelime-bul': '/oyun/kelime-bul',
   'soru-cevap': '/(tabs)/eglence',
 };
 

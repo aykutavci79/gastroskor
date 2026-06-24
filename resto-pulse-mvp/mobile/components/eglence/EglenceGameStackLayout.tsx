@@ -11,7 +11,7 @@ type GameStackConfig = {
 };
 
 const CONFIG: Record<
-  'kelime-sofrasi' | 'kelime-yarismasi' | 'mini-sudoku' | 'gunluk-kelime',
+  'kelime-sofrasi' | 'kelime-yarismasi' | 'mini-sudoku' | 'gunluk-kelime' | 'kelime-bul',
   GameStackConfig
 > = {
   'kelime-sofrasi': {
@@ -33,6 +33,11 @@ const CONFIG: Record<
     gameId: 'gunluk-kelime',
     lobbyTitle: 'Günlük Kelime',
     playTitle: 'Kelime',
+  },
+  'kelime-bul': {
+    gameId: 'kelime-bul',
+    lobbyTitle: 'Kelime Bul',
+    playTitle: 'Kelime Bul',
   },
 };
 

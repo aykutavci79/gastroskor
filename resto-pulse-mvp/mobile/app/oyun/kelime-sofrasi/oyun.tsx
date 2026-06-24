@@ -52,20 +52,19 @@ import {
 } from '@/lib/kelime-sofrasi/engine';
 import {
   ensureSofraPuzzleAsync,
-  prefetchSofraOtherZorluklarIdle,
   prefetchSofraTurIdle,
 } from '@/lib/kelime-sofrasi/puzzle-cache';
 import {
   sofraGunlukLimitDoldu,
   sofraTamamlamaSayisi,
 } from '@/lib/kelime-sofrasi/sofra-gunluk-limit';
-import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import {
   beginNextSofraRound,
   loadSofraProgress,
   resolveSofraSessionTur,
   saveSofraProgress,
 } from '@/lib/kelime-sofrasi/storage';
+import { clampSofraGunId } from '@/lib/kelime-sofrasi/sofra-archive';
 import type { SofraProgress, SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
 
@@ -165,8 +164,15 @@ export default function KelimeSofrasiOyunScreen() {
   const { user } = useSession();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { zorluk: zorlukParam } = useLocalSearchParams<{ zorluk?: string }>();
+  const { zorluk: zorlukParam, gun_id: gunIdParam } = useLocalSearchParams<{
+    zorluk?: string;
+    gun_id?: string | string[];
+  }>();
   const zorluk = parseEglenceZorluk(zorlukParam);
+  const gunId = useMemo(() => {
+    const raw = Array.isArray(gunIdParam) ? gunIdParam[0] : gunIdParam;
+    return clampSofraGunId(raw);
+  }, [gunIdParam]);
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
   const [progress, setProgress] = useState<SofraProgress | null>(null);
   const [selectedPath, setSelectedPath] = useState<number[]>([]);
@@ -287,10 +293,10 @@ export default function KelimeSofrasiOyunScreen() {
     if (!current || current.completedAt) return;
     const gen = ++saveGenRef.current;
     const merged = { ...current, ...patch, elapsedMs: elapsedRef.current };
-    await saveSofraProgress(merged);
+    await saveSofraProgress(merged, gunId, zorluk);
     if (gen !== saveGenRef.current) return;
     progressRef.current = merged;
-  }, []);
+  }, [gunId, zorluk]);
 
   useEffect(() => {
     if (!progress || progress.completedAt) return;
@@ -316,12 +322,11 @@ export default function KelimeSofrasiOyunScreen() {
     return () => {
       const current = progressRef.current;
       if (!current || current.completedAt) return;
-      void saveSofraProgress({ ...current, elapsedMs: elapsedRef.current });
+      void saveSofraProgress({ ...current, elapsedMs: elapsedRef.current }, gunId, zorluk);
     };
-  }, []);
+  }, [gunId, zorluk]);
 
   useEffect(() => {
-    const gunId = activePuzzleId();
     let alive = true;
 
     loadStartedAtRef.current = Date.now();
@@ -337,12 +342,20 @@ export default function KelimeSofrasiOyunScreen() {
     setTimerRunning(false);
 
     void (async () => {
+      const t0 = __DEV__ ? Date.now() : 0;
+      const step = (label: string) => {
+        if (__DEV__) console.log(`[sofra-oyun] ${label} (+${Date.now() - t0}ms)`);
+      };
       try {
+        step('tur çözümleme');
         const tur = await resolveSofraSessionTur(gunId, zorluk);
-        const daily = await ensureSofraPuzzleAsync(gunId, zorluk, tur);
+        step(`bulmaca tur=${tur}`);
+        const daily = await ensureSofraPuzzleAsync(gunId, zorluk, tur, user?.email);
         if (!alive) return;
+        step('ilerleme yükleme');
         const saved = await loadSofraProgress(daily, gunId, zorluk);
         if (!alive) return;
+        step('hazır');
         setPuzzle(daily);
         setProgress(saved);
         progressRef.current = saved;
@@ -351,6 +364,7 @@ export default function KelimeSofrasiOyunScreen() {
         posthog.capture('game_load_time', {
           screen: 'kelime_sofrasi',
           duration_ms: Date.now() - loadStartedAtRef.current,
+          gun_id: gunId,
         });
 
         if (!sofraGunlukLimitDoldu(saved)) {
@@ -373,6 +387,7 @@ export default function KelimeSofrasiOyunScreen() {
         posthog.capture('kelime_sofrasi_started', {
           puzzle_id: daily.id,
           difficulty: zorluk,
+          gun_id: gunId,
         });
         notifiedRef.current = false;
       } catch (err) {
@@ -381,12 +396,11 @@ export default function KelimeSofrasiOyunScreen() {
           posthog.capture('game_error', {
             screen: 'kelime_sofrasi',
             error_message: err instanceof Error ? err.message : 'load_failed',
+            gun_id: gunId,
           });
         }
       }
     })();
-
-    prefetchSofraOtherZorluklarIdle(gunId, zorluk);
 
     const bgTask = InteractionManager.runAfterInteractions(() => {
       if (alive) setBgReady(true);
@@ -397,7 +411,7 @@ export default function KelimeSofrasiOyunScreen() {
       bgTask.cancel?.();
       setTimerRunning(false);
     };
-  }, [zorluk, posthog]);
+  }, [gunId, user?.email, zorluk, posthog]);
 
   const completed =
     progress?.completedAt != null || sofraGunlukLimitDoldu(progress) || roundComplete;
@@ -411,7 +425,6 @@ export default function KelimeSofrasiOyunScreen() {
     if (!current || sofraGunlukLimitDoldu(current)) return;
 
     const nextTamamlama = sofraTamamlamaSayisi(current);
-    const gunId = activePuzzleId();
 
     setRoundComplete(false);
     setResultScore(null);
@@ -420,8 +433,8 @@ export default function KelimeSofrasiOyunScreen() {
     setNextRoundLoading(true);
 
     try {
-      const nextPuzzle = await ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama);
-      const next = await beginNextSofraRound(nextPuzzle, nextTamamlama);
+      const nextPuzzle = await ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama, user?.email);
+      const next = await beginNextSofraRound(nextPuzzle, nextTamamlama, gunId, zorluk);
       setPuzzle(nextPuzzle);
       progressRef.current = next;
       setProgress(next);
@@ -444,7 +457,7 @@ export default function KelimeSofrasiOyunScreen() {
     } finally {
       setNextRoundLoading(false);
     }
-  }, [posthog, zorluk]);
+  }, [gunId, posthog, user?.email, zorluk]);
 
   useEffect(() => {
     if (!message) return;
@@ -511,7 +524,7 @@ export default function KelimeSofrasiOyunScreen() {
         resultPuzzleIdRef.current = puzzle.id;
         progressRef.current = completedProgress;
         setProgress(completedProgress);
-        void saveSofraProgress(completedProgress);
+        void saveSofraProgress(completedProgress, gunId, zorluk);
         playHubSfx('finish');
         setRoundComplete(true);
         if (!notifiedRef.current && user) {
@@ -539,7 +552,7 @@ export default function KelimeSofrasiOyunScreen() {
 
   const submitPath = useCallback(
     (path: number[]) => {
-      if (!puzzle || !progress || completed || roundComplete) {
+      if (!puzzle || !progress || completed) {
         setSelectedPath([]);
         return;
       }
@@ -593,7 +606,7 @@ export default function KelimeSofrasiOyunScreen() {
           });
           setSelectedPath([]);
           if (nextTier > prevTier) {
-            setMessage(`Bonus: ${norm} — +1 ipucu kazandın!`);
+            setMessage(`Bonus: ${norm} — +1 ipucu! (ızgara bitmeden kullan)`);
           } else {
             setMessage(`Bonus: ${norm}`);
           }
@@ -602,9 +615,14 @@ export default function KelimeSofrasiOyunScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setMessage(
           norm.length <= 3
-            ? 'Bonus değil — çarktaki harflerle başka kısa kelime dene'
-            : 'Sözlükte yok — ızgaradaki kelimelere odaklan',
+            ? 'Bonus değil — çarktaki harflerle başka kelime dene'
+            : 'Sözlükte yok veya ızgarada — bonus için geçerli kelime dene',
         );
+        setSelectedPath([]);
+        return;
+      }
+      if (roundComplete) {
+        setMessage('Izgara tamam — bonus kelime arayabilirsin');
         setSelectedPath([]);
         return;
       }
@@ -780,7 +798,7 @@ export default function KelimeSofrasiOyunScreen() {
                 onShuffle={onShuffle}
                 onHint={onHint}
                 hintsLeft={hintsLeft}
-                disabled={completed || roundComplete}
+                disabled={completed}
               />
               <View style={styles.bonusBadgeAnchor} pointerEvents="box-none">
                 <SofraBonusBadge bonusFoundCount={bonusCount} />
@@ -796,6 +814,11 @@ export default function KelimeSofrasiOyunScreen() {
                 ? `${resultScore.score} puan · ${formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs)}`
                 : 'Sofra tamam!'}
             </Text>
+            {hintsLeft > 0 && bonusCount >= SOFRA_BONUS_HINT_THRESHOLD ? (
+              <Text style={styles.completeSub}>
+                Kalan ipucu: {hintsLeft} — ızgara bittikten sonra kullanılamaz
+              </Text>
+            ) : null}
             {resultScore?.detail ? (
               <Text style={styles.completeSub}>{resultScore.detail}</Text>
             ) : message ? (

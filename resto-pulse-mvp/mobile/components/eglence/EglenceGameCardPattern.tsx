@@ -100,6 +100,17 @@ export function eglenceBannerTheme(gameId: EglenceGameId): EglenceBannerTheme {
         iconBorder: '#A8D4A4',
         iconColor: '#538D4E',
       };
+    case 'kelime-bul':
+      return {
+        borderColor: '#7DD3FC',
+        titleColor: '#0C4A6E',
+        subtitleColor: '#0369A1',
+        statusColor: '#0284C7',
+        statusMutedColor: '#64748B',
+        iconBg: 'rgba(255,255,255,0.9)',
+        iconBorder: '#7DD3FC',
+        iconColor: '#38BDF8',
+      };
   }
 }
 
@@ -394,6 +405,49 @@ function GunlukKelimeBanner() {
   );
 }
 
+function KelimeBulBanner() {
+  const letters = [
+    { ch: 'K', top: '14%', left: '54%' },
+    { ch: 'E', top: '14%', left: '62%' },
+    { ch: 'B', top: '14%', left: '70%' },
+    { ch: 'A', top: '14%', left: '78%' },
+    { ch: 'P', top: '14%', left: '86%' },
+    { ch: 'L', top: '28%', left: '58%', highlight: true },
+    { ch: 'A', top: '28%', left: '66%', highlight: true },
+    { ch: 'H', top: '28%', left: '74%', highlight: true },
+    { ch: 'M', top: '42%', left: '64%' },
+    { ch: 'A', top: '42%', left: '72%' },
+    { ch: 'C', top: '56%', left: '68%' },
+    { ch: 'U', top: '56%', left: '76%' },
+    { ch: 'N', top: '56%', left: '84%' },
+  ] as const;
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#E8F4FC' }]}>
+      {letters.map((item) => (
+        <View
+          key={`${item.ch}-${item.top}-${item.left}`}
+          style={{
+            position: 'absolute',
+            top: item.top,
+            left: item.left,
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            backgroundColor: 'highlight' in item && item.highlight ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.85)',
+            borderWidth: 1,
+            borderColor: '#38BDF8',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: 0.9,
+          }}>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: '#0C4A6E' }}>{item.ch}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function PatternBody({ gameId }: Props) {
   switch (gameId) {
     case 'mini-sudoku':
@@ -406,6 +460,8 @@ function PatternBody({ gameId }: Props) {
       return <KelimeSofrasiBanner />;
     case 'gunluk-kelime':
       return <GunlukKelimeBanner />;
+    case 'kelime-bul':
+      return <KelimeBulBanner />;
   }
 }
 

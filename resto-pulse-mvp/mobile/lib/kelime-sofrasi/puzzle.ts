@@ -8,6 +8,7 @@ import {
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { SOFRA_KELIME_MAX, SOFRA_KELIME_MIN, sofraKelimeSayisiGecerli, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { packCrosswordFromCandidates, packCrosswordFromCandidatesAsync } from '@/lib/kelime-sofrasi/crossword-pack';
+import { buildSofraPuzzleFallbackQuick } from '@/lib/kelime-sofrasi/puzzle-fallback-static';
 import { validateSofraCrossword } from '@/lib/kelime-sofrasi/grid-runs';
 import { tdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
 import { cantadanKelimeAdaylari } from '@/lib/kelime-sofrasi/letter-bag';
@@ -318,9 +319,7 @@ export function buildDailySofraPuzzle(
 ): SofraPuzzle {
   const built = tryBuildDailySofraPuzzle(gunId, zorluk, tur);
   if (built) return built;
-  const puzzleId = sofraPuzzleKey(gunId, zorluk, tur);
-  const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
-  return fallbackPuzzle(puzzleId, rand, zorluk);
+  return buildSofraPuzzleFallbackQuick(gunId, zorluk, tur);
 }
 
 export async function buildDailySofraPuzzleAsync(
@@ -330,10 +329,10 @@ export async function buildDailySofraPuzzleAsync(
 ): Promise<SofraPuzzle> {
   const built = await tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
   if (built) return built;
-  const puzzleId = sofraPuzzleKey(gunId, zorluk, tur);
-  const rand = mulberry32(seedFromString(`gastro-kelime-sofrasi:${puzzleId}`));
-  return fallbackPuzzle(puzzleId, rand, zorluk);
+  return buildSofraPuzzleFallbackQuick(gunId, zorluk, tur);
 }
+
+export { buildSofraPuzzleFallbackQuick } from '@/lib/kelime-sofrasi/puzzle-fallback-static';
 
 export function todaySofraPuzzleId(now = new Date()): string {
   return activePuzzleId(now);

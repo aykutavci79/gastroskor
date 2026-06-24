@@ -137,6 +137,11 @@ function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (!splashDone) return;
+    void import('@/lib/gastro-lexicon-preload').then((m) => m.startBackgroundLexiconPreload());
+  }, [splashDone]);
+
+  useEffect(() => {
     const removePinningListener = registerSslPinningErrorListener();
     void setupSslPinning();
     return removePinningListener;

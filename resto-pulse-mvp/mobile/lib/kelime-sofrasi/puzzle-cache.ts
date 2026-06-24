@@ -5,7 +5,8 @@ import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
 import { fetchSofraPuzzleFromPool } from '@/lib/kelime-sofrasi/puzzle-api';
-import { buildDailySofraPuzzleAsync, tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
+import { buildSofraPuzzleFallbackQuick } from '@/lib/kelime-sofrasi/puzzle-fallback-static';
+import { tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
 import { isSofraPuzzleStructurallyValid } from '@/lib/kelime-sofrasi/puzzle-validate';
 import {
   loadSofraPuzzleFromDisk,
@@ -13,6 +14,7 @@ import {
   SOFRA_PUZZLE_DISK_VERSION,
 } from '@/lib/kelime-sofrasi/puzzle-disk-cache';
 import { warmSofraProgress } from '@/lib/kelime-sofrasi/storage';
+import { sofraPerfDone, sofraPerfMark } from '@/lib/kelime-sofrasi/sofra-perf';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 
 import type { SofraPuzzle } from './types';
@@ -57,40 +59,63 @@ async function resolvePuzzleFromSources(
   zorluk: EglenceZorluk,
   tur: number,
   expectedId: string,
+  userEmail?: string | null,
 ): Promise<{ puzzle: SofraPuzzle; gunId: string } | null> {
-  const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur, gunId);
+  const t0 = typeof __DEV__ !== 'undefined' && __DEV__ ? Date.now() : 0;
+  const devStep = (label: string) => {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log(`[sofra] ${expectedId} · ${label} (+${Date.now() - t0}ms)`);
+    }
+  };
+
+  devStep('API isteği…');
+  const tApi = sofraPerfMark('fetchDailyPuzzle');
+  const fromApi = await fetchSofraPuzzleFromPool(zorluk, tur, gunId, userEmail);
+  sofraPerfDone('fetchDailyPuzzle', tApi, fromApi ? 'hit' : 'miss');
   if (fromApi && isSofraPuzzleStructurallyValid(fromApi.puzzle, zorluk, { skipLexicon: true })) {
+    devStep('API OK');
     return fromApi;
   }
   if (fromApi && typeof __DEV__ !== 'undefined' && __DEV__) {
     console.warn('[sofra] API bulmaca yapısal doğrulama başarısız', expectedId);
+  } else if (!fromApi) {
+    devStep('API yok / hata');
   }
 
+  devStep('disk okuma…');
   const fromDisk = await loadSofraPuzzleFromDisk(gunId, zorluk, expectedId, tur);
-  if (fromDisk && isSofraPuzzleStructurallyValid(fromDisk, zorluk)) {
+  if (fromDisk && isSofraPuzzleStructurallyValid(fromDisk, zorluk, { skipLexicon: true })) {
+    devStep('disk OK');
     return { puzzle: fromDisk, gunId };
   }
   if (fromDisk && typeof __DEV__ !== 'undefined' && __DEV__) {
     console.warn('[sofra] disk bulmaca yapısal doğrulama başarısız', expectedId);
   }
 
-  // Havuz mimarisi: prod ve normal dev akisinda yalnizca API + disk (yerel uretim dakikalarca surer).
+  // Yalnızca geliştirici bayrağı: tam havuz üretimi (dakikalarca sürebilir).
   if (
     typeof __DEV__ !== 'undefined' &&
     __DEV__ &&
     process.env.EXPO_PUBLIC_SOFRA_DEV_LOCAL_BUILD === '1'
   ) {
+    devStep('yerel üretim (dev bayrak)…');
     const built = await tryBuildDailySofraPuzzleAsync(gunId, zorluk, tur);
-    if (built && isSofraPuzzleStructurallyValid(built, zorluk)) return { puzzle: built, gunId };
+    if (built && isSofraPuzzleStructurallyValid(built, zorluk, { skipLexicon: true })) {
+      devStep('yerel üretim OK');
+      return { puzzle: built, gunId };
+    }
   }
 
-  // API + disk bos (or. havuzda zor slotu yok): tek slot icin cihazda uret — oyuncu bloklanmasin.
-  const localBuilt = await buildDailySofraPuzzleAsync(gunId, zorluk, tur);
-  if (localBuilt && isSofraPuzzleStructurallyValid(localBuilt, zorluk)) {
+  // Prod / normal dev: hızlı yedek — cihazda 40 deneme yapma (özellikle zor mod).
+  devStep('hızlı yedek bulmaca');
+  const tBuild = sofraPerfMark('buildPuzzle');
+  const fallback = buildSofraPuzzleFallbackQuick(gunId, zorluk, tur);
+  sofraPerfDone('buildPuzzle', tBuild, 'static-fallback');
+  if (isSofraPuzzleStructurallyValid(fallback, zorluk, { skipLexicon: true })) {
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      console.warn('[sofra] yerel yedek bulmaca', expectedId);
+      console.warn('[sofra] API/disk yok — hızlı yedek kullanıldı', expectedId);
     }
-    return { puzzle: localBuilt, gunId };
+    return { puzzle: fallback, gunId };
   }
 
   return null;
@@ -137,6 +162,7 @@ export function ensureSofraPuzzleAsync(
   gunId: string,
   zorluk: EglenceZorluk,
   tur = 0,
+  userEmail?: string | null,
 ): Promise<SofraPuzzle> {
   const key = cacheKey(gunId, zorluk, tur);
   const mem = cache.get(key);
@@ -147,7 +173,7 @@ export function ensureSofraPuzzleAsync(
 
   const promise = (async () => {
     const expectedId = sofraPuzzleKey(gunId, zorluk, tur);
-    const resolved = await resolvePuzzleFromSources(gunId, zorluk, tur, expectedId);
+    const resolved = await resolvePuzzleFromSources(gunId, zorluk, tur, expectedId, userEmail);
     if (!resolved) {
       throw new Error(`Sofra bulmacasi yuklenemedi: ${expectedId}`);
     }

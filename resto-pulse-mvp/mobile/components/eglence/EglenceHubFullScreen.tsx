@@ -4,7 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Alert, InteractionManager, StyleSheet, Text, View } from 'react-native';
 
@@ -48,9 +48,6 @@ import { useSession } from '@/context/session-context';
 import { useGastroTheme } from '@/context/theme-context';
 
 import { claimDailyLogin, getJetonWallet } from '@/lib/api';
-import { warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
-import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
-import { warmTdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
 import { playHubSfx } from '@/lib/gastro-hub-sfx';
 
 import { prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache';
@@ -58,6 +55,7 @@ import { prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache'
 import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
 
 import { loadGunlukKelimeMetaStatus } from '@/lib/gunluk-kelime/storage';
+import { loadKelimeBulLobbyMeta } from '@/lib/kelime-bul/storage';
 
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 
@@ -70,6 +68,12 @@ function sudokuStatus(completed: boolean, inProgress: boolean): EglenceGameStatu
 }
 
 function sofraStatus(completed: boolean, inProgress: boolean): EglenceGameStatus {
+  if (completed) return 'tamamlandi';
+  if (inProgress) return 'devam';
+  return 'oyna';
+}
+
+function kelimeBulStatus(completed: boolean, inProgress: boolean): EglenceGameStatus {
   if (completed) return 'tamamlandi';
   if (inProgress) return 'devam';
   return 'oyna';
@@ -95,9 +99,12 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
   const [sofraInProgress, setSofraInProgress] = useState(false);
   const [gunlukKelimeCompleted, setGunlukKelimeCompleted] = useState(false);
   const [gunlukKelimeInProgress, setGunlukKelimeInProgress] = useState(false);
+  const [kelimeBulCompleted, setKelimeBulCompleted] = useState(false);
+  const [kelimeBulInProgress, setKelimeBulInProgress] = useState(false);
   const [jetonBalance, setJetonBalance] = useState<number | null>(null);
   const [jetonLoading, setJetonLoading] = useState(false);
   const [jetonSheetOpen, setJetonSheetOpen] = useState(false);
+  const [jetonSheetInviteFocus, setJetonSheetInviteFocus] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [followProgress, setFollowProgress] = useState<HubFollowProgress>({
     current: 0,
@@ -106,6 +113,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
   });
   const [dailyLoginGranted, setDailyLoginGranted] = useState(false);
   const [rewardBurstOrigin, setRewardBurstOrigin] = useState<{ x: number; y: number } | null>(null);
+  const pendingRewardAlert = useRef<{ title: string; message: string } | null>(null);
   const [hubEarn, setHubEarn] = useState({
     reviewToday: 0,
     reviewLimit: 1,
@@ -198,43 +206,24 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
     setGunlukKelimeInProgress(status.inProgress);
   }, []);
 
+  const loadKelimeBulMeta = useCallback(async () => {
+    const meta = await loadKelimeBulLobbyMeta();
+    setKelimeBulCompleted(meta.completed);
+    setKelimeBulInProgress(meta.inProgress);
+  }, []);
+
   const refreshAll = useCallback(async () => {
     try {
       const jobs: Promise<void>[] = [];
       if (loadGameMeta) {
-        jobs.push(loadSudokuMeta(), loadSofraMeta(), loadGunlukKelimeMeta());
+        jobs.push(loadSudokuMeta(), loadSofraMeta(), loadGunlukKelimeMeta(), loadKelimeBulMeta());
       }
       if (needsJetonApi) jobs.push(loadJeton());
       await Promise.all(jobs);
     } finally {
       setRefreshing(false);
     }
-  }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadJeton, loadGameMeta, needsJetonApi]);
-
-  /** Kelime oyunları lexicon/havuz — Eğlence sekmesinde kademeli ısıt (UI thread bloklamasın). */
-  useEffect(() => {
-    let cancelled = false;
-    let sofraTimer: ReturnType<typeof setTimeout> | undefined;
-    let tdkTimer: ReturnType<typeof setTimeout> | undefined;
-
-    const task = InteractionManager.runAfterInteractions(() => {
-      if (cancelled) return;
-      warmGunlukKelimeLexicon();
-      sofraTimer = setTimeout(() => {
-        if (!cancelled) sofraHavuzu();
-      }, 500);
-      tdkTimer = setTimeout(() => {
-        if (!cancelled) warmTdkLexicon();
-      }, 1000);
-    });
-
-    return () => {
-      cancelled = true;
-      task.cancel?.();
-      if (sofraTimer) clearTimeout(sofraTimer);
-      if (tdkTimer) clearTimeout(tdkTimer);
-    };
-  }, []);
+  }, [loadSudokuMeta, loadSofraMeta, loadGunlukKelimeMeta, loadKelimeBulMeta, loadJeton, loadGameMeta, needsJetonApi]);
 
   useFocusEffect(
     useCallback(() => {
@@ -246,6 +235,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
         void loadSudokuMeta();
         void loadSofraMeta();
         void loadGunlukKelimeMeta();
+        void loadKelimeBulMeta();
       }
 
       if (needsJetonApi) {
@@ -261,6 +251,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       loadSudokuMeta,
       loadSofraMeta,
       loadGunlukKelimeMeta,
+      loadKelimeBulMeta,
       loadJeton,
       loadGameMeta,
       needsJetonApi,
@@ -276,6 +267,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
         'soru-cevap': 'oyna',
         'kelime-sofrasi': 'oyna',
         'gunluk-kelime': 'oyna',
+        'kelime-bul': 'oyna',
       }) satisfies Record<EglenceGameId, EglenceGameStatus>,
     [],
   );
@@ -289,6 +281,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
             'soru-cevap': 'oyna' as EglenceGameStatus,
             'kelime-sofrasi': sofraStatus(sofraCompleted, sofraInProgress),
             'gunluk-kelime': sudokuStatus(gunlukKelimeCompleted, gunlukKelimeInProgress),
+            'kelime-bul': kelimeBulStatus(kelimeBulCompleted, kelimeBulInProgress),
           } satisfies Record<EglenceGameId, EglenceGameStatus>)
         : staticGameStatus,
     [
@@ -300,13 +293,15 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       sofraInProgress,
       gunlukKelimeCompleted,
       gunlukKelimeInProgress,
+      kelimeBulCompleted,
+      kelimeBulInProgress,
     ],
   );
 
   const hubTaskStates = useMemo(
     (): Record<HubTaskId, HubTaskState> => ({
       'daily-login': dailyLoginGranted ? 'done' : 'active',
-      invite: hubEarn.referralToday >= 1 ? 'done' : 'active',
+      invite: hubEarn.referralToday >= hubEarn.referralLimit ? 'done' : 'active',
       follow: followProgress.granted
         ? 'done'
         : followProgress.current > 0
@@ -354,14 +349,33 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
 
     if (id === 'gunluk-kelime') {
       router.push('/oyun/gunluk-kelime' as Href);
+      return;
+    }
+
+    if (id === 'kelime-bul') {
+      router.push('/oyun/kelime-bul' as Href);
+    }
+  }
+
+  function showRewardAlert(title: string, message: string, anchor?: { x: number; y: number }) {
+    if (anchor) {
+      pendingRewardAlert.current = { title, message };
+      setRewardBurstOrigin(anchor);
+      return;
+    }
+    Alert.alert(title, message);
+  }
+
+  function onRewardBurstComplete() {
+    setRewardBurstOrigin(null);
+    const pending = pendingRewardAlert.current;
+    pendingRewardAlert.current = null;
+    if (pending) {
+      requestAnimationFrame(() => Alert.alert(pending.title, pending.message));
     }
   }
 
   function onTaskPress(task: HubTaskDef, anchor?: { x: number; y: number }) {
-    function playRewardBurst() {
-      if (anchor) setRewardBurstOrigin(anchor);
-    }
-
     if (task.id === 'daily-login') {
       if (!user?.email) {
         Alert.alert(
@@ -378,7 +392,6 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       void claimDailyLogin(user.email)
         .then((result) => {
           if (result.ok) {
-            playRewardBurst();
             playHubSfx('coin');
             setJetonBalance(result.balance);
             setDailyLoginGranted(true);
@@ -387,7 +400,11 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
               jeton_earned: result.amount,
             });
             posthog.capture('jeton_earned', { amount: result.amount, source: 'task' });
-            Alert.alert('Günlük giriş', `+${result.amount} ${GASTROCOIN_SHORT} hesabına eklendi!`);
+            showRewardAlert(
+              'Günlük giriş',
+              `+${result.amount} ${GASTROCOIN_SHORT} hesabına eklendi!`,
+              anchor,
+            );
             return;
           }
           Alert.alert('Günlük giriş', 'Bugünkü ödülü zaten aldın.');
@@ -410,6 +427,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
         Alert.alert('Davet', 'Jeton kazanma ekranı bir sonraki güncellemede.');
         return;
       }
+      setJetonSheetInviteFocus(true);
       setJetonSheetOpen(true);
       return;
     }
@@ -418,11 +436,10 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       if (followProgress.granted) return;
       if (followProgress.current >= followProgress.target) {
         void loadJeton().then(() => {
-          playRewardBurst();
           playHubSfx('coin');
           posthog.capture('daily_task_completed', { task_id: 'follow', jeton_earned: 10 });
           posthog.capture('jeton_earned', { amount: 10, source: 'task' });
-          Alert.alert('Tebrikler', `+10 ${GASTROCOIN_SHORT} hesabına eklendi!`);
+          showRewardAlert('Tebrikler', `+10 ${GASTROCOIN_SHORT} hesabına eklendi!`, anchor);
         });
         return;
       }
@@ -432,7 +449,10 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
 
     if (task.id === 'review') {
       if (hubEarn.reviewToday >= hubEarn.reviewLimit) {
-        Alert.alert('Yorum görevi', `Bugünkü yorum ${GASTROCOIN_SHORT} ödülünü zaten aldın.`);
+        Alert.alert(
+          'Yorum görevi',
+          `Bugünkü yorum ödülün (+5 ${GASTROCOIN_SHORT}) hesabına işlendi.`,
+        );
         return;
       }
       router.push('/(tabs)/' as Href);
@@ -473,7 +493,10 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
         <EglenceHubHeader
           jetonBalance={jetonBalance}
           jetonLoading={jetonLoading}
-          onJetonPress={() => setJetonSheetOpen(true)}
+          onJetonPress={() => {
+            setJetonSheetInviteFocus(false);
+            setJetonSheetOpen(true);
+          }}
         />
       ) : (
         <View style={styles.simpleHeader}>
@@ -493,21 +516,33 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
         <JetonEarnSheet
           visible={jetonSheetOpen}
           balance={jetonBalance}
-          onClose={() => setJetonSheetOpen(false)}
+          inviteFocus={jetonSheetInviteFocus}
+          referrerId={user?.id}
+          onClose={() => {
+            setJetonSheetOpen(false);
+            setJetonSheetInviteFocus(false);
+          }}
         />
       ) : null}
 
       <View style={styles.hubStack}>
-        {showCarousel ? <EglenceGameCarousel gameStatus={gameStatus} onPlay={openGame} /> : null}
-
         {showWallet ? (
           <EglenceWalletCard
             balance={jetonBalance}
             loading={jetonLoading}
             animateCoin={showWalletCoin}
-            onPress={showJeton ? () => setJetonSheetOpen(true) : undefined}
+            onPress={
+              showJeton
+                ? () => {
+                    setJetonSheetInviteFocus(false);
+                    setJetonSheetOpen(true);
+                  }
+                : undefined
+            }
           />
         ) : null}
+
+        {showCarousel ? <EglenceGameCarousel gameStatus={gameStatus} onPlay={openGame} /> : null}
 
         {showTasks ? (
           <EglenceTaskList
@@ -530,10 +565,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
       </View>
 
       {showTasks ? (
-        <GastroCoinRewardBurstModal
-          origin={rewardBurstOrigin}
-          onComplete={() => setRewardBurstOrigin(null)}
-        />
+        <GastroCoinRewardBurstModal origin={rewardBurstOrigin} onComplete={onRewardBurstComplete} />
       ) : null}
     </Screen>
   );

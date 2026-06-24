@@ -1,5 +1,13 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { GastroCoinMark } from '@/components/eglence/GastroCoinMark';
 
@@ -7,43 +15,25 @@ type Props = {
   size: number;
 };
 
-/** Hafif salinim — iOS: Y ekseni; Android: rotateZ (perspective+rotateY native driver ile donma yapabiliyor). */
+/** GC logosu — kendi ekseni etrafında (Y) sürekli dönüş. */
 export function SpinningWalletCoin({ size }: Props) {
-  const wobble = useRef(new Animated.Value(0)).current;
+  const rotation = useSharedValue(0);
   const renderSize = Math.round(size * 0.96);
   const boxW = Math.round(size * 1.1);
   const boxH = Math.round(size * 1.16);
-  const useIosTilt = Platform.OS === 'ios';
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(wobble, {
-          toValue: 1,
-          duration: 2200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(wobble, {
-          toValue: 0,
-          duration: 2200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 4200, easing: Easing.linear }),
+      -1,
+      false,
     );
-    loop.start();
-    return () => loop.stop();
-  }, [wobble]);
+    return () => cancelAnimation(rotation);
+  }, [rotation]);
 
-  const tilt = wobble.interpolate({
-    inputRange: [0, 1],
-    outputRange: useIosTilt ? ['-22deg', '22deg'] : ['-7deg', '7deg'],
-  });
-
-  const transform = useIosTilt
-    ? [{ perspective: 720 }, { rotateY: tilt }]
-    : [{ rotate: tilt }];
+  const coinStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 900 }, { rotateY: `${rotation.value}deg` }],
+  }));
 
   return (
     <View style={[styles.stage, { width: boxW, height: boxH }]}>
@@ -53,8 +43,8 @@ export function SpinningWalletCoin({ size }: Props) {
           {
             width: boxW,
             height: boxH,
-            transform,
           },
+          coinStyle,
         ]}>
         <GastroCoinMark variant="wallet-coin" size={renderSize} />
       </Animated.View>

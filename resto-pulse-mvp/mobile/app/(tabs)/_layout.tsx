@@ -4,6 +4,9 @@ import { Tabs } from 'expo-router';
 import { useCallback } from 'react';
 
 import { CenterMicTabBar } from '@/components/CenterMicTabBar';
+import { EglenceTabIcon } from '@/components/eglence/EglenceTabIcon';
+import { KesfetTabIcon } from '@/components/tab-bar/KesfetTabIcon';
+import { TakipTabIcon } from '@/components/tab-bar/TakipTabIcon';
 import { KesfetVoiceOverlayRoot } from '@/components/KesfetVoiceOverlayRoot';
 import { useGastroTheme } from '@/context/theme-context';
 import { GourmetProfileGate } from '@/components/GourmetProfileGate';
@@ -38,24 +41,25 @@ function TabsWithBadges() {
         name="index"
         options={{
           title: 'Keşfet',
-          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
+          tabBarActiveTintColor: '#4DA3FF',
+          tabBarIcon: ({ focused, size }) => <KesfetTabIcon focused={focused} size={size} />,
         }}
       />
       <Tabs.Screen
         name="eglence"
         options={{
           title: 'Eğlence',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="game-controller-outline" size={size} color={color} />
-          ),
+          tabBarActiveTintColor: '#FFAA3C',
+          tabBarIcon: ({ focused, size }) => <EglenceTabIcon focused={focused} size={size} />,
         }}
       />
       <Tabs.Screen
         name="takip"
         options={{
           title: 'Takip',
+          tabBarActiveTintColor: '#EF4444',
           tabBarBadge: badgeLabel(takipPending),
-          tabBarIcon: ({ color, size }) => <Ionicons name="heart" size={size} color={color} />,
+          tabBarIcon: ({ focused, size }) => <TakipTabIcon focused={focused} size={size} />,
         }}
       />
       <Tabs.Screen

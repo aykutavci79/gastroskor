@@ -4,6 +4,7 @@ import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } fro
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
+import { warmEglenceGame } from '@/lib/eglence-warm';
 import {
   CEVAP_SURE_MS,
   JOKER_SURE_BONUS_MS,
@@ -16,8 +17,8 @@ export default function KelimeYarismasiLobbyScreen() {
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
+      warmEglenceGame('kelime-yarismasi');
       void import('@/lib/kelime-yarismasi/soru-paketi').then((m) => {
-        m.warmSoruBankasi();
         setBos(m.soruBankasiBosMu());
       });
     });

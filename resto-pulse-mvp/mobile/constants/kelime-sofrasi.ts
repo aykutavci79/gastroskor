@@ -38,3 +38,9 @@ export const SOFRA_BONUS_HINT_THRESHOLD = 3;
 /** Prod: ayni gunluk bulmacayi en fazla 5 kez bitir. Dev: sinirsiz tekrar. */
 export const SOFRA_GUNLUK_TAMAMLAMA_LIMIT =
   typeof __DEV__ !== 'undefined' && __DEV__ ? 999 : 5;
+
+/** Arsiv baslangici — bu tarihten onceki gunler lobide secilemez. */
+export const SOFRA_ARCHIVE_EPOCH = '2026-06-25';
+
+/** Aktif gunden geriye en fazla kac gun arsiv acik. */
+export const SOFRA_ARCHIVE_MAX_DAYS = 90;

@@ -77,8 +77,6 @@ export function SofraBonusBadge({ bonusFoundCount }: Props) {
     [ratio],
   );
 
-  const cycleLabel = cycle === 0 && bonusFoundCount > 0 ? hedef : cycle;
-
   return (
     <View style={styles.root} accessibilityLabel="Bonus kelime ilerlemesi">
       <View style={styles.ring}>
@@ -86,9 +84,9 @@ export function SofraBonusBadge({ bonusFoundCount }: Props) {
         <Text style={styles.letter}>B</Text>
       </View>
       <Text style={styles.count}>
-        {cycleLabel}/{hedef}
+        {cycle}/{hedef}
       </Text>
-      <Text style={styles.hint}>+1 ipucu</Text>
+      <Text style={styles.hint}>3 bonus → +1 ipucu</Text>
     </View>
   );
 }

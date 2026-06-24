@@ -1,27 +1,53 @@
-import manifest from '@/data/gastro-lexicon/manifest.json';
-import cevap5Json from '@/data/gastro-lexicon/cevap-5harf.json';
-import lexiconFullJson from '@/data/gastro-lexicon/lexicon-full.json';
-import tahmin5Json from '@/data/gastro-lexicon/tahmin-5harf.json';
-import yazilisByAsciiJson from '@/data/gastro-lexicon/yazilis-by-ascii.json';
 import { asciiKelimeAnahtar, sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
+
+import { gastroYazilisByAscii as yazilisMapExport } from '@/lib/gastro-lexicon/yazilis';
 
 type WordListFile = { count: number; words: string[] };
 
+let manifestCache: typeof import('@/data/gastro-lexicon/manifest.json') | null = null;
 let tahmin5Cache: readonly string[] | null = null;
 let cevap5Cache: readonly string[] | null = null;
 let fullSetCache: ReadonlySet<string> | null = null;
 let fullAsciiCache: ReadonlySet<string> | null = null;
 
+function manifest() {
+  if (!manifestCache) {
+    manifestCache = require('@/data/gastro-lexicon/manifest.json') as typeof manifestCache;
+  }
+  return manifestCache!;
+}
+
+function tahmin5Words(): readonly string[] {
+  if (!tahmin5Cache) {
+    const raw = require('@/data/gastro-lexicon/tahmin-5harf.json') as WordListFile;
+    tahmin5Cache = raw.words ?? [];
+  }
+  return tahmin5Cache;
+}
+
+function cevap5Words(): readonly string[] {
+  if (!cevap5Cache) {
+    const raw = require('@/data/gastro-lexicon/cevap-5harf.json') as WordListFile;
+    cevap5Cache = raw.words ?? [];
+  }
+  return cevap5Cache;
+}
+
+function fullWords(): readonly string[] {
+  const raw = require('@/data/gastro-lexicon/lexicon-full.json') as WordListFile;
+  return raw.words ?? [];
+}
+
 export function gastroLexiconManifest() {
-  return manifest;
+  return manifest();
 }
 
 export function gastroLexiconContentHash(): string {
-  return manifest.contentHash ?? 'unknown';
+  return manifest().contentHash ?? 'unknown';
 }
 
 export function gastroYazilisByAscii(): Readonly<Record<string, string>> {
-  return yazilisByAsciiJson as Record<string, string>;
+  return yazilisMapExport();
 }
 
 /** Kanonik Türkçe yazım — gastro yazılış haritası + ham kelime. */
@@ -33,26 +59,19 @@ export function gastroKanonikKelime(raw: string): string {
 }
 
 export function gastroLexiconTahmin5(): readonly string[] {
-  if (!tahmin5Cache) {
-    tahmin5Cache = (tahmin5Json as WordListFile).words ?? [];
-  }
-  return tahmin5Cache;
+  return tahmin5Words();
 }
 
 export function gastroLexiconCevap5(): readonly string[] {
-  if (!cevap5Cache) {
-    cevap5Cache = (cevap5Json as WordListFile).words ?? [];
-  }
-  return cevap5Cache;
+  return cevap5Words();
 }
 
 function buildFullSet(): ReadonlySet<string> {
-  const words = (lexiconFullJson as WordListFile).words ?? [];
-  return new Set(words.map((w) => sofraKelimeBuyuk(w)));
+  return new Set(fullWords());
 }
 
 function buildFullAsciiSet(): ReadonlySet<string> {
-  const words = (lexiconFullJson as WordListFile).words ?? [];
+  const words = fullWords();
   return new Set(words.map((w) => asciiKelimeAnahtar(w)));
 }
 

@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
 import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { GunlukKelimeBoard } from '@/components/gunluk-kelime/GunlukKelimeBoard';
 import { GunlukKelimeKeyboard } from '@/components/gunluk-kelime/GunlukKelimeKeyboard';
@@ -31,7 +31,8 @@ import {
 } from '@/lib/gunluk-kelime/storage';
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 import type { GunlukKelimeProgress } from '@/lib/gunluk-kelime/types';
-import { gunlukKelimeKanonik, warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
+import { gunlukKelimeKanonik } from '@/lib/gunluk-kelime/words';
+import { warmEglenceGame } from '@/lib/eglence-warm';
 import {
   gunlukKelimeAppendHarf,
   gunlukKelimeBackspace,
@@ -96,8 +97,7 @@ export default function GunlukKelimeOyunScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        screen: { flex: 1, backgroundColor: t.bg },
-        content: { flexGrow: 1, padding: 16, paddingBottom: 24, gap: 16, alignItems: 'center' },
+        playContent: { flexGrow: 1, padding: 16, paddingBottom: 24, gap: 16, alignItems: 'center' },
         meta: { color: t.muted, fontSize: 13, textAlign: 'center' },
         legend: { color: t.muted, fontSize: 11, textAlign: 'center', lineHeight: 16 },
         message: {
@@ -136,7 +136,7 @@ export default function GunlukKelimeOyunScreen() {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      warmGunlukKelimeLexicon();
+      warmEglenceGame('gunluk-kelime');
       let p = await loadGunlukKelimeProgress(puzzleId);
       if (oturumYeni) {
         if (!EGLENCE_GUNLUK_TEK_OYUN) {
@@ -306,9 +306,11 @@ export default function GunlukKelimeOyunScreen() {
 
   if (loading || !progress) {
     return (
-      <View style={[styles.screen, styles.center]}>
-        <ActivityIndicator color={t.accent} size="large" />
-      </View>
+      <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']}>
+        <View style={styles.center}>
+          <ActivityIndicator color={t.accent} size="large" />
+        </View>
+      </EglenceGameLobbyScreen>
     );
   }
 
@@ -316,7 +318,11 @@ export default function GunlukKelimeOyunScreen() {
 
   return (
     <>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <EglenceGameLobbyScreen
+        gameId="gunluk-kelime"
+        scroll
+        style={styles.playContent}
+        edges={['left', 'right', 'bottom']}>
       <Text style={styles.meta}>
         {progress.guesses.length}/{GUNLUK_KELIME_MAX_GUESSES} · {puzzleId}
       </Text>
@@ -342,7 +348,7 @@ export default function GunlukKelimeOyunScreen() {
           </Pressable>
         </View>
       ) : null}
-      </ScrollView>
+      </EglenceGameLobbyScreen>
 
       <EglenceResultModal
         visible={resultOpen}

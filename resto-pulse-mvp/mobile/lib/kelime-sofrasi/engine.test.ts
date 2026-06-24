@@ -3,12 +3,16 @@ import { describe, it } from 'node:test';
 
 import {
   autoSolveFullyRevealedWordIds,
+  bonusKelimeMi,
   isWordFullyRevealed,
   partialOfUnfoundLongerTarget,
   sameAxisAlignedSubstringOfUnfoundLonger,
   sameAxisSubstringSpoiler,
 } from './engine.ts';
+import { warmTdkLexicon } from './tdk-lexicon.ts';
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types.ts';
+
+warmTdkLexicon();
 
 /** BALIK yatay + ?KAL dikey (4 harf) — KAL sonek olarak uzun kelimenin parçası. */
 const BALIK_KAL_SCENARIO: SofraPlacedWord[] = [
@@ -148,5 +152,18 @@ describe('autoSolveFullyRevealedWordIds', () => {
     const puzzle = { grid, words } as SofraPuzzle;
     const autoIds = autoSolveFullyRevealedWordIds(puzzle, ['balik'], ['1,2', '2,2']);
     assert.deepEqual(autoIds, []);
+  });
+});
+
+describe('bonusKelimeMi', () => {
+  it('ızgara dışı TDK kelimesi bonus sayılır', () => {
+    const puzzle = {
+      wheel: ['Ç', 'A', 'T', 'L', 'A', 'K'],
+      words: [{ id: 'a', kelime: 'ÇATLAK', row: 0, col: 0, direction: 'h' }],
+      bonusKelimeler: [],
+    } as SofraPuzzle;
+    assert.equal(bonusKelimeMi(puzzle, 'ÇATAL'), true);
+    assert.equal(bonusKelimeMi(puzzle, 'KAT'), true);
+    assert.equal(bonusKelimeMi(puzzle, 'ÇATLAK'), false);
   });
 });

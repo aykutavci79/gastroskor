@@ -2,6 +2,7 @@ import { SOFRA_BONUS_HINT_THRESHOLD, SOFRA_MAX_IPUCU, SOFRA_MIN_KELIME_UZUNLUGU 
 
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types';
 import { isSameAxisSubstring } from './grid-runs';
+import { isTdkKelime } from './tdk-lexicon';
 import { sofraKelimeBuyuk, sofraKelimeEsit } from './turkce-harf';
 
 export function normalizeKelime(raw: string): string {
@@ -126,9 +127,14 @@ export function partialOfUnfoundLongerTarget(
   return null;
 }
 
+/** Izgara dışı bonus: önceden üretilen liste veya çark harfleri + TDK sözlük. */
 export function bonusKelimeMi(puzzle: SofraPuzzle, kelime: string): boolean {
   const norm = sofraKelimeBuyuk(kelime);
-  return puzzle.bonusKelimeler.some((w) => sofraKelimeEsit(w, norm));
+  if (norm.length < SOFRA_MIN_KELIME_UZUNLUGU) return false;
+  if (hedefKelimeMi(puzzle, norm)) return false;
+  if (puzzle.bonusKelimeler.some((w) => sofraKelimeEsit(w, norm))) return true;
+  if (!harfCantasindanOlusur(norm, puzzle.wheel)) return false;
+  return isTdkKelime(norm);
 }
 
 export function bulmacaTamamlandi(puzzle: SofraPuzzle, foundWordIds: string[]): boolean {

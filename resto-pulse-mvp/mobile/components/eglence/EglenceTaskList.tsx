@@ -145,9 +145,9 @@ function TaskRow({
       ctaAnchorRef.current.measureInWindow((x, y, width, height) => {
         onPress({ x: x + width / 2, y: y + height / 2 });
       });
-      return;
+    } else {
+      onPress();
     }
-    onPress();
   }
 
   return (

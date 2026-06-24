@@ -941,3 +941,12 @@ export type GameHintSpendResponse = {
   charged: number;
   reason?: string | null;
 };
+
+export type GamePlaySpendResponse = {
+  ok: boolean;
+  balance: number;
+  charged: number;
+  plays_today: number;
+  free_remaining: number;
+  reason?: string | null;
+};

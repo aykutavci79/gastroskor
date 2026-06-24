@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HubPressable } from '@/components/eglence/HubPressable';
 import { GastroCoinMark } from '@/components/eglence/GastroCoinMark';
 import { GASTROCOIN_LABEL, GASTROCOIN_SHORT, GastroCoinTheme } from '@/constants/gastrocoin-theme';
 import { GastroColors } from '@/constants/theme';
+import { shareReferralInvite } from '@/lib/referral-share';
 
 type Props = {
   visible: boolean;
   balance: number | null;
   onClose: () => void;
+  /** Davet görevinden açıldıysa paylaşım bölümü öne çıkar. */
+  inviteFocus?: boolean;
+  referrerId?: string | null;
 };
 
 const EARN_TASKS = [
@@ -17,6 +22,7 @@ const EARN_TASKS = [
   { icon: 'cart' as const, title: 'Online sipariş', reward: `+15 ${GASTROCOIN_SHORT}`, note: 'İlk sipariş +5 bonus (toplam 20)' },
   { icon: 'heart' as const, title: '3 farklı restoran takibi', reward: `+10 ${GASTROCOIN_SHORT}`, note: 'Aynı gün 3. yeni takipte' },
   { icon: 'people' as const, title: 'Arkadaş daveti', reward: `+10 ${GASTROCOIN_SHORT}`, note: 'Davetli ilk giriş yaptığında' },
+  { icon: 'star' as const, title: 'GS yorum / puan', reward: `+5 ${GASTROCOIN_SHORT}`, note: 'Günde bir kez, yorum gönderince otomatik' },
   { icon: 'gift' as const, title: 'Hoş geldin hediyesi', reward: `+10 ${GASTROCOIN_SHORT}`, note: 'Hesap açılışında bir kez' },
 ];
 
@@ -26,16 +32,33 @@ const SPEND_RULES = [
   `Market: oyun hakları 8–12 ${GASTROCOIN_SHORT}`,
 ];
 
-const COMING_SOON = ['Restoran paylaşımı', 'GS yorum / puan ödülü'];
+const COMING_SOON = ['Restoran paylaşımı'];
 
-export function JetonEarnSheet({ visible, balance, onClose }: Props) {
+export function JetonEarnSheet({ visible, balance, onClose, inviteFocus = false, referrerId }: Props) {
+  const [sharing, setSharing] = useState(false);
+
+  async function onShareInvite() {
+    if (!referrerId?.trim()) {
+      Alert.alert('Giriş gerekli', 'Davet linki için önce hesabına giriş yap.');
+      return;
+    }
+    setSharing(true);
+    try {
+      await shareReferralInvite(referrerId);
+    } catch {
+      Alert.alert('Paylaşım', 'Davet linki paylaşılamadı. Biraz sonra tekrar dene.');
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <HubPressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
           <View style={styles.handle} />
           <View style={styles.hero}>
-            <GastroCoinMark variant="logo" size={44} />
+            <GastroCoinMark variant="wallet-coin" size={52} />
             <View style={styles.heroText}>
               <Text style={styles.title}>{GASTROCOIN_LABEL}</Text>
               <Text style={styles.balance}>
@@ -47,6 +70,23 @@ export function JetonEarnSheet({ visible, balance, onClose }: Props) {
               <Text style={styles.disclaimer}>Gerçek para değildir · oyun ve avantajlar için kazanılır</Text>
             </View>
           </View>
+
+          {inviteFocus ? (
+            <View style={styles.inviteCard}>
+              <Text style={styles.inviteTitle}>Arkadaşını davet et</Text>
+              <Text style={styles.inviteBody}>
+                Linki paylaş. Arkadaşın ilk kez giriş yaptığında ikiniz de{' '}
+                <Text style={styles.inviteReward}>+10 {GASTROCOIN_SHORT}</Text> kazanırsınız.
+              </Text>
+              <HubPressable
+                style={[styles.inviteBtn, sharing && styles.inviteBtnDisabled]}
+                onPress={() => void onShareInvite()}
+                disabled={sharing}>
+                <Ionicons name="share-social" size={18} color="#1A1A1A" />
+                <Text style={styles.inviteBtnText}>{sharing ? 'Paylaşılıyor…' : 'Davet linkini paylaş'}</Text>
+              </HubPressable>
+            </View>
+          ) : null}
 
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
             <Text style={styles.sectionTitle}>{GASTROCOIN_SHORT} kazan</Text>
@@ -92,7 +132,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    maxHeight: '82%',
+    maxHeight: '86%',
     backgroundColor: GastroColors.bg,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -126,7 +166,31 @@ const styles = StyleSheet.create({
   balance: { color: GastroColors.muted, fontSize: 14 },
   balanceValue: { color: GastroCoinTheme.coinGoldLight, fontWeight: '800' },
   disclaimer: { color: GastroColors.muted, fontSize: 11, lineHeight: 16 },
-  scroll: { maxHeight: 420 },
+  inviteCard: {
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: GastroCoinTheme.chipBg,
+    borderWidth: 1,
+    borderColor: GastroCoinTheme.chipBorder,
+    gap: 8,
+  },
+  inviteTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
+  inviteBody: { color: GastroColors.muted, fontSize: 13, lineHeight: 19 },
+  inviteReward: { color: GastroCoinTheme.coinGoldLight, fontWeight: '800' },
+  inviteBtn: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: GastroCoinTheme.coinGold,
+  },
+  inviteBtnDisabled: { opacity: 0.7 },
+  inviteBtnText: { color: '#1A1A1A', fontSize: 14, fontWeight: '800' },
+  scroll: { maxHeight: 380 },
   sectionTitle: {
     color: GastroColors.text,
     fontSize: 14,

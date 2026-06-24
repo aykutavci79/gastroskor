@@ -2,18 +2,21 @@ import { EglenceCollapsibleLeaderboard } from '@/components/eglence/EglenceColla
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { EglenceZorlukSecici } from '@/components/eglence/EglenceZorlukSecici';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
+import { SofraDatePicker } from '@/components/kelime-sofrasi/SofraDatePicker';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraKelimeHedefEtiket, sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
-import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
+import { useSession } from '@/context/session-context';
+import { fetchArchiveUnlocks, unlockArchiveDay } from '@/lib/eglence-archive-api';
+import { warmEglenceGame } from '@/lib/eglence-warm';
 import {
   prefetchSofraBackgroundForPuzzle,
   prefetchSofraOtherZorluklarIdle,
   prefetchSofraPuzzlesForToday,
   ensureSofraPuzzleAsync,
 } from '@/lib/kelime-sofrasi/puzzle-cache';
-import { loadSofraMetaStatus } from '@/lib/kelime-sofrasi/storage';
-import { warmTdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
+import { isSofraArchiveDay } from '@/lib/kelime-sofrasi/sofra-archive';
+import { loadSofraMetaStatus, resolveSofraSessionTur } from '@/lib/kelime-sofrasi/storage';
 import type { SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { activePuzzleId, formatNextResetHint, formatPuzzlePeriodLabel } from '@/lib/mini-sudoku/schedule';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,29 +26,68 @@ import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } fro
 
 export default function KelimeSofrasiLobbyScreen() {
   const router = useRouter();
+  const { user } = useSession();
   const t = eglenceLobbyTheme('kelime-sofrasi');
-  const puzzleId = activePuzzleId();
+  const [selectedGunId, setSelectedGunId] = useState(() => activePuzzleId());
   const [zorluk, setZorluk] = useState<EglenceZorluk>('orta');
   const [puzzle, setPuzzle] = useState<SofraPuzzle | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
   const [tamamlamaSayisi, setTamamlamaSayisi] = useState(0);
   const [limitDoldu, setLimitDoldu] = useState(false);
+  const [unlockedGunIds, setUnlockedGunIds] = useState<Set<string>>(() => new Set());
 
-  useEffect(() => {
-    void loadSofraMetaStatus(puzzleId, zorluk).then((meta) => {
-      setTamamlamaSayisi(meta.tamamlamaSayisi);
-      setLimitDoldu(meta.completed);
+  const refreshUnlocks = useCallback(() => {
+    if (!user?.email) {
+      setUnlockedGunIds(new Set());
+      return;
+    }
+    void fetchArchiveUnlocks(user.email, 'kelime_sofrasi').then((res) => {
+      if (res) setUnlockedGunIds(new Set(res.gun_ids));
     });
-  }, [puzzleId, zorluk]);
+  }, [user?.email]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadSofraMetaStatus(puzzleId, zorluk).then((meta) => {
+      refreshUnlocks();
+    }, [refreshUnlocks]),
+  );
+
+  const handleRequestUnlock = useCallback(
+    async (gunId: string) => {
+      if (!user?.email) return false;
+      try {
+        const res = await unlockArchiveDay({
+          userEmail: user.email,
+          game: 'kelime_sofrasi',
+          gunId,
+        });
+        if (res.ok) {
+          setUnlockedGunIds((prev) => new Set(prev).add(gunId));
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    },
+    [user?.email],
+  );
+
+  useEffect(() => {
+    void loadSofraMetaStatus(selectedGunId, zorluk).then((meta) => {
+      setTamamlamaSayisi(meta.tamamlamaSayisi);
+      setLimitDoldu(meta.completed);
+    });
+  }, [selectedGunId, zorluk]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadSofraMetaStatus(selectedGunId, zorluk).then((meta) => {
         setTamamlamaSayisi(meta.tamamlamaSayisi);
         setLimitDoldu(meta.completed);
       });
-    }, [puzzleId, zorluk]),
+    }, [selectedGunId, zorluk]),
   );
 
   useEffect(() => {
@@ -55,39 +97,39 @@ export default function KelimeSofrasiLobbyScreen() {
 
     const task = InteractionManager.runAfterInteractions(() => {
       if (cancelled) return;
-      sofraHavuzu();
-      prefetchSofraPuzzlesForToday(puzzleId, zorluk);
+      warmEglenceGame('kelime-sofrasi');
 
-      void ensureSofraPuzzleAsync(puzzleId, zorluk, 0)
-        .then((loaded) => {
-          if (!cancelled) {
-            setPuzzle(loaded);
-            prefetchSofraBackgroundForPuzzle(loaded.id);
-            InteractionManager.runAfterInteractions(() => {
-              sofraHavuzu();
-              warmTdkLexicon();
-            });
-          }
-        })
-        .catch((err) => {
-          if (!cancelled) {
-            setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
-            if (__DEV__) console.warn('[sofra-lobby]', err);
-          }
-        });
+      void resolveSofraSessionTur(selectedGunId, zorluk).then((tur) => {
+        if (cancelled) return;
+        prefetchSofraPuzzlesForToday(selectedGunId, zorluk);
+
+        void ensureSofraPuzzleAsync(selectedGunId, zorluk, tur, user?.email)
+          .then((loaded) => {
+            if (!cancelled) {
+              setPuzzle(loaded);
+              prefetchSofraBackgroundForPuzzle(loaded.id);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) {
+              setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
+              if (__DEV__) console.warn('[sofra-lobby]', err);
+            }
+          });
+      });
     });
 
     return () => {
       cancelled = true;
       task.cancel();
     };
-  }, [puzzleId, zorluk, retryTick]);
+  }, [selectedGunId, zorluk, retryTick, user?.email]);
 
   useEffect(() => {
     if (puzzle?.zorluk === zorluk) {
-      prefetchSofraOtherZorluklarIdle(puzzleId, zorluk);
+      prefetchSofraOtherZorluklarIdle(selectedGunId, zorluk);
     }
-  }, [puzzle?.zorluk, puzzleId, zorluk]);
+  }, [puzzle?.zorluk, selectedGunId, zorluk]);
 
   const styles = useMemo(
     () =>
@@ -134,17 +176,20 @@ export default function KelimeSofrasiLobbyScreen() {
 
   const hedefKelime = sofraKelimeHedefEtiket(zorluk);
   const leaderboardPeriodKey =
-    puzzle?.id ?? sofraPuzzleKey(puzzleId, zorluk, Math.max(0, tamamlamaSayisi - 1));
+    puzzle?.id ?? sofraPuzzleKey(selectedGunId, zorluk, Math.max(0, tamamlamaSayisi - 1));
   const sofraHazir = puzzle?.zorluk === zorluk;
   const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
   const oyunAcik = sofraHazir && !limitDoldu;
+  const archiveDay = isSofraArchiveDay(selectedGunId);
 
   const handlePrimaryPress = () => {
     if (loadError) {
       setRetryTick((n) => n + 1);
       return;
     }
-    router.push(`/oyun/kelime-sofrasi/oyun?zorluk=${zorluk}` as Href);
+    router.push(
+      `/oyun/kelime-sofrasi/oyun?zorluk=${zorluk}&gun_id=${selectedGunId}` as Href,
+    );
   };
 
   return (
@@ -153,9 +198,23 @@ export default function KelimeSofrasiLobbyScreen() {
         <EglenceGameLobbyTitle gameId="kelime-sofrasi" title="Kelime Sofrası" />
         <Text style={styles.alt}>Harf çarkı · çapraz kelime · reklamsız</Text>
 
+        <SofraDatePicker
+          value={selectedGunId}
+          onChange={setSelectedGunId}
+          userEmail={user?.email}
+          unlockedGunIds={unlockedGunIds}
+          onRequestUnlock={handleRequestUnlock}
+        />
+
         <View style={styles.schedulePill}>
-          <Text style={styles.scheduleTitle}>{formatPuzzlePeriodLabel(puzzleId)}</Text>
-          <Text style={styles.scheduleHint}>{formatNextResetHint()}</Text>
+          <Text style={styles.scheduleTitle}>
+            {archiveDay ? 'Arşiv günü' : formatPuzzlePeriodLabel(selectedGunId)}
+          </Text>
+          <Text style={styles.scheduleHint}>
+            {archiveDay
+              ? `${formatPuzzlePeriodLabel(selectedGunId)} · geçmiş sofra`
+              : formatNextResetHint()}
+          </Text>
         </View>
 
         <EglenceZorlukSecici mode="sofra" value={zorluk} onChange={setZorluk} gameId="kelime-sofrasi" />
@@ -209,7 +268,7 @@ export default function KelimeSofrasiLobbyScreen() {
         {loadError ? (
           <Text style={[styles.alt, { color: '#f87171' }]}>
             {__DEV__
-              ? `Dönem: ${puzzleId} · API: ${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}`
+              ? `Dönem: ${selectedGunId} · API: ${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}`
               : 'Sofra hazırlanamadı. Bağlantını kontrol edip tekrar dene.'}
           </Text>
         ) : null}
