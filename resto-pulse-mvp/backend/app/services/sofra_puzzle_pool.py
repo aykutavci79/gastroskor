@@ -158,6 +158,69 @@ def clone_puzzle_for_slot(source: dict[str, Any], puzzle_id: str, zorluk: str) -
     return cloned
 
 
+def _compile_emergency_grid(words: list[dict[str, Any]]) -> list[list[dict[str, Any] | None]]:
+    max_row = 0
+    max_col = 0
+    for word in words:
+        kelime = str(word["kelime"])
+        row = int(word["row"])
+        col = int(word["col"])
+        if word["direction"] == "h":
+            max_row = max(max_row, row)
+            max_col = max(max_col, col + len(kelime) - 1)
+        else:
+            max_row = max(max_row, row + len(kelime) - 1)
+            max_col = max(max_col, col)
+
+    grid: list[list[dict[str, Any] | None]] = [
+        [None for _ in range(max_col + 1)] for _ in range(max_row + 1)
+    ]
+    for word in words:
+        kelime = str(word["kelime"])
+        for idx, letter in enumerate(kelime):
+            row = int(word["row"]) if word["direction"] == "h" else int(word["row"]) + idx
+            col = int(word["col"]) + idx if word["direction"] == "h" else int(word["col"])
+            grid[row][col] = {
+                "row": row,
+                "col": col,
+                "letter": letter,
+                "wordIds": [str(word["id"])],
+            }
+    return grid
+
+
+def _emergency_puzzle_for_slot(puzzle_id: str, zorluk: str) -> dict[str, Any]:
+    """Son care: DB/generator yedegi yoksa 404 yerine gecerli, cozulebilir slot."""
+    words_by_zorluk = {
+        "kolay": ["ALAN", "ASAN", "ASAR", "ASLAN", "SALAR"],
+        "orta": ["ALAN", "ASAN", "ASAR", "ASLAN", "SALAR", "SANAL"],
+        "zor": ["ALAN", "ASAN", "ASAR", "ASLAN", "SALAR", "SANAL"],
+    }
+    selected = words_by_zorluk.get(zorluk, words_by_zorluk["orta"])
+    words: list[dict[str, Any]] = [
+        {
+            "id": f"emg-{idx}",
+            "kelime": kelime,
+            "ipucu": "Yedek bulmaca kelimesi",
+            "row": idx * 2,
+            "col": idx * 8,
+            "direction": "h",
+        }
+        for idx, kelime in enumerate(selected)
+    ]
+    grid = _compile_emergency_grid(words)
+    return {
+        "id": puzzle_id,
+        "zorluk": zorluk,
+        "words": words,
+        "bonusKelimeler": [],
+        "wheel": ["A", "R", "S", "L", "A", "N"],
+        "rows": len(grid),
+        "cols": len(grid[0]) if grid else 0,
+        "grid": grid,
+    }
+
+
 def _capture_pool_alert(message: str, extra: dict[str, Any] | None = None) -> None:
     logger.critical("SOFRA_POOL_ALERT: %s | %s", message, extra or {})
     if not (settings.sentry_dsn or "").strip():
@@ -369,6 +432,7 @@ def generate_daily_puzzles(
         "gun_id": target_gun,
         "generated": 0,
         "fallback": 0,
+        "emergency_fallback": 0,
         "failed": 0,
         "skipped": 0,
         "node_used": pregenerated is None and generated is not None,
@@ -403,10 +467,19 @@ def generate_daily_puzzles(
                     is_fallback = True
                     stats["fallback"] += 1
                 else:
-                    stats["failed"] += 1
-                    stats["failed_slots"].append({"zorluk": zorluk, "tur": tur, "puzzle_id": puzzle_id})
-                    stats["errors"].append(f"{puzzle_id}: no_fallback_source")
-                    continue
+                    emergency = _emergency_puzzle_for_slot(puzzle_id, zorluk)
+                    ok, reason = validate_puzzle_payload(emergency, zorluk)
+                    if ok:
+                        puzzle_data = emergency
+                        is_fallback = True
+                        stats["fallback"] += 1
+                        stats["emergency_fallback"] += 1
+                        stats["errors"].append(f"{puzzle_id}: emergency_fallback")
+                    else:
+                        stats["failed"] += 1
+                        stats["failed_slots"].append({"zorluk": zorluk, "tur": tur, "puzzle_id": puzzle_id})
+                        stats["errors"].append(f"{puzzle_id}: no_fallback_source ({reason})")
+                        continue
 
             upsert_puzzle_row(
                 db,
@@ -445,28 +518,62 @@ def _find_fallback_source(
     *,
     max_days: int = FALLBACK_SCAN_DAYS,
 ) -> tuple[SofraDailyPuzzle, str] | None:
-    """Onceki gunlerde gecerli bulmaca; yoksa havuzdaki en yeni gecerli slot."""
+    """Onceki gunlerde gecerli bulmaca; yoksa ayni zorluktan gecerli yedek slot."""
+
+    def valid_source(row: SofraDailyPuzzle | None) -> tuple[SofraDailyPuzzle, str] | None:
+        if row is None or not validate_puzzle_payload(row.puzzle_data, zorluk)[0]:
+            return None
+        source_gun = row.source_gun_id if row.is_fallback and row.source_gun_id else row.gun_id
+        return row, source_gun
+
     for delta in range(1, max_days + 1):
         prev_gun = shift_gun_id(gun_id, -delta)
         prev = get_puzzle_row(db, prev_gun, zorluk, tur)
-        if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
-            continue
-        source_gun = prev.gun_id if prev.is_fallback else prev_gun
-        return prev, source_gun
+        exact = valid_source(prev)
+        if exact:
+            return exact
 
-    latest = db.scalar(
+        siblings = db.scalars(
+            select(SofraDailyPuzzle)
+            .where(
+                SofraDailyPuzzle.gun_id == prev_gun,
+                SofraDailyPuzzle.zorluk == zorluk,
+                SofraDailyPuzzle.tur != tur,
+            )
+            .order_by(SofraDailyPuzzle.tur.asc())
+        ).all()
+        for sibling in siblings:
+            fallback = valid_source(sibling)
+            if fallback:
+                return fallback
+
+    latest_rows = db.scalars(
         select(SofraDailyPuzzle)
         .where(
             SofraDailyPuzzle.zorluk == zorluk,
             SofraDailyPuzzle.tur == tur,
         )
         .order_by(SofraDailyPuzzle.gun_id.desc())
-        .limit(1)
-    )
-    if latest is None or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
-        return None
-    source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
-    return latest, source_gun
+        .limit(max_days)
+    ).all()
+    for latest in latest_rows:
+        fallback = valid_source(latest)
+        if fallback:
+            return fallback
+
+    latest_siblings = db.scalars(
+        select(SofraDailyPuzzle)
+        .where(SofraDailyPuzzle.zorluk == zorluk)
+        .order_by(SofraDailyPuzzle.gun_id.desc(), SofraDailyPuzzle.tur.asc())
+        .limit(max_days * SOFRA_TUR_SAYISI)
+    ).all()
+    for sibling in latest_siblings:
+        if sibling.gun_id == gun_id and sibling.tur == tur:
+            continue
+        fallback = valid_source(sibling)
+        if fallback:
+            return fallback
+    return None
 
 
 def fetch_puzzle_for_client(
@@ -495,6 +602,29 @@ def fetch_puzzle_for_client(
     prev_gun = shift_gun_id(gun_id, -1)
     fallback = _find_fallback_source(db, gun_id, zorluk, tur)
     if fallback is None:
+        puzzle_id = sofra_puzzle_key(gun_id, zorluk, tur)
+        emergency = _emergency_puzzle_for_slot(puzzle_id, zorluk)
+        ok, reason = validate_puzzle_payload(emergency, zorluk)
+        if ok:
+            logger.warning(
+                "Sofra emergency fallback: %s %s t%s icin deterministik yedek yazildi",
+                gun_id,
+                zorluk,
+                tur,
+            )
+            return upsert_puzzle_row(
+                db,
+                gun_id=gun_id,
+                zorluk=zorluk,
+                tur=tur,
+                puzzle_id=puzzle_id,
+                puzzle_data=emergency,
+                is_fallback=True,
+                source_gun_id=None,
+                generation_ms=None,
+                review_status=SofraBulmacaReviewStatus.approved,
+            )
+
         pool_days = db.scalar(
             select(func.count(func.distinct(SofraDailyPuzzle.gun_id))).select_from(SofraDailyPuzzle)
         )
@@ -504,6 +634,7 @@ def fetch_puzzle_for_client(
                 "requested_gun_id": gun_id,
                 "zorluk": zorluk,
                 "tur": tur,
+                "emergency_reason": reason,
                 "distinct_gun_ids_in_pool": int(pool_days or 0),
             },
         )

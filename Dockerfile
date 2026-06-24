@@ -11,6 +11,7 @@ COPY resto-pulse-mvp/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY resto-pulse-mvp/backend/ .
+COPY resto-pulse-mvp/mobile/data/gastro-lexicon/ /mobile/data/gastro-lexicon/
 
 RUN test -f alembic/versions/20260618_0041_google_place_catalog.py \
     && test "$(ls -1 alembic/versions/*.py | wc -l)" -ge 40 \
