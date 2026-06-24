@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from app.services.sofra_puzzle_pool import (
+    _emergency_puzzle_for_slot,
     active_sofra_gun_id,
     clone_puzzle_for_slot,
     shift_gun_id,
@@ -168,6 +170,14 @@ def test_clone_puzzle_for_slot():
     assert cloned["words"] == source["words"]
 
 
+def test_emergency_puzzle_for_slot_is_valid_for_all_zorluklar():
+    for zorluk in ("kolay", "orta", "zor"):
+        puzzle = _emergency_puzzle_for_slot(f"2026-06-21:{zorluk}", zorluk)
+        ok, reason = validate_puzzle_payload(puzzle, zorluk)
+        assert ok is True
+        assert reason == "ok"
+
+
 def test_active_sofra_gun_id_before_reset():
     dt = datetime(2026, 6, 20, 10, 0, tzinfo=ZoneInfo("Europe/Istanbul"))
     assert active_sofra_gun_id(dt) == "2026-06-19"
@@ -201,8 +211,81 @@ def test_find_fallback_source_scans_multiple_days():
         return None
 
     db.scalar = MagicMock(side_effect=scalar_side_effect)
+    db.scalars = MagicMock(return_value=SimpleNamespace(all=lambda: [old_row]))
     result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
     assert result is not None
     prev, source_gun = result
     assert prev is old_row
     assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_skips_invalid_latest_row():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    invalid_row = MagicMock()
+    invalid_row.puzzle_data = {"words": [], "wheel": [], "grid": []}
+    invalid_row.is_fallback = False
+    invalid_row.gun_id = "2026-06-22"
+    invalid_row.source_gun_id = None
+    invalid_row.tur = 0
+
+    valid_row = MagicMock()
+    valid_row.puzzle_data = _sample_puzzle("orta")
+    valid_row.is_fallback = False
+    valid_row.gun_id = "2026-06-18"
+    valid_row.source_gun_id = None
+    valid_row.tur = 0
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    db.scalars = MagicMock(
+        side_effect=[
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: []),
+            SimpleNamespace(all=lambda: [invalid_row, valid_row]),
+        ]
+    )
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
+
+    assert result is not None
+    prev, source_gun = result
+    assert prev is valid_row
+    assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_uses_same_zorluk_sibling_slot():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    sibling_row = MagicMock()
+    sibling_row.puzzle_data = _sample_puzzle("orta")
+    sibling_row.is_fallback = False
+    sibling_row.gun_id = "2026-06-22"
+    sibling_row.source_gun_id = None
+    sibling_row.tur = 3
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    db.scalars = MagicMock(return_value=SimpleNamespace(all=lambda: [sibling_row]))
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 1)  # type: ignore[arg-type]
+    assert result is not None
+    prev, source_gun = result
+    assert prev is sibling_row
+    assert source_gun == "2026-06-22"
