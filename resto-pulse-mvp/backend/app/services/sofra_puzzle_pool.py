@@ -451,7 +451,7 @@ def _find_fallback_source(
         prev = get_puzzle_row(db, prev_gun, zorluk, tur)
         if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
             continue
-        source_gun = prev.gun_id if prev.is_fallback else prev_gun
+        source_gun = _fallback_source_gun(prev, prev_gun)
         return prev, source_gun
 
     latest = db.scalar(
@@ -464,9 +464,30 @@ def _find_fallback_source(
         .limit(1)
     )
     if latest is None or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
-        return None
-    source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
-    return latest, source_gun
+        latest = None
+    if latest is not None:
+        source_gun = _fallback_source_gun(latest, latest.gun_id)
+        return latest, source_gun
+
+    candidates = db.scalars(
+        select(SofraDailyPuzzle)
+        .where(SofraDailyPuzzle.zorluk == zorluk)
+        .order_by(SofraDailyPuzzle.gun_id.desc(), SofraDailyPuzzle.tur.asc())
+        .limit(EXPECTED_SLOTS_PER_DAY * max_days)
+    ).all()
+    for candidate in candidates:
+        if candidate.gun_id == gun_id and candidate.tur == tur:
+            continue
+        if not validate_puzzle_payload(candidate.puzzle_data, zorluk)[0]:
+            continue
+        return candidate, _fallback_source_gun(candidate, candidate.gun_id)
+    return None
+
+
+def _fallback_source_gun(row: SofraDailyPuzzle, default_gun_id: str) -> str:
+    if row.is_fallback and row.source_gun_id:
+        return row.source_gun_id
+    return row.gun_id or default_gun_id
 
 
 def fetch_puzzle_for_client(
