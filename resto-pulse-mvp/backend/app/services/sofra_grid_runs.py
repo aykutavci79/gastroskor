@@ -184,6 +184,12 @@ def audit_contiguous_runs(
     min_target_len: int = SOFRA_MIN_KELIME_UZUNLUGU,
 ) -> tuple[bool, list[str]]:
     """Bitişik 2+ harf koşusu TDK'da olmalı; 3+ hedef kelime değilse geçersiz."""
+    canon, _, _ = _load_lexicon()
+    if not canon:
+        # Railway backend image may not include the mobile lexicon. In that case
+        # keep structural checks (collision, shape) but avoid false orphan runs.
+        return True, []
+
     invalid: list[str] = []
     for run in extract_grid_runs(grid):
         if len(run) < 2:
