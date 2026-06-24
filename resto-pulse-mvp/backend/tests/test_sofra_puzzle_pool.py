@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from app.services.sofra_puzzle_pool import (
@@ -206,3 +207,26 @@ def test_find_fallback_source_scans_multiple_days():
     prev, source_gun = result
     assert prev is old_row
     assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_uses_same_zorluk_sibling_slot():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    sibling_row = MagicMock()
+    sibling_row.puzzle_data = _sample_puzzle("orta")
+    sibling_row.is_fallback = False
+    sibling_row.gun_id = "2026-06-22"
+    sibling_row.source_gun_id = None
+    sibling_row.tur = 3
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    db.scalars = MagicMock(return_value=SimpleNamespace(all=lambda: [sibling_row]))
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 1)  # type: ignore[arg-type]
+    assert result is not None
+    prev, source_gun = result
+    assert prev is sibling_row
+    assert source_gun == "2026-06-22"

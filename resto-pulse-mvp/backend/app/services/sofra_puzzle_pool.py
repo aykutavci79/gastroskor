@@ -445,14 +445,33 @@ def _find_fallback_source(
     *,
     max_days: int = FALLBACK_SCAN_DAYS,
 ) -> tuple[SofraDailyPuzzle, str] | None:
-    """Onceki gunlerde gecerli bulmaca; yoksa havuzdaki en yeni gecerli slot."""
+    """Onceki gunlerde gecerli bulmaca; yoksa ayni zorluktan gecerli yedek slot."""
+    def valid_source(row: SofraDailyPuzzle | None) -> tuple[SofraDailyPuzzle, str] | None:
+        if row is None or not validate_puzzle_payload(row.puzzle_data, zorluk)[0]:
+            return None
+        source_gun = row.source_gun_id if row.is_fallback and row.source_gun_id else row.gun_id
+        return row, source_gun
+
     for delta in range(1, max_days + 1):
         prev_gun = shift_gun_id(gun_id, -delta)
         prev = get_puzzle_row(db, prev_gun, zorluk, tur)
-        if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
-            continue
-        source_gun = prev.gun_id if prev.is_fallback else prev_gun
-        return prev, source_gun
+        exact = valid_source(prev)
+        if exact:
+            return exact
+
+        siblings = db.scalars(
+            select(SofraDailyPuzzle)
+            .where(
+                SofraDailyPuzzle.gun_id == prev_gun,
+                SofraDailyPuzzle.zorluk == zorluk,
+                SofraDailyPuzzle.tur != tur,
+            )
+            .order_by(SofraDailyPuzzle.tur.asc())
+        ).all()
+        for sibling in siblings:
+            fallback = valid_source(sibling)
+            if fallback:
+                return fallback
 
     latest = db.scalar(
         select(SofraDailyPuzzle)
@@ -463,10 +482,23 @@ def _find_fallback_source(
         .order_by(SofraDailyPuzzle.gun_id.desc())
         .limit(1)
     )
-    if latest is None or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
-        return None
-    source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
-    return latest, source_gun
+    exact_latest = valid_source(latest)
+    if exact_latest:
+        return exact_latest
+
+    latest_siblings = db.scalars(
+        select(SofraDailyPuzzle)
+        .where(SofraDailyPuzzle.zorluk == zorluk)
+        .order_by(SofraDailyPuzzle.gun_id.desc(), SofraDailyPuzzle.tur.asc())
+        .limit(SOFRA_TUR_SAYISI)
+    ).all()
+    for sibling in latest_siblings:
+        if sibling.gun_id == gun_id and sibling.tur == tur:
+            continue
+        fallback = valid_source(sibling)
+        if fallback:
+            return fallback
+    return None
 
 
 def fetch_puzzle_for_client(
