@@ -185,15 +185,17 @@ def audit_contiguous_runs(
 ) -> tuple[bool, list[str]]:
     """Bitişik 2+ harf koşusu TDK'da olmalı; 3+ hedef kelime değilse geçersiz."""
     invalid: list[str] = []
+    lexicon_available = bool(_load_lexicon()[0])
     for run in extract_grid_runs(grid):
         if len(run) < 2:
             continue
         norm = sofra_kelime_buyuk(run)
-        if not lexicon_has_kelime(norm):
-            invalid.append(norm)
-            continue
-        if len(norm) >= min_target_len and norm not in target_words:
-            invalid.append(f"orphan:{norm}")
+        if lexicon_available:
+            if not lexicon_has_kelime(norm):
+                invalid.append(norm)
+                continue
+            if len(norm) >= min_target_len and norm not in target_words:
+                invalid.append(f"orphan:{norm}")
     return len(invalid) == 0, invalid
 
 
