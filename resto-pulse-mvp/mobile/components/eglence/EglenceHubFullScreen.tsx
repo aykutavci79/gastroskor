@@ -47,6 +47,7 @@ import { GASTROCOIN_SHORT } from '@/constants/gastrocoin-theme';
 import { useSession } from '@/context/session-context';
 import { useGastroTheme } from '@/context/theme-context';
 
+import { claimDailyLogin, getJetonWallet } from '@/lib/api';
 import { warmGunlukKelimeLexicon } from '@/lib/gunluk-kelime/words';
 import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
 import { warmTdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
