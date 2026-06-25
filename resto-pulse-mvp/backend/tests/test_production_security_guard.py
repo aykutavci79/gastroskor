@@ -43,6 +43,21 @@ def test_production_startup_accepts_valid_secrets() -> None:
     assert_production_secrets(_production_settings()) is None
 
 
+def test_production_startup_rejects_placeholder_jwt_secret() -> None:
+    with pytest.raises(RuntimeError, match="JWT_SECRET"):
+        assert_production_secrets(_production_settings(jwt_secret="change-me"))
+
+
+def test_production_startup_rejects_empty_jwt_secret() -> None:
+    with pytest.raises(RuntimeError, match="JWT_SECRET"):
+        assert_production_secrets(_production_settings(jwt_secret=""))
+
+
+def test_production_startup_rejects_order_phone_test_bypass() -> None:
+    with pytest.raises(RuntimeError, match="ORDER_PHONE_TEST_BYPASS"):
+        assert_production_secrets(_production_settings(order_phone_test_bypass="+905321234567"))
+
+
 def test_auth_require_bearer_forced_in_production_even_when_flag_false(monkeypatch) -> None:
     monkeypatch.setattr("app.services.request_identity.settings.environment", "production")
     monkeypatch.setattr("app.services.request_identity.settings.auth_require_bearer", False)
