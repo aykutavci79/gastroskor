@@ -19,6 +19,7 @@ import {
   type StoredSessionUser,
   writeStoredSession,
 } from '@/lib/session-secure-storage';
+import { clearStoredOrderContact } from '@/lib/order-contact-secure-storage';
 import type { UserProfile } from '@/lib/types';
 
 export type SessionUser = StoredSessionUser & {
@@ -84,6 +85,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await signOutGoogleNative().catch(() => undefined);
     await clearAllAuthTokens();
     await clearStoredSession();
+    await clearStoredOrderContact();
     setRefreshTokenState(null);
     setUser(null);
     router.replace('/(tabs)/profil');

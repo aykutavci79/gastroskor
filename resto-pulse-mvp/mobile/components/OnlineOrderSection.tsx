@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -21,11 +20,14 @@ import {
 import { ensureArray } from '@/lib/ensure-array';
 import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
+import {
+  readStoredOrderAddress,
+  readStoredOrderPhone,
+  writeStoredOrderAddress,
+  writeStoredOrderPhone,
+} from '@/lib/order-contact-secure-storage';
 import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
-
-const PHONE_STORAGE_KEY = 'gastroskor_order_phone';
-const ADDRESS_STORAGE_KEY = 'gastroskor_order_address';
 
 type LineState = {
   selected: boolean;
@@ -120,14 +122,10 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
   }, [pendingOrder, rejectedOrder, refreshActive]);
 
   useEffect(() => {
-    AsyncStorage.getItem(PHONE_STORAGE_KEY)
-      .then((value) => {
-        if (value) setPhone(value);
-      })
-      .catch(() => undefined);
-    AsyncStorage.getItem(ADDRESS_STORAGE_KEY)
-      .then((value) => {
-        if (value) setAddress(value);
+    void Promise.all([readStoredOrderPhone(), readStoredOrderAddress()])
+      .then(([storedPhone, storedAddress]) => {
+        if (storedPhone) setPhone(storedPhone);
+        if (storedAddress) setAddress(storedAddress);
       })
       .catch(() => undefined);
   }, []);
@@ -178,7 +176,6 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       await applyOrderPhoneSendOtpResult({
         result,
         phoneInput: phone,
-        storageKey: PHONE_STORAGE_KEY,
         setVerifiedPhoneE164,
         setPhoneVerified,
         setOtpSent,
@@ -211,7 +208,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
         setPhoneVerified(true);
         setOtpSent(false);
         setOtpCode('');
-        await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
+        await writeStoredOrderPhone(phone);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Dogrulama basarisiz.');
@@ -285,8 +282,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       item_count: payloadLines.length,
     });
     try {
-      await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
-      await AsyncStorage.setItem(ADDRESS_STORAGE_KEY, address.trim());
+      await writeStoredOrderPhone(phone);
+      await writeStoredOrderAddress(address);
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),

@@ -1,11 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { writeStoredOrderPhone } from '@/lib/order-contact-secure-storage';
 import type { OrderPhoneSendOtpResponse } from '@/lib/types';
 
 type ApplyAutoVerifyArgs = {
   result: OrderPhoneSendOtpResponse;
   phoneInput: string;
-  storageKey: string;
   setVerifiedPhoneE164: (value: string) => void;
   setPhoneVerified: (value: boolean) => void;
   setOtpSent: (value: boolean) => void;
@@ -17,7 +15,6 @@ type ApplyAutoVerifyArgs = {
 export async function applyOrderPhoneSendOtpResult({
   result,
   phoneInput,
-  storageKey,
   setVerifiedPhoneE164,
   setPhoneVerified,
   setOtpSent,
@@ -30,7 +27,7 @@ export async function applyOrderPhoneSendOtpResult({
     setOtpSent(false);
     setOtpCode('');
     setOtpInfo(result.info_message ?? 'Telefon dogrulandi.');
-    await AsyncStorage.setItem(storageKey, phoneInput.trim());
+    await writeStoredOrderPhone(phoneInput);
     return true;
   }
 
@@ -53,7 +50,6 @@ type AutoVerifyBypassArgs = Omit<ApplyAutoVerifyArgs, 'result'> & {
 export async function tryAutoVerifyOrderPhoneBypass({
   userEmail,
   phoneInput,
-  storageKey,
   setVerifiedPhoneE164,
   setPhoneVerified,
   setOtpSent,
@@ -69,7 +65,6 @@ export async function tryAutoVerifyOrderPhoneBypass({
     return applyOrderPhoneSendOtpResult({
       result,
       phoneInput: trimmed,
-      storageKey,
       setVerifiedPhoneE164,
       setPhoneVerified,
       setOtpSent,

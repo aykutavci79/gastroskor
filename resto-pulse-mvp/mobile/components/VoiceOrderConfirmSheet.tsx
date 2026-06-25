@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -32,6 +31,12 @@ import {
 } from '@/lib/voice-order-stt-fix';
 import { ensureGastroPlaybackReady, gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { applyOrderPhoneSendOtpResult, tryAutoVerifyOrderPhoneBypass } from '@/lib/order-phone-otp';
+import {
+  readStoredOrderAddress,
+  readStoredOrderPhone,
+  writeStoredOrderAddress,
+  writeStoredOrderPhone,
+} from '@/lib/order-contact-secure-storage';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
   formatVoiceOrderCommandSummary,
@@ -39,9 +44,6 @@ import {
   type VoiceOrderCommand,
 } from '@/lib/parse-voice-order-command';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
-
-const PHONE_STORAGE_KEY = 'gastroskor_order_phone';
-const ADDRESS_STORAGE_KEY = 'gastroskor_order_address';
 
 type Props = {
   visible: boolean;
@@ -142,8 +144,8 @@ export function VoiceOrderConfirmSheet({
 
     void (async () => {
       const [storedAddress, storedPhone] = await Promise.all([
-        AsyncStorage.getItem(ADDRESS_STORAGE_KEY).catch(() => null),
-        AsyncStorage.getItem(PHONE_STORAGE_KEY).catch(() => null),
+        readStoredOrderAddress().catch(() => null),
+        readStoredOrderPhone().catch(() => null),
       ]);
       if (cancelled) return;
       if (storedAddress) setAddress(storedAddress);
@@ -165,7 +167,6 @@ export function VoiceOrderConfirmSheet({
       await tryAutoVerifyOrderPhoneBypass({
         userEmail,
         phoneInput: phoneCandidate,
-        storageKey: PHONE_STORAGE_KEY,
         setVerifiedPhoneE164,
         setPhoneVerified,
         setOtpSent,
@@ -189,7 +190,6 @@ export function VoiceOrderConfirmSheet({
       void tryAutoVerifyOrderPhoneBypass({
         userEmail,
         phoneInput: phone,
-        storageKey: PHONE_STORAGE_KEY,
         setVerifiedPhoneE164,
         setPhoneVerified,
         setOtpSent,
@@ -254,7 +254,6 @@ export function VoiceOrderConfirmSheet({
       await applyOrderPhoneSendOtpResult({
         result,
         phoneInput: phone,
-        storageKey: PHONE_STORAGE_KEY,
         setVerifiedPhoneE164,
         setPhoneVerified,
         setOtpSent,
@@ -279,6 +278,7 @@ export function VoiceOrderConfirmSheet({
         setPhone(formatTrMobileDisplay(status.phone_e164));
         setPhoneVerified(true);
         setOtpInfo('Telefon doğrulandı.');
+        await writeStoredOrderPhone(phone);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kod doğrulanamadı.');
@@ -324,8 +324,8 @@ export function VoiceOrderConfirmSheet({
         .filter(Boolean)
         .join(' ');
 
-      await AsyncStorage.setItem(PHONE_STORAGE_KEY, phone.trim());
-      await AsyncStorage.setItem(ADDRESS_STORAGE_KEY, address.trim());
+      await writeStoredOrderPhone(phone);
+      await writeStoredOrderAddress(address);
 
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
