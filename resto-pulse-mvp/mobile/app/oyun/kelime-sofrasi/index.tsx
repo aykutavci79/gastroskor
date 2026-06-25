@@ -175,8 +175,8 @@ export default function KelimeSofrasiLobbyScreen() {
   );
 
   const hedefKelime = sofraKelimeHedefEtiket(zorluk);
-  const leaderboardPeriodKey =
-    puzzle?.id ?? sofraPuzzleKey(selectedGunId, zorluk, Math.max(0, tamamlamaSayisi - 1));
+  // Arkadaş tablosu: aynı gün+zorluk için tüm turların en iyi süresi (backend birleştirir).
+  const leaderboardPeriodKey = sofraPuzzleKey(selectedGunId, zorluk, 0);
   const sofraHazir = puzzle?.zorluk === zorluk;
   const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
   const oyunAcik = sofraHazir && !limitDoldu;

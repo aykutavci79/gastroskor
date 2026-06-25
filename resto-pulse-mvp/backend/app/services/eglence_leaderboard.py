@@ -36,6 +36,59 @@ def resolve_period_key(*, game: EglenceGame, puzzle_id: str | None) -> str:
     return activity_day_key()
 
 
+def _sofra_day_zorluk_prefix(period_key: str) -> str | None:
+    """kelime_sofrasi: `gunId:zorluk` veya `gunId:zorluk:tN` → `gunId:zorluk`."""
+    parts = period_key.split(":")
+    if len(parts) < 2:
+        return None
+    gun_id, zorluk = parts[0], parts[1]
+    if len(gun_id) != 10 or gun_id[4] != "-":
+        return None
+    if zorluk not in ("kolay", "orta", "zor"):
+        return None
+    return f"{gun_id}:{zorluk}"
+
+
+def _best_rows_per_user(
+    rows: list[UserEglenceResult],
+    game: EglenceGame,
+) -> list[UserEglenceResult]:
+    best_by_user: dict[UUID, UserEglenceResult] = {}
+    for row in rows:
+        existing = best_by_user.get(row.user_id)
+        if existing is None or _is_better(
+            game,
+            current=existing,
+            elapsed_ms=row.elapsed_ms,
+            score=row.score,
+        ):
+            best_by_user[row.user_id] = row
+    return list(best_by_user.values())
+
+
+def _fetch_sofra_rows_for_period(
+    db: Session,
+    *,
+    game: EglenceGame,
+    period_key: str,
+    user_ids: list[UUID] | None = None,
+) -> list[UserEglenceResult]:
+    prefix = _sofra_day_zorluk_prefix(period_key)
+    if prefix is None:
+        return []
+
+    query = select(UserEglenceResult).where(
+        UserEglenceResult.game == game,
+        or_(
+            UserEglenceResult.period_key == prefix,
+            UserEglenceResult.period_key.like(f"{prefix}:t%"),
+        ),
+    )
+    if user_ids is not None:
+        query = query.where(UserEglenceResult.user_id.in_(user_ids))
+    return list(db.scalars(query).all())
+
+
 def _friend_user_ids(db: Session, user_id: UUID) -> list[UUID]:
     rows = db.scalars(
         select(UserFriendship).where(
@@ -177,14 +230,21 @@ def leaderboard_for_friends(
     if not user_ids:
         return []
 
-    rows = db.scalars(
-        select(UserEglenceResult)
-        .where(
-            UserEglenceResult.game == game,
-            UserEglenceResult.period_key == period_key,
-            UserEglenceResult.user_id.in_(user_ids),
+    if game == "kelime_sofrasi" and _sofra_day_zorluk_prefix(period_key):
+        rows = _fetch_sofra_rows_for_period(
+            db, game=game, period_key=period_key, user_ids=user_ids
         )
-    ).all()
+        rows = _best_rows_per_user(rows, game)
+    else:
+        rows = list(
+            db.scalars(
+                select(UserEglenceResult).where(
+                    UserEglenceResult.game == game,
+                    UserEglenceResult.period_key == period_key,
+                    UserEglenceResult.user_id.in_(user_ids),
+                )
+            ).all()
+        )
     _sort_result_rows(rows, game)
     return _serialize_leaderboard_items(db, rows=rows, viewer_id=viewer.id)
 
@@ -197,14 +257,18 @@ def leaderboard_global(
     period_key: str,
     limit: int = 50,
 ) -> list[dict]:
-    rows = list(
-        db.scalars(
-            select(UserEglenceResult).where(
-                UserEglenceResult.game == game,
-                UserEglenceResult.period_key == period_key,
-            )
-        ).all()
-    )
+    if game == "kelime_sofrasi" and _sofra_day_zorluk_prefix(period_key):
+        rows = _fetch_sofra_rows_for_period(db, game=game, period_key=period_key)
+        rows = _best_rows_per_user(rows, game)
+    else:
+        rows = list(
+            db.scalars(
+                select(UserEglenceResult).where(
+                    UserEglenceResult.game == game,
+                    UserEglenceResult.period_key == period_key,
+                )
+            ).all()
+        )
     _sort_result_rows(rows, game)
     viewer_id = viewer.id if viewer else None
     return _serialize_leaderboard_items(db, rows=rows[:limit], viewer_id=viewer_id)
