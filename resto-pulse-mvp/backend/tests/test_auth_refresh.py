@@ -72,3 +72,20 @@ def test_refresh_endpoint_returns_new_tokens(db: Session) -> None:
     assert body["refresh_token"] != refresh_token
     assert body["expires_in"] > 0
     assert body["refresh_expires_in"] > 0
+
+
+def test_refresh_rejects_email_mismatch_with_db_user(db: Session) -> None:
+    user = User(id=uuid4(), email="new-email@example.com", google_sub="sub-1")
+    db.add(user)
+    db.commit()
+
+    refresh_token, _ = create_refresh_token(user_id=user.id, email="old-email@example.com")
+
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        response = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Oturum bulunamadi."

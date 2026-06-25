@@ -15,6 +15,30 @@ def test_min_rating_plus_suffix() -> None:
     assert "lahmacun" in parsed.query
 
 
+def test_min_rating_star_symbol() -> None:
+    parsed = parse_search_query("döner 4★")
+    assert parsed.min_rating == 4.0
+    assert parsed.query == "döner"
+
+
+def test_max_distance_meters() -> None:
+    parsed = parse_search_query("lahmacun 500 metre")
+    assert parsed.max_distance_m == 500.0
+    assert parsed.query == "lahmacun"
+
+
+def test_min_distance_meters() -> None:
+    parsed = parse_search_query("kebap en az 200 metre")
+    assert parsed.min_distance_m == 200.0
+    assert parsed.query == "kebap"
+
+
+def test_distance_only_defaults_to_restoran() -> None:
+    parsed = parse_search_query("500 metre")
+    assert parsed.max_distance_m == 500.0
+    assert parsed.query == "restoran"
+
+
 def test_voice_boilerplate_satan_restoranlari_sirala() -> None:
     parsed = parse_search_query("lahmacun satan restoranları sıralar.")
     assert parsed.query == "lahmacun"

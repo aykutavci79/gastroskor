@@ -121,14 +121,16 @@ def parse_search_query(raw: str) -> ParsedSearchQuery:
                 min_rating = value
                 removed.append(match.group(0))
 
-    for match in _MAX_DISTANCE_RE.finditer(text):
-        if _MIN_DISTANCE_RE.search(match.group(0)):
-            continue
-        max_distance_m = float(match.group("value"))
-        removed.append(match.group(0))
-
+    min_distance_spans: list[tuple[int, int]] = []
     for match in _MIN_DISTANCE_RE.finditer(text):
         min_distance_m = float(match.group("value"))
+        min_distance_spans.append(match.span())
+        removed.append(match.group(0))
+
+    for match in _MAX_DISTANCE_RE.finditer(text):
+        if any(start <= match.start() and match.end() <= end for start, end in min_distance_spans):
+            continue
+        max_distance_m = float(match.group("value"))
         removed.append(match.group(0))
 
     query = text
