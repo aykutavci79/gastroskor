@@ -79,6 +79,10 @@ def _path_requires_auth(path: str, method: str) -> bool:
             return True
     if path.startswith("/api/v1/order-phone/"):
         return True
+    if path.startswith("/api/v1/jeton/"):
+        return True
+    if path.startswith("/api/v1/foodcast/") and method in {"POST", "DELETE"}:
+        return True
     return False
 
 
