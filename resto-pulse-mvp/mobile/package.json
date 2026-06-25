@@ -87,8 +87,7 @@
     "react-native-ssl-public-key-pinning": "^1.2.6",
     "react-native-svg": "^15.12.1",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.5.1",
-    "wordsearch": "^0.1.0"
+    "react-native-worklets": "0.5.1"
   },
   "overrides": {
     "react-native": "0.81.5"

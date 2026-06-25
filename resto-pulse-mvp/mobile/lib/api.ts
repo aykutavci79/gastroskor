@@ -781,7 +781,6 @@ export async function requestSocialScan(params: {
   query: string;
   city?: string;
 }): Promise<{ data: SocialProofStatus; status: number }> {
-  await apiBootstrap;
   const response = await performRequest('/discover/social-scan', {
     method: 'POST',
     body: JSON.stringify({
@@ -804,7 +803,6 @@ export async function discoverSearch(params: {
   radius_km?: number;
   city?: string;
 }): Promise<{ data: DiscoverSearchResponse; status: number }> {
-  await apiBootstrap;
   const response = await performRequest('/discover/search', {
     method: 'POST',
     body: JSON.stringify({
