@@ -65,3 +65,33 @@ def test_before_send_scrubs_bearer_in_exception_message() -> None:
     message = scrubbed["exception"]["values"][0]["value"]
     assert SENTRY_REDACTED in message
     assert "eyJhbGci" not in message
+
+
+def test_scrub_redacts_non_email_pii_keys() -> None:
+    event = scrub_sentry_event(
+        {
+            "extra": {
+                "nickname": "decharge",
+                "full_name": "Aykut Avcı",
+                "name": "Test User",
+            }
+        }
+    )
+
+    assert event["extra"]["nickname"] == SENTRY_REDACTED
+    assert event["extra"]["full_name"] == SENTRY_REDACTED
+    assert event["extra"]["name"] == SENTRY_REDACTED
+
+
+def test_scrub_masks_emails_in_url_query_strings() -> None:
+    event = scrub_sentry_event(
+        {
+            "request": {
+                "url": "https://api.gastroskor.com.tr/social/me/friends?user_email=alice@example.com&limit=10",
+            }
+        }
+    )
+
+    url = event["request"]["url"]
+    assert "alice@example.com" not in url
+    assert "***@example.com" in url

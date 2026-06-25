@@ -65,6 +65,32 @@ describe('sentry-scrub', () => {
     assert.doesNotMatch(message, /payload\.sig/);
   });
 
+  it('redacts non-email PII keys such as nickname and full_name', () => {
+    const event = scrubSentryEvent({
+      extra: {
+        nickname: 'decharge',
+        full_name: 'Aykut Avcı',
+        name: 'Test User',
+      },
+    });
+
+    assert.equal(event.extra.nickname, SENTRY_REDACTED);
+    assert.equal(event.extra.full_name, SENTRY_REDACTED);
+    assert.equal(event.extra.name, SENTRY_REDACTED);
+  });
+
+  it('masks emails embedded in URL query strings', () => {
+    const event = scrubSentryEvent({
+      request: {
+        url: 'https://api.gastroskor.com.tr/social/me/friends?user_email=alice@example.com&limit=10',
+      },
+    });
+
+    const url = event.request.url as string;
+    assert.doesNotMatch(url, /alice@example\.com/);
+    assert.match(url, /\*\*\*@example\.com/);
+  });
+
   it('drops expo-av background prepare noise', () => {
     const beforeSend = createSentryBeforeSend();
     const dropped = beforeSend(

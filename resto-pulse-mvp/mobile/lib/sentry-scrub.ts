@@ -6,10 +6,11 @@ const SENSITIVE_KEY =
   /^(authorization|access[_-]?token|refresh[_-]?token|password|jwt|secret|api[_-]?key|id[_-]?token|bearer|cookie|set-cookie)$/i;
 
 const PII_KEY =
-  /^(email|user_email|author_email|actor_user_email|phone|order_phone|telefon|e164|full_name|nickname)$/i;
+  /^(email|user_email|author_email|actor_user_email|phone|order_phone|telefon|e164|full_name|nickname|name)$/i;
 
 const JWT_PATTERN = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
 const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._-]+/gi;
+const LOOSE_EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 
 function maskEmail(value: string): string {
   const trimmed = value.trim();
@@ -18,18 +19,23 @@ function maskEmail(value: string): string {
   return `***${trimmed.slice(at)}`;
 }
 
+function maskEmailsInText(value: string): string {
+  return value.replace(LOOSE_EMAIL_PATTERN, (match) => maskEmail(match));
+}
+
 function scrubString(value: string, keyHint?: string): string {
   if (keyHint && SENSITIVE_KEY.test(keyHint)) return SENTRY_REDACTED;
   if (keyHint && PII_KEY.test(keyHint)) {
     if (trimmedIncludesEmail(value)) return maskEmail(value);
     if (/^\+?\d[\d\s()-]{6,}$/.test(value.trim())) return SENTRY_REDACTED;
+    return SENTRY_REDACTED;
   }
   let next = value;
   if (/^Bearer\s+/i.test(next.trim())) return `Bearer ${SENTRY_REDACTED}`;
   if (JWT_PATTERN.test(next.trim())) return SENTRY_REDACTED;
   next = next.replace(BEARER_PATTERN, `Bearer ${SENTRY_REDACTED}`);
   next = next.replace(JWT_PATTERN, SENTRY_REDACTED);
-  return next;
+  return maskEmailsInText(next);
 }
 
 function trimmedIncludesEmail(value: string): boolean {
