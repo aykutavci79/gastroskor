@@ -7,7 +7,7 @@ import {
 import { sofraKelimeBuyuk, sofraKelimeEsit } from '@/lib/kelime-sofrasi/turkce-harf';
 import { mulberry32, seedFromString, shuffled } from '@/lib/mini-sudoku/rng';
 
-import { KELIME_BUL_HAVUZ } from './words';
+import { kelimeBulGenelHavuz, KELIME_BUL_YEMEK_HAVUZ } from './words';
 
 export type KelimeBulPuzzle = {
   puzzleId: string;
@@ -102,12 +102,25 @@ function tryGenerateGrid(words: string[], rand: () => number, size: number): str
   return grid.map((row) => row.map((cell) => cell ?? randomFiller(rand)));
 }
 
-function pickWords(seed: string, rand: () => number): string[] {
+function pickWords(_seed: string, rand: () => number): string[] {
   const count =
     KELIME_BUL_MIN_WORDS +
     Math.floor(rand() * (KELIME_BUL_MAX_WORDS - KELIME_BUL_MIN_WORDS + 1));
-  const pool = shuffled(KELIME_BUL_HAVUZ, rand);
-  return pool.slice(0, count);
+
+  const yemek = shuffled(KELIME_BUL_YEMEK_HAVUZ, rand)[0]!;
+  const genel = shuffled(kelimeBulGenelHavuz(), rand).filter((w) => w !== yemek);
+  const restCount = Math.max(0, count - 1);
+  const rest = genel.slice(0, restCount);
+
+  if (rest.length < restCount) {
+    const ekYemek = shuffled(
+      KELIME_BUL_YEMEK_HAVUZ.filter((w) => w !== yemek),
+      rand,
+    ).slice(0, restCount - rest.length);
+    return shuffled([yemek, ...rest, ...ekYemek], rand).slice(0, count);
+  }
+
+  return shuffled([yemek, ...rest], rand);
 }
 
 export function uretKelimeBulBulmaca(puzzleId: string): KelimeBulPuzzle {

@@ -72,6 +72,7 @@ export default function MiniSudokuOyunScreen() {
   const [puzzle, setPuzzle] = useState<MiniSudokuPuzzle | null>(null);
   const [progress, setProgress] = useState<MiniSudokuProgress | null>(null);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
+  const [focusDigit, setFocusDigit] = useState<Digit | null>(null);
   const [noteMode, setNoteMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resultModalOpen, setResultModalOpen] = useState(false);
@@ -130,8 +131,7 @@ export default function MiniSudokuOyunScreen() {
     return remainingDigitCounts(puzzle.solution, progress.values);
   }, [progress, puzzle]);
 
-  const highlightDigit =
-    selected && progress ? (progress.values[selected.row]![selected.col]! as Digit) || null : null;
+  const highlightDigit = focusDigit;
 
   const emptyCells = useMemo(() => {
     if (!progress) return SIZE * SIZE;
@@ -260,9 +260,16 @@ export default function MiniSudokuOyunScreen() {
     if (progress?.completedAt || progress?.gameOver) stopTimer();
   }, [progress?.completedAt, progress?.gameOver, stopTimer]);
 
-  const onSelect = useCallback((row: number, col: number) => {
-    setSelected({ row, col });
-  }, []);
+  const onSelect = useCallback(
+    (row: number, col: number) => {
+      setSelected({ row, col });
+      if (progress) {
+        const value = progress.values[row]![col]!;
+        setFocusDigit(value > 0 ? (value as Digit) : null);
+      }
+    },
+    [progress],
+  );
 
   const loseLife = useCallback((base: MiniSudokuProgress): MiniSudokuProgress => {
     const lives = Math.max(0, base.lives - 1);
@@ -283,9 +290,12 @@ export default function MiniSudokuOyunScreen() {
       if (noteMode) {
         const before = progress;
         const notes = toggleNote(progress.notes, row, col, digit);
+        setFocusDigit(digit);
         applyProgress(before, { ...progress, notes });
         return;
       }
+
+      setFocusDigit(digit);
 
       const before = progress;
       const values = cloneGrid(progress.values);
@@ -381,6 +391,7 @@ export default function MiniSudokuOyunScreen() {
           values={progress.values}
           notes={progress.notes}
           selected={selected}
+          focusDigit={focusDigit}
           onSelect={onSelect}
         />
 

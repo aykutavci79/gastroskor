@@ -102,14 +102,14 @@ export function eglenceBannerTheme(gameId: EglenceGameId): EglenceBannerTheme {
       };
     case 'kelime-bul':
       return {
-        borderColor: '#7DD3FC',
-        titleColor: '#0C4A6E',
-        subtitleColor: '#0369A1',
-        statusColor: '#0284C7',
-        statusMutedColor: '#64748B',
+        borderColor: '#FFB347',
+        titleColor: '#9A3412',
+        subtitleColor: '#C2410C',
+        statusColor: '#EA580C',
+        statusMutedColor: '#78716C',
         iconBg: 'rgba(255,255,255,0.9)',
-        iconBorder: '#7DD3FC',
-        iconColor: '#38BDF8',
+        iconBorder: '#FFB347',
+        iconColor: '#FF8C42',
       };
   }
 }
@@ -406,43 +406,106 @@ function GunlukKelimeBanner() {
 }
 
 function KelimeBulBanner() {
-  const letters = [
-    { ch: 'K', top: '14%', left: '54%' },
-    { ch: 'E', top: '14%', left: '62%' },
-    { ch: 'B', top: '14%', left: '70%' },
-    { ch: 'A', top: '14%', left: '78%' },
-    { ch: 'P', top: '14%', left: '86%' },
-    { ch: 'L', top: '28%', left: '58%', highlight: true },
-    { ch: 'A', top: '28%', left: '66%', highlight: true },
-    { ch: 'H', top: '28%', left: '74%', highlight: true },
-    { ch: 'M', top: '42%', left: '64%' },
-    { ch: 'A', top: '42%', left: '72%' },
-    { ch: 'C', top: '56%', left: '68%' },
-    { ch: 'U', top: '56%', left: '76%' },
-    { ch: 'N', top: '56%', left: '84%' },
-  ] as const;
+  const cell = 11;
+  const cols = 7;
+  const rows = 7;
+  const grid = [
+    'SOLAKRM',
+    'BPIZZAN',
+    'CDETGHI',
+    'FJKNOPQ',
+    'RSTUVWX',
+    'YZABCDE',
+    'FGHIJKL',
+  ];
+  /** SOLAK (yatay) + PIZZA (çapraz) — açık turuncu vurgu */
+  const highlightKeys = new Set([
+    '0,0',
+    '0,1',
+    '0,2',
+    '0,3',
+    '0,4',
+    '1,1',
+    '1,2',
+    '1,3',
+    '1,4',
+    '1,5',
+  ]);
+  const highlightBg = 'rgba(255, 171, 96, 0.58)';
+  const highlightBorder = '#FFB347';
+  const gridBg = '#FFF4EB';
+  const lineColor = 'rgba(154, 52, 18, 0.28)';
+  const letterColor = '#7C2D12';
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#E8F4FC' }]}>
-      {letters.map((item) => (
-        <View
-          key={`${item.ch}-${item.top}-${item.left}`}
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: gridBg }]}>
+      <View
+        style={{
+          position: 'absolute',
+          top: '16%',
+          left: '56%',
+          transform: [{ rotate: '-4deg' }],
+          opacity: 0.92,
+          borderWidth: 1.5,
+          borderColor: highlightBorder,
+          borderRadius: 4,
+          overflow: 'hidden',
+          shadowColor: '#FF8C42',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.18,
+          shadowRadius: 4,
+        }}>
+        {grid.slice(0, rows).map((rowStr, row) => (
+          <View key={row} style={{ flexDirection: 'row' }}>
+            {rowStr.slice(0, cols).split('').map((ch, col) => {
+              const highlighted = highlightKeys.has(`${row},${col}`);
+              return (
+                <View
+                  key={col}
+                  style={{
+                    width: cell,
+                    height: cell,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: highlighted ? highlightBg : 'rgba(255,255,255,0.82)',
+                    borderRightWidth: col === cols - 1 ? 0 : StyleSheet.hairlineWidth,
+                    borderBottomWidth: row === rows - 1 ? 0 : StyleSheet.hairlineWidth,
+                    borderColor: lineColor,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 7,
+                      fontWeight: highlighted ? '900' : '700',
+                      color: highlighted ? '#9A3412' : letterColor,
+                    }}>
+                    {ch}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+      {[
+        { word: 'SOLAK', top: '8%', left: '72%', rotate: '8deg', opacity: 0.38 },
+        { word: 'KELİME', top: '68%', left: '58%', rotate: '-6deg', opacity: 0.32 },
+        { word: 'AV', top: '78%', left: '80%', rotate: '12deg', opacity: 0.28 },
+      ].map((item) => (
+        <Text
+          key={item.word}
           style={{
             position: 'absolute',
-            top: item.top,
-            left: item.left,
-            width: 24,
-            height: 24,
-            borderRadius: 4,
-            backgroundColor: 'highlight' in item && item.highlight ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.85)',
-            borderWidth: 1,
-            borderColor: '#38BDF8',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0.9,
+            top: item.top as DimensionValue,
+            left: item.left as DimensionValue,
+            fontSize: 11,
+            fontWeight: '800',
+            color: '#FF8C42',
+            opacity: item.opacity,
+            transform: [{ rotate: item.rotate }],
+            letterSpacing: 0.4,
           }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: '#0C4A6E' }}>{item.ch}</Text>
-        </View>
+          {item.word}
+        </Text>
       ))}
     </View>
   );

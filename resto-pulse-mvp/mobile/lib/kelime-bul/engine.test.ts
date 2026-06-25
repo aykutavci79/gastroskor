@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { eslesenKelime, uretKelimeBulBulmaca, yolMetni } from './engine';
+import { KELIME_BUL_YEMEK_RAW } from './words';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 const SCAN_DIRS = [
@@ -48,6 +49,15 @@ describe('kelime-bul engine', () => {
   it('eslesenKelime accepts reverse selection', () => {
     const match = eslesenKelime('PABEK', ['KEBAP']);
     assert.equal(match, 'KEBAP');
+  });
+
+  it('pickWords includes one food-themed word when general pool available', () => {
+    const puzzle = uretKelimeBulBulmaca('test-food-mix-789');
+    const yemekSet = new Set(KELIME_BUL_YEMEK_RAW.map(sofraKelimeBuyuk));
+    assert.ok(
+      puzzle.words.some((w) => yemekSet.has(sofraKelimeBuyuk(w))),
+      'expected at least one food word in puzzle',
+    );
   });
 
   it('every generated word is readable from grid path', () => {

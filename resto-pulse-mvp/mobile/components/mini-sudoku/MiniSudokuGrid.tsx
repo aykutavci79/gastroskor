@@ -11,12 +11,15 @@ type Props = {
   values: Grid;
   notes: Digit[][][];
   selected: { row: number; col: number } | null;
+  focusDigit?: Digit | null;
   onSelect: (row: number, col: number) => void;
 };
 
-export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Props) {
+export function MiniSudokuGrid({ givens, values, notes, selected, focusDigit, onSelect }: Props) {
   const { width } = useWindowDimensions();
   const selectedValue = selected ? values[selected.row]![selected.col]! : 0;
+  const activeDigit =
+    focusDigit && focusDigit > 0 ? focusDigit : selectedValue > 0 ? selectedValue : 0;
 
   const cellSize = useMemo(() => {
     const budget = Math.min(width - 32, 380);
@@ -58,6 +61,7 @@ export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Pr
           borderBottomColor: SUDOKU_BOARD_COLORS.lineThick,
         },
         cellSelected: { backgroundColor: SUDOKU_BOARD_COLORS.cellSelected },
+        cellPeer: { backgroundColor: SUDOKU_BOARD_COLORS.cellPeer },
         cellMatch: { backgroundColor: SUDOKU_BOARD_COLORS.cellMatch },
         cellConflict: { backgroundColor: SUDOKU_BOARD_COLORS.cellConflict },
         value: {
@@ -90,8 +94,17 @@ export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Pr
             const fixed = isGiven(givens, row, col);
             const conflict = !fixed && value > 0 && hasConflict(values, row, col);
             const isSelected = selected?.row === row && selected?.col === col;
-            const isMatch = selectedValue > 0 && value === selectedValue && !isSelected;
+            const isPeer =
+              selected != null &&
+              !isSelected &&
+              (selected.row === row || selected.col === col);
+            const isSameDigit = activeDigit > 0 && value === activeDigit;
             const cellNotes = notes[row]![col]!;
+
+            let bgStyle = null;
+            if (isSelected) bgStyle = styles.cellSelected;
+            else if (isSameDigit) bgStyle = styles.cellMatch;
+            else if (isPeer) bgStyle = styles.cellPeer;
 
             return (
               <Pressable
@@ -101,7 +114,7 @@ export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Pr
                   styles.cell,
                   col % BOX_COLS === BOX_COLS - 1 && col < SIZE - 1 ? styles.cellThickRight : null,
                   row % BOX_ROWS === BOX_ROWS - 1 && row < SIZE - 1 ? styles.cellThickBottom : null,
-                  isSelected ? styles.cellSelected : isMatch ? styles.cellMatch : null,
+                  bgStyle,
                   conflict ? styles.cellConflict : null,
                 ]}>
                 {value > 0 ? (
@@ -109,7 +122,7 @@ export function MiniSudokuGrid({ givens, values, notes, selected, onSelect }: Pr
                     style={[
                       styles.value,
                       fixed ? styles.given : styles.user,
-                      isMatch ? styles.match : null,
+                      isSameDigit ? styles.match : null,
                     ]}>
                     {value}
                   </Text>
