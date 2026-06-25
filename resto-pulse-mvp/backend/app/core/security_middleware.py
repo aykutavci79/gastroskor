@@ -16,6 +16,7 @@ from app.core.rate_limit import (
     user_account_deletion_rate_limit_rule,
     user_data_export_rate_limit_rule,
     user_global_rate_limit_rule,
+    user_order_phone_send_rate_limit_rule,
 )
 from app.services.access_token import decode_access_token
 from app.services.active_user import ACCOUNT_DELETED_DETAIL, user_account_is_deleted
@@ -138,6 +139,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Veri indirme limiti asildi. Lutfen bir saat sonra tekrar deneyin."},
+                )
+        if auth is not None and path == "/api/v1/order-phone/send-otp" and method == "POST":
+            otp_rule, otp_key = user_order_phone_send_rate_limit_rule(str(auth.user_id))
+            if not rate_limiter.allow(otp_key, otp_rule):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "SMS kodu istegi limiti asildi. Lutfen bir saat sonra tekrar deneyin."},
                 )
         if auth is not None:
             user_rule, user_key = user_global_rate_limit_rule(str(auth.user_id))

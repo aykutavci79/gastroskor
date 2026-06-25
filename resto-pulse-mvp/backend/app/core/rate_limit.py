@@ -153,6 +153,14 @@ def path_rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLi
         return RateLimitRule(limit=60, window_sec=60), rate_limit_key("search", client_ip)
     if path == "/api/v1/voice/transcribe" and method == "POST":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("voice", client_ip)
+    if path == "/api/v1/order-phone/send-otp" and method == "POST":
+        return RateLimitRule(limit=5, window_sec=3600), rate_limit_key("order-phone-send", client_ip)
+    if path == "/api/v1/order-phone/verify-otp" and method == "POST":
+        return RateLimitRule(limit=30, window_sec=3600), rate_limit_key("order-phone-verify", client_ip)
+    if path.endswith("/claim/send-otp") and method == "POST":
+        return RateLimitRule(limit=5, window_sec=3600), rate_limit_key("claim-otp-send", client_ip)
+    if path.endswith("/claim/verify-otp") and method == "POST":
+        return RateLimitRule(limit=30, window_sec=3600), rate_limit_key("claim-otp-verify", client_ip)
     if path == "/api/v1/jeton/referral/click" and method == "POST":
         return RateLimitRule(limit=10, window_sec=3600), rate_limit_key("referral-click", client_ip)
     if path == "/api/v1/eglence/kelime-sofrasi/attempts" and method == "POST":
@@ -184,11 +192,20 @@ def user_data_export_rate_limit_rule(user_id: str) -> tuple[RateLimitRule, str]:
     return RateLimitRule(limit=5, window_sec=3600), rate_limit_key("data-export", user_id)
 
 
+def user_order_phone_send_rate_limit_rule(user_id: str) -> tuple[RateLimitRule, str]:
+    """POST /order-phone/send-otp — SMS maliyeti; kullanici bazli."""
+    return RateLimitRule(limit=5, window_sec=3600), rate_limit_key("order-phone-send-user", user_id)
+
+
 PATH_RATE_LIMIT_RULES: tuple[tuple[str, str, int, int, str], ...] = (
     ("/api/v1/auth/*", "ANY", 20, 60, "auth"),
     ("/api/v1/users/sync", "ANY", 30, 60, "sync"),
     ("/api/v1/live/places/search*", "ANY", 60, 60, "search"),
     ("/api/v1/voice/transcribe", "POST", 30, 60, "voice"),
+    ("/api/v1/order-phone/send-otp", "POST", 5, 3600, "order-phone-send"),
+    ("/api/v1/order-phone/verify-otp", "POST", 30, 3600, "order-phone-verify"),
+    ("/api/v1/panel/claim/send-otp", "POST", 5, 3600, "claim-otp-send"),
+    ("/api/v1/panel/claim/verify-otp", "POST", 30, 3600, "claim-otp-verify"),
     ("/api/v1/jeton/referral/click", "POST", 10, 3600, "referral-click"),
     ("/api/v1/eglence/kelime-sofrasi/attempts", "POST", 120, 60, "sofra-attempt"),
     ("/api/v1/eglence/kelime-sofrasi/puzzle", "GET", 180, 60, "sofra-puzzle"),
