@@ -69,7 +69,12 @@ from app.services.google_business_service import (
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
-from app.services.panel_admin import admin_grant_panel_access, assert_admin_grant_allowed, is_panel_admin_email, require_panel_admin_access
+from app.services.panel_admin import (
+    admin_grant_panel_access,
+    assert_admin_grant_allowed,
+    require_panel_admin_access,
+    require_panel_admin_jwt,
+)
 from app.services.panel_reset import (
     load_ownership_by_place_id,
     load_ownership_for_reset,
@@ -372,9 +377,9 @@ def panel_pricing_catalog():
 
 
 @panel_router.get("/admin/status")
-def panel_admin_status(user_email: str = Query(...)):
+def panel_admin_status(_admin: object = Depends(require_panel_admin_jwt)):
     return {
-        "is_panel_admin": is_panel_admin_email(user_email),
+        "is_panel_admin": True,
         "admin_emails_configured": bool((settings.panel_admin_emails or "").strip()),
         "panel_admin_secret_configured": bool((settings.panel_admin_secret or "").strip()),
         "hint": (
