@@ -36,3 +36,8 @@ def assert_production_secrets(settings: Settings) -> None:
 
     if _secret_invalid(settings.otp_pepper, frozenset({"", "dev-otp-pepper-change-me"})):
         raise RuntimeError("OTP_PEPPER production ortaminda ayarlanmali (bos veya placeholder olamaz).")
+
+    if (settings.order_phone_test_bypass or "").strip():
+        raise RuntimeError(
+            "ORDER_PHONE_TEST_BYPASS production ortaminda bos olmali (SMS test bypass canlida kapali olmali)."
+        )

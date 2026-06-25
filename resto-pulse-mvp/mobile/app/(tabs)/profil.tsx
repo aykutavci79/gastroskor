@@ -1,9 +1,18 @@
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File, Paths } from 'expo-file-system';
 import { Link } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  Platform,
+} from 'react-native';
 
 import { AccountDeletionFlow } from '@/components/AccountDeletionFlow';
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
@@ -19,10 +28,45 @@ import { LEGAL_URLS } from '@/constants/legal';
 import type { AuthorNameDisplayMode } from '@/lib/display-name';
 import { REVIEW_NAME_DISPLAY_STORAGE_KEY } from '@/lib/display-name';
 import { syncUser, updateGourmetProfile } from '@/lib/api';
-import { getApiBase } from '@/lib/api-base';
+import { getApiBase, getApiV1Base } from '@/lib/api-base';
+import { notifyAuthFailure } from '@/lib/auth-session-events';
+import { authHeaders, ensureAccessToken, refreshAuthTokens } from '@/lib/auth-token';
+import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
+import { formatApiError, httpErrorMessage } from '@/lib/format-api-error';
 import { getGoogleSignInSetupHint, isExpoGo } from '@/lib/google-signin-config';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
+
+async function fetchMyDataExport(): Promise<Record<string, unknown>> {
+  await ensureSslPinningReady();
+  await ensureAccessToken();
+
+  const path = '/users/me/export';
+  const request = () =>
+    fetch(`${getApiV1Base()}${path}`, {
+      method: 'GET',
+      headers: authHeaders(),
+      signal: createFetchTimeoutSignal(60_000),
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    const refreshed = await refreshAuthTokens();
+    if (refreshed) {
+      response = await request();
+    } else {
+      await notifyAuthFailure();
+    }
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(httpErrorMessage(response.status, text, 'Veri indirme'));
+  }
+
+  return (await response.json()) as Record<string, unknown>;
+}
 
 export default function ProfilScreen() {
   const { user, loading, signOut, clearLocalSession } = useSession();
@@ -30,6 +74,18 @@ export default function ProfilScreen() {
   const [deleteFlowOpen, setDeleteFlowOpen] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [nameDisplay, setNameDisplay] = useState<AuthorNameDisplayMode>('full');
+  const [exportBusy, setExportBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(REVIEW_NAME_DISPLAY_STORAGE_KEY)
@@ -66,6 +122,39 @@ export default function ProfilScreen() {
   const handleGoogleError = useCallback((message: string) => {
     setError(message);
   }, []);
+
+  const handleExportData = useCallback(async () => {
+    if (exportBusy) return;
+    setExportBusy(true);
+    try {
+      const payload = await fetchMyDataExport();
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const file = new File(Paths.cache, `gastroskor-export-${stamp}.json`);
+      if (file.exists) {
+        file.delete();
+      }
+      file.create({ overwrite: true });
+      file.write(JSON.stringify(payload, null, 2));
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        showToast('Paylasim bu cihazda kullanilamiyor. Dosya uygulama onbelleginde kaydedildi.');
+        return;
+      }
+
+      const shareUri =
+        Platform.OS === 'android' && file.contentUri ? file.contentUri : file.uri;
+      await Sharing.shareAsync(shareUri, {
+        mimeType: 'application/json',
+        UTI: 'public.json',
+        dialogTitle: 'GastroSkor veri export',
+      });
+    } catch (err) {
+      showToast(formatApiError(err, 'Veriler indirilemedi'));
+    } finally {
+      setExportBusy(false);
+    }
+  }, [exportBusy, showToast]);
 
   return (
     <Screen>
@@ -185,6 +274,25 @@ export default function ProfilScreen() {
       </View>
 
       {user ? (
+        <View style={styles.privacyExportCard}>
+          <Text style={styles.privacyTitle}>KVKK verilerin</Text>
+          <Text style={styles.muted}>
+            Profil, siparis, yorum ve cuzdan verilerini JSON olarak indirip paylasabilirsin.
+          </Text>
+          <Pressable
+            style={[styles.btnOutline, exportBusy && styles.btnOutlineDisabled]}
+            disabled={exportBusy}
+            onPress={() => void handleExportData()}>
+            {exportBusy ? (
+              <ActivityIndicator color={GastroColors.muted} />
+            ) : (
+              <Text style={styles.btnOutlineText}>Verilerimi indir</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
+
+      {user ? (
         <View style={styles.dangerZone}>
           <Text style={styles.dangerTitle}>Tehlikeli bolge</Text>
           <Text style={styles.dangerSub}>
@@ -201,6 +309,12 @@ export default function ProfilScreen() {
         onClose={() => setDeleteFlowOpen(false)}
         onDeleted={clearLocalSession}
       />
+
+      {toast ? (
+        <View style={styles.toast} pointerEvents="none">
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -240,6 +354,9 @@ const styles = StyleSheet.create({
     ...GastroStyles.btnOutline,
     marginTop: 8,
   },
+  btnOutlineDisabled: {
+    opacity: 0.6,
+  },
   btnOutlineText: { color: GastroColors.muted },
   sectionTitle: { color: GastroColors.text, fontSize: 16, fontWeight: '800' },
   legal: {
@@ -259,6 +376,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   privacyTitle: { color: GastroColors.gold, fontSize: 16, fontWeight: '800' },
+  privacyExportCard: {
+    marginTop: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: GastroColors.border,
+    backgroundColor: GastroColors.panel,
+    padding: 16,
+    gap: 10,
+  },
   about: {
     marginTop: 16,
     borderRadius: 16,
@@ -311,4 +437,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
   },
   dangerBtnText: { color: GastroColors.bad, fontSize: 14, fontWeight: '800' },
+  toast: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GastroColors.bad,
+    backgroundColor: 'rgba(30, 10, 12, 0.95)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  toastText: { color: GastroColors.text, fontSize: 13, lineHeight: 18, textAlign: 'center' },
 });
