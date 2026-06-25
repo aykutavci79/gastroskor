@@ -3,10 +3,15 @@ import { describe, it } from 'node:test';
 
 import {
   autoSolveFullyRevealedWordIds,
+  buildSofraRevealedCellKeys,
+  hucreAcikMi,
+  ipucuHakkiKaldi,
   isWordFullyRevealed,
+  kelimeCarktanOlusur,
   partialOfUnfoundLongerTarget,
   sameAxisAlignedSubstringOfUnfoundLonger,
   sameAxisSubstringSpoiler,
+  sofraMaxIpucu,
 } from './engine.ts';
 import type { SofraGridCell, SofraPlacedWord, SofraPuzzle } from './types.ts';
 
@@ -91,6 +96,20 @@ describe('sameAxisSubstringSpoiler', () => {
   });
 });
 
+describe('kelimeCarktanOlusur', () => {
+  it('seçilen path harfleri kelimeyi sırayla ve tekrar kullanmadan oluşturur', () => {
+    const wheel = ['K', 'A', 'L', 'E', 'M'];
+    assert.equal(kelimeCarktanOlusur('kal', wheel, [0, 1, 2]), true);
+    assert.equal(kelimeCarktanOlusur('kal', wheel, [0, 0, 2]), false);
+    assert.equal(kelimeCarktanOlusur('kal', wheel, [0, 1]), false);
+  });
+
+  it('path doğru olsa bile yanlış harf sırasını kabul etmez', () => {
+    const wheel = ['K', 'A', 'L', 'E', 'M'];
+    assert.equal(kelimeCarktanOlusur('kal', wheel, [0, 2, 1]), false);
+  });
+});
+
 function cell(row: number, col: number, letter: string, wordIds: string[]): SofraGridCell {
   return { row, col, letter, wordIds };
 }
@@ -142,11 +161,55 @@ describe('isWordFullyRevealed', () => {
   });
 });
 
+describe('buildSofraRevealedCellKeys', () => {
+  it('uzun kelime bulunmadan sonek hedefin hücrelerini açmaz', () => {
+    const revealed = buildSofraRevealedCellKeys(BALIK_KAL_SCENARIO, ['kal'], []);
+    assert.equal(revealed.has('1,2'), false);
+    assert.equal(revealed.has('2,2'), false);
+    assert.equal(revealed.has('3,2'), false);
+  });
+
+  it('ipucu hücresi spoiler bloklansa bile açık kalır', () => {
+    const revealed = buildSofraRevealedCellKeys(BALIK_KAL_SCENARIO, ['kal'], ['1,2']);
+    assert.equal(revealed.has('1,2'), true);
+    assert.equal(revealed.has('2,2'), false);
+  });
+});
+
+describe('hucreAcikMi', () => {
+  it('aynı eksendeki uzun kelime bulunmadan kısa hedefin hücresini kapalı tutar', () => {
+    const kCell = cell(1, 2, 'K', ['kal', 'ekal']);
+    assert.equal(hucreAcikMi(kCell, ['kal'], [], BALIK_KAL_SCENARIO), false);
+    assert.equal(hucreAcikMi(kCell, ['kal'], ['1,2'], BALIK_KAL_SCENARIO), true);
+  });
+});
+
 describe('autoSolveFullyRevealedWordIds', () => {
   it('BALIK bulunmuş + 2 ipucu — KAL otomatik çözülmez (L kesişimi sayılmaz)', () => {
     const { grid, words } = balikKalCrossPuzzle();
     const puzzle = { grid, words } as SofraPuzzle;
     const autoIds = autoSolveFullyRevealedWordIds(puzzle, ['balik'], ['1,2', '2,2']);
     assert.deepEqual(autoIds, []);
+  });
+
+  it('tüm hücreleri ipucuyla açılan kelime otomatik çözülür', () => {
+    const { grid, words } = balikKalCrossPuzzle();
+    const puzzle = { grid, words } as SofraPuzzle;
+    const autoIds = autoSolveFullyRevealedWordIds(puzzle, ['balik'], ['1,2', '2,2', '3,2']);
+    assert.deepEqual(autoIds, ['kal']);
+  });
+});
+
+describe('ipucu hakları', () => {
+  it('bonus kelime eşiğine göre maksimum ipucu hakkını artırır', () => {
+    assert.equal(sofraMaxIpucu(0), 8);
+    assert.equal(sofraMaxIpucu(2), 8);
+    assert.equal(sofraMaxIpucu(3), 9);
+  });
+
+  it('kullanılan ipucu sayısı limite ulaştığında yeni ipucu vermez', () => {
+    assert.equal(ipucuHakkiKaldi(7, 0), true);
+    assert.equal(ipucuHakkiKaldi(8, 0), false);
+    assert.equal(ipucuHakkiKaldi(8, 3), true);
   });
 });

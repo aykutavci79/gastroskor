@@ -29,6 +29,7 @@
     "test:sentry-scrub": "node --experimental-strip-types --test ./lib/sentry-scrub.test.ts",
     "test:voice-prepare": "node --experimental-strip-types --test ./lib/voice-prepare-guard.test.ts",
     "test:sofra-engine": "npx tsx --test ./lib/kelime-sofrasi/engine.test.ts",
+    "test:gunluk-kelime": "npx tsx --test ./lib/gunluk-kelime/engine.test.ts",
     "generate:sofra-bank": "npx tsx scripts/generate-sofra-bank.ts",
     "postinstall": "node ./scripts/prune-nested-react-native.js",
     "build:android:prod:safe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-release-preflight.ps1 -AndroidOnly -Apply; powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/eas-build-prod.ps1 -Platform android",
