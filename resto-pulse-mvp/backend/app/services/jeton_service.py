@@ -177,14 +177,17 @@ def get_hub_task_earn_counts(db: Session, *, user_id: UUID) -> dict[str, int]:
 
 def try_earn_review_submitted(db: Session, *, user_id: UUID, review_id: UUID) -> EarnResult:
     """GS yorumu gönderildiğinde +5 jeton (günde 1, yorum başına tek)."""
+    today = istanbul_today()
     today_count = count_daily_earn_by_source_prefix(
-        db, user_id=user_id, key_prefix="review_earn:"
+        db, user_id=user_id, key_prefix="review_earn:", earn_date=today
     )
     if today_count >= JETON_REVIEW_DAILY_LIMIT:
         balance = get_wallet_balance(db, user_id=user_id)
         return EarnResult(granted=False, balance=balance, reason="review_daily_limit")
 
-    key = f"review_earn:{review_id}"
+    # The daily cap is one review reward. Use a per-user/day key so concurrent
+    # different review submissions race on the same unique constraint.
+    key = f"review_earn:{user_id}:{today.isoformat()}"
     entry = _post_ledger_entry(
         db,
         user_id=user_id,
@@ -198,7 +201,7 @@ def try_earn_review_submitted(db: Session, *, user_id: UUID, review_id: UUID) ->
         return EarnResult(granted=True, amount=JETON_REVIEW_AMOUNT, balance=balance)
     if entry and entry.status == JetonLedgerStatus.rejected:
         return EarnResult(granted=False, balance=balance, reason="daily_cap")
-    return EarnResult(granted=False, balance=balance, reason="already_rewarded")
+    return EarnResult(granted=False, balance=balance, reason="review_daily_limit")
 
 
 def claim_daily_login(db: Session, *, user_id: UUID) -> EarnResult:

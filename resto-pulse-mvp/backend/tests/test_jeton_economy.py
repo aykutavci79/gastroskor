@@ -104,6 +104,42 @@ def test_review_daily_limit_blocks_second_earn():
     assert result.reason == "review_daily_limit"
 
 
+def test_review_daily_limit_uses_user_day_idempotency(monkeypatch):
+    from app.models.entities import JetonLedgerStatus
+    from app.services import jeton_service
+
+    user_id = uuid4()
+    today = jeton_service.istanbul_today()
+    keys: list[str] = []
+
+    monkeypatch.setattr(jeton_service, "count_daily_earn_by_source_prefix", lambda *_a, **_k: 0)
+    monkeypatch.setattr(jeton_service, "get_wallet_balance", lambda *_a, **_k: 5)
+
+    def fake_post_ledger_entry(*_args, **kwargs):
+        keys.append(kwargs["idempotency_key"])
+        if len(keys) == 1:
+            return SimpleNamespace(status=JetonLedgerStatus.posted)
+        return None
+
+    monkeypatch.setattr(jeton_service, "_post_ledger_entry", fake_post_ledger_entry)
+
+    first = jeton_service.try_earn_review_submitted(
+        SimpleNamespace(),  # type: ignore[arg-type]
+        user_id=user_id,
+        review_id=uuid4(),
+    )
+    second = jeton_service.try_earn_review_submitted(
+        SimpleNamespace(),  # type: ignore[arg-type]
+        user_id=user_id,
+        review_id=uuid4(),
+    )
+
+    assert first.granted is True
+    assert second.granted is False
+    assert second.reason == "review_daily_limit"
+    assert keys == [f"review_earn:{user_id}:{today.isoformat()}"] * 2
+
+
 def test_spend_kelime_bul_free_play():
     from app.services.jeton_service import spend_game_play
 
