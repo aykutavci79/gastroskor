@@ -20,14 +20,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ detail: 'Bu sayfa sadece panel admin hesaplari icindir.' }, { status: 403 });
   }
 
-  const secret = process.env.PANEL_ADMIN_SECRET?.trim();
-  if (!secret) {
-    return NextResponse.json(
-      { detail: 'PANEL_ADMIN_SECRET tanimli degil (Vercel). KPI ozeti icin gerekli.' },
-      { status: 503 },
-    );
-  }
-
   const authHeaders = await backendAuthHeadersFromSession();
   if (!authHeaders.Authorization) {
     return NextResponse.json(
@@ -40,10 +32,7 @@ export async function GET(request: Request) {
   const days = Math.min(365, Math.max(1, Number(url.searchParams.get('days') ?? '30') || 30));
 
   const response = await fetch(`${API_BASE}/api/v1/metrics/admin/summary?days=${days}`, {
-    headers: {
-      'X-Panel-Admin-Secret': secret,
-      ...authHeaders,
-    },
+    headers: authHeaders,
     cache: 'no-store',
   });
 

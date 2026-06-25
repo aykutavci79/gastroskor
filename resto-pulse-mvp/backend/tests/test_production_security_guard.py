@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.core.production_guard import assert_production_secrets
-from app.services.panel_admin import assert_admin_grant_allowed, require_panel_admin_access
+from app.services.panel_admin import assert_admin_grant_allowed, require_panel_admin_access, require_panel_admin_jwt
 from app.services.request_identity import RequestAuth, auth_require_bearer, set_request_auth
 from uuid import uuid4
 
@@ -93,4 +93,12 @@ def test_require_panel_admin_accepts_jwt_admin_and_secret(monkeypatch) -> None:
     monkeypatch.setattr("app.services.panel_admin.settings.panel_admin_emails", "admin@example.com")
     set_request_auth(RequestAuth(user_id=uuid4(), email="admin@example.com"))
     auth = require_panel_admin_access(secret_header="prod-panel-secret")
+    assert auth.email == "admin@example.com"
+
+
+def test_require_panel_admin_jwt_accepts_admin_without_secret_header(monkeypatch) -> None:
+    monkeypatch.setattr("app.services.panel_admin.settings.panel_admin_secret", "prod-panel-secret")
+    monkeypatch.setattr("app.services.panel_admin.settings.panel_admin_emails", "admin@example.com")
+    set_request_auth(RequestAuth(user_id=uuid4(), email="admin@example.com"))
+    auth = require_panel_admin_jwt()
     assert auth.email == "admin@example.com"

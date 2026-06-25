@@ -71,6 +71,20 @@ def require_panel_admin_access(*, secret_header: str | None) -> RequestAuth:
     return auth
 
 
+def require_panel_admin_jwt() -> RequestAuth:
+    """KPI/metrics gibi web panel okuma uclari — JWT + Railway PANEL_ADMIN_EMAILS yeterli."""
+    auth = require_request_auth()
+    if not is_panel_admin_email(auth.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Admin yetkisi yok. Railway PANEL_ADMIN_EMAILS icinde "
+                f"{auth.email.strip().lower()} olmali."
+            ),
+        )
+    return auth
+
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 

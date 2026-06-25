@@ -20,14 +20,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ detail: 'Bu sayfa sadece panel admin hesaplari icindir.' }, { status: 403 });
   }
 
-  const secret = process.env.PANEL_ADMIN_SECRET?.trim();
-  if (!secret) {
-    return NextResponse.json(
-      { detail: 'PANEL_ADMIN_SECRET tanimli degil (Vercel). Place catalog ozeti icin gerekli.' },
-      { status: 503 },
-    );
-  }
-
   const authHeaders = await backendAuthHeadersFromSession();
   if (!authHeaders.Authorization) {
     return NextResponse.json(
@@ -47,10 +39,7 @@ export async function GET(request: Request) {
   const response = await fetch(
     `${API_BASE}/api/v1/metrics/admin/place-catalog?recent_limit=${recentLimit}&top_queries_limit=${topQueriesLimit}&days=${days}`,
     {
-      headers: {
-        'X-Panel-Admin-Secret': secret,
-        ...authHeaders,
-      },
+      headers: authHeaders,
       cache: 'no-store',
     },
   );

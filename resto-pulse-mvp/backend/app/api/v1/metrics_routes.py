@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.services.panel_admin import require_panel_admin_access
+from app.services.panel_admin import require_panel_admin_jwt
 from app.db.session import get_db
 from app.schemas.app_metrics import AppMetricsSummaryResponse, AppUsageEventCreate
 from app.schemas.google_place_catalog import PlaceCatalogStatsResponse
@@ -11,10 +11,6 @@ from app.services.app_metrics import ALLOWED_CLIENT_EVENTS, build_metrics_summar
 from app.services.google_place_catalog import build_catalog_stats
 
 metrics_router = APIRouter(prefix="/metrics", tags=["metrics"])
-
-
-def require_admin(secret: str | None) -> None:
-    require_panel_admin_access(secret_header=secret)
 
 
 @metrics_router.post("/events", status_code=status.HTTP_201_CREATED)
@@ -48,9 +44,8 @@ def ingest_app_usage_event(payload: AppUsageEventCreate, db: Session = Depends(g
 def admin_metrics_summary(
     days: int = Query(default=30, ge=1, le=365),
     db: Session = Depends(get_db),
-    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+    _admin: object = Depends(require_panel_admin_jwt),
 ):
-    require_admin(x_panel_admin_secret)
     return build_metrics_summary(db, days=days)
 
 
@@ -60,9 +55,8 @@ def admin_place_catalog_stats(
     top_queries_limit: int = Query(default=10, ge=1, le=30),
     days: int = Query(default=30, ge=1, le=365, description="Arama performansi penceresi (gun)"),
     db: Session = Depends(get_db),
-    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+    _admin: object = Depends(require_panel_admin_jwt),
 ):
-    require_admin(x_panel_admin_secret)
     return build_catalog_stats(
         db,
         recent_limit=recent_limit,
