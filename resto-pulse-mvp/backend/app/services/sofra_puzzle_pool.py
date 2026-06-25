@@ -487,7 +487,11 @@ def _find_fallback_source(
     for delta in range(1, max_days + 1):
         prev_gun = shift_gun_id(gun_id, -delta)
         prev = get_puzzle_row(db, prev_gun, zorluk, tur)
-        if prev is None or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]:
+        if (
+            prev is None
+            or prev.review_status == SofraBulmacaReviewStatus.flagged
+            or not validate_puzzle_payload(prev.puzzle_data, zorluk)[0]
+        ):
             continue
         source_gun = prev.gun_id if prev.is_fallback else prev_gun
         return prev, source_gun
@@ -502,7 +506,10 @@ def _find_fallback_source(
         .limit(max_days)
     ).all()
     for latest in latest_rows:
-        if not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]:
+        if (
+            latest.review_status == SofraBulmacaReviewStatus.flagged
+            or not validate_puzzle_payload(latest.puzzle_data, zorluk)[0]
+        ):
             continue
         source_gun = latest.gun_id if latest.is_fallback and latest.source_gun_id else latest.gun_id
         return latest, source_gun
@@ -519,7 +526,10 @@ def _find_fallback_source(
             .order_by(SofraDailyPuzzle.tur.asc())
         ).all()
         for sibling in siblings:
-            if not validate_puzzle_payload(sibling.puzzle_data, zorluk)[0]:
+            if (
+                sibling.review_status == SofraBulmacaReviewStatus.flagged
+                or not validate_puzzle_payload(sibling.puzzle_data, zorluk)[0]
+            ):
                 continue
             source_gun = sibling.gun_id if sibling.is_fallback and sibling.source_gun_id else prev_gun
             return sibling, source_gun
@@ -535,6 +545,14 @@ def fetch_puzzle_for_client(
 ) -> SofraDailyPuzzle | None:
     row = get_puzzle_row(db, gun_id, zorluk, tur)
     if row is not None:
+        if row.review_status == SofraBulmacaReviewStatus.flagged:
+            logger.warning(
+                "Sofra flagli bulmaca client'a servis edilmedi: %s %s t%s",
+                gun_id,
+                zorluk,
+                tur,
+            )
+            return None
         ok, reason = validate_puzzle_payload(row.puzzle_data, zorluk)
         if ok:
             return row

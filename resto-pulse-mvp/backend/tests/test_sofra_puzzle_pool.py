@@ -10,12 +10,14 @@ from app.services.sofra_puzzle_pool import (
     active_sofra_gun_id,
     archive_window_bounds,
     clone_puzzle_for_slot,
+    fetch_puzzle_for_client,
     shift_gun_id,
     sofra_puzzle_key,
     upcoming_sofra_gun_id,
     validate_client_gun_id,
     validate_puzzle_payload,
 )
+from app.models.entities import SofraBulmacaReviewStatus
 
 
 def _compile_grid(words: list[dict]) -> list[list[dict | None]]:
@@ -276,6 +278,47 @@ def test_find_fallback_source_skips_invalid_latest_row():
     prev, source_gun = result
     assert prev is valid_row
     assert source_gun == "2026-06-18"
+
+
+def test_find_fallback_source_skips_flagged_rows():
+    from unittest.mock import MagicMock
+
+    from app.services.sofra_puzzle_pool import _find_fallback_source
+
+    flagged_row = MagicMock()
+    flagged_row.puzzle_data = _sample_puzzle("orta")
+    flagged_row.review_status = SofraBulmacaReviewStatus.flagged
+
+    valid_row = MagicMock()
+    valid_row.puzzle_data = _sample_puzzle("orta")
+    valid_row.review_status = SofraBulmacaReviewStatus.approved
+    valid_row.is_fallback = False
+    valid_row.gun_id = "2026-06-18"
+    valid_row.source_gun_id = None
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=None)
+    db.scalars = MagicMock(return_value=SimpleNamespace(all=lambda: [flagged_row, valid_row]))
+
+    result = _find_fallback_source(db, "2026-06-23", "orta", 0)  # type: ignore[arg-type]
+
+    assert result is not None
+    prev, source_gun = result
+    assert prev is valid_row
+    assert source_gun == "2026-06-18"
+
+
+def test_fetch_puzzle_for_client_rejects_flagged_row():
+    from unittest.mock import MagicMock
+
+    flagged_row = MagicMock()
+    flagged_row.puzzle_data = _sample_puzzle("orta")
+    flagged_row.review_status = SofraBulmacaReviewStatus.flagged
+
+    db = MagicMock()
+    db.scalar = MagicMock(return_value=flagged_row)
+
+    assert fetch_puzzle_for_client(db, "2026-06-23", "orta", 0) is None  # type: ignore[arg-type]
 
 
 def test_find_fallback_source_uses_same_zorluk_sibling_slot():
