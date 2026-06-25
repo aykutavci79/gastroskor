@@ -112,7 +112,8 @@ export function AppKpiDashboard() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [sendingReport, setSendingReport] = useState(false);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/panel/admin/status')
@@ -124,7 +125,7 @@ export function AppKpiDashboard() {
   useEffect(() => {
     if (!allowed) return;
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     fetch(`/api/panel/admin/kpi?days=${days}`)
       .then(async (r) => {
         const json = await r.json();
@@ -132,9 +133,10 @@ export function AppKpiDashboard() {
           throw new Error(typeof json.detail === 'string' ? json.detail : 'KPI yuklenemedi');
         }
         setData(json as MetricsSummary);
+        setLoadError(null);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'KPI yuklenemedi');
+        setLoadError(err instanceof Error ? err.message : 'KPI yuklenemedi');
         setData(null);
       })
       .finally(() => setLoading(false));
@@ -158,7 +160,7 @@ export function AppKpiDashboard() {
   async function sendDailyReportNow() {
     setSendingReport(true);
     setReportMessage(null);
-    setError(null);
+    setReportError(null);
     try {
       const res = await fetch('/api/panel/admin/kpi/send-report', { method: 'POST' });
       const json = (await res.json()) as {
@@ -175,14 +177,14 @@ export function AppKpiDashboard() {
       if (sent > 0) {
         setReportMessage(`Gunluk ozet maili gonderildi (${sent}/${recipients} alici). Spam klasorune de bak.`);
       } else if (json.result?.reason === 'no_recipients') {
-        setError('Alici yok: Railway\'de METRICS_DAILY_REPORT_EMAILS veya PANEL_ADMIN_EMAILS tanimla.');
+        setReportError('Alici yok: Railway\'de METRICS_DAILY_REPORT_EMAILS veya PANEL_ADMIN_EMAILS tanimla.');
       } else if (errs.length) {
-        setError(errs.join(' | '));
+        setReportError(errs.join(' | '));
       } else {
-        setError('Mail gonderilemedi — Railway SMTP ve EMAIL_PROVIDER=smtp ayarlarini kontrol et.');
+        setReportError('Mail gonderilemedi — Railway SMTP ve EMAIL_PROVIDER=smtp ayarlarini kontrol et.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Mail gonderilemedi');
+      setReportError(err instanceof Error ? err.message : 'Mail gonderilemedi');
     } finally {
       setSendingReport(false);
     }
@@ -234,7 +236,8 @@ export function AppKpiDashboard() {
           </button>
         </div>
         {reportMessage ? <p className="mt-3 text-sm text-emerald-300">{reportMessage}</p> : null}
-        {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
+        {loadError ? <p className="mt-3 text-sm text-rose-300">{loadError}</p> : null}
+        {reportError ? <p className="mt-3 text-sm text-rose-300">{reportError}</p> : null}
       </section>
 
       {totals ? (

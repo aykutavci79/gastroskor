@@ -35,7 +35,10 @@ export async function POST() {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const detail = typeof data.detail === 'string' ? data.detail : 'Gunluk rapor gonderilemedi';
+    let detail = typeof data.detail === 'string' ? data.detail : 'Gunluk rapor gonderilemedi';
+    if (detail === 'Unauthorized cron') {
+      detail = 'CRON_SECRET uyusmuyor — Vercel ve Railway\'de ayni deger olmali.';
+    }
     return NextResponse.json({ detail, ...data }, { status: response.status });
   }
   return NextResponse.json(data);
