@@ -4,7 +4,7 @@ import re
 import unicodedata
 
 from app.core.config import settings
-from app.data.bursa_geo_products import (
+from app.data.turkiye_geo_products import (
     RegionalProductCatalogItem,
     catalog_for_city,
     find_product_by_slug,
