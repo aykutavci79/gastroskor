@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
-import { loadAccessToken } from '@/lib/auth-token';
+import { loadAccessToken, setAccessToken } from '@/lib/auth-token';
 
 const SESSION_KEY = 'gastroskor.session.v1';
 const LEGACY_ASYNC_KEY = 'gastroskor.session.v1';
@@ -25,6 +25,15 @@ function stripToken(payload: LegacySessionPayload): StoredSessionUser {
   return user;
 }
 
+async function resolveAccessToken(embedded: string | null | undefined): Promise<string | null> {
+  const fromSession = embedded?.trim() ? embedded.trim() : null;
+  if (fromSession) {
+    await setAccessToken(fromSession);
+    return fromSession;
+  }
+  return loadAccessToken();
+}
+
 async function migrateFromAsyncStorage(): Promise<LegacySessionPayload | null> {
   const legacyRaw = await AsyncStorage.getItem(LEGACY_ASYNC_KEY);
   if (!legacyRaw) return null;
@@ -37,8 +46,12 @@ async function migrateFromAsyncStorage(): Promise<LegacySessionPayload | null> {
     return null;
   }
 
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(stripToken(parsed)));
+  const user = stripToken(parsed);
+  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(user));
   await AsyncStorage.removeItem(LEGACY_ASYNC_KEY);
+  if (parsed.accessToken?.trim()) {
+    await setAccessToken(parsed.accessToken.trim());
+  }
   return parsed;
 }
 
@@ -48,12 +61,9 @@ export async function readStoredSession(): Promise<{
 } | null> {
   const migrated = await migrateFromAsyncStorage();
   if (migrated?.email && migrated.authMethod === 'google' && migrated.googleSub) {
-    const accessToken =
-      migrated.accessToken?.trim() ? migrated.accessToken.trim() : await loadAccessToken();
-    return {
-      user: stripToken(migrated),
-      accessToken,
-    };
+    const user = stripToken(migrated);
+    const accessToken = await resolveAccessToken(migrated.accessToken);
+    return { user, accessToken };
   }
 
   const raw = await SecureStore.getItemAsync(SESSION_KEY);
@@ -65,12 +75,12 @@ export async function readStoredSession(): Promise<{
       await SecureStore.deleteItemAsync(SESSION_KEY);
       return null;
     }
-    const accessToken =
-      parsed.accessToken?.trim() ? parsed.accessToken.trim() : await loadAccessToken();
-    return {
-      user: stripToken(parsed),
-      accessToken,
-    };
+    const user = stripToken(parsed);
+    const accessToken = await resolveAccessToken(parsed.accessToken);
+    if (parsed.accessToken?.trim()) {
+      await writeStoredSession(user);
+    }
+    return { user, accessToken };
   } catch {
     await SecureStore.deleteItemAsync(SESSION_KEY);
     return null;
