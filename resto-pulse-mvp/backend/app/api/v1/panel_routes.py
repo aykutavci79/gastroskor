@@ -69,6 +69,7 @@ from app.services.google_business_service import (
 from app.services.panel_ai_purchase import apply_ai_purchase
 from app.services.panel_ai_quota import ai_quota_as_dict, build_ai_quota, record_ai_analysis
 from app.services.panel_pricing import pricing_catalog_as_dict
+from app.services.request_identity import resolve_authenticated_email
 from app.services.panel_admin import (
     admin_grant_panel_access,
     assert_admin_grant_allowed,
@@ -1493,7 +1494,8 @@ def panel_list_pending_remedy_reviews(
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    rows = list_pending_remedy_for_panel(db, user_email=user_email, limit=limit)
+    verified_email = resolve_authenticated_email(claimed_email=user_email)
+    rows = list_pending_remedy_for_panel(db, user_email=verified_email, limit=limit)
     return [ReviewRemedyPendingRead(**serialize_pending_remedy(row)) for row in rows]
 
 
@@ -1503,7 +1505,9 @@ def panel_issue_remedy_offer(
     payload: ReviewRemedyOfferCreate,
     db: Session = Depends(get_db),
 ):
-    review, offer = issue_remedy_offer(db, review_id=review_id, payload=payload)
+    verified_email = resolve_authenticated_email(claimed_email=payload.user_email)
+    bound_payload = payload.model_copy(update={"user_email": verified_email})
+    review, offer = issue_remedy_offer(db, review_id=review_id, payload=bound_payload)
     restaurant_name = review.restaurant.name if review.restaurant else None
     notify_remedy_offer_to_customer(db, review=review, offer=offer, restaurant_name=restaurant_name)
     db.commit()

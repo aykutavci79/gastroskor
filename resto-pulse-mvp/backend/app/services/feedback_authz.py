@@ -6,11 +6,32 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models import PrivateFeedback, User
+from app.services.active_user import get_active_user_for_auth
 from app.services.panel_access import assert_verified_owner_for_restaurant
+from app.services.request_identity import (
+    auth_require_bearer,
+    get_request_auth,
+    require_request_auth,
+    resolve_authenticated_email,
+)
 
 
 def resolve_user_identity(db: Session, *, user_id: str | None, email: str | None) -> User | None:
     from sqlalchemy import select
+
+    auth = get_request_auth()
+    if auth_require_bearer() or auth is not None:
+        if auth is None:
+            require_request_auth()
+        assert auth is not None
+        if user_id and str(auth.user_id) != user_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Oturum ile uyusmayan kullanici.",
+            )
+        if email:
+            resolve_authenticated_email(claimed_email=email)
+        return get_active_user_for_auth(db, auth)
 
     if user_id:
         try:
@@ -31,6 +52,22 @@ def resolve_user_identity(db: Session, *, user_id: str | None, email: str | None
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return user
     return None
+
+
+def resolve_authenticated_feedback_user_id(
+    *,
+    user_id: str | None,
+    email: str | None,
+) -> UUID:
+    """sender_type=user mesajlari — yalnizca JWT oturumundaki kullanici."""
+    auth = require_request_auth()
+    if user_id and str(auth.user_id) != user_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Oturum ile uyusmayan kullanici.",
+        )
+    resolve_authenticated_email(claimed_email=email)
+    return auth.user_id
 
 
 def assert_restaurant_or_admin_access(

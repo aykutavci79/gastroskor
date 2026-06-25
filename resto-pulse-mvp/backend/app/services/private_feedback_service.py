@@ -11,6 +11,7 @@ from app.schemas.feedback import FeedbackMessageCreate, PrivateFeedbackCreate
 from app.services.feedback_authz import (
     assert_feedback_read_access,
     assert_restaurant_or_admin_access,
+    resolve_authenticated_feedback_user_id,
     resolve_user_identity,
 )
 from app.services.panel_access import assert_verified_owner_for_restaurant
@@ -150,12 +151,10 @@ def create_feedback_message(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
 
     if payload.sender_type == "user":
-        actor_user_uuid = resolve_user_uuid(db, user_id=payload.actor_user_id, email=payload.actor_user_email)
-        if not actor_user_uuid:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="actor_user_id or actor_user_email is required for sender_type=user",
-            )
+        actor_user_uuid = resolve_authenticated_feedback_user_id(
+            user_id=payload.actor_user_id,
+            email=payload.actor_user_email,
+        )
         if actor_user_uuid != feedback.author_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User cannot message this feedback")
     else:
