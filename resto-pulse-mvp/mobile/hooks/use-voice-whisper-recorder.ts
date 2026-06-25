@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { applyRecordingAudioMode } from '@/lib/gastro-audio-session';
 import { releaseRecordingAudioForSpeech } from '@/lib/gastro-speak';
-import { usesIosManualMicFinish } from '@/lib/voice-mic-copy';
+import { usesManualMicFinish } from '@/lib/voice-mic-copy';
 import {
   createVoiceRecordingOwner,
   isVoiceRecordingBusyFor,
@@ -96,7 +96,7 @@ export function useVoiceWhisperRecorder() {
   const handleRecordingStatus = useCallback(
     (status: Audio.RecordingStatus) => {
       if (!status.isRecording || autoStopInFlightRef.current) return;
-      if (usesIosManualMicFinish()) return;
+      if (usesManualMicFinish()) return;
 
       const nowMs = Date.now();
       const elapsedMs = status.durationMillis ?? nowMs - vadStateRef.current.startedAtMs;

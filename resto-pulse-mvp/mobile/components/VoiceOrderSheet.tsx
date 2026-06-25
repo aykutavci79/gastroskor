@@ -100,6 +100,13 @@ export function VoiceOrderSheet({
     }
   }, [micUiState.transcribing, searching]);
 
+  useEffect(() => {
+    if (micUiState.listening) {
+      setDraft('');
+      setMicHint(null);
+    }
+  }, [micUiState.listening]);
+
   function applyExample(text: string) {
     setMicActive(false);
     setDraft(text);
@@ -117,7 +124,10 @@ export function VoiceOrderSheet({
 
   function handleVoiceTranscript(text: string, isFinal: boolean) {
     const polished = polishVoiceOrderQueryTranscript(text);
-    if (!polished) return;
+    if (!polished) {
+      if (isFinal) setDraft('');
+      return;
+    }
     setDraft(polished);
     if (!isFinal) {
       setMicActive(false);

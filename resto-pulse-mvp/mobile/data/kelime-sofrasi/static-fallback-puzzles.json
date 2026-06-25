@@ -1,753 +1,4018 @@
 {
-  "kolay": {
-    "zorluk": "kolay",
-    "words": [
+  "variants": {
+    "kolay": [
       {
-        "id": "sofra-2061",
-        "kelime": "YAKIN",
-        "ipucu": "Az bir ara ile ayrılmış olan (zaman veya yer), uzak karşıtı",
-        "row": 5,
-        "col": 0,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-637",
+            "kelime": "FELAKET",
+            "ipucu": "Şaşırtıcı, hayrete düşürücü",
+            "row": 2,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-007",
+            "kelime": "KAT",
+            "ipucu": "Binanın bir katı",
+            "row": 0,
+            "col": 6,
+            "direction": "v"
+          },
+          {
+            "id": "uc-017",
+            "kelime": "ALT",
+            "ipucu": "Aşağıda veya altın",
+            "row": 1,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-73",
+            "kelime": "ALET",
+            "ipucu": "Bir sanatı yapmaya, uygulamaya yarayan özel araç",
+            "row": 1,
+            "col": 6,
+            "direction": "h"
+          },
+          {
+            "id": "uc-003",
+            "kelime": "KAL",
+            "ipucu": "Ayrılma, olduğun yerde dur",
+            "row": 2,
+            "col": 4,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "AKT",
+          "ALE",
+          "KEL",
+          "TAK"
+        ],
+        "wheel": [
+          "K",
+          "E",
+          "L",
+          "F",
+          "A",
+          "T",
+          "E"
+        ],
+        "rows": 5,
+        "cols": 10,
+        "grid": [
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 6,
+              "letter": "K",
+              "wordIds": [
+                "uc-007"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "uc-017"
+              ]
+            },
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 6,
+              "letter": "A",
+              "wordIds": [
+                "uc-007",
+                "sofra-73"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 7,
+              "letter": "L",
+              "wordIds": [
+                "sofra-73"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 8,
+              "letter": "E",
+              "wordIds": [
+                "sofra-73"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 9,
+              "letter": "T",
+              "wordIds": [
+                "sofra-73"
+              ]
+            }
+          ],
+          [
+            {
+              "row": 2,
+              "col": 0,
+              "letter": "F",
+              "wordIds": [
+                "sofra-637"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-637"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "letter": "L",
+              "wordIds": [
+                "sofra-637",
+                "uc-017"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-637"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "sofra-637",
+                "uc-003"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 5,
+              "letter": "E",
+              "wordIds": [
+                "sofra-637"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 6,
+              "letter": "T",
+              "wordIds": [
+                "sofra-637",
+                "uc-007"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "T",
+              "wordIds": [
+                "uc-017"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "uc-003"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "L",
+              "wordIds": [
+                "uc-003"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ]
       },
       {
-        "id": "uc-095",
-        "kelime": "ANI",
-        "ipucu": "Anı, hatıra",
-        "row": 3,
-        "col": 3,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-2068",
+            "kelime": "YANIT",
+            "ipucu": "Canlı organizmaların tedavi veya diğer nedenlerle maruz kaldığı maddelere, durumlara karşı gösterdiği tepkime; reaksiyon",
+            "row": 2,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "uc-016",
+            "kelime": "TAN",
+            "ipucu": "Tanımak veya şafak",
+            "row": 0,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "uc-095",
+            "kelime": "ANI",
+            "ipucu": "Anı, hatıra",
+            "row": 2,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-197",
+            "kelime": "AYNI",
+            "ipucu": "Aralarında ayrım olmayan",
+            "row": 4,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-190",
+            "kelime": "AYIN",
+            "ipucu": "Arap alfabesinin on sekizinci harfinin adı",
+            "row": 3,
+            "col": 1,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "ANT"
+        ],
+        "wheel": [
+          "Y",
+          "A",
+          "N",
+          "I",
+          "T"
+        ],
+        "rows": 7,
+        "cols": 7,
+        "grid": [
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 4,
+              "letter": "T",
+              "wordIds": [
+                "uc-016"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "uc-016"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 2,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-2068"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-2068",
+                "uc-095"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "N",
+              "wordIds": [
+                "sofra-2068",
+                "uc-016"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 5,
+              "letter": "I",
+              "wordIds": [
+                "sofra-2068"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 6,
+              "letter": "T",
+              "wordIds": [
+                "sofra-2068"
+              ]
+            }
+          ],
+          [
+            null,
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-190"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "N",
+              "wordIds": [
+                "uc-095"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 4,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "sofra-197"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 1,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-197",
+                "sofra-190"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "N",
+              "wordIds": [
+                "sofra-197"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "I",
+              "wordIds": [
+                "uc-095",
+                "sofra-197"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 5,
+              "col": 1,
+              "letter": "I",
+              "wordIds": [
+                "sofra-190"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 6,
+              "col": 1,
+              "letter": "N",
+              "wordIds": [
+                "sofra-190"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ]
       },
       {
-        "id": "uc-074",
-        "kelime": "AKI",
-        "ipucu": "Zaman veya akış",
-        "row": 3,
-        "col": 3,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-954",
+            "kelime": "KAMERA",
+            "ipucu": "Görüntülerin filme alınmasını sağlayan alet; alıcı",
+            "row": 2,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-090",
+            "kelime": "MAK",
+            "ipucu": "Yapmak kısaltması",
+            "row": 0,
+            "col": 0,
+            "direction": "v"
+          },
+          {
+            "id": "uc-009",
+            "kelime": "KAR",
+            "ipucu": "Kış yağışı",
+            "row": 0,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1291",
+            "kelime": "MERAK",
+            "ipucu": "Düşkünlük, heves",
+            "row": 0,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1263",
+            "kelime": "MARK",
+            "ipucu": "Alman para birimi",
+            "row": 2,
+            "col": 2,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "KAM",
+          "KARA"
+        ],
+        "wheel": [
+          "R",
+          "M",
+          "E",
+          "K",
+          "A",
+          "A"
+        ],
+        "rows": 6,
+        "cols": 6,
+        "grid": [
+          [
+            {
+              "row": 0,
+              "col": 0,
+              "letter": "M",
+              "wordIds": [
+                "uc-090",
+                "sofra-1291"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1291"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1291"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1291"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "uc-009",
+                "sofra-1291"
+              ]
+            },
+            null
+          ],
+          [
+            {
+              "row": 1,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "uc-090"
+              ]
+            },
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "uc-009"
+              ]
+            },
+            null
+          ],
+          [
+            {
+              "row": 2,
+              "col": 0,
+              "letter": "K",
+              "wordIds": [
+                "sofra-954",
+                "uc-090"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-954"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 2,
+              "letter": "M",
+              "wordIds": [
+                "sofra-954",
+                "sofra-1263"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "E",
+              "wordIds": [
+                "sofra-954"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "R",
+              "wordIds": [
+                "sofra-954",
+                "uc-009"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 5,
+              "letter": "A",
+              "wordIds": [
+                "sofra-954"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1263"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1263"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1263"
+              ]
+            },
+            null,
+            null,
+            null
+          ]
+        ]
       },
       {
-        "id": "sofra-197",
-        "kelime": "AYNI",
-        "ipucu": "Aralarında ayrım olmayan",
-        "row": 0,
-        "col": 5,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-1371",
+            "kelime": "NAKİT",
+            "ipucu": "Kullanılması hemen mümkün olan para, peşin para; likit",
+            "row": 5,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "uc-049",
+            "kelime": "KİN",
+            "ipucu": "Düşmanlık",
+            "row": 3,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-083",
+            "kelime": "NİT",
+            "ipucu": "Bit, sirke",
+            "row": 3,
+            "col": 6,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1825",
+            "kelime": "TAKİ",
+            "ipucu": "Kadınların ziynet eşyası; ağırlık, asım takım",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-828",
+            "kelime": "İKNA",
+            "ipucu": "Bir konuda birinin inanmasını sağlama, inandırma, kandırma",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "AKT",
+          "ANİ",
+          "ANT",
+          "KAN",
+          "KAT",
+          "KİT",
+          "TAK",
+          "TAN",
+          "TİK",
+          "TİN"
+        ],
+        "wheel": [
+          "A",
+          "N",
+          "İ",
+          "K",
+          "T"
+        ],
+        "rows": 6,
+        "cols": 7,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-828"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "K",
+              "wordIds": [
+                "sofra-828"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "N",
+              "wordIds": [
+                "sofra-828"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1825"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1825",
+                "sofra-828"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "uc-049",
+                "sofra-1825"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1825"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 6,
+              "letter": "N",
+              "wordIds": [
+                "uc-083"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "uc-049"
+              ]
+            },
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 6,
+              "letter": "İ",
+              "wordIds": [
+                "uc-083"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "N",
+              "wordIds": [
+                "sofra-1371",
+                "uc-049"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1371"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1371"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1371"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1371",
+                "uc-083"
+              ]
+            }
+          ]
+        ]
       },
       {
-        "id": "sofra-190",
-        "kelime": "AYIN",
-        "ipucu": "Arap alfabesinin on sekizinci harfinin adı",
-        "row": 0,
-        "col": 5,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-349",
+            "kelime": "ÇALMAK",
+            "ipucu": "Bir şeyi bir yere çarpmak, vurmak",
+            "row": 5,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-003",
+            "kelime": "KAL",
+            "ipucu": "Ayrılma, olduğun yerde dur",
+            "row": 3,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-093",
+            "kelime": "KAM",
+            "ipucu": "Kam kısaltması",
+            "row": 3,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-70",
+            "kelime": "ALÇAK",
+            "ipucu": "Yerden uzaklığı az olan, yüksek karşıtı",
+            "row": 3,
+            "col": 0,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-83",
+            "kelime": "ALMA",
+            "ipucu": "Almak işi; ahzetme, ittihaz, kabız",
+            "row": 0,
+            "col": 3,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "MAK",
+          "AMAÇ"
+        ],
+        "wheel": [
+          "K",
+          "M",
+          "A",
+          "L",
+          "Ç",
+          "A"
+        ],
+        "rows": 8,
+        "cols": 6,
+        "grid": [
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-83"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 3,
+              "letter": "L",
+              "wordIds": [
+                "sofra-83"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "M",
+              "wordIds": [
+                "sofra-83"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "sofra-70"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "uc-003",
+                "uc-093"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "uc-093",
+                "sofra-83"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "M",
+              "wordIds": [
+                "uc-093"
+              ]
+            },
+            null
+          ],
+          [
+            {
+              "row": 4,
+              "col": 0,
+              "letter": "L",
+              "wordIds": [
+                "sofra-70"
+              ]
+            },
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "uc-003"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 5,
+              "col": 0,
+              "letter": "Ç",
+              "wordIds": [
+                "sofra-349",
+                "sofra-70"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-349"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "L",
+              "wordIds": [
+                "sofra-349",
+                "uc-003"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "M",
+              "wordIds": [
+                "sofra-349"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "sofra-349"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "K",
+              "wordIds": [
+                "sofra-349"
+              ]
+            }
+          ],
+          [
+            {
+              "row": 6,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "sofra-70"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 7,
+              "col": 0,
+              "letter": "K",
+              "wordIds": [
+                "sofra-70"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ]
       }
     ],
-    "bonusKelimeler": [
-      "KAN",
-      "YAK",
-      "KANI"
-    ],
-    "wheel": [
-      "N",
-      "K",
-      "Y",
-      "I",
-      "A"
-    ],
-    "rows": 6,
-    "cols": 9,
-    "grid": [
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 0,
-          "col": 5,
-          "letter": "A",
-          "wordIds": [
-            "sofra-197",
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 6,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 7,
-          "letter": "I",
-          "wordIds": [
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 8,
-          "letter": "N",
-          "wordIds": [
-            "sofra-190"
-          ]
-        }
-      ],
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 1,
-          "col": 5,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 2,
-          "col": 5,
-          "letter": "N",
-          "wordIds": [
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 3,
-          "col": 3,
-          "letter": "A",
-          "wordIds": [
-            "uc-095",
-            "uc-074"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 4,
-          "letter": "K",
-          "wordIds": [
-            "uc-074"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 5,
-          "letter": "I",
-          "wordIds": [
-            "uc-074",
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 4,
-          "col": 3,
-          "letter": "N",
-          "wordIds": [
-            "uc-095"
-          ]
-        },
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      [
-        {
-          "row": 5,
-          "col": 0,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 1,
-          "letter": "A",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 2,
-          "letter": "K",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 3,
-          "letter": "I",
-          "wordIds": [
-            "sofra-2061",
-            "uc-095"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 4,
-          "letter": "N",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        null,
-        null,
-        null,
-        null
-      ]
-    ]
-  },
-  "orta": {
-    "zorluk": "orta",
-    "words": [
+    "orta": [
       {
-        "id": "sofra-13",
-        "kelime": "ACİLEN",
-        "ipucu": "",
-        "row": 7,
-        "col": 0,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-1867",
+            "kelime": "TASARIM",
+            "ipucu": "Daha önce algılanmış olan bir nesne veya olayın bilinçte sonradan ortaya çıkan kopyası",
+            "row": 5,
+            "col": 3,
+            "direction": "h"
+          },
+          {
+            "id": "uc-015",
+            "kelime": "MAT",
+            "ipucu": "Satrançta mat",
+            "row": 3,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "uc-096",
+            "kelime": "TAM",
+            "ipucu": "Eksiksiz, bütün",
+            "row": 3,
+            "col": 1,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1862",
+            "kelime": "TARIM",
+            "ipucu": "Bitkisel ve hayvansal ürünlerin üretilmesi, kalite ve verimlerinin yükseltilmesi, uygun koşullarda korunması, işlenip değerlendirilmesi ve pazarlanması; ziraat,",
+            "row": 1,
+            "col": 9,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1667",
+            "kelime": "SARA",
+            "ipucu": "Zaman zaman kendini kaybederek olduğu yere düşme, vücutta şiddetli çırpınmalar ve ağız köpürmesi ile ortaya çıkan bir sinir hastalığı; tutarık, tutarak, tutarga",
+            "row": 0,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-168",
+            "kelime": "ATAR",
+            "ipucu": "Birisine karşı veya bir olay karşısında korkusuzca bulunulan güç gösterisi",
+            "row": 1,
+            "col": 0,
+            "direction": "h"
+          }
+        ],
+        "bonusKelimeler": [
+          "ARTI",
+          "ASMA",
+          "ATMA",
+          "MASA",
+          "SAAT",
+          "SARI",
+          "SIRA",
+          "STAR"
+        ],
+        "wheel": [
+          "R",
+          "S",
+          "A",
+          "T",
+          "A",
+          "M",
+          "I"
+        ],
+        "rows": 6,
+        "cols": 10,
+        "grid": [
+          [
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1667"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 1,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "sofra-168"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "T",
+              "wordIds": [
+                "sofra-168"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1667",
+                "sofra-168"
+              ]
+            },
+            {
+              "row": 1,
+              "col": 3,
+              "letter": "R",
+              "wordIds": [
+                "sofra-168"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 9,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1862"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1667"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 9,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1862"
+              ]
+            }
+          ],
+          [
+            null,
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "T",
+              "wordIds": [
+                "uc-096"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "uc-096",
+                "sofra-1667"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "M",
+              "wordIds": [
+                "uc-015",
+                "uc-096"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 9,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1862"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "uc-015"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 9,
+              "letter": "I",
+              "wordIds": [
+                "sofra-1862"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1867",
+                "uc-015"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1867"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1867"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1867"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1867"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 8,
+              "letter": "I",
+              "wordIds": [
+                "sofra-1867"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 9,
+              "letter": "M",
+              "wordIds": [
+                "sofra-1867",
+                "sofra-1862"
+              ]
+            }
+          ]
+        ]
       },
       {
-        "id": "uc-082",
-        "kelime": "ANİ",
-        "ipucu": "Ani, birdenbire",
-        "row": 5,
-        "col": 2,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-547",
+            "kelime": "EKONOMİ",
+            "ipucu": "Bu ilişkileri inceleyen bilim dalı; iktisat",
+            "row": 5,
+            "col": 1,
+            "direction": "h"
+          },
+          {
+            "id": "uc-085",
+            "kelime": "MİK",
+            "ipucu": "Mikrofon kısaltması",
+            "row": 3,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-049",
+            "kelime": "KİN",
+            "ipucu": "Düşmanlık",
+            "row": 3,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-858",
+            "kelime": "İNMEK",
+            "ipucu": "Sayısı azalmak",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-856",
+            "kelime": "İNEK",
+            "ipucu": "Aptal, bön olan",
+            "row": 5,
+            "col": 7,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-567",
+            "kelime": "EMİN",
+            "ipucu": "Şüphesi olmayan",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "KİM",
+          "KON",
+          "MİN"
+        ],
+        "wheel": [
+          "O",
+          "O",
+          "İ",
+          "E",
+          "N",
+          "M",
+          "K"
+        ],
+        "rows": 9,
+        "cols": 8,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-567"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "M",
+              "wordIds": [
+                "sofra-567"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-567"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-858"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "N",
+              "wordIds": [
+                "sofra-858",
+                "sofra-567"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "M",
+              "wordIds": [
+                "uc-085",
+                "sofra-858"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "E",
+              "wordIds": [
+                "sofra-858"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "uc-049",
+                "sofra-858"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "uc-085"
+              ]
+            },
+            null,
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "İ",
+              "wordIds": [
+                "uc-049"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 5,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-547"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "sofra-547",
+                "uc-085"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "O",
+              "wordIds": [
+                "sofra-547"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "N",
+              "wordIds": [
+                "sofra-547",
+                "uc-049"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "O",
+              "wordIds": [
+                "sofra-547"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "letter": "M",
+              "wordIds": [
+                "sofra-547"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-547",
+                "sofra-856"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 7,
+              "letter": "N",
+              "wordIds": [
+                "sofra-856"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 7,
+              "col": 7,
+              "letter": "E",
+              "wordIds": [
+                "sofra-856"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 8,
+              "col": 7,
+              "letter": "K",
+              "wordIds": [
+                "sofra-856"
+              ]
+            }
+          ]
+        ]
       },
       {
-        "id": "uc-018",
-        "kelime": "ALE",
-        "ipucu": "Fermente içecek",
-        "row": 5,
-        "col": 2,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-389",
+            "kelime": "ÇİFTLİK",
+            "ipucu": "Kolaylıkla yarar sağlanabilen yer",
+            "row": 4,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-028",
+            "kelime": "İLK",
+            "ipucu": "Başta gelen",
+            "row": 2,
+            "col": 6,
+            "direction": "v"
+          },
+          {
+            "id": "uc-086",
+            "kelime": "KİT",
+            "ipucu": "Kitap kısaltması",
+            "row": 2,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1925",
+            "kelime": "TİLKİ",
+            "ipucu": "Bu hayvanın postundan yapılan manto vb",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1064",
+            "kelime": "KİLİT",
+            "ipucu": "Bir yanı değirmi, öbür yanına demir çubuk geçirilmiş olan yarım halka",
+            "row": 2,
+            "col": 3,
+            "direction": "h"
+          },
+          {
+            "id": "uc-077",
+            "kelime": "TİK",
+            "ipucu": "Onay işareti",
+            "row": 0,
+            "col": 1,
+            "direction": "h"
+          }
+        ],
+        "bonusKelimeler": [
+          "İKİ"
+        ],
+        "wheel": [
+          "L",
+          "F",
+          "K",
+          "T",
+          "Ç",
+          "İ",
+          "İ"
+        ],
+        "rows": 5,
+        "cols": 8,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1925",
+                "uc-077"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "uc-077"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "K",
+              "wordIds": [
+                "uc-077"
+              ]
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1925"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "L",
+              "wordIds": [
+                "sofra-1925"
+              ]
+            },
+            null,
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "K",
+              "wordIds": [
+                "uc-086",
+                "sofra-1064"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1064"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 5,
+              "letter": "L",
+              "wordIds": [
+                "sofra-1064"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 6,
+              "letter": "İ",
+              "wordIds": [
+                "uc-028",
+                "sofra-1064"
+              ]
+            },
+            {
+              "row": 2,
+              "col": 7,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1064"
+              ]
+            }
+          ],
+          [
+            null,
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1925"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "İ",
+              "wordIds": [
+                "uc-086"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 6,
+              "letter": "L",
+              "wordIds": [
+                "uc-028"
+              ]
+            },
+            null
+          ],
+          [
+            {
+              "row": 4,
+              "col": 0,
+              "letter": "Ç",
+              "wordIds": [
+                "sofra-389"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-389",
+                "sofra-1925"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "F",
+              "wordIds": [
+                "sofra-389"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "T",
+              "wordIds": [
+                "sofra-389",
+                "uc-086"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "L",
+              "wordIds": [
+                "sofra-389"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 5,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-389"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 6,
+              "letter": "K",
+              "wordIds": [
+                "sofra-389",
+                "uc-028"
+              ]
+            },
+            null
+          ]
+        ]
       },
       {
-        "id": "sofra-35",
-        "kelime": "AİLE",
-        "ipucu": "Birlikte oturan hısım ve yakınların tümü; ev",
-        "row": 2,
-        "col": 4,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-841",
+            "kelime": "İLHAM",
+            "ipucu": "Allah tarafından peygamberlerin ve seçkin kulların gönlüne verilen ilahi düşünce veya duygu",
+            "row": 5,
+            "col": 1,
+            "direction": "h"
+          },
+          {
+            "id": "uc-081",
+            "kelime": "AMİ",
+            "ipucu": "Amca (samimi)",
+            "row": 3,
+            "col": 1,
+            "direction": "v"
+          },
+          {
+            "id": "uc-026",
+            "kelime": "HAL",
+            "ipucu": "Durum veya kilim",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-847",
+            "kelime": "İMHA",
+            "ipucu": "Ortadan kaldırma, yok etme",
+            "row": 2,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1235",
+            "kelime": "MAİL",
+            "ipucu": "Eğilimi olan",
+            "row": 0,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-088",
+            "kelime": "İMA",
+            "ipucu": "Anlam, ima",
+            "row": 0,
+            "col": 1,
+            "direction": "h"
+          }
+        ],
+        "bonusKelimeler": [
+          "HALİ"
+        ],
+        "wheel": [
+          "M",
+          "A",
+          "İ",
+          "L",
+          "H"
+        ],
+        "rows": 6,
+        "cols": 6,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "uc-088"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "M",
+              "wordIds": [
+                "sofra-1235",
+                "uc-088"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "uc-088"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1235"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1235"
+              ]
+            },
+            null,
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-847"
+              ]
+            },
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "H",
+              "wordIds": [
+                "uc-026"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "uc-081",
+                "uc-026"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "L",
+              "wordIds": [
+                "uc-026",
+                "sofra-1235"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "M",
+              "wordIds": [
+                "sofra-847"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            {
+              "row": 4,
+              "col": 1,
+              "letter": "M",
+              "wordIds": [
+                "uc-081"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "H",
+              "wordIds": [
+                "sofra-847"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            {
+              "row": 5,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-841",
+                "uc-081"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "L",
+              "wordIds": [
+                "sofra-841"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "H",
+              "wordIds": [
+                "sofra-841"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "sofra-841",
+                "sofra-847"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "M",
+              "wordIds": [
+                "sofra-841"
+              ]
+            }
+          ]
+        ]
       },
       {
-        "id": "sofra-1391",
-        "kelime": "NİCE",
-        "ipucu": "Kaç, ne kadar",
-        "row": 3,
-        "col": 3,
-        "direction": "h"
-      },
-      {
-        "id": "sofra-834",
-        "kelime": "İLAN",
-        "ipucu": "Açıkça bildirme, açıkça duyurma",
-        "row": 0,
-        "col": 3,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-946",
+            "kelime": "KALIN",
+            "ipucu": "Cisimlerde uzunluk ve genişlik dışında üçüncü boyutu çok olan (cisim), ince karşıtı",
+            "row": 5,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-047",
+            "kelime": "KIL",
+            "ipucu": "Saç teli veya çamur",
+            "row": 3,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-074",
+            "kelime": "AKI",
+            "ipucu": "Zaman veya akış",
+            "row": 3,
+            "col": 1,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-51",
+            "kelime": "AKLI",
+            "ipucu": "Beyazı bulunan, beyaz renkli",
+            "row": 0,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "uc-008",
+            "kelime": "KAN",
+            "ipucu": "Dolaşım sıvısı",
+            "row": 0,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "uc-095",
+            "kelime": "ANI",
+            "ipucu": "Anı, hatıra",
+            "row": 4,
+            "col": 4,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "KAL",
+          "AKIL",
+          "KANI"
+        ],
+        "wheel": [
+          "N",
+          "I",
+          "A",
+          "K",
+          "L"
+        ],
+        "rows": 7,
+        "cols": 5,
+        "grid": [
+          [
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "uc-008"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-51",
+                "uc-008"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 4,
+              "letter": "N",
+              "wordIds": [
+                "uc-008"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 3,
+              "letter": "K",
+              "wordIds": [
+                "sofra-51"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "L",
+              "wordIds": [
+                "sofra-51"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "uc-074"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "uc-047",
+                "uc-074"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "I",
+              "wordIds": [
+                "uc-074",
+                "sofra-51"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "I",
+              "wordIds": [
+                "uc-047"
+              ]
+            },
+            null,
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "uc-095"
+              ]
+            }
+          ],
+          [
+            {
+              "row": 5,
+              "col": 0,
+              "letter": "K",
+              "wordIds": [
+                "sofra-946"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-946"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "L",
+              "wordIds": [
+                "sofra-946",
+                "uc-047"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "I",
+              "wordIds": [
+                "sofra-946"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "N",
+              "wordIds": [
+                "sofra-946",
+                "uc-095"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 4,
+              "letter": "I",
+              "wordIds": [
+                "uc-095"
+              ]
+            }
+          ]
+        ]
       }
     ],
-    "bonusKelimeler": [
-      "CAN",
-      "ACİL"
-    ],
-    "wheel": [
-      "N",
-      "İ",
-      "E",
-      "A",
-      "L",
-      "C"
-    ],
-    "rows": 8,
-    "cols": 7,
-    "grid": [
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 0,
-          "col": 3,
-          "letter": "İ",
-          "wordIds": [
-            "sofra-834"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 1,
-          "col": 3,
-          "letter": "L",
-          "wordIds": [
-            "sofra-834"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 2,
-          "col": 3,
-          "letter": "A",
-          "wordIds": [
-            "sofra-834"
-          ]
-        },
-        {
-          "row": 2,
-          "col": 4,
-          "letter": "A",
-          "wordIds": [
-            "sofra-35"
-          ]
-        },
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 3,
-          "col": 3,
-          "letter": "N",
-          "wordIds": [
-            "sofra-1391",
-            "sofra-834"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 4,
-          "letter": "İ",
-          "wordIds": [
-            "sofra-35",
-            "sofra-1391"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 5,
-          "letter": "C",
-          "wordIds": [
-            "sofra-1391"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 6,
-          "letter": "E",
-          "wordIds": [
-            "sofra-1391"
-          ]
-        }
-      ],
-      [
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 4,
-          "col": 4,
-          "letter": "L",
-          "wordIds": [
-            "sofra-35"
-          ]
-        },
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        {
-          "row": 5,
-          "col": 2,
-          "letter": "A",
-          "wordIds": [
-            "uc-082",
-            "uc-018"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 3,
-          "letter": "L",
-          "wordIds": [
-            "uc-018"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 4,
-          "letter": "E",
-          "wordIds": [
-            "uc-018",
-            "sofra-35"
-          ]
-        },
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        {
-          "row": 6,
-          "col": 2,
-          "letter": "N",
-          "wordIds": [
-            "uc-082"
-          ]
-        },
-        null,
-        null,
-        null,
-        null
-      ],
-      [
-        {
-          "row": 7,
-          "col": 0,
-          "letter": "A",
-          "wordIds": [
-            "sofra-13"
-          ]
-        },
-        {
-          "row": 7,
-          "col": 1,
-          "letter": "C",
-          "wordIds": [
-            "sofra-13"
-          ]
-        },
-        {
-          "row": 7,
-          "col": 2,
-          "letter": "İ",
-          "wordIds": [
-            "sofra-13",
-            "uc-082"
-          ]
-        },
-        {
-          "row": 7,
-          "col": 3,
-          "letter": "L",
-          "wordIds": [
-            "sofra-13"
-          ]
-        },
-        {
-          "row": 7,
-          "col": 4,
-          "letter": "E",
-          "wordIds": [
-            "sofra-13"
-          ]
-        },
-        {
-          "row": 7,
-          "col": 5,
-          "letter": "N",
-          "wordIds": [
-            "sofra-13"
-          ]
-        },
-        null
-      ]
-    ]
-  },
-  "zor": {
-    "zorluk": "kolay",
-    "words": [
+    "zor": [
       {
-        "id": "sofra-2061",
-        "kelime": "YAKIN",
-        "ipucu": "Az bir ara ile ayrılmış olan (zaman veya yer), uzak karşıtı",
-        "row": 5,
-        "col": 0,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-1805",
+            "kelime": "SÜREKLİ",
+            "ipucu": "Kesintisiz olarak süren, devamlı; kalıcı, temelli, daimî, paso",
+            "row": 5,
+            "col": 3,
+            "direction": "h"
+          },
+          {
+            "id": "uc-005",
+            "kelime": "SEL",
+            "ipucu": "Su baskını",
+            "row": 3,
+            "col": 8,
+            "direction": "v"
+          },
+          {
+            "id": "uc-011",
+            "kelime": "KES",
+            "ipucu": "Bıçakla ayır",
+            "row": 3,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1806",
+            "kelime": "SÜRELİ",
+            "ipucu": "Süresi belli olan; müddetli",
+            "row": 2,
+            "col": 6,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1751",
+            "kelime": "SİRKE",
+            "ipucu": "Salatalara, yemeklere ekşilik vermek için kullanılan ekşimiş üzüm, elma, limon vb. suyu",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1705",
+            "kelime": "SERİ",
+            "ipucu": "Hızlı bir biçimde",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "İLK",
+          "KEL",
+          "EKSİ",
+          "ERİK",
+          "ESİR",
+          "ESKİ",
+          "LİSE",
+          "LÜKS",
+          "REİS",
+          "RİSK",
+          "SİRK",
+          "SÜRE",
+          "ÜLKE"
+        ],
+        "wheel": [
+          "R",
+          "E",
+          "Ü",
+          "K",
+          "S",
+          "L",
+          "İ"
+        ],
+        "rows": 8,
+        "cols": 10,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1705"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1705"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1705"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 6,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1806"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1751"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1751",
+                "sofra-1705"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1751"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "K",
+              "wordIds": [
+                "uc-011",
+                "sofra-1751"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1751"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 6,
+              "letter": "Ü",
+              "wordIds": [
+                "sofra-1806"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 8,
+              "letter": "S",
+              "wordIds": [
+                "uc-005"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "E",
+              "wordIds": [
+                "uc-011"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 6,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1806"
+              ]
+            },
+            null,
+            {
+              "row": 4,
+              "col": 8,
+              "letter": "E",
+              "wordIds": [
+                "uc-005"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1805",
+                "uc-011"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "Ü",
+              "wordIds": [
+                "sofra-1805"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1805"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 6,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1805",
+                "sofra-1806"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 7,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1805"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 8,
+              "letter": "L",
+              "wordIds": [
+                "sofra-1805",
+                "uc-005"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 9,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1805"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 6,
+              "letter": "L",
+              "wordIds": [
+                "sofra-1806"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 7,
+              "col": 6,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1806"
+              ]
+            },
+            null,
+            null,
+            null
+          ]
+        ]
       },
       {
-        "id": "uc-095",
-        "kelime": "ANI",
-        "ipucu": "Anı, hatıra",
-        "row": 3,
-        "col": 3,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-96",
+            "kelime": "AMONYAK",
+            "ipucu": "Azot ve hidrojen birleşimi olan, keskin kokulu bir gaz (NH3)",
+            "row": 7,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-053",
+            "kelime": "KOY",
+            "ipucu": "Köy veya koymak",
+            "row": 5,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "uc-090",
+            "kelime": "MAK",
+            "ipucu": "Yapmak kısaltması",
+            "row": 5,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1272",
+            "kelime": "MAYA",
+            "ipucu": "Damızlık dişi hayvan",
+            "row": 2,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-185",
+            "kelime": "AYAK",
+            "ipucu": "Altılı ganyanda yer alan her bir koşu",
+            "row": 3,
+            "col": 1,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1021",
+            "kelime": "KAYA",
+            "ipucu": "Büyük ve sert taş kütlesi",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [
+          "KAM",
+          "KAN",
+          "KON",
+          "MAN",
+          "NAM",
+          "YAK",
+          "AMAN",
+          "AYNA",
+          "KANA",
+          "KANO",
+          "ONAY",
+          "YAKA"
+        ],
+        "wheel": [
+          "A",
+          "O",
+          "N",
+          "Y",
+          "A",
+          "K",
+          "M"
+        ],
+        "rows": 8,
+        "cols": 7,
+        "grid": [
+          [
+            null,
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1021"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1021"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-1021"
+              ]
+            },
+            null,
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "M",
+              "wordIds": [
+                "sofra-1272"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "A",
+              "wordIds": [
+                "sofra-185",
+                "sofra-1021"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-185"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1272",
+                "sofra-185"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "sofra-185"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-1272"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "M",
+              "wordIds": [
+                "uc-090"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "uc-090",
+                "sofra-1272"
+              ]
+            },
+            {
+              "row": 5,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "uc-053",
+                "uc-090"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 4,
+              "letter": "O",
+              "wordIds": [
+                "uc-053"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            {
+              "row": 7,
+              "col": 0,
+              "letter": "A",
+              "wordIds": [
+                "sofra-96"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 1,
+              "letter": "M",
+              "wordIds": [
+                "sofra-96"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 2,
+              "letter": "O",
+              "wordIds": [
+                "sofra-96"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 3,
+              "letter": "N",
+              "wordIds": [
+                "sofra-96"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 4,
+              "letter": "Y",
+              "wordIds": [
+                "sofra-96",
+                "uc-053"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 5,
+              "letter": "A",
+              "wordIds": [
+                "sofra-96"
+              ]
+            },
+            {
+              "row": 7,
+              "col": 6,
+              "letter": "K",
+              "wordIds": [
+                "sofra-96"
+              ]
+            }
+          ]
+        ]
       },
       {
-        "id": "uc-074",
-        "kelime": "AKI",
-        "ipucu": "Zaman veya akış",
-        "row": 3,
-        "col": 3,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-594",
+            "kelime": "EROTİK",
+            "ipucu": "Cinsel duyumlar veya onlara bağlı olan duyumların uyandırdığı duygu ve coşkularla ilgili olan; kösnül, şehvani, şehevi, erosal",
+            "row": 6,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "uc-086",
+            "kelime": "KİT",
+            "ipucu": "Kitap kısaltması",
+            "row": 4,
+            "col": 5,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1597",
+            "kelime": "ROKET",
+            "ipucu": "Bir çeşit füze",
+            "row": 3,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1910",
+            "kelime": "TERK",
+            "ipucu": "Bakmama, ihmal etme",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-586",
+            "kelime": "ERİK",
+            "ipucu": "Bu ağacın kabuğu ince, çeşitli renklerde, mayhoş veya tatlı, eti sulu, tek ve sert çekirdekli yemişi",
+            "row": 0,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-609",
+            "kelime": "ETİK",
+            "ipucu": "Çeşitli meslek kolları arasında tarafların uyması veya kaçınması gereken davranışlar bütünü",
+            "row": 0,
+            "col": 3,
+            "direction": "h"
+          }
+        ],
+        "bonusKelimeler": [
+          "TİK",
+          "ETKİ",
+          "KORE"
+        ],
+        "wheel": [
+          "İ",
+          "R",
+          "E",
+          "T",
+          "K",
+          "O"
+        ],
+        "rows": 8,
+        "cols": 8,
+        "grid": [
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "E",
+              "wordIds": [
+                "sofra-586",
+                "sofra-609"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 4,
+              "letter": "T",
+              "wordIds": [
+                "sofra-609"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 5,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-609"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 6,
+              "letter": "K",
+              "wordIds": [
+                "sofra-609"
+              ]
+            },
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 3,
+              "letter": "R",
+              "wordIds": [
+                "sofra-586"
+              ]
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 3,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-586"
+              ]
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1910"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1910"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1597",
+                "sofra-1910"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1910",
+                "sofra-586"
+              ]
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "O",
+              "wordIds": [
+                "sofra-1597"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 5,
+              "letter": "K",
+              "wordIds": [
+                "uc-086"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1597"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 5,
+              "letter": "İ",
+              "wordIds": [
+                "uc-086"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 2,
+              "letter": "E",
+              "wordIds": [
+                "sofra-594",
+                "sofra-1597"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 3,
+              "letter": "R",
+              "wordIds": [
+                "sofra-594"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 4,
+              "letter": "O",
+              "wordIds": [
+                "sofra-594"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 5,
+              "letter": "T",
+              "wordIds": [
+                "sofra-594",
+                "uc-086"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 6,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-594"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 7,
+              "letter": "K",
+              "wordIds": [
+                "sofra-594"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 7,
+              "col": 2,
+              "letter": "T",
+              "wordIds": [
+                "sofra-1597"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ]
       },
       {
-        "id": "sofra-197",
-        "kelime": "AYNI",
-        "ipucu": "Aralarında ayrım olmayan",
-        "row": 0,
-        "col": 5,
-        "direction": "v"
+        "words": [
+          {
+            "id": "sofra-1168",
+            "kelime": "KURNAZ",
+            "ipucu": "Kolay kanmayan, başkalarını kandırmasını ve ufak tefek oyunlarla amacına erişmesini beceren; hin, hinoğlu",
+            "row": 6,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "uc-009",
+            "kelime": "KAR",
+            "ipucu": "Kış yağışı",
+            "row": 4,
+            "col": 2,
+            "direction": "v"
+          },
+          {
+            "id": "uc-008",
+            "kelime": "KAN",
+            "ipucu": "Dolaşım sıvısı",
+            "row": 4,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1567",
+            "kelime": "RAKUN",
+            "ipucu": "Kuzey Amerika'da, ağaçlarda yaşayan, kafası tilkiye benzeyen, uzun kuyruğu alaca halkalı, kürklü hayvan (Procyon lotor)",
+            "row": 0,
+            "col": 4,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-143",
+            "kelime": "ARZU",
+            "ipucu": "",
+            "row": 0,
+            "col": 3,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-2009",
+            "kelime": "UZAK",
+            "ipucu": "İhtimali az olan",
+            "row": 0,
+            "col": 6,
+            "direction": "v"
+          }
+        ],
+        "bonusKelimeler": [],
+        "wheel": [
+          "N",
+          "A",
+          "Z",
+          "R",
+          "U",
+          "K"
+        ],
+        "rows": 7,
+        "cols": 7,
+        "grid": [
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "sofra-143"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 4,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1567",
+                "sofra-143"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 5,
+              "letter": "Z",
+              "wordIds": [
+                "sofra-143"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 6,
+              "letter": "U",
+              "wordIds": [
+                "sofra-143",
+                "sofra-2009"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 1,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1567"
+              ]
+            },
+            null,
+            {
+              "row": 1,
+              "col": 6,
+              "letter": "Z",
+              "wordIds": [
+                "sofra-2009"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 2,
+              "col": 4,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1567"
+              ]
+            },
+            null,
+            {
+              "row": 2,
+              "col": 6,
+              "letter": "A",
+              "wordIds": [
+                "sofra-2009"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            null,
+            {
+              "row": 3,
+              "col": 4,
+              "letter": "U",
+              "wordIds": [
+                "sofra-1567"
+              ]
+            },
+            null,
+            {
+              "row": 3,
+              "col": 6,
+              "letter": "K",
+              "wordIds": [
+                "sofra-2009"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 2,
+              "letter": "K",
+              "wordIds": [
+                "uc-009",
+                "uc-008"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "A",
+              "wordIds": [
+                "uc-008"
+              ]
+            },
+            {
+              "row": 4,
+              "col": 4,
+              "letter": "N",
+              "wordIds": [
+                "uc-008",
+                "sofra-1567"
+              ]
+            },
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 2,
+              "letter": "A",
+              "wordIds": [
+                "uc-009"
+              ]
+            },
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 6,
+              "col": 0,
+              "letter": "K",
+              "wordIds": [
+                "sofra-1168"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 1,
+              "letter": "U",
+              "wordIds": [
+                "sofra-1168"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 2,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1168",
+                "uc-009"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 3,
+              "letter": "N",
+              "wordIds": [
+                "sofra-1168"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 4,
+              "letter": "A",
+              "wordIds": [
+                "sofra-1168"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 5,
+              "letter": "Z",
+              "wordIds": [
+                "sofra-1168"
+              ]
+            },
+            null
+          ]
+        ]
       },
       {
-        "id": "sofra-190",
-        "kelime": "AYIN",
-        "ipucu": "Arap alfabesinin on sekizinci harfinin adı",
-        "row": 0,
-        "col": 5,
-        "direction": "h"
+        "words": [
+          {
+            "id": "sofra-1706",
+            "kelime": "SERİN",
+            "ipucu": "Az soğuk, ılık ile soğuk arası",
+            "row": 6,
+            "col": 2,
+            "direction": "h"
+          },
+          {
+            "id": "uc-059",
+            "kelime": "SEN",
+            "ipucu": "Karşıdaki kişi",
+            "row": 4,
+            "col": 6,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1747",
+            "kelime": "SİREN",
+            "ipucu": "İtfaiye, cankurtaran ve polis araçlarında bulunan, tiz ses çıkaran uyarıcı alet",
+            "row": 3,
+            "col": 3,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-1576",
+            "kelime": "REİS",
+            "ipucu": "Küçük tekne kaptanı",
+            "row": 3,
+            "col": 0,
+            "direction": "h"
+          },
+          {
+            "id": "sofra-1736",
+            "kelime": "SİNE",
+            "ipucu": "Bir şeyin içi, derinliği, özü; bağır, gönül, yürek",
+            "row": 0,
+            "col": 1,
+            "direction": "v"
+          },
+          {
+            "id": "sofra-602",
+            "kelime": "ESİR",
+            "ipucu": "Bir düşünceye veya bir kimseye körü körüne bağlı olan kimse",
+            "row": 0,
+            "col": 0,
+            "direction": "h"
+          }
+        ],
+        "bonusKelimeler": [
+          "ERİN",
+          "SERİ"
+        ],
+        "wheel": [
+          "E",
+          "S",
+          "R",
+          "N",
+          "İ"
+        ],
+        "rows": 8,
+        "cols": 7,
+        "grid": [
+          [
+            {
+              "row": 0,
+              "col": 0,
+              "letter": "E",
+              "wordIds": [
+                "sofra-602"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 1,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1736",
+                "sofra-602"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-602"
+              ]
+            },
+            {
+              "row": 0,
+              "col": 3,
+              "letter": "R",
+              "wordIds": [
+                "sofra-602"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 1,
+              "col": 1,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1736"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            {
+              "row": 2,
+              "col": 1,
+              "letter": "N",
+              "wordIds": [
+                "sofra-1736"
+              ]
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            {
+              "row": 3,
+              "col": 0,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1576"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 1,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1576",
+                "sofra-1736"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 2,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1576"
+              ]
+            },
+            {
+              "row": 3,
+              "col": 3,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1747",
+                "sofra-1576"
+              ]
+            },
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 3,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1747"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 4,
+              "col": 6,
+              "letter": "S",
+              "wordIds": [
+                "uc-059"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 3,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1747"
+              ]
+            },
+            null,
+            null,
+            {
+              "row": 5,
+              "col": 6,
+              "letter": "E",
+              "wordIds": [
+                "uc-059"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            {
+              "row": 6,
+              "col": 2,
+              "letter": "S",
+              "wordIds": [
+                "sofra-1706"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 3,
+              "letter": "E",
+              "wordIds": [
+                "sofra-1706",
+                "sofra-1747"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 4,
+              "letter": "R",
+              "wordIds": [
+                "sofra-1706"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 5,
+              "letter": "İ",
+              "wordIds": [
+                "sofra-1706"
+              ]
+            },
+            {
+              "row": 6,
+              "col": 6,
+              "letter": "N",
+              "wordIds": [
+                "sofra-1706",
+                "uc-059"
+              ]
+            }
+          ],
+          [
+            null,
+            null,
+            null,
+            {
+              "row": 7,
+              "col": 3,
+              "letter": "N",
+              "wordIds": [
+                "sofra-1747"
+              ]
+            },
+            null,
+            null,
+            null
+          ]
+        ]
       }
-    ],
-    "bonusKelimeler": [
-      "KAN",
-      "YAK",
-      "KANI"
-    ],
-    "wheel": [
-      "N",
-      "K",
-      "Y",
-      "I",
-      "A"
-    ],
-    "rows": 6,
-    "cols": 9,
-    "grid": [
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 0,
-          "col": 5,
-          "letter": "A",
-          "wordIds": [
-            "sofra-197",
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 6,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 7,
-          "letter": "I",
-          "wordIds": [
-            "sofra-190"
-          ]
-        },
-        {
-          "row": 0,
-          "col": 8,
-          "letter": "N",
-          "wordIds": [
-            "sofra-190"
-          ]
-        }
-      ],
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 1,
-          "col": 5,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        null,
-        null,
-        {
-          "row": 2,
-          "col": 5,
-          "letter": "N",
-          "wordIds": [
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 3,
-          "col": 3,
-          "letter": "A",
-          "wordIds": [
-            "uc-095",
-            "uc-074"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 4,
-          "letter": "K",
-          "wordIds": [
-            "uc-074"
-          ]
-        },
-        {
-          "row": 3,
-          "col": 5,
-          "letter": "I",
-          "wordIds": [
-            "uc-074",
-            "sofra-197"
-          ]
-        },
-        null,
-        null,
-        null
-      ],
-      [
-        null,
-        null,
-        null,
-        {
-          "row": 4,
-          "col": 3,
-          "letter": "N",
-          "wordIds": [
-            "uc-095"
-          ]
-        },
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      [
-        {
-          "row": 5,
-          "col": 0,
-          "letter": "Y",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 1,
-          "letter": "A",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 2,
-          "letter": "K",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 3,
-          "letter": "I",
-          "wordIds": [
-            "sofra-2061",
-            "uc-095"
-          ]
-        },
-        {
-          "row": 5,
-          "col": 4,
-          "letter": "N",
-          "wordIds": [
-            "sofra-2061"
-          ]
-        },
-        null,
-        null,
-        null,
-        null
-      ]
     ]
   }
 }

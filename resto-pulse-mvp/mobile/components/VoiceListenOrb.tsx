@@ -24,7 +24,7 @@ type Props = {
 
 export const VOICE_ORB_SIZE = MIC_ZONE + 56;
 
-function RippleRing({ size, delayMs }: { size: number; delayMs: number }) {
+function RippleRing({ size, delayMs, active }: { size: number; delayMs: number; active: boolean }) {
   const startScale = MIC_SIZE / size;
   const scale = useRef(new Animated.Value(startScale)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -37,6 +37,8 @@ function RippleRing({ size, delayMs }: { size: number; delayMs: number }) {
 
     scale.setValue(startScale);
     opacity.setValue(0);
+
+    if (!active) return;
 
     const ripple = Animated.loop(
       Animated.sequence([
@@ -71,7 +73,7 @@ function RippleRing({ size, delayMs }: { size: number; delayMs: number }) {
       ripple.stop();
       loopRef.current = null;
     };
-  }, [delayMs, opacity, scale, startScale]);
+  }, [active, delayMs, opacity, scale, startScale]);
 
   return (
     <Animated.View
@@ -146,7 +148,7 @@ export function VoiceListenOrb({ listening = false, transcribing = false }: Prop
     <View style={styles.wrap} pointerEvents="none">
       <View style={styles.micZone}>
         {RING_SIZES.map((size, index) => (
-          <RippleRing key={size} size={size} delayMs={RING_DELAYS[index]} />
+          <RippleRing key={size} size={size} delayMs={RING_DELAYS[index]} active={active} />
         ))}
 
         <View style={styles.micButton}>

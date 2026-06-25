@@ -66,6 +66,13 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
     }
   }, [micUiState.transcribing]);
 
+  useEffect(() => {
+    if (micUiState.listening) {
+      setDraft('');
+      setMicHint(null);
+    }
+  }, [micUiState.listening]);
+
   const parsed = useMemo(
     () => parseVoiceOrderCommand(draft, restaurants, defaultProductSearchGroup),
     [draft, restaurants, defaultProductSearchGroup],
@@ -87,7 +94,10 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
   const handleTranscript = useCallback(
     (text: string, isFinal: boolean) => {
       const polished = polishVoiceOrderCommandTranscript(text);
-      if (!polished) return;
+      if (!polished) {
+        if (isFinal) setDraft('');
+        return;
+      }
       setDraft(polished);
       if (!isFinal) {
         setMicActive(false);

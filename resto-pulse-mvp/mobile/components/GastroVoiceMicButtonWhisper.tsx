@@ -6,6 +6,7 @@ import { GastroColors } from '@/constants/theme';
 import { waitForGastroAudioCueIdle } from '@/lib/gastro-audio-cues';
 import { isAppForeground } from '@/lib/app-foreground';
 import { gastroStopTtsOnly } from '@/lib/gastro-speak';
+import { isJunkSpeechTranscript } from '@/lib/speech-transcript-quality';
 import {
   useVoiceWhisperRecorder,
   type VoiceWhisperAutoStopReason,
@@ -69,7 +70,8 @@ export function GastroVoiceMicButtonWhisper({
       updateHint('Cevriliyor…');
       const text = await stopAndTranscribe();
       updateHint(null);
-      if (text) {
+      const usable = text.trim() && !isJunkSpeechTranscript(text);
+      if (usable) {
         onTranscriptRef.current(text, false);
         onTranscriptRef.current(text, true);
       } else {

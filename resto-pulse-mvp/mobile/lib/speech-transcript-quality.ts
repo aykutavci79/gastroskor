@@ -14,11 +14,23 @@ const JUNK_TRANSCRIPT_PATTERNS: RegExp[] = [
   /^(dinliyorum|dinlerim)$/,
 ];
 
+function isSingleLetterInitialism(text: string): boolean {
+  const parts = text.split(/[\s.]+/).filter(Boolean);
+  return parts.length >= 2 && parts.every((part) => part.length === 1);
+}
+
 export function isJunkSpeechTranscript(raw: string): boolean {
   const text = foldTrAscii(normalizeTrSpeechText(raw));
   if (!text) return true;
   if (text.length <= 2) return true;
   if (/^[.\s,;:!?-]+$/.test(text)) return true;
+  if (isSingleLetterInitialism(text)) return true;
+
+  const tokens = text.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1 && tokens.every((token) => isJunkSpeechTranscript(token))) {
+    return true;
+  }
+
   return JUNK_TRANSCRIPT_PATTERNS.some((pattern) => pattern.test(text));
 }
 

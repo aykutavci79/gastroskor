@@ -268,7 +268,7 @@ export default function KelimeSofrasiLobbyScreen() {
         {loadError ? (
           <Text style={[styles.alt, { color: '#f87171' }]}>
             {__DEV__
-              ? `Dönem: ${selectedGunId} · API: ${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.gastroskor.com.tr'}`
+              ? `${loadError} · Dönem: ${selectedGunId}`
               : 'Sofra hazırlanamadı. Bağlantını kontrol edip tekrar dene.'}
           </Text>
         ) : null}

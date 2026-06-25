@@ -1,33 +1,29 @@
-import { Platform } from 'react-native';
+/** Suskunluk VAD kapali — iOS ve Android'de kullanici dokunarak bitirir. */
+export function usesManualMicFinish(): boolean {
+  return true;
+}
 
-/** iOS Whisper VAD sessizlikte guvenilir degil — kullanici dokunarak bitirir. */
+/** @deprecated usesManualMicFinish */
 export function usesIosManualMicFinish(): boolean {
-  return Platform.OS === 'ios';
+  return usesManualMicFinish();
 }
 
 export function voiceMicSheetSubcopy(): string {
-  if (usesIosManualMicFinish()) {
-    return 'Mikrofon açılır, ürünü söyle. Bitirince mikrofona tekrar dokun — arama başlar. Bütçe şart değil.';
-  }
-  return 'Mikrofon açılır, ürünü söyle. 2–3 sn susunca otomatik arar; istersen bitirmek için mikrofona tekrar dokun. Bütçe şart değil.';
+  return 'Mikrofon açılır, ürünü söyle. Bitirince mikrofona tekrar dokun — arama başlar. Bütçe şart değil.';
 }
 
 export function voiceMicCompactRecordingHint(): string {
-  return usesIosManualMicFinish() ? 'Aramak için tekrar dokun' : 'Susunca otomatik biter';
+  return 'Aramak için tekrar dokun';
 }
 
 export function voiceMicRecordingLabel(): string {
-  return usesIosManualMicFinish() ? 'Dinleniyor…' : 'Dinleniyor… (susunca biter)';
+  return 'Dinleniyor…';
 }
 
 export function voiceMicIdleAccessibilityHint(): string {
-  return usesIosManualMicFinish()
-    ? 'Konuşmak için dokun; bitirince tekrar dokun'
-    : 'Konuşmak için dokun; susunca otomatik biter';
+  return 'Konuşmak için dokun; bitirince tekrar dokun';
 }
 
 export function voiceMicRecordingAccessibilityHint(): string {
-  return usesIosManualMicFinish()
-    ? 'Aramayı bitirmek için tekrar dokun'
-    : 'Dinlemeyi bitirmek için tekrar dokun veya sus';
+  return 'Aramayı bitirmek için tekrar dokun';
 }

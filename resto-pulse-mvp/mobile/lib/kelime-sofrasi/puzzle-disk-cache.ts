@@ -6,7 +6,7 @@ import { SOFRA_STORAGE_PREFIX } from '@/constants/kelime-sofrasi';
 import type { SofraPuzzle } from './types';
 
 /** Generator / cache sürümü — değişince disk geçersiz. */
-export const SOFRA_PUZZLE_DISK_VERSION = 10;
+export const SOFRA_PUZZLE_DISK_VERSION = 12;
 
 function diskKey(gunId: string, zorluk: EglenceZorluk, tur: number): string {
   return `${SOFRA_STORAGE_PREFIX}:puzzle:v${SOFRA_PUZZLE_DISK_VERSION}:${gunId}:${zorluk}:t${tur}`;

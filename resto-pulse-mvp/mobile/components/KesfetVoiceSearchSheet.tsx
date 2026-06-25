@@ -12,9 +12,10 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { VOICE_ORB_SIZE, VoiceListenOrb } from '@/components/VoiceListenOrb';
 import { GastroColors } from '@/constants/theme';
 import { isExpoGo } from '@/lib/google-signin-config';
-import { gastroPrepareVoiceInput, gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroSpeakListening, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { polishVoiceSearchTranscript } from '@/lib/voice-search-stt-fix';
-import { usesIosManualMicFinish, voiceMicCompactRecordingHint } from '@/lib/voice-mic-copy';
+import { speechTranscriptForDisplay } from '@/lib/speech-transcript-quality';
+import { voiceMicCompactRecordingHint } from '@/lib/voice-mic-copy';
 
 const DEMO_PHRASE = '150 TL lik lahmacun';
 
@@ -46,7 +47,6 @@ const CHIP_LAYOUT: Record<ChipPosition, Pick<ViewStyle, 'top' | 'bottom' | 'left
 
 export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props) {
   const insets = useSafeAreaInsets();
-  const [micActive, setMicActive] = useState(false);
   const [uiState, setUiState] = useState<VoiceMicUiState>({ listening: false, transcribing: false });
   const [liveDraft, setLiveDraft] = useState('');
   const [micHint, setMicHint] = useState<string | null>(null);
@@ -68,7 +68,6 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
       setOverlayShown(false);
       gastroStopSpeaking();
       clearDemoTimers();
-      setMicActive(false);
       setUiState({ listening: false, transcribing: false });
       setLiveDraft('');
       setMicHint(null);
@@ -77,26 +76,13 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     setUiState({ listening: false, transcribing: false });
     setLiveDraft('');
     setMicHint(null);
-    setMicActive(false);
   }, [visible, clearDemoTimers]);
 
   useEffect(() => {
-    if (!visible || !overlayShown) return;
-    let cancelled = false;
-    const cancelPrep = gastroPrepareVoiceInput(() => {
-      if (!cancelled) setMicActive(true);
-    });
-    return () => {
-      cancelled = true;
-      cancelPrep();
-    };
-  }, [visible, overlayShown]);
-
-  useEffect(() => {
-    if (uiState.transcribing) {
-      setMicActive(false);
+    if (uiState.listening) {
+      setLiveDraft('');
     }
-  }, [uiState.transcribing]);
+  }, [uiState.listening]);
 
   const runVoiceDemo = useCallback(() => {
     if (uiState.listening || uiState.transcribing) {
@@ -115,7 +101,6 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
     scheduleDemo(4000, () => {
       clearDemoTimers();
       setUiState({ listening: false, transcribing: false });
-      setMicActive(false);
       onTranscript(DEMO_PHRASE);
       onClose();
     });
@@ -123,16 +108,19 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
 
   function handleTranscript(text: string, isFinal: boolean) {
     const trimmed = polishVoiceSearchTranscript(text);
-    if (!trimmed) return;
-    setLiveDraft(trimmed);
-    if (!isFinal) {
-      setMicActive(false);
+    if (!trimmed) {
+      if (isFinal) setLiveDraft('');
       return;
     }
-    setMicActive(false);
+    setLiveDraft(trimmed);
+    if (!isFinal) {
+      return;
+    }
     onTranscript(trimmed);
     onClose();
   }
+
+  const draftPreview = speechTranscriptForDisplay(liveDraft);
 
   const statusLine = micHint
     ? micHint
@@ -142,9 +130,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
         ? `Dinliyorum… ${voiceMicCompactRecordingHint()}`
         : isExpoGo
           ? 'Dokun — ses önizlemesi'
-          : usesIosManualMicFinish()
-            ? 'Konuş — bitirince mikrofona tekrar dokun'
-            : 'Konuş — 2–3 sn susunca otomatik arar';
+          : 'Mikrofona dokun, konuş — bitirince tekrar dokun';
 
   return (
     <Modal
@@ -194,8 +180,7 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
                 <SpeechMicErrorBoundary compact>
                   <GastroVoiceMicButton
                     overlayCompact
-                    autoStart
-                    active={micActive && !uiState.transcribing}
+                    active={overlayShown && !uiState.transcribing}
                     onTranscript={handleTranscript}
                     onUiStateChange={setUiState}
                     onHintChange={setMicHint}
@@ -207,9 +192,9 @@ export function KesfetVoiceSearchSheet({ visible, onClose, onTranscript }: Props
 
           <Text style={styles.status}>{statusLine}</Text>
           {isExpoGo ? <Text style={styles.demoNote}>Expo Go — gerçek mikrofon build gerektirir</Text> : null}
-          {liveDraft ? (
+          {draftPreview ? (
             <Text style={styles.draft} numberOfLines={2}>
-              “{liveDraft}”
+              “{draftPreview}”
             </Text>
           ) : null}
         </View>
