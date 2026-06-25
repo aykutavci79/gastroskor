@@ -63,11 +63,9 @@ import { authHeaders, ensureAccessToken, refreshAuthTokens } from '@/lib/auth-to
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
 import { formatApiError, httpErrorMessage, parseHttpErrorText } from '@/lib/format-api-error';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
-import { setupSslPinning } from '@/lib/ssl-pinning';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 export { ReviewModerationApiError };
-
-const apiBootstrap = setupSslPinning();
 
 function isRetryableNetworkError(err: unknown): boolean {
   return err instanceof TypeError && /network request failed/i.test(err.message);
@@ -78,7 +76,7 @@ function shouldAttemptAuthRefresh(path: string, status: number) {
 }
 
 async function performRequest(path: string, init?: RequestInit, attempt = 0): Promise<Response> {
-  await apiBootstrap;
+  await ensureSslPinningReady();
   await ensureAccessToken();
 
   const hasBody = init?.body != null;
@@ -517,6 +515,7 @@ export async function uploadReviewImage(
   const form = new FormData();
   form.append('author_email', authorEmail);
   form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
+  await ensureSslPinningReady();
   const response = await fetch(`${getApiV1Base()}/reviews/${encodeURIComponent(reviewId)}/images`, {
     method: 'POST',
     body: form,
@@ -611,6 +610,7 @@ export async function uploadUserAvatar(
   form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
   let response: Response;
   try {
+    await ensureSslPinningReady();
     response = await fetch(`${getApiV1Base()}/users/avatar`, {
       method: 'POST',
       body: form,
@@ -892,6 +892,7 @@ export async function uploadPanelMenuImage(
   const form = new FormData();
   form.append('user_email', userEmail);
   form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
+  await ensureSslPinningReady();
   const response = await fetch(`${getApiV1Base()}/panel/promo/menu-image`, {
     method: 'POST',
     body: form,
@@ -1242,6 +1243,7 @@ export async function uploadFoodcastPhoto(params: {
     name: params.fileName,
   } as unknown as Blob);
 
+  await ensureSslPinningReady();
   const response = await fetch(`${getApiV1Base()}/foodcast/photos`, {
     method: 'POST',
     headers: await authHeaders(),

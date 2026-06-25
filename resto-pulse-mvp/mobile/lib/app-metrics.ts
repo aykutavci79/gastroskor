@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { AppState, type AppStateStatus, Platform } from 'react-native';
 
 import { getApiV1Base } from '@/lib/api-base';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 type MetricsPayload = {
   event_type: 'session_start' | 'session_end';
@@ -27,6 +28,7 @@ function appVersion(): string | null {
 
 async function sendEvent(payload: MetricsPayload): Promise<void> {
   try {
+    await ensureSslPinningReady();
     await fetch(`${getApiV1Base()}/metrics/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

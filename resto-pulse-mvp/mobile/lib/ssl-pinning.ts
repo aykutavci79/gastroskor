@@ -11,6 +11,11 @@ export const SSL_PINNING_USER_MESSAGE =
 
 let pinningSetup: Promise<void> | null = null;
 let pinningFailureActive = false;
+let pinningInitialized = false;
+
+function isPinningEnforced(): boolean {
+  return !__DEV__ && process.env.EXPO_PUBLIC_SSL_PINNING_ENABLED === 'true';
+}
 
 export function isSslPinningFailureActive(): boolean {
   return pinningFailureActive;
@@ -48,13 +53,17 @@ export function setupSslPinning(): Promise<void> {
   if (pinningSetup) return pinningSetup;
 
   pinningSetup = (async () => {
-    if (__DEV__) return;
-    if (process.env.EXPO_PUBLIC_SSL_PINNING_ENABLED !== 'true') return;
-    if (!isSslPinningAvailable()) return;
+    if (!isPinningEnforced()) return;
+    if (!isSslPinningAvailable()) {
+      pinningFailureActive = true;
+      console.error('[ssl-pinning] Native modul yok; guvenli API baglantisi kurulamaz.');
+      return;
+    }
 
     const hashes = readPinHashes();
     if (hashes.length < 2) {
-      console.warn('[ssl-pinning] Primary ve backup pin tanimli degil; pinning atlandi.');
+      pinningFailureActive = true;
+      console.error('[ssl-pinning] Primary ve backup pin eksik; guvenli API baglantisi kurulamaz.');
       return;
     }
 
@@ -65,10 +74,21 @@ export function setupSslPinning(): Promise<void> {
           publicKeyHashes: hashes,
         },
       });
+      pinningInitialized = true;
     } catch (error) {
-      console.warn('[ssl-pinning] Baslatilamadi; pinning devre disi.', error);
+      pinningFailureActive = true;
+      console.error('[ssl-pinning] Baslatilamadi; guvenli API baglantisi kurulamaz.', error);
     }
   })();
 
   return pinningSetup;
+}
+
+/** Production + pinning acikken init basarisizsa API isteklerini engelle. */
+export async function ensureSslPinningReady(): Promise<void> {
+  await setupSslPinning();
+  if (!isPinningEnforced()) return;
+  if (!pinningInitialized) {
+    throw new Error(SSL_PINNING_USER_MESSAGE);
+  }
 }

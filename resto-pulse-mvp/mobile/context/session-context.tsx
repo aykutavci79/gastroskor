@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 
 import { syncUser } from '@/lib/api';
 import { getApiV1Base } from '@/lib/api-base';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 import { setAuthFailureHandler } from '@/lib/auth-session-events';
 import {
   clearAllAuthTokens,
@@ -175,6 +176,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const token = refreshToken ?? (await loadRefreshToken());
     if (token) {
       try {
+        await ensureSslPinningReady();
         await fetch(`${getApiV1Base()}/auth/logout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

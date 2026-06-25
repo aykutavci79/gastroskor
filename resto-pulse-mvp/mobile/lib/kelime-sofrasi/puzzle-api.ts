@@ -2,6 +2,7 @@ import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { getApiV1Base } from '@/lib/api-base';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 import type { SofraPuzzle } from './types';
 
@@ -45,6 +46,7 @@ type SofraArchiveDaysResponse = {
 export async function fetchSofraArchiveDays(): Promise<string[]> {
   const signal = createFetchTimeoutSignal(8_000);
   try {
+    await ensureSslPinningReady();
     const res = await fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/archive-days`, {
       signal,
       headers: { Accept: 'application/json' },
@@ -72,6 +74,7 @@ export async function fetchSofraPuzzleFromPool(
   if (userEmail) params.set('user_email', userEmail);
   const signal = createFetchTimeoutSignal(12_000);
   try {
+    await ensureSslPinningReady();
     const res = await fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/puzzle?${params}`, {
       signal,
       headers: { Accept: 'application/json' },

@@ -1,5 +1,6 @@
 import { getApiV1Base } from '@/lib/api-base';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 import type { EglenceArchiveGameId } from '@/constants/eglence-archive';
 
@@ -24,6 +25,7 @@ export async function fetchArchiveUnlocks(
   const params = new URLSearchParams({ user_email: userEmail, game });
   const signal = createFetchTimeoutSignal(8_000);
   try {
+    await ensureSslPinningReady();
     const res = await fetch(`${getApiV1Base()}/jeton/me/archive-unlocks?${params}`, {
       signal,
       headers: { Accept: 'application/json' },
@@ -40,6 +42,7 @@ export async function unlockArchiveDay(payload: {
   game: EglenceArchiveGameId;
   gunId: string;
 }): Promise<ArchiveDayUnlockResponse> {
+  await ensureSslPinningReady();
   const res = await fetch(`${getApiV1Base()}/jeton/me/spend/archive-day`, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

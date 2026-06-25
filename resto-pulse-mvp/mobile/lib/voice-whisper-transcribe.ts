@@ -1,6 +1,7 @@
 import { getApiV1Base } from '@/lib/api-base';
 import { ensureAccessToken } from '@/lib/auth-token';
 import { createFetchTimeoutSignal } from '@/lib/fetch-timeout';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 export type VoiceTranscribeResponse = {
   text: string;
@@ -22,6 +23,7 @@ export async function transcribeVoiceAudio(
   form.append('language', 'tr');
   form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
 
+  await ensureSslPinningReady();
   const response = await fetch(`${getApiV1Base()}/voice/transcribe`, {
     method: 'POST',
     headers: {

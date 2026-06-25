@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 import { getApiV1Base } from '@/lib/api-base';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 const TOKEN_KEY = 'gastroskor.auth.access-token.v1';
 const REFRESH_TOKEN_KEY = 'gastroskor.auth.refresh-token.v1';
@@ -101,6 +102,7 @@ export async function refreshAuthTokens(): Promise<boolean> {
     if (!refreshToken) return false;
 
     try {
+      await ensureSslPinningReady();
       const response = await fetch(`${getApiV1Base()}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

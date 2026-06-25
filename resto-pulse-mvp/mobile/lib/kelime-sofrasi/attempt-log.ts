@@ -1,4 +1,5 @@
 import { getApiV1Base } from '@/lib/api-base';
+import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 
 import { sofraKelimeBuyuk } from './turkce-harf';
 
@@ -10,11 +11,15 @@ export function logWheelAttempt(raw: string): void {
   const kelime = sofraKelimeBuyuk(raw);
   if (kelime.length < MIN_LOG_LENGTH) return;
 
-  void fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/attempts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kelime }),
-  }).catch(() => {
+  void ensureSslPinningReady()
+    .then(() =>
+      fetch(`${getApiV1Base()}/eglence/kelime-sofrasi/attempts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kelime }),
+      }),
+    )
+    .catch(() => {
     /* ağ hatası — oyun akışını kesme */
-  });
+    });
 }
