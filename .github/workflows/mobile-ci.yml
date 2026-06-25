@@ -69,4 +69,6 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Unit tests
-        run: npm run test:sentry-scrub
+        run: |
+          npm run test:sentry-scrub
+          npx tsx --test ./lib/kelime-bul/engine.test.ts
