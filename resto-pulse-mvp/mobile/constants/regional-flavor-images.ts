@@ -1,26 +1,35 @@
 import type { ImageSourcePropType } from 'react-native';
 
-/** Yöresel lezzet görselleri — uygulama içi; web /public ile aynı dosyalar. */
+const DEFAULT_SITE = 'https://www.gastroskor.com.tr';
+
+function publicImageSource(path: string): ImageSourcePropType {
+  const site = (process.env.EXPO_PUBLIC_SITE_URL ?? DEFAULT_SITE).replace(/\/$/, '');
+  return { uri: `${site}${path}` };
+}
+
+/** Yöresel lezzet görselleri — yerel asset yoksa ürün payload'ındaki remote URL kullanılır. */
 export const LOCAL_REGIONAL_FLAVOR_IMAGES: Record<string, ImageSourcePropType> = {
-  'bursa-cantik': require('@/assets/regional-flavors/bursa-cantik.jpg'),
-  'bursa-cevizli-lokum': require('@/assets/regional-flavors/bursa-cevizli-lokum.jpg'),
-  'bursa-sut-helvasi': require('@/assets/regional-flavors/bursa-sut-helvasi.jpg'),
-  'bursa-tahinli-pide': require('@/assets/regional-flavors/bursa-tahinli-pide.jpg'),
-  'kemalpasa-tatlisi': require('@/assets/regional-flavors/kemalpasa-tatlisi.jpg'),
-  'inegol-sutlu-kadayifi': require('@/assets/regional-flavors/inegol-sutlu-kadayifi.jpg'),
-  'bursa-doner-kebabi': require('@/assets/regional-flavors/bursa-doner-kebabi.jpg'),
-  'bursa-pideli-kofte': require('@/assets/regional-flavors/bursa-pideli-kofte.jpg'),
-  'zeyniler-hinkali': require('@/assets/regional-flavors/zeyniler-hinkali.jpg'),
-  'inegol-buryani': require('@/assets/regional-flavors/inegol-buryani.jpg'),
-  'inegol-kofte': require('@/assets/regional-flavors/inegol-kofte.jpg'),
-  'inegol-piyazi': require('@/assets/regional-flavors/inegol-piyazi.jpg'),
+  // Keep this map require-free unless matching files are committed under mobile/assets.
 };
 
 export function regionalFlavorLocalImage(slug: string): ImageSourcePropType | null {
   return LOCAL_REGIONAL_FLAVOR_IMAGES[slug] ?? null;
 }
 
-const SOFRA_BG_SLUGS = Object.keys(LOCAL_REGIONAL_FLAVOR_IMAGES);
+const SOFRA_BACKGROUND_IMAGES: ImageSourcePropType[] = [
+  publicImageSource('/images/regional-flavors/adana-kebabi.jpg'),
+  publicImageSource('/images/regional-flavors/adana-bici-bici.jpeg'),
+  publicImageSource('/images/regional-flavors/adana-halka-tatlisi.jpeg'),
+  publicImageSource('/images/regional-flavors/adana-karpuzu.jpeg'),
+  publicImageSource('/images/regional-flavors/adana-tas-kadayifi.jpeg'),
+  publicImageSource('/images/regional-flavors/adiyaman-etsiz-cig-kofte.jpg'),
+  publicImageSource('/images/regional-flavors/adiyaman-tene-helvasi.jpeg'),
+  publicImageSource('/images/regional-flavors/aksaray-kabak-cekirdegi.jpeg'),
+  publicImageSource('/images/regional-flavors/aksaray-tahinlisi.jpeg'),
+  publicImageSource('/images/regional-flavors/aksaray-tulum-kebabi.jpeg'),
+  publicImageSource('/images/regional-flavors/aksaray-un-kurabiyesi.jpeg'),
+  publicImageSource('/images/regional-flavors/aksaray-serbetli-pidesi.jpeg'),
+];
 
 /** Günlük bulmaca id'sine göre sabit bir yemek arka planı seçer. */
 export function sofraBackgroundForPuzzle(puzzleId: string): ImageSourcePropType {
@@ -28,6 +37,5 @@ export function sofraBackgroundForPuzzle(puzzleId: string): ImageSourcePropType 
   for (let i = 0; i < puzzleId.length; i++) {
     hash = (hash * 31 + puzzleId.charCodeAt(i)) >>> 0;
   }
-  const slug = SOFRA_BG_SLUGS[hash % SOFRA_BG_SLUGS.length]!;
-  return LOCAL_REGIONAL_FLAVOR_IMAGES[slug]!;
+  return SOFRA_BACKGROUND_IMAGES[hash % SOFRA_BACKGROUND_IMAGES.length]!;
 }

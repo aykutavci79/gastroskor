@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.entities import User
+from app.models.entities import Restaurant, User
 from app.schemas.foodcast import (
     FoodcastFeedResponse,
     FoodcastPhotoCreateResponse,

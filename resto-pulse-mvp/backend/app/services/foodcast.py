@@ -14,7 +14,7 @@ from app.models.entities import FoodcastPhoto, FoodcastPhotoReport, Restaurant, 
 from app.services.foodcast_image_storage import save_foodcast_image
 from app.services.city_resolver import resolve_city_name
 from app.services.gastro_score_ranking import haversine_meters
-from app.services.restaurant_proximity import is_user_near_restaurant
+from app.services.restaurant_proximity import CHECK_IN_MAX_DISTANCE_M, is_user_near_restaurant
 
 FOODCAST_STRIP_LIMIT = 10
 FOODCAST_FEED_MAX_LIMIT = 50
@@ -114,6 +114,7 @@ def list_foodcast_feed(
 
 
 def _assert_location_near_restaurant(
+    db: Session,
     restaurant: Restaurant,
     *,
     latitude: float,
@@ -185,7 +186,7 @@ async def create_foodcast_photo(
         if _count_user_photos_today(db, user.id) >= FOODCAST_MAX_PER_USER_PER_DAY:
             raise FoodcastError(f"Gunluk en fazla {FOODCAST_MAX_PER_USER_PER_DAY} tabak paylasabilirsiniz.")
         if not skip_location_check:
-            _assert_location_near_restaurant(restaurant, latitude=latitude, longitude=longitude)
+            _assert_location_near_restaurant(db, restaurant, latitude=latitude, longitude=longitude)
 
     image_url = await save_foodcast_image(file)
     photo_city = resolve_city_name(restaurant.city or "Bursa")
