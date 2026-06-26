@@ -61,15 +61,47 @@ def catalog_metadata() -> dict:
     }
 
 
+@lru_cache(maxsize=1)
+def _bursa_enrichment_by_slug() -> dict[str, dict]:
+    """Bursa katalogundaki elle zenginlestirilmis alanlar (alias, arama, gorsel)."""
+    if not _FALLBACK_PATH.exists():
+        return {}
+    with _FALLBACK_PATH.open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+    return {str(item["slug"]): item for item in payload.get("items") or []}
+
+
 def _parse_item(raw: dict, product_groups: dict[str, str]) -> RegionalProductCatalogItem:
     group_id = str(raw["product_group_id"])
+    slug = str(raw["slug"])
+    city = str(raw.get("city") or "")
+    enrich = _bursa_enrichment_by_slug().get(slug, {})
+    use_enrich = city == "Bursa" and bool(enrich)
+
+    if use_enrich and enrich.get("aliases"):
+        aliases = tuple(str(alias) for alias in enrich["aliases"])
+    else:
+        aliases = tuple(str(alias) for alias in raw.get("aliases") or ())
+
+    if use_enrich and enrich.get("image_url"):
+        image_url = str(enrich["image_url"]).strip()
+    elif raw.get("image_url"):
+        image_url = str(raw["image_url"]).strip()
+    else:
+        image_url = None
+
+    if use_enrich and enrich.get("live_search_query"):
+        live_search_query = str(enrich["live_search_query"])
+    else:
+        live_search_query = str(raw.get("live_search_query") or raw["name"])
+
     return RegionalProductCatalogItem(
-        slug=str(raw["slug"]),
+        slug=slug,
         name=str(raw["name"]),
-        city=str(raw.get("city") or ""),
+        city=city,
         region=str(raw.get("region") or raw.get("city") or ""),
         summary=str(raw.get("summary") or ""),
-        aliases=tuple(str(alias) for alias in raw.get("aliases") or ()),
+        aliases=aliases,
         turkpatent_id=str(raw["turkpatent_id"]),
         product_group_id=group_id,
         product_group=product_groups.get(group_id, group_id),
@@ -77,9 +109,9 @@ def _parse_item(raw: dict, product_groups: dict[str, str]) -> RegionalProductCat
         indication_type=str(raw.get("indication_type") or "Mahreç İşareti"),
         detail_url=str(raw["detail_url"]),
         list_url=str(raw.get("list_url") or ""),
-        live_search_query=str(raw.get("live_search_query") or raw["name"]),
+        live_search_query=live_search_query,
         city_id=int(raw["city_id"]) if raw.get("city_id") is not None else None,
-        image_url=str(raw["image_url"]).strip() if raw.get("image_url") else None,
+        image_url=image_url,
         reference_image_url=str(raw["reference_image_url"]).strip() if raw.get("reference_image_url") else None,
     )
 
