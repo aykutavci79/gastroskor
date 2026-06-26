@@ -92,6 +92,39 @@ async def test_pastane_search_uses_open_text_first() -> None:
 
 
 @pytest.mark.asyncio
+async def test_gps_nearby_before_open_text_for_multiword_food() -> None:
+    """GPS varken 'antep lahmacunu' once yakin aramaya gider — text-only kilidi yok."""
+    client = GooglePlacesLiveClient()
+    nearby_row = LivePlaceResult(
+        place_id="ChIJlahmacun",
+        name="Antep Lahmacun",
+        formatted_address="Gaziantep",
+        rating=4.5,
+        user_ratings_total=80,
+        latitude=37.07,
+        longitude=37.38,
+    )
+
+    with (
+        patch.object(client, "_nearby_search", new_callable=AsyncMock, return_value=[nearby_row] * 8) as nearby,
+        patch.object(client, "_text_search", new_callable=AsyncMock) as text,
+        patch("app.integrations.google_places_live.settings.google_places_api_key", "test-key"),
+    ):
+        rows = await client.search_places(
+            "antep lahmacunu",
+            city="Gaziantep",
+            limit=8,
+            origin_lat=37.0662,
+            origin_lng=37.3833,
+        )
+
+    assert len(rows) == 8
+    assert rows[0].name == "Antep Lahmacun"
+    nearby.assert_awaited_once()
+    text.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_gps_nearby_falls_back_to_text_when_nearby_empty() -> None:
     client = GooglePlacesLiveClient()
     pastane_row = LivePlaceResult(

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import settings
+from app.data.turkiye_province_geo import city_search_bias_map
 from app.services.food_place_filter import is_food_related_place
 from app.services.profanity_tr import normalize_review_text
 
@@ -46,12 +47,7 @@ def first_photo_reference_from_google_result(result: dict) -> str | None:
 
 # Text Search: konum yoksa Google oncelik/populerlik + sorgu metnine gore siralar.
 # Sehir merkezi ile location+radius verince sonuclar o bolgeye yakinlasir (GPS degil).
-CITY_SEARCH_BIAS: dict[str, tuple[float, float, int]] = {
-    "bursa": (40.1885, 29.0610, 50_000),
-    "istanbul": (41.0082, 28.9784, 80_000),
-    "ankara": (39.9334, 32.8597, 60_000),
-    "izmir": (38.4237, 27.1428, 60_000),
-}
+CITY_SEARCH_BIAS: dict[str, tuple[float, float, int]] = city_search_bias_map()
 
 BAKERY_QUERY_HINTS = (
     "pastane",
@@ -264,7 +260,15 @@ class GooglePlacesLiveClient:
         )
         if len(nearby_rows) >= fetch_limit:
             return nearby_rows[:fetch_limit]
-        text_rows = await self._text_search(query, city=city, limit=fetch_limit, place_type=None)
+        text_rows = await self._text_search(
+            query,
+            city=city,
+            limit=fetch_limit,
+            place_type=None,
+            bias_lat=lat,
+            bias_lng=lng,
+            bias_radius_m=50_000,
+        )
         return merge_live_place_rows(nearby_rows, text_rows)[:fetch_limit]
 
     async def search_places(
@@ -282,15 +286,10 @@ class GooglePlacesLiveClient:
         fetch_limit = min(20, max(limit, 8))
         nearby_type = resolve_google_nearby_place_type(query)
 
-        if prefers_open_text_search(query):
-            text_rows = await self._text_search(query, city=city, limit=fetch_limit, place_type=None)
-            if text_rows:
-                return text_rows[:fetch_limit]
-
-        # Maliyet: tek Google istegi. Oncelik: kullanici konumu → sehir merkezi (Nearby) → Text Search.
-        # Text Search az sonuc dondurur; "doner 4.5 yildiz" gibi puan filtreleri bos kalabiliyordu.
+        # GPS varken her zaman konum oncelikli — "antep lahmacunu" gibi acik text
+        # aramalari yanlis il merkezine kilitlemesin.
         if origin_lat is not None and origin_lng is not None:
-            return await self._search_nearby_then_text(
+            merged_rows = await self._search_nearby_then_text(
                 query,
                 lat=origin_lat,
                 lng=origin_lng,
@@ -298,7 +297,25 @@ class GooglePlacesLiveClient:
                 fetch_limit=fetch_limit,
                 nearby_type=nearby_type,
             )
+            if merged_rows:
+                return merged_rows[:fetch_limit]
+            text_rows = await self._text_search(
+                query,
+                city=city,
+                limit=fetch_limit,
+                place_type=None,
+                bias_lat=origin_lat,
+                bias_lng=origin_lng,
+                bias_radius_m=50_000,
+            )
+            return text_rows[:fetch_limit]
 
+        if prefers_open_text_search(query):
+            text_rows = await self._text_search(query, city=city, limit=fetch_limit, place_type=None)
+            if text_rows:
+                return text_rows[:fetch_limit]
+
+        # Maliyet: tek Google istegi. Oncelik: sehir merkezi (Nearby) → Text Search.
         city_bias = CITY_SEARCH_BIAS.get(city.strip().lower())
         if city_bias:
             lat, lng, _radius_m = city_bias

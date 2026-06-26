@@ -52,8 +52,8 @@ export default function YoreselLezzetlerScreen() {
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>{cityLabel} için henüz ürün yok</Text>
             <Text style={styles.emptySub}>
-              Coğrafi işaretli ürünler il il ekleniyor. Şimdilik Bursa listesi dolu — üstteki şehir
-              seçicisinden Bursa&apos;ya geçebilirsin.
+              Bu il için henüz vitrine alınmış coğrafi işaretli ürün bulunmuyor. Üstteki il seçicisinden başka
+              bir il deneyebilirsin.
             </Text>
           </View>
         ) : null}
