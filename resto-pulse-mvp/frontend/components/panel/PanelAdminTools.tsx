@@ -337,29 +337,30 @@ export function PanelAdminTools() {
       };
       if (!res.ok) {
         const online = await verifyDenemeRestaurantsOnline();
-        if (online && online.length >= 5) {
-          setMessage(
-            `Panel hata verdi ama API'de ${online.length} Deneme restorani zaten yayinda: ${online.join(', ')}`,
-          );
-          return;
-        }
         const detail =
           typeof data.detail === 'string'
             ? data.detail
             : `Seed basarisiz (HTTP ${data.railway_status ?? res.status})`;
+        if (online && online.length >= 5) {
+          setMessage(
+            `Guncelleme tamamlanamadi: ${detail}. API'de ${online.length} Deneme yayinda ama promo/menu bu tiklamada guncellenmemis olabilir. Panelden cikis yapip Google ile tekrar gir, sonra yeniden dene.`,
+          );
+          return;
+        }
         throw new Error(detail);
       }
       const names = (data.restaurants ?? []).map((row) => row.name).filter(Boolean).join(', ');
       setMessage(`Deneme restoranlari hazir (${data.count ?? 0}): ${names || '—'}`);
     } catch (err) {
       const online = await verifyDenemeRestaurantsOnline();
+      const failDetail = err instanceof Error ? err.message : 'Seed basarisiz';
       if (online && online.length >= 5) {
         setMessage(
-          `Baglanti hatasi olabilir ama API'de ${online.length} Deneme restorani yayinda: ${online.join(', ')}`,
+          `Guncelleme tamamlanamadi: ${failDetail}. API'de ${online.length} Deneme yayinda (${online.join(', ')}). Cikis yapip tekrar gir, sonra seed'e bas.`,
         );
         setError(null);
       } else {
-        setError(err instanceof Error ? err.message : 'Seed basarisiz');
+        setError(failDetail);
       }
     } finally {
       setLoading(false);

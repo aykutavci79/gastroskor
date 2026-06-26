@@ -37,9 +37,19 @@ export async function POST() {
   }
 
   const secret = process.env.PANEL_ADMIN_SECRET?.trim();
+  const authHeaders = await backendAuthHeadersFromSession();
+  if (!authHeaders.Authorization) {
+    return NextResponse.json(
+      {
+        detail:
+          'Backend oturumu yok veya suresi doldu. Panelden cikis yapip Google ile tekrar girin.',
+      },
+      { status: 401 },
+    );
+  }
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(await backendAuthHeadersFromSession()),
+    ...authHeaders,
   };
   if (secret) {
     headers['X-Panel-Admin-Secret'] = secret;

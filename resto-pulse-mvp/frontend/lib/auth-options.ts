@@ -23,7 +23,7 @@ async function exchangeGoogleIdToken(idToken: string, kvkkConsentAccepted: boole
   return response.json() as Promise<BackendTokenPair>;
 }
 
-async function refreshBackendAccessToken(refreshToken: string) {
+export async function refreshBackendAccessToken(refreshToken: string) {
   const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
