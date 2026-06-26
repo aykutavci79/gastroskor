@@ -7,9 +7,10 @@ import { RegionalProductImage } from '@/components/RegionalProductImage';
 import { trimImageAlt } from '@/lib/seo-title';
 import type { RegionalProductItem } from '@/lib/types';
 
+/** Sabit karo — il / urun sayisina gore genislemez. */
+export const REGIONAL_FLAVOR_TILE_WIDTH_PX = 108;
 export const REGIONAL_FLAVOR_THUMB_HEIGHT = 88;
-const MIN_COL_REM = 5.5;
-const GAP_REM = 0.75;
+const GRID_GAP_PX = 12;
 
 function shortLabel(name: string): string {
   const words = name.split(/\s+/).filter(Boolean);
@@ -17,10 +18,11 @@ function shortLabel(name: string): string {
 }
 
 function gridStyle(colCount: number): CSSProperties {
+  const widthPx = colCount * REGIONAL_FLAVOR_TILE_WIDTH_PX + Math.max(0, colCount - 1) * GRID_GAP_PX;
   return {
-    width: '100%',
-    minWidth: `max(100%, calc(${colCount} * ${MIN_COL_REM}rem + ${Math.max(0, colCount - 1)} * ${GAP_REM}rem))`,
-    gridTemplateColumns: `repeat(${colCount}, minmax(${MIN_COL_REM}rem, 1fr))`,
+    width: `${widthPx}px`,
+    minWidth: 'min(100%, max-content)',
+    gridTemplateColumns: `repeat(${colCount}, ${REGIONAL_FLAVOR_TILE_WIDTH_PX}px)`,
   };
 }
 
@@ -33,18 +35,19 @@ export function RegionalFlavorTile({ item, city }: TileProps) {
   return (
     <Link
       href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
-      className="group block min-w-0 w-full">
+      className="group block shrink-0"
+      style={{ width: REGIONAL_FLAVOR_TILE_WIDTH_PX }}>
       <div
-        className="relative w-full overflow-hidden rounded-[10px] border border-border/70 bg-surface-input"
-        style={{ height: REGIONAL_FLAVOR_THUMB_HEIGHT }}>
+        className="relative overflow-hidden rounded-[10px] border border-border/70 bg-surface-input"
+        style={{ width: REGIONAL_FLAVOR_TILE_WIDTH_PX, height: REGIONAL_FLAVOR_THUMB_HEIGHT }}>
         {item.image_url ? (
           <RegionalProductImage
             src={item.image_url}
             alt={trimImageAlt(`${item.name} — yöresel lezzet`)}
-            width={180}
+            width={REGIONAL_FLAVOR_TILE_WIDTH_PX}
             height={REGIONAL_FLAVOR_THUMB_HEIGHT}
             className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-            sizes="(max-width: 640px) 28vw, (max-width: 1024px) 18vw, 12vw"
+            sizes={`${REGIONAL_FLAVOR_TILE_WIDTH_PX}px`}
           />
         ) : (
           <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-medium text-content-muted">
@@ -63,13 +66,13 @@ export function RegionalFlavorScrollSkeleton({ itemCount = 12 }: { itemCount?: n
   const colCount = Math.max(1, Math.ceil(itemCount / 2));
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="grid grid-flow-col grid-rows-2 gap-x-3 gap-y-3" style={gridStyle(colCount)}>
+    <div className="w-full overflow-x-auto pb-1 scroll-smooth [scrollbar-width:thin]">
+      <div className="grid grid-flow-col grid-rows-2 gap-3" style={gridStyle(colCount)}>
         {Array.from({ length: itemCount }).map((_, index) => (
-          <div key={index} className="min-w-0 w-full space-y-1.5">
+          <div key={index} className="shrink-0 space-y-1.5" style={{ width: REGIONAL_FLAVOR_TILE_WIDTH_PX }}>
             <div
-              className="w-full animate-pulse rounded-[10px] bg-surface-input"
-              style={{ height: REGIONAL_FLAVOR_THUMB_HEIGHT }}
+              className="animate-pulse rounded-[10px] bg-surface-input"
+              style={{ width: REGIONAL_FLAVOR_TILE_WIDTH_PX, height: REGIONAL_FLAVOR_THUMB_HEIGHT }}
             />
             <div className="h-3 w-4/5 animate-pulse rounded bg-surface-input" />
           </div>
@@ -90,7 +93,7 @@ export function RegionalFlavorScrollGrid({ items, city, className = '' }: GridPr
 
   return (
     <div className={`w-full overflow-x-auto pb-1 scroll-smooth [scrollbar-width:thin] ${className}`.trim()}>
-      <div className="grid grid-flow-col grid-rows-2 gap-x-3 gap-y-3" style={gridStyle(colCount)}>
+      <div className="grid grid-flow-col grid-rows-2 gap-3" style={gridStyle(colCount)}>
         {items.map((item) => (
           <RegionalFlavorTile key={item.slug} item={item} city={city} />
         ))}

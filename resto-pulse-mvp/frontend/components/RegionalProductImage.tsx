@@ -1,6 +1,9 @@
-import Image from 'next/image';
+'use client';
 
-import { regionalProductImageSrc } from '@/lib/regional-product-image';
+import Image from 'next/image';
+import { useCallback, useState } from 'react';
+
+import { alternateRegionalImageSrc, regionalProductImageSrc } from '@/lib/regional-product-image';
 
 type Props = {
   src: string;
@@ -22,9 +25,15 @@ export function RegionalProductImage({
   priority = false,
   sizes = '(max-width: 768px) 100vw, 384px',
 }: Props) {
+  const [resolvedSrc, setResolvedSrc] = useState(() => regionalProductImageSrc(src));
+
+  const handleError = useCallback(() => {
+    setResolvedSrc((current) => alternateRegionalImageSrc(current) ?? current);
+  }, []);
+
   return (
     <Image
-      src={regionalProductImageSrc(src)}
+      src={resolvedSrc}
       alt={alt}
       width={width}
       height={height}
@@ -32,6 +41,7 @@ export function RegionalProductImage({
       priority={priority}
       sizes={sizes}
       referrerPolicy="no-referrer"
+      onError={handleError}
     />
   );
 }
