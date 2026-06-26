@@ -60,7 +60,7 @@ def test_regional_product_image_url_resolved():
 
     payload = list_regional_products(city="Bursa")
     cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
-    assert cantik["image_url"] == "https://www.gastroskor.com.tr/images/regional-flavors/bursa-cantik.jpg"
+    assert cantik["image_url"] == "https://www.gastroskor.com.tr/images/regional-flavors/bursa-cantik.jpeg"
 
 
 def test_regional_product_includes_live_search_query():
@@ -68,7 +68,7 @@ def test_regional_product_includes_live_search_query():
 
     payload = list_regional_products(city="Bursa")
     cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
-    assert cantik["live_search_query"] == "cantık"
+    assert cantik["live_search_query"] == "Cantık"
     assert "restaurant_count" not in cantik
 
 
@@ -132,7 +132,7 @@ def test_discover_regional_product_returns_places(monkeypatch):
     )
     assert payload is not None
     assert payload["product"]["slug"] == "bursa-cantik"
-    assert payload["search_query"] == "cantık"
+    assert payload["search_query"] == "Cantık"
     assert payload["places_count"] == 2
     assert {p["place_id"] for p in payload["places"]} == {"p-low", "p-high"}
     assert payload["places_error"] is None
