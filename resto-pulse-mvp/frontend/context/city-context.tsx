@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { resolveCityFromCoords, SUPPORTED_CITIES } from '@/lib/detect-city';
+import { DEFAULT_CITY, isKnownProvince, normalizeCityInput, resolveCityFromCoords } from '@/lib/turkiye-provinces';
 
 export type CityDetectStatus = 'loading' | 'ready' | 'denied';
 
@@ -22,24 +22,23 @@ type CityContextValue = {
 
 const CityContext = createContext<CityContextValue | null>(null);
 
-function isSupportedCity(value: string | null): value is (typeof SUPPORTED_CITIES)[number] {
-  return Boolean(value && (SUPPORTED_CITIES as readonly string[]).includes(value));
-}
-
 function readStoredCity(): { city: string | null; source: CitySource | null } {
   if (typeof window === 'undefined') return { city: null, source: null };
-  const city = localStorage.getItem(STORAGE_CITY);
+  const raw = localStorage.getItem(STORAGE_CITY);
   const source = localStorage.getItem(STORAGE_SOURCE);
-  if (!isSupportedCity(city)) return { city: null, source: null };
-  return { city, source: source === 'manual' || source === 'geo' ? source : null };
+  if (!raw?.trim() || !isKnownProvince(raw)) return { city: null, source: null };
+  return {
+    city: normalizeCityInput(raw),
+    source: source === 'manual' || source === 'geo' ? source : null,
+  };
 }
 
 function persistCity(city: string, source: CitySource) {
-  localStorage.setItem(STORAGE_CITY, city);
+  localStorage.setItem(STORAGE_CITY, normalizeCityInput(city));
   localStorage.setItem(STORAGE_SOURCE, source);
 }
 
-export function CityProvider({ children, defaultCity = 'Bursa' }: { children: ReactNode; defaultCity?: string }) {
+export function CityProvider({ children, defaultCity = DEFAULT_CITY }: { children: ReactNode; defaultCity?: string }) {
   const [city, setCityState] = useState(defaultCity);
   const [status, setStatus] = useState<CityDetectStatus>('loading');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -85,10 +84,11 @@ export function CityProvider({ children, defaultCity = 'Bursa' }: { children: Re
   }, [storageReady, refreshFromLocation]);
 
   const setCity = useCallback((next: string) => {
-    if (!isSupportedCity(next)) return;
+    if (!isKnownProvince(next)) return;
+    const normalized = normalizeCityInput(next);
     sourceRef.current = 'manual';
-    persistCity(next, 'manual');
-    setCityState(next);
+    persistCity(normalized, 'manual');
+    setCityState(normalized);
   }, []);
 
   const useMyLocation = useCallback(() => {
@@ -106,7 +106,7 @@ export function CityProvider({ children, defaultCity = 'Bursa' }: { children: Re
   );
 }
 
-export function useDetectedCity(defaultCity = 'Bursa') {
+export function useDetectedCity(defaultCity = DEFAULT_CITY) {
   const ctx = useContext(CityContext);
   if (!ctx) {
     throw new Error('useDetectedCity CityProvider icinde kullanilmali.');

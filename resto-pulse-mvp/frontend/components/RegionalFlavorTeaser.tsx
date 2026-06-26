@@ -7,9 +7,10 @@ import {
   RegionalFlavorScrollGrid,
   RegionalFlavorScrollSkeleton,
 } from '@/components/RegionalFlavorScrollGrid';
+import { ProvinceSelect } from '@/components/ProvinceSelect';
 import type { CityDetectStatus } from '@/hooks/useDetectedCity';
 import { listRegionalProducts } from '@/lib/api';
-import { SUPPORTED_CITIES } from '@/lib/detect-city';
+import { cityDisplayName } from '@/lib/turkiye-provinces';
 import type { RegionalProductItem } from '@/lib/types';
 
 type Props = {
@@ -21,11 +22,12 @@ type Props = {
 export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange }: Props) {
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [ready, setReady] = useState(false);
+  const cityLabel = cityDisplayName(city);
 
   useEffect(() => {
     let cancelled = false;
     setReady(false);
-    listRegionalProducts({ city })
+    listRegionalProducts({ city: cityLabel })
       .then((data) => {
         if (!cancelled) setItems(data.items);
       })
@@ -38,7 +40,7 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
     return () => {
       cancelled = true;
     };
-  }, [city]);
+  }, [cityLabel]);
 
   return (
     <section className="space-y-3">
@@ -47,24 +49,17 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
           <h2 className="text-base font-extrabold text-content sm:text-lg">Yöresel Lezzetler</h2>
           <p className="mt-1 text-sm text-content-muted">Tescilli ürünler — isim + görsel</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="min-w-[200px]">
           {cityStatus === 'loading' ? (
             <span className="text-[11px] text-content-muted">Konum…</span>
           ) : null}
-          <label className="sr-only" htmlFor="regional-teaser-city">
-            İl seçin
-          </label>
-          <select
+          <ProvinceSelect
             id="regional-teaser-city"
             value={city}
-            onChange={(event) => onCityChange(event.target.value)}
-            className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-brand-gold outline-none focus:border-amber-500/60">
-            {SUPPORTED_CITIES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+            onChange={onCityChange}
+            hideLabel
+            className="w-full min-w-[200px]"
+          />
         </div>
       </div>
 
@@ -72,17 +67,17 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
 
       {ready && items.length > 0 ? (
         <>
-          <RegionalFlavorScrollGrid items={items} city={city} />
+          <RegionalFlavorScrollGrid items={items} city={cityLabel} />
           <Link
-            href={`/yoresel-lezzetler?city=${encodeURIComponent(city)}`}
+            href={`/yoresel-lezzetler?city=${encodeURIComponent(cityLabel)}`}
             className="inline-flex text-sm font-semibold text-brand-gold hover:underline">
-            Tüm {city} lezzetleri →
+            Tüm {cityLabel} lezzetleri →
           </Link>
         </>
       ) : null}
 
       {ready && items.length === 0 ? (
-        <p className="text-sm text-content-muted">{city} için yöresel ürün bulunamadı.</p>
+        <p className="text-sm text-content-muted">{cityLabel} için yöresel ürün bulunamadı.</p>
       ) : null}
     </section>
   );

@@ -1,4 +1,4 @@
-import { cityDisplayName } from '@/lib/detect-city';
+import { cityDisplayName, resolveProvince } from '@/lib/turkiye-provinces';
 
 export type CityAtmosphereLight = {
   background: string;
@@ -63,10 +63,18 @@ const FALLBACK = {
 };
 
 export function getCityAtmosphere(city: string): CityAtmosphere {
-  const theme = CITY_ATMOSPHERE[city] ?? FALLBACK;
+  const resolved = resolveProvince(city);
+  const label = cityDisplayName(city);
+  const themeKey =
+    resolved?.name === 'İstanbul'
+      ? 'Istanbul'
+      : resolved?.name === 'İzmir'
+        ? 'Izmir'
+        : resolved?.name ?? city;
+  const theme = CITY_ATMOSPHERE[themeKey] ?? FALLBACK;
   return {
-    cityKey: city,
-    label: cityDisplayName(city),
+    cityKey: label,
+    label,
     ...theme,
   };
 }
