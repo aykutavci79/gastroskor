@@ -60,7 +60,7 @@ def test_regional_product_image_url_resolved():
 
     payload = list_regional_products(city="Bursa")
     cantik = next(item for item in payload["items"] if item["slug"] == "bursa-cantik")
-    assert cantik["image_url"] == "https://www.gastroskor.com.tr/images/regional-flavors/bursa-cantik.jpg"
+    assert cantik["image_url"] == "https://www.gastroskor.com.tr/images/regional-flavors/bursa-cantik.jpeg"
 
 
 def test_regional_product_includes_live_search_query():
