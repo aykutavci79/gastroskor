@@ -1,16 +1,28 @@
 import { getToken } from 'next-auth/jwt';
 import { cookies } from 'next/headers';
+import type { IncomingMessage } from 'http';
 
 import { refreshBackendAccessToken } from '@/lib/auth-options';
 
-export async function backendAuthHeadersFromSession(): Promise<Record<string, string>> {
+type TokenRequest = IncomingMessage & {
+  cookies: Partial<{ [key: string]: string }>;
+};
+
+async function tokenRequestFromCookies(): Promise<TokenRequest> {
   const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  const cookieMap = Object.fromEntries(
+    cookieStore.getAll().map((row) => [row.name, row.value]),
+  );
+  return {
+    headers: { cookie: cookieHeader },
+    cookies: cookieMap,
+  } as TokenRequest;
+}
+
+export async function backendAuthHeadersFromSession(): Promise<Record<string, string>> {
   const token = await getToken({
-    req: {
-      headers: {
-        cookie: cookieStore.toString(),
-      },
-    },
+    req: await tokenRequestFromCookies(),
     secret: process.env.NEXTAUTH_SECRET,
   });
 
