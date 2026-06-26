@@ -2529,7 +2529,11 @@
       "turkpatent_id": "1202",
       "slug": "bursa-cantik",
       "name": "Bursa Cantık",
-      "aliases": [],
+      "aliases": [
+        "Bursa Cantığı",
+        "Cantık",
+        "Cantik"
+      ],
       "city": "Bursa",
       "city_id": 16,
       "region": "Bursa",
