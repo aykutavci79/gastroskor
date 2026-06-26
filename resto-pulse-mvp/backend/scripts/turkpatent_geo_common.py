@@ -13,12 +13,10 @@ DATA_DIR = ROOT / "app" / "data"
 PROVINCES_PATH = DATA_DIR / "turkiye_provinces.json"
 BASE = "https://ci.turkpatent.gov.tr"
 
-# GastroSkor: yemek + firin/pastane + icecek (portal Nice siniflari)
+# GastroSkor: yemek + fırın/pastane (içecek/ham madde grupları portal gürültüsü üretir)
 DEFAULT_PRODUCT_GROUP_IDS = {
     "51": "Yemekler ve çorbalar",
     "54": "Fırıncılık ve pastacılık mamulleri, hamur işleri, tatlılar",
-    "32": "Bira ve malt içecekleri",
-    "33": "Alkolsüz içecekler",
 }
 
 LIST_SCRAPE_JS = """
@@ -65,6 +63,16 @@ def load_provinces() -> list[dict]:
     return list(payload["provinces"])
 
 
+def resolve_scraped_city(*, portal_city: str, fallback_id: int, fallback_name: str) -> tuple[int, str]:
+    """Kart rozetindeki il (TÜRKPATENT) birincil; yoksa liste URL il parametresi."""
+    from app.data.regional_city_match import resolve_province_name
+
+    resolved = resolve_province_name(portal_city)
+    if resolved:
+        return int(resolved["id"]), str(resolved["name"])
+    return fallback_id, fallback_name
+
+
 def slugify(name: str) -> str:
     text = name.strip().casefold()
     replacements = {
@@ -99,6 +107,10 @@ def unique_slug(base: str, used: set[str]) -> str:
 
 def normalize_city_key(city: str) -> str:
     return city.strip().casefold().replace("ı", "i").replace("İ", "i")
+
+
+def _normalize_portal_city(city: str) -> str:
+    return normalize_city_key(city).replace("ğ", "g").replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c")
 
 
 def guess_live_search_query(name: str, city: str, aliases: list[str]) -> str:
@@ -136,18 +148,28 @@ def scrape_group(page, *, city_id: int, city_name: str, group_id: str, used_slug
         page.wait_for_timeout(8000)
     rows = page.evaluate(LIST_SCRAPE_JS)
     items: list[dict] = []
-    city_slug = slugify(city_name)
 
     for row in rows:
         raw_name = str(row["name"])
         primary = raw_name.split("/")[0].strip()
         if not primary:
             continue
+        portal_city = str(row.get("meta", [""])[0] or "").strip()
+        item_city_id, item_city_name = resolve_scraped_city(
+            portal_city=portal_city,
+            fallback_id=city_id,
+            fallback_name=city_name,
+        )
+        if portal_city and _normalize_portal_city(portal_city) != _normalize_portal_city(item_city_name):
+            continue
+        if portal_city and item_city_id != city_id:
+            continue
         aliases = [
             part.strip()
             for part in raw_name.split("/")
             if part.strip() and part.strip() != primary
         ]
+        city_slug = slugify(item_city_name)
         prod_slug = slugify(primary)
         if prod_slug.startswith(f"{city_slug}-") or prod_slug == city_slug:
             base_slug = prod_slug
@@ -170,9 +192,10 @@ def scrape_group(page, *, city_id: int, city_name: str, group_id: str, used_slug
                 "slug": slug,
                 "name": primary,
                 "aliases": aliases,
-                "city": city_name,
-                "city_id": city_id,
-                "region": city_name,
+                "city": item_city_name,
+                "city_id": item_city_id,
+                "region": item_city_name,
+                "portal_city": portal_city or item_city_name,
                 "summary": "",
                 "product_group_id": group_id,
                 "registration_year": year,
@@ -181,7 +204,7 @@ def scrape_group(page, *, city_id: int, city_name: str, group_id: str, used_slug
                 "list_url": url,
                 "reference_image_url": row.get("image_url"),
                 "image_url": f"/images/regional-flavors/{slug}{ext_from_url(row.get('image_url') or '')}",
-                "live_search_query": guess_live_search_query(primary, city_name, aliases),
+                "live_search_query": guess_live_search_query(primary, item_city_name, aliases),
             }
         )
     return items
@@ -233,11 +256,28 @@ def load_bursa_legacy_by_id() -> dict[str, dict]:
 
 
 def merge_items(existing: list[dict], fresh: list[dict]) -> list[dict]:
+    from app.data.regional_city_match import detect_city_mismatch
+
+    def city_score(row: dict) -> int:
+        mismatch = detect_city_mismatch(
+            name=str(row.get("name") or ""),
+            city=str(row.get("city") or ""),
+            aliases=row.get("aliases") or [],
+        )
+        if mismatch:
+            return 0
+        portal = str(row.get("portal_city") or row.get("city") or "")
+        if portal and portal == str(row.get("city") or ""):
+            return 2
+        return 1
+
     legacy = load_bursa_legacy_by_id()
     by_id = {str(row["turkpatent_id"]): row for row in existing}
     for row in fresh:
         tid = str(row["turkpatent_id"])
         prev = by_id.get(tid) or legacy.get(tid)
+        if prev and city_score(prev) > city_score(row):
+            continue
         if prev:
             if prev.get("summary"):
                 row["summary"] = prev["summary"]

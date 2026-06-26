@@ -9,8 +9,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+from app.data.gastro_regional_filter import is_gastro_regional_product
+from app.data.regional_city_match import detect_city_mismatch
+
 _DATA_PATH = Path(__file__).with_name("turkiye_geo_products.json")
 _FALLBACK_PATH = Path(__file__).with_name("bursa_geo_products.json")
+_OVERRIDES_PATH = Path(__file__).with_name("regional_flavor_overrides.json")
 _REGISTRY_SOURCE = "Türk Patent ve Marka Kurumu — Coğrafi İşaretler Portalı"
 
 
@@ -45,11 +49,14 @@ def _load_catalog_payload() -> dict:
 @lru_cache(maxsize=1)
 def catalog_metadata() -> dict:
     payload = _load_catalog_payload()
+    gastro_count = len(_gastro_products())
+    raw_count = len(payload.get("items") or [])
     return {
         "scraped_at": payload.get("scraped_at"),
         "source_portal": payload.get("source_portal"),
         "scope": payload.get("scope"),
-        "product_count": len(payload.get("items") or []),
+        "product_count": gastro_count,
+        "raw_product_count": raw_count,
         "province_count": payload.get("province_count"),
     }
 
@@ -85,6 +92,36 @@ def _all_products() -> tuple[RegionalProductCatalogItem, ...]:
     return tuple(items)
 
 
+@lru_cache(maxsize=1)
+def _manual_override_sets() -> tuple[frozenset[str], frozenset[str]]:
+    if not _OVERRIDES_PATH.exists():
+        return frozenset(), frozenset()
+    payload = json.loads(_OVERRIDES_PATH.read_text(encoding="utf-8"))
+    excludes = frozenset(str(slug) for slug in payload.get("exclude_slugs") or ())
+    includes = frozenset(str(slug) for slug in payload.get("include_slugs") or ())
+    return excludes, includes
+
+
+def _catalog_item_visible(item: RegionalProductCatalogItem) -> bool:
+    excludes, includes = _manual_override_sets()
+    if item.slug in excludes:
+        return False
+    if item.slug in includes:
+        return True
+    if detect_city_mismatch(name=item.name, city=item.city, aliases=item.aliases):
+        return False
+    return is_gastro_regional_product(
+        name=item.name,
+        aliases=item.aliases,
+        product_group_id=item.product_group_id,
+    )
+
+
+@lru_cache(maxsize=1)
+def _gastro_products() -> tuple[RegionalProductCatalogItem, ...]:
+    return tuple(item for item in _all_products() if _catalog_item_visible(item))
+
+
 def _normalize_city(city: str | None) -> str:
     """Mobil `Izmir` / `Istanbul` ile katalog `İzmir` / `İstanbul` eşleşmesi."""
     text = unicodedata.normalize("NFKD", (city or "").strip())
@@ -102,20 +139,21 @@ def _normalize_city(city: str | None) -> str:
 
 
 def catalog_for_city(city: str | None) -> tuple[RegionalProductCatalogItem, ...]:
+    pool = _gastro_products()
     key = _normalize_city(city)
     if not key:
-        return _all_products()
-    return tuple(item for item in _all_products() if _normalize_city(item.city) == key)
+        return pool
+    return tuple(item for item in pool if _normalize_city(item.city) == key)
 
 
 def find_product_by_slug(slug: str, city: str | None = None) -> RegionalProductCatalogItem | None:
     normalized = slug.strip().casefold()
-    pool = catalog_for_city(city) if city else _all_products()
+    pool = catalog_for_city(city) if city else _gastro_products()
     for item in pool:
         if item.slug.casefold() == normalized:
             return item
     if city:
-        for item in _all_products():
+        for item in _gastro_products():
             if item.slug.casefold() == normalized:
                 return item
     return None
@@ -135,11 +173,13 @@ def live_search_query_for(product: RegionalProductCatalogItem) -> str:
 def registry_note() -> str:
     meta = catalog_metadata()
     scraped = meta.get("scraped_at") or "bilinmiyor"
-    count = meta.get("product_count") or len(_all_products())
+    count = meta.get("product_count") or len(_gastro_products())
+    raw = meta.get("raw_product_count")
+    raw_part = f" (TÜRKPATENT ham liste: {raw})" if raw and raw != count else ""
     provinces = meta.get("province_count")
     province_part = f", {provinces} il" if provinces else ""
     return (
         f"Ürün listesi TÜRKPATENT Coğrafi İşaretler Portalı'ndan (ci.turkpatent.gov.tr) "
-        f"derlenmiştir — {count} ürün{province_part}. "
+        f"derlenmiştir — GastroSkor yemek/fırın vitrini: {count} ürün{raw_part}{province_part}. "
         f"Son senkron: {scraped}. Görseller portal referansıdır; restoran onayı anlamına gelmez."
     )
