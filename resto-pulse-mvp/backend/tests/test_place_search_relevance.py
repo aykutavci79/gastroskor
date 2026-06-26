@@ -30,15 +30,14 @@ def test_named_doner_search_skips_review_floor():
     assert any("TAŞKIN" in name for name in names)
 
 
-def test_pure_doner_query_applies_review_floor():
+def test_pure_doner_query_keeps_venues_without_review_floor():
     items = [
         _item("TAŞKIN DÖNER", user_ratings_total=55),
         _item("Melike Döner", user_ratings_total=9591),
     ]
     result = apply_place_relevance_filter(items, query="döner", city="Bursa")
-    assert result.mode == "product_intent"
-    assert len(result.items) == 1
-    assert "Melike" in result.items[0].name
+    assert result.mode == "negative_only"
+    assert len(result.items) == 2
 
 
 def test_resolve_iskender_intent_from_en_iyi():

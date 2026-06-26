@@ -148,36 +148,11 @@ def apply_place_relevance_filter(
     for item in items:
         if not venue_matches_relevance_intent(name=item.name, intent=intent):
             continue
-        if not venue_passes_product_review_floor(
-            item=item,
-            intent=intent,
-            city=city,
-            query=query,
-        ):
-            continue
         kept.append(item)
 
-    review_floor_active = _is_pure_dish_query(query, intent.search_group)
-    filter_mode = "product_intent" if review_floor_active else "negative_only"
+    filter_mode = "negative_only"
     dropped_count = len(items) - len(kept)
     if not kept:
-        # Yalnizca negatif marker yuzunden bosaldiysa fallback; dusuk yorum elemesinde fallback yok.
-        marker_only = [item for item in items if venue_matches_relevance_intent(name=item.name, intent=intent)]
-        if marker_only:
-            logger.info(
-                "relevance_review_floor_empty query=%r group=%s dropped=%s min_reviews=%s",
-                query,
-                intent.search_group,
-                dropped_count,
-                settings.social_proof_min_reviews,
-            )
-            return PlaceRelevanceFilterResult(
-                items=[],
-                enabled=True,
-                dropped_count=dropped_count,
-                fallback=False,
-                mode=filter_mode,
-            )
         logger.info(
             "relevance_filter_fallback query=%r group=%s dropped=%s",
             query,
@@ -189,7 +164,7 @@ def apply_place_relevance_filter(
             enabled=True,
             dropped_count=dropped_count,
             fallback=True,
-            mode="negative_only",
+            mode=filter_mode,
         )
 
     return PlaceRelevanceFilterResult(
