@@ -1266,7 +1266,7 @@ def list_online_orders_open(
     min_rating: float | None = Query(default=MIN_LIST_RATING, ge=MIN_LIST_RATING, le=5),
     sort: str = Query(
         default="gastro_score",
-        pattern="^(gastro_score|distance|rating|popularity)$",
+        pattern="^(gastro_score|distance|rating|popularity|discount)$",
     ),
     limit: int = Query(default=50, ge=1, le=100),
     voice_product: str | None = Query(default=None, description="Sesli urun veya grup (or. lahmacun, cantik)"),

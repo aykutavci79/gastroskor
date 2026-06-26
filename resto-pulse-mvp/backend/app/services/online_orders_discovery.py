@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, normalize_category_slugs
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
+from app.services.delivery_fee import resolve_delivery_fee_tl
 from app.services.order_review import batch_avg_ratings, visit_review_filter
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
@@ -28,6 +29,7 @@ ONLINE_ORDER_SORT_GASTRO = "gastro_score"
 ONLINE_ORDER_SORT_DISTANCE = "distance"
 ONLINE_ORDER_SORT_RATING = "rating"
 ONLINE_ORDER_SORT_POPULARITY = "popularity"
+ONLINE_ORDER_SORT_DISCOUNT = "discount"
 
 
 def _visit_avg_rating(db: Session, restaurant_id) -> float | None:
@@ -88,6 +90,15 @@ def _sort_online_order_items(items: list[dict], sort: str) -> None:
                 -(row.get("google_review_count") or 0),
                 -(row.get("google_rating") or row.get("avg_rating") or 0),
                 row.get("distance_meters") if row.get("distance_meters") is not None else 1e12,
+            )
+        )
+        return
+    if sort == ONLINE_ORDER_SORT_DISCOUNT:
+        items.sort(
+            key=lambda row: (
+                -(row.get("online_menu_discount_percent") or 0),
+                row.get("distance_meters") if row.get("distance_meters") is not None else 1e12,
+                -(row.get("google_rating") or row.get("avg_rating") or 0),
             )
         )
         return
@@ -239,6 +250,7 @@ def list_online_order_restaurants(
 
         menu_full = public_menu_for_ownership(ownership, preview=False)
         promo = promo_from_ownership(ownership)
+        discount_percent = promo.get("online_menu_discount_percent") if promo else None
         items.append(
             {
                 "id": rid,
@@ -259,6 +271,8 @@ def list_online_order_restaurants(
                 "latitude": restaurant.latitude,
                 "longitude": restaurant.longitude,
                 "distance_meters": distance_m,
+                "delivery_fee_tl": resolve_delivery_fee_tl(distance_m),
+                "online_menu_discount_percent": discount_percent,
                 "voice_menu_matches": voice_matches,
                 "voice_search_token": voice_token,
             }
@@ -283,6 +297,7 @@ def list_online_order_restaurants(
         ONLINE_ORDER_SORT_DISTANCE,
         ONLINE_ORDER_SORT_RATING,
         ONLINE_ORDER_SORT_POPULARITY,
+        ONLINE_ORDER_SORT_DISCOUNT,
     } else ONLINE_ORDER_SORT_GASTRO
     _sort_online_order_items(items, sort_key)
 

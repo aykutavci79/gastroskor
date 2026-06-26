@@ -11,6 +11,7 @@ from app.constants.tester_online_restaurants import (
     BURSA_LAT,
     BURSA_LNG,
     TESTER_OWNER_EMAIL,
+    TESTER_PROMO_TEXT_BY_KEY,
     TESTER_RESTAURANTS,
     TesterRestaurantSeed,
 )
@@ -47,6 +48,8 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
         )
     )
 
+    promo_text = TESTER_PROMO_TEXT_BY_KEY.get(seed.key, "Tester — online siparis acik")
+
     restaurant: Restaurant
     created = False
     if ownership:
@@ -75,7 +78,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
             promo_has_own_courier=True,
             online_orders_enabled=True,
             online_order_category_tags=list(seed.online_order_categories),
-            promo_direct_order_text="Tester — online siparis acik",
+            promo_direct_order_text=promo_text,
             promo_direct_order_phone="05550000001",
             card_emoji=seed.card_emoji,
         )
@@ -95,7 +98,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
     ownership.promo_has_own_courier = True
     ownership.online_orders_enabled = True
     ownership.online_order_category_tags = list(seed.online_order_categories)
-    ownership.promo_direct_order_text = "Tester — online siparis acik"
+    ownership.promo_direct_order_text = promo_text
     ownership.promo_direct_order_phone = "05550000001"
     ownership.card_emoji = seed.card_emoji
     ownership.verification_status = "verified"

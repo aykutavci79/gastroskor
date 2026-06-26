@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import RestaurantOwnership, RestaurantSubscription
+from app.services.online_menu_discount import parse_menu_discount_percent
 from app.services.promo_social import normalize_instagram
 
 
@@ -35,6 +36,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         and not instagram_url
     ):
         return None
+    discount_percent = parse_menu_discount_percent(promo_text)
     return {
         "has_own_courier": has_courier,
         "direct_order_text": promo_text,
@@ -44,6 +46,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         "menu_image_url": menu_image_url,
         "card_cover_image_url": card_cover_image_url,
         "instagram_url": instagram_url,
+        "online_menu_discount_percent": discount_percent,
     }
 
 

@@ -35,6 +35,7 @@ class VoiceMenuMatchPublic(BaseModel):
 
 class RestaurantPromoPublic(BaseModel):
     has_own_courier: bool = False
+    online_menu_discount_percent: int | None = None
     direct_order_text: str | None = None
     direct_order_phone: str | None = None
     direct_order_whatsapp: str | None = None
@@ -110,6 +111,8 @@ class RestaurantListItem(BaseModel):
     longitude: float | None = None
     maps_directions_url: str | None = None
     distance_meters: float | None = None
+    delivery_fee_tl: float | None = None
+    online_menu_discount_percent: int | None = None
     google_photo_url: str | None = None
     check_in_visitor_count: int = Field(ge=0, default=0)
     gastro_score: float | None = None

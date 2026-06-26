@@ -140,3 +140,12 @@ TESTER_RESTAURANTS: tuple[TesterRestaurantSeed, ...] = (
 TESTER_OWNER_EMAIL = "tester-restoranlar@gastroskor.local"
 BURSA_LAT = 40.1885
 BURSA_LNG = 29.0610
+
+# Online liste indirim rozeti demo — panel alani gelene kadar promo metni.
+TESTER_PROMO_TEXT_BY_KEY: dict[str, str] = {
+    "deneme-1": "%12 tüm menüde",
+    "deneme-2": "%25 tüm menüde",
+    "deneme-3": "%18 tüm menüde",
+    "deneme-4": "%20 tüm menüde",
+    "deneme-5": "2 Al 1 Öde",
+}
