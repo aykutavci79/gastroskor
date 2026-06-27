@@ -83,6 +83,8 @@ class OrderPhoneVerifyOtpRequest(BaseModel):
 
 class RestaurantOrderActiveResponse(BaseModel):
     online_orders_available: bool
+    online_orders_open_now: bool = False
+    online_order_hours_label: str | None = None
     pending_order: RestaurantOrderRead | None = None
     recent_rejected_order: RestaurantOrderRead | None = None
     order_phone: OrderPhoneStatus | None = None

@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     otp_pepper: str = "dev-otp-pepper-change-me"
     # Virgulle: bu numaralar siparis SMS OTP atlanir (or. 05321234567,+905551112233)
     order_phone_test_bypass: str = ""
+    # Expo Go / dahili test — production'da yalnizca eslesen dev_secret ile acilir
+    dev_login_secret: str = ""
     panel_admin_secret: str | None = None
     panel_admin_emails: str = ""
     # Mekan claim: SMS yerine admin onayi (pilot icin varsayilan acik)

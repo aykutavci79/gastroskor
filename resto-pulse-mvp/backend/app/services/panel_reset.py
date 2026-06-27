@@ -34,6 +34,7 @@ def reset_ownership_public_data(
 
     ownership.promo_has_own_courier = False
     ownership.online_orders_enabled = False
+    ownership.online_order_hours = None
     ownership.promo_direct_order_text = None
     ownership.promo_direct_order_phone = None
     ownership.promo_direct_order_whatsapp = None

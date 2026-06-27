@@ -24,7 +24,7 @@ from app.models import (
     RestaurantPlatformProfile,
     RestaurantSubscription,
 )
-from app.services.turkish_text_fold import fold_tr_ascii
+from app.services.online_order_hours import default_online_order_hours
 from app.services.user_accounts import get_or_create_user
 
 
@@ -81,6 +81,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
             promo_direct_order_text=promo_text,
             promo_direct_order_phone="05550000001",
             card_emoji=seed.card_emoji,
+            online_order_hours=default_online_order_hours(),
         )
         db.add(ownership)
         db.flush()
@@ -99,6 +100,7 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
     ownership.online_orders_enabled = True
     ownership.online_order_category_tags = list(seed.online_order_categories)
     ownership.promo_direct_order_text = promo_text
+    ownership.online_order_hours = ownership.online_order_hours or default_online_order_hours()
     ownership.promo_direct_order_phone = "05550000001"
     ownership.card_emoji = seed.card_emoji
     ownership.verification_status = "verified"

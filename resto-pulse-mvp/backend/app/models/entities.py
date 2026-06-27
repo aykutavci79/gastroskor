@@ -1058,6 +1058,19 @@ class GooglePlaceCatalog(Base):
     restaurant: Mapped["Restaurant | None"] = relationship()
 
 
+class SearchQueryLog(Base):
+    """Google canli arama sorgu gunlugu — tekrarlayan sorgularda API maliyetini dusurur."""
+
+    __tablename__ = "search_query_log"
+    __table_args__ = (UniqueConstraint("query_key", "city", name="uq_search_query_log_key_city"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    query_key: Mapped[str] = mapped_column(String(255), index=True)
+    city: Mapped[str] = mapped_column(String(120), index=True)
+    google_fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    result_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Review(Base):
     __tablename__ = "reviews"
 

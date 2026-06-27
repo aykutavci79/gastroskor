@@ -104,6 +104,7 @@ class RestaurantListItem(BaseModel):
     menu_preview: list[RestaurantMenuItemPublic] = Field(default_factory=list)
     menu_item_count: int = 0
     online_orders_available: bool = False
+    online_reservations_available: bool = False
     online_orders_open_now: bool = False
     online_order_hours_label: str | None = None
     online_order_categories: list[str] = Field(default_factory=list)

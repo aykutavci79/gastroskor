@@ -22,6 +22,7 @@ from app.services.gastro_score_ranking import (
 from app.services.online_order_hours import online_order_hours_status
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
 from app.services.restaurant_orders import online_orders_configured
+from app.services.table_reservations import online_reservations_configured
 from app.services.restaurant_promo import promo_from_ownership
 from app.services.voice_menu_offerings import voice_menu_matches_for_ownership
 from app.constants.voice_product_catalog import resolve_voice_search_token
@@ -268,6 +269,7 @@ def list_online_order_restaurants(
                 "online_orders_available": bool(hours_status.get("open_now")),
                 "online_orders_open_now": bool(hours_status.get("open_now")),
                 "online_order_hours_label": hours_status.get("label"),
+                "online_reservations_available": online_reservations_configured(ownership),
                 "online_order_categories": tags,
                 "card_emoji": ownership.card_emoji,
                 "google_rating": google_rating,

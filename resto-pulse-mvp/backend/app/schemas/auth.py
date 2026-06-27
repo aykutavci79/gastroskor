@@ -34,3 +34,4 @@ class AuthTokenResponse(BaseModel):
 
 class DevLoginPayload(BaseModel):
     email: str = Field(default="dev@gastroskor.local", min_length=3, max_length=120)
+    dev_secret: str | None = Field(default=None, max_length=128)

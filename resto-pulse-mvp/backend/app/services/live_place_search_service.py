@@ -1,4 +1,4 @@
-"""Canli mekan aramasi: onbellek → veritabani → (gerekirse) tek Google istegi."""
+"""Canli mekan aramasi: dosya onbellek → DB/katalog → query log → (gerekirse) Google."""
 
 from __future__ import annotations
 
@@ -29,6 +29,10 @@ from app.services.place_search_relevance import (
 )
 from app.services.profanity_tr import normalize_review_text
 from app.services.query_parser import ParsedSearchQuery
+from app.services.search_query_log import (
+    record_google_search_fetch,
+    should_skip_google_from_query_log,
+)
 from app.services.restaurant_check_in import visitor_counts_for_restaurants
 from app.services.restaurant_partner import merge_partner_into_row, partner_listings_by_google_place_ids
 from app.services.smart_filters import SmartFilterCriteria, apply_smart_filters, merge_criteria
@@ -279,6 +283,17 @@ def _finalize_search_response(
     )
 
 
+def _place_ids(rows: list[LivePlaceResult]) -> set[str]:
+    return {row.place_id for row in rows if row.place_id}
+
+
+def _filter_new_google_rows(
+    google_rows: list[LivePlaceResult],
+    known_ids: set[str],
+) -> list[LivePlaceResult]:
+    return [row for row in google_rows if row.place_id and row.place_id not in known_ids]
+
+
 def _merge_place_rows(db_rows: list[LivePlaceResult], google_rows: list[LivePlaceResult]) -> list[LivePlaceResult]:
     merged: list[LivePlaceResult] = []
     seen: set[str] = set()
@@ -429,13 +444,23 @@ async def search_live_places_optimized(
     catalog_rows = search_catalog_places(db, query=search_text, city=city_label, limit=max(limit, 15))
     prefetched_rows = _merge_place_rows(db_rows, catalog_rows)
     google_called = False
+    skipped_google_via_query_log = False
     place_rows: list[LivePlaceResult]
 
     if len(prefetched_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE:
         place_rows = prefetched_rows
+    elif should_skip_google_from_query_log(
+        db,
+        query_key=query_key,
+        city_key=city_key,
+        prefetched_count=len(prefetched_rows),
+    ):
+        place_rows = prefetched_rows
+        skipped_google_via_query_log = True
     else:
         google_called = True
         fetch_limit = min(20, max(limit, 12))
+        known_ids = _place_ids(prefetched_rows)
         google_rows = await google_client.search_places(
             search_text,
             city=city_label,
@@ -443,8 +468,20 @@ async def search_live_places_optimized(
             origin_lat=origin_lat,
             origin_lng=origin_lng,
         )
+        new_google_rows = _filter_new_google_rows(google_rows, known_ids)
         place_rows = _merge_place_rows(prefetched_rows, google_rows)
-        _safe_persist_catalog(db, google_rows, city=city_label, source_query=search_text)
+        if new_google_rows:
+            _safe_persist_catalog(db, new_google_rows, city=city_label, source_query=search_text)
+        try:
+            record_google_search_fetch(
+                db,
+                query_key=query_key,
+                city_key=city_key,
+                result_count=len(place_rows),
+            )
+        except Exception:
+            db.rollback()
+            logger.exception("search_query_log kaydi atlandi (arama devam eder)")
 
     place_rows = _prefilter_place_rows(place_rows, criteria)
     rank_pool = min(20, max(limit, 15))
@@ -461,10 +498,14 @@ async def search_live_places_optimized(
     filters_applied["source"] = (
         "db_and_google"
         if google_called
-        else ("catalog" if catalog_rows and not db_rows else "db_only" if db_rows else "catalog")
+        else (
+            "query_log"
+            if skipped_google_via_query_log
+            else ("catalog" if catalog_rows and not db_rows else "db_only" if db_rows else "catalog")
+        )
     )
 
-    if enriched and (google_called or len(db_rows) >= MIN_DB_HITS_TO_SKIP_GOOGLE):
+    if enriched and (google_called or len(prefetched_rows) >= 1):
         write_place_search_cache(
             cache_key,
             {
