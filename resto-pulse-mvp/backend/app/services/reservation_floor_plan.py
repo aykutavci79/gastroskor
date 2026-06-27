@@ -6,7 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 TABLE_ZONES = frozenset({"salon", "bahce", "teras"})
-POI_KINDS = frozenset({"entrance", "live_music", "bar", "other"})
+POI_KINDS = frozenset({"entrance", "exit", "live_music", "bar", "other"})
+ZONES = frozenset({"salon", "bahce", "teras"})
 
 
 class FloorPlanError(Exception):
@@ -80,11 +81,15 @@ def normalize_layout(raw: dict[str, Any] | None) -> dict[str, Any]:
         label = str(row.get("label") or "").strip()[:60]
         if not label:
             raise FloorPlanError("POI etiketi zorunlu.")
+        zone = str(row.get("zone") or "salon").strip().lower()
+        if zone not in ZONES:
+            zone = "salon"
         pois.append(
             {
                 "id": poi_id,
                 "kind": kind,
                 "label": label,
+                "zone": zone,
                 "x": _clamp01(row.get("x")),
                 "y": _clamp01(row.get("y")),
             }

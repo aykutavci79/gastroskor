@@ -21,11 +21,16 @@ const ZONE_OPTIONS = [
 ] as const;
 
 const POI_OPTIONS = [
-  { value: 'entrance', label: 'Giris' },
+  { value: 'entrance', label: 'Giris / kapi' },
+  { value: 'exit', label: 'Cikis' },
   { value: 'live_music', label: 'Canli muzik' },
   { value: 'bar', label: 'Bar' },
   { value: 'other', label: 'Diger' },
 ] as const;
+
+type PlaceMode = 'table' | 'poi';
+type ZoneValue = FloorPlanTable['zone'];
+type PoiKind = FloorPlanPoi['kind'];
 
 function newTableId() {
   return `t-${Date.now().toString(36)}`;
@@ -58,6 +63,10 @@ function clampTableSeats(
   return { seats_min, seats_max };
 }
 
+function poiZone(poi: FloorPlanPoi): ZoneValue {
+  return poi.zone ?? 'salon';
+}
+
 function normalizeLayout(raw: FloorPlanLayout | null | undefined): FloorPlanLayout {
   if (!raw || typeof raw !== 'object') return emptyLayout();
   return {
@@ -68,7 +77,12 @@ function normalizeLayout(raw: FloorPlanLayout | null | undefined): FloorPlanLayo
           return { ...table, ...seats };
         })
       : [],
-    pois: Array.isArray(raw.pois) ? raw.pois : [],
+    pois: Array.isArray(raw.pois)
+      ? raw.pois.map((poi) => ({
+          ...poi,
+          zone: poiZone(poi),
+        }))
+      : [],
   };
 }
 
@@ -77,9 +91,13 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
   const [plan, setPlan] = useState<FloorPlanRead | null>(null);
   const [layout, setLayout] = useState<FloorPlanLayout>(emptyLayout());
   const [backgroundUrl, setBackgroundUrl] = useState('');
+  const [activeZone, setActiveZone] = useState<ZoneValue>('salon');
+  const [placeMode, setPlaceMode] = useState<PlaceMode>('table');
+  const [newPoiKind, setNewPoiKind] = useState<PoiKind>('entrance');
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dragKind, setDragKind] = useState<'table' | 'poi' | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -100,6 +118,17 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
 
   const selectedTable = layout.tables.find((t) => t.id === selectedTableId) ?? null;
   const selectedPoi = layout.pois.find((p) => p.id === selectedPoiId) ?? null;
+  const zoneTables = layout.tables.filter((table) => table.zone === activeZone);
+  const zonePois = layout.pois.filter((poi) => poiZone(poi) === activeZone);
+  const activeZoneLabel = ZONE_OPTIONS.find((opt) => opt.value === activeZone)?.label ?? activeZone;
+
+  function switchZone(zone: ZoneValue) {
+    setActiveZone(zone);
+    setSelectedTableId(null);
+    setSelectedPoiId(null);
+    setDragId(null);
+    setDragKind(null);
+  }
 
   const pointerToNorm = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -124,10 +153,11 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
 
   function addTableAt(x: number, y: number) {
     const id = newTableId();
+    const zoneCount = layout.tables.filter((row) => row.zone === activeZone).length;
     const next: FloorPlanTable = {
       id,
-      zone: 'salon',
-      label: `M${layout.tables.length + 1}`,
+      zone: activeZone,
+      label: `M${zoneCount + 1}`,
       seats_min: 2,
       seats_max: 4,
       x,
@@ -138,12 +168,21 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
     setSelectedPoiId(null);
   }
 
+  function updatePoi(id: string, patch: Partial<FloorPlanPoi>) {
+    setLayout((prev) => ({
+      ...prev,
+      pois: prev.pois.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    }));
+  }
+
   function addPoiAt(x: number, y: number) {
     const id = newPoiId();
+    const label = POI_OPTIONS.find((opt) => opt.value === newPoiKind)?.label ?? 'Isaret';
     const next: FloorPlanPoi = {
       id,
-      kind: 'entrance',
-      label: 'Giris',
+      kind: newPoiKind,
+      label,
+      zone: activeZone,
       x,
       y,
     };
@@ -168,10 +207,19 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
     setSelectedPoiId((current) => (current === id ? null : current));
   }
 
-  function clearAllTables() {
-    if (!layout.tables.length) return;
-    if (!window.confirm(`${layout.tables.length} masayi silmek istediginize emin misiniz?`)) return;
-    setLayout((prev) => ({ ...prev, tables: [] }));
+  function clearZoneTables() {
+    if (!zoneTables.length) return;
+    if (
+      !window.confirm(
+        `${activeZoneLabel} bolgesindeki ${zoneTables.length} masayi silmek istediginize emin misiniz?`,
+      )
+    ) {
+      return;
+    }
+    setLayout((prev) => ({
+      ...prev,
+      tables: prev.tables.filter((table) => table.zone !== activeZone),
+    }));
     setSelectedTableId(null);
   }
 
@@ -240,8 +288,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
         <div>
           <h2 className="text-lg font-semibold text-content">Salon plani</h2>
           <p className="mt-1 text-sm text-content-muted">
-            Kroki uzerine masa ve isaret noktalari (giris, canli muzik) ekleyin. Yayinladiktan sonra
-            musteriler masayi secer.
+            Once bolge secin (Salon / Bahce / Teras), sonra krokiye masa veya giris isareti ekleyin.
           </p>
           {plan?.has_published ? (
             <p className="mt-1 text-xs text-success">
@@ -285,7 +332,83 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
       </label>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_240px]">
-        <div className="relative overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="space-y-3 border-b border-border bg-surface-input/60 p-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">Bolge</p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {ZONE_OPTIONS.map((opt) => {
+                  const tableCount = layout.tables.filter((table) => table.zone === opt.value).length;
+                  const poiCount = layout.pois.filter((poi) => poiZone(poi) === opt.value).length;
+                  const active = activeZone === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => switchZone(opt.value)}
+                      className={`rounded-lg border px-2 py-2.5 text-sm transition ${
+                        active
+                          ? 'border-brand-gold bg-brand-gold/20 font-semibold text-brand-gold'
+                          : 'border-border bg-surface-card text-content hover:border-brand-gold/40'
+                      }`}
+                    >
+                      {opt.label}
+                      <span className="mt-0.5 block text-[11px] font-normal opacity-80">
+                        {tableCount} masa · {poiCount} isaret
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">
+                Krokiye ne ekleyeceksin?
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlaceMode('table')}
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    placeMode === 'table'
+                      ? 'border-emerald-500/60 bg-emerald-500/15 font-medium text-emerald-200'
+                      : 'border-border bg-surface-card text-content-muted hover:text-content'
+                  }`}
+                >
+                  Masa ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlaceMode('poi')}
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    placeMode === 'poi'
+                      ? 'border-violet-500/60 bg-violet-500/15 font-medium text-violet-200'
+                      : 'border-border bg-surface-card text-content-muted hover:text-content'
+                  }`}
+                >
+                  Giris / isaret
+                </button>
+              </div>
+              {placeMode === 'poi' ? (
+                <label className="mt-2 block text-xs text-content-muted">
+                  Isaret turu
+                  <select
+                    value={newPoiKind}
+                    onChange={(e) => setNewPoiKind(e.target.value as PoiKind)}
+                    className="mt-1 w-full rounded-lg border border-border bg-surface-card px-2 py-1.5 text-sm text-content"
+                  >
+                    {POI_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="relative">
           {backgroundUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -305,30 +428,46 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
               setSelectedTableId(null);
               setSelectedPoiId(null);
               const { x, y } = pointerToNorm(e.clientX, e.clientY);
-              if (e.shiftKey) addPoiAt(x, y);
+              if (placeMode === 'poi') addPoiAt(x, y);
               else addTableAt(x, y);
             }}
           >
-            {layout.pois.map((poi) => {
+            {zonePois.map((poi) => {
               const active = poi.id === selectedPoiId;
               return (
-              <g
-                key={poi.id}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  setSelectedPoiId(poi.id);
-                  setSelectedTableId(null);
-                }}
-              >
-                <circle cx={poi.x} cy={poi.y} r={0.018} fill={active ? '#c4b5fd' : '#a78bfa'} />
-                <text x={poi.x + 0.02} y={poi.y} fontSize={0.028} fill="#e9d5ff">
-                  {poi.label}
-                </text>
-              </g>
-            );
+                <g
+                  key={poi.id}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setSelectedPoiId(poi.id);
+                    setSelectedTableId(null);
+                    setDragId(poi.id);
+                    setDragKind('poi');
+                    (e.target as Element).setPointerCapture(e.pointerId);
+                  }}
+                  onPointerMove={(e) => {
+                    if (dragId !== poi.id || dragKind !== 'poi') return;
+                    const { x, y } = pointerToNorm(e.clientX, e.clientY);
+                    updatePoi(poi.id, { x, y });
+                  }}
+                  onPointerUp={(e) => {
+                    if (dragId === poi.id && dragKind === 'poi') {
+                      setDragId(null);
+                      setDragKind(null);
+                      (e.target as Element).releasePointerCapture(e.pointerId);
+                    }
+                  }}
+                  style={{ cursor: subscriptionActive ? 'grab' : 'default' }}
+                >
+                  <circle cx={poi.x} cy={poi.y} r={0.022} fill={active ? '#c4b5fd' : '#a78bfa'} />
+                  <text x={poi.x + 0.02} y={poi.y} fontSize={0.028} fill="#e9d5ff">
+                    {poi.label}
+                  </text>
+                </g>
+              );
             })}
-            {layout.tables.map((table) => {
+            {zoneTables.map((table) => {
               const active = table.id === selectedTableId;
               return (
                 <g
@@ -339,16 +478,18 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                     setSelectedTableId(table.id);
                     setSelectedPoiId(null);
                     setDragId(table.id);
+                    setDragKind('table');
                     (e.target as Element).setPointerCapture(e.pointerId);
                   }}
                   onPointerMove={(e) => {
-                    if (dragId !== table.id) return;
+                    if (dragId !== table.id || dragKind !== 'table') return;
                     const { x, y } = pointerToNorm(e.clientX, e.clientY);
                     updateTable(table.id, { x, y });
                   }}
                   onPointerUp={(e) => {
-                    if (dragId === table.id) {
+                    if (dragId === table.id && dragKind === 'table') {
                       setDragId(null);
+                      setDragKind(null);
                       (e.target as Element).releasePointerCapture(e.pointerId);
                     }
                   }}
@@ -375,37 +516,76 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
               );
             })}
           </svg>
+          </div>
           <p className="border-t border-border px-3 py-2 text-xs text-content-muted">
-            Bos alana tik = masa ekle · Shift+tik = POI · Surukle = konum · Secili oge: Delete veya sag panel
+            {activeZoneLabel} ·{' '}
+            {placeMode === 'table'
+              ? 'bos alana tik = masa · surukle = konum'
+              : 'bos alana tik = isaret (giris/cikis) · mor nokta · surukle = konum'}
           </p>
         </div>
 
         <aside className="rounded-xl border border-border bg-surface-card p-4 text-sm">
           <div className="flex items-center justify-between gap-2">
             <h3 className="font-medium text-content">Secim</h3>
-            {layout.tables.length > 0 ? (
+            {zoneTables.length > 0 ? (
               <button
                 type="button"
-                onClick={clearAllTables}
+                onClick={clearZoneTables}
                 className="text-xs text-rose-300 hover:text-rose-100"
               >
-                Tum masalari sil
+                {activeZoneLabel} masalarini sil
               </button>
             ) : null}
           </div>
           {!selectedTable && !selectedPoi ? (
-            <p className="mt-2 text-content-muted">Duzenlemek icin bir masa veya POI secin.</p>
+            <div className="mt-2 space-y-2 text-content-muted">
+              <p>
+                <strong className="text-content">{activeZoneLabel}</strong> krokisi duzenleniyor.
+              </p>
+              <p>
+                {placeMode === 'table'
+                  ? 'Yesil alana tiklayarak masa ekleyin. Masaya tiklayinca sagda duzenlersiniz.'
+                  : 'Mor isaret modu acik — kapi/giris yerine tiklayin. Mor noktayi surukleyerek tasiyin.'}
+              </p>
+            </div>
           ) : selectedPoi ? (
             <div className="mt-3 space-y-3">
               <p className="text-content">
-                POI: <strong>{selectedPoi.label}</strong>
+                Isaret: <strong>{selectedPoi.label}</strong>
               </p>
+              <label className="block text-content-muted">
+                Etiket
+                <input
+                  value={selectedPoi.label}
+                  onChange={(e) => updatePoi(selectedPoi.id, { label: e.target.value })}
+                  className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
+                />
+              </label>
+              <label className="block text-content-muted">
+                Tur
+                <select
+                  value={selectedPoi.kind}
+                  onChange={(e) => {
+                    const kind = e.target.value as PoiKind;
+                    updatePoi(selectedPoi.id, { kind });
+                  }}
+                  className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
+                >
+                  {POI_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-content-muted">Bolge: {activeZoneLabel}</p>
               <button
                 type="button"
                 onClick={removeSelected}
                 className="w-full rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
               >
-                POI sil
+                Isareti sil
               </button>
             </div>
           ) : selectedTable ? (
@@ -418,22 +598,10 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                   className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
                 />
               </label>
-              <label className="block text-content-muted">
-                Bolge
-                <select
-                  value={selectedTable.zone}
-                  onChange={(e) =>
-                    updateTable(selectedTable.id, { zone: e.target.value as FloorPlanTable['zone'] })
-                  }
-                  className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
-                >
-                  {ZONE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <p className="text-xs text-content-muted">
+                Bolge: <strong className="text-content">{activeZoneLabel}</strong> (ustteki sekmelerden
+                degistirin)
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block text-content-muted">
                   Min kisi
@@ -475,7 +643,8 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
             </div>
           ) : null}
           <div className="mt-4 border-t border-border pt-3 text-xs text-content-muted">
-            POI: {layout.pois.length} · Masa: {layout.tables.length}
+            {activeZoneLabel}: {zoneTables.length} masa · {zonePois.length} isaret · Toplam:{' '}
+            {layout.tables.length} masa
           </div>
         </aside>
       </div>

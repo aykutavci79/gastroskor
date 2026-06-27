@@ -223,8 +223,9 @@ export type FloorPlanTable = {
 
 export type FloorPlanPoi = {
   id: string;
-  kind: 'entrance' | 'live_music' | 'bar' | 'other';
+  kind: 'entrance' | 'exit' | 'live_music' | 'bar' | 'other';
   label: string;
+  zone?: 'salon' | 'bahce' | 'teras';
   x: number;
   y: number;
 };
