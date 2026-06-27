@@ -1,5 +1,5 @@
 import { KELIME_BUL_MAX_WORD_LEN } from '@/constants/kelime-bul';
-import { gastroLexiconFullSet } from '@/lib/gastro-lexicon';
+import { havuzKelimeFiltre, havuzZorlukFiltre } from '@/lib/kelime-sofrasi/havuz';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 const MIN_LEN = 3;
@@ -47,12 +47,23 @@ export const KELIME_BUL_HAVUZ = KELIME_BUL_YEMEK_HAVUZ;
 
 let genelHavuzCache: string[] | null = null;
 
-/** TDK lexicon — 3–9 harf, yemek listesi hariç (lazy, bir kez filtrelenir). */
+/**
+ * Ipucusuz word-search hedefleri icin yalnizca daha sik kullanılan kelimeler.
+ * Tam TDK lexicon'u MORTO/OZUGA/HERTZ gibi dogru ama oyuncuya haksiz gelen girdiler icerir.
+ */
 export function kelimeBulGenelHavuz(): string[] {
   if (genelHavuzCache) return genelHavuzCache;
   const yemek = new Set(KELIME_BUL_YEMEK_HAVUZ);
-  genelHavuzCache = [...gastroLexiconFullSet()].filter(
-    (w) => w.length >= MIN_LEN && w.length <= KELIME_BUL_MAX_WORD_LEN && !yemek.has(w),
+  const kolayHavuz = havuzZorlukFiltre(
+    havuzKelimeFiltre(MIN_LEN, KELIME_BUL_MAX_WORD_LEN),
+    'kolay',
   );
+  genelHavuzCache = [
+    ...new Set(
+      kolayHavuz
+        .map((row) => sofraKelimeBuyuk(row.kelime))
+        .filter((w) => w.length >= MIN_LEN && w.length <= KELIME_BUL_MAX_WORD_LEN && !yemek.has(w)),
+    ),
+  ];
   return genelHavuzCache;
 }
