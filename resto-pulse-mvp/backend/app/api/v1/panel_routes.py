@@ -553,6 +553,8 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
                 )
         if payload.online_reservations_enabled is not None:
             ownership.online_reservations_enabled = payload.online_reservations_enabled
+        if "online_reservation_max_party_size" in fields and payload.online_reservation_max_party_size is not None:
+            ownership.online_reservation_max_party_size = payload.online_reservation_max_party_size
         ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
         ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
         ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None

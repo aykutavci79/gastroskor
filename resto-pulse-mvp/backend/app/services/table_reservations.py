@@ -27,6 +27,8 @@ from app.services.restaurant_orders import normalize_phone, OrderError
 from app.services.restaurant_promo import subscription_allows_promo
 
 CUSTOMER_CONFIRM_HOURS = 24
+DEFAULT_ONLINE_RESERVATION_MAX_PARTY = 10
+PANEL_ONLINE_RESERVATION_MAX_PARTY_CAP = 100
 ACTIVE_STATUSES = (
     RestaurantTableReservationStatus.pending_restaurant,
     RestaurantTableReservationStatus.approved_by_restaurant,
@@ -51,6 +53,15 @@ def online_reservations_configured(ownership: RestaurantOwnership | None) -> boo
     if not subscription_allows_promo(ownership.subscription):
         return False
     return True
+
+
+def effective_online_reservation_max_party(ownership: RestaurantOwnership) -> int:
+    raw = ownership.online_reservation_max_party_size or DEFAULT_ONLINE_RESERVATION_MAX_PARTY
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        value = DEFAULT_ONLINE_RESERVATION_MAX_PARTY
+    return max(1, min(value, PANEL_ONLINE_RESERVATION_MAX_PARTY_CAP))
 
 
 def get_or_create_floor_plan(db: Session, *, restaurant_id: UUID) -> RestaurantFloorPlan:
@@ -191,6 +202,13 @@ def create_table_reservation(
     table = find_table(layout, table_id)
     if not table:
         raise ReservationError("Secilen masa bulunamadi.")
+    max_online_party = effective_online_reservation_max_party(ownership)
+    if party_size > max_online_party:
+        raise ReservationError(
+            f"Kisi sayisi yuksek. Uygulama uzerinden en fazla {max_online_party} kisi icin "
+            "rezervasyon yapilabilir. Lutfen restoranla dogrudan gorunun.",
+            code="party_too_large",
+        )
     if party_size < int(table["seats_min"]) or party_size > int(table["seats_max"]):
         raise ReservationError(
             f"Bu masa {table['seats_min']}–{table['seats_max']} kisi icin uygun."

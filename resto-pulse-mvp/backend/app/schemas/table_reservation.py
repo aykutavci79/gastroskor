@@ -26,7 +26,7 @@ class FloorPlanDraftUpdate(BaseModel):
 class TableReservationCreate(BaseModel):
     user_email: str = Field(min_length=3)
     table_id: str = Field(min_length=1, max_length=64)
-    party_size: int = Field(ge=1, le=30)
+    party_size: int = Field(ge=1, le=500)
     reserved_at: str = Field(description="ISO-8601 datetime")
     note: str | None = Field(default=None, max_length=500)
     customer_phone: str = Field(min_length=10, max_length=32)
@@ -73,6 +73,8 @@ class RestaurantReservationActiveResponse(BaseModel):
     online_reservations_available: bool
     floor_plan: FloorPlanRead | None = None
     reserved_table_ids: list[str] = Field(default_factory=list)
+    max_online_party_size: int = 10
+    contact_phone: str | None = None
 
 
 class PanelReservationListResponse(BaseModel):

@@ -112,5 +112,8 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "card_emoji": ownership.card_emoji,
         "online_order_hours": ownership.online_order_hours,
         "online_reservations_enabled": bool(ownership.online_reservations_enabled),
+        "online_reservation_max_party_size": int(
+            ownership.online_reservation_max_party_size or 10
+        ),
         "public_preview": promo_from_ownership(ownership) if active else None,
     }

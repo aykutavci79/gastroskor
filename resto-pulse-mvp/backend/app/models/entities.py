@@ -603,6 +603,7 @@ class RestaurantOwnership(Base):
     promo_has_own_courier: Mapped[bool] = mapped_column(Boolean, default=False)
     online_orders_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     online_reservations_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    online_reservation_max_party_size: Mapped[int] = mapped_column(Integer, default=10)
     online_order_hours: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     online_order_category_tags: Mapped[list] = mapped_column(JSON, default=list)
     promo_direct_order_text: Mapped[str | None] = mapped_column(String(120))

@@ -40,7 +40,7 @@ function emptyLayout(): FloorPlanLayout {
 }
 
 const SEATS_MIN = 1;
-const SEATS_MAX = 30;
+const SEATS_MAX = 200;
 
 function clampTableSeats(
   seatsMin: number,
@@ -463,7 +463,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                 </label>
               </div>
               <p className="text-xs text-content-muted">
-                Min ≤ max, her ikisi {SEATS_MIN}–{SEATS_MAX} kisi.
+                Min ≤ max. Masa fiziksel kapasitesi; uygulama rezervasyon limiti ayri ayarlanir.
               </p>
               <button
                 type="button"

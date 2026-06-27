@@ -592,6 +592,7 @@ export function updatePanelPromo(payload: {
     weekly: Record<string, { closed?: boolean; open?: string; close?: string }>;
   } | null;
   online_reservations_enabled?: boolean;
+  online_reservation_max_party_size?: number;
 }) {
   return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
     method: 'PATCH',

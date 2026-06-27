@@ -41,6 +41,8 @@ function statusLabel(status: TableReservationRead['status']): string {
 export function PanelReservationsSection({ userEmail, subscriptionActive }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
+  const [maxPartySize, setMaxPartySize] = useState(10);
+  const [savingMaxParty, setSavingMaxParty] = useState(false);
   const [items, setItems] = useState<TableReservationRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -56,6 +58,7 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
       ]);
       setEnabled(Boolean(promo.online_reservations_enabled));
       setHasOwnCourier(Boolean(promo.has_own_courier));
+      setMaxPartySize(promo.online_reservation_max_party_size ?? 10);
       setItems(reservations.items);
       setError(null);
     } catch (err) {
@@ -82,6 +85,25 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
       setEnabled(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ayar kaydedilemedi');
+    }
+  }
+
+  async function saveMaxPartySize(raw: number) {
+    const next = Math.max(1, Math.min(100, Math.round(raw) || 10));
+    setMaxPartySize(next);
+    if (!subscriptionActive) return;
+    setSavingMaxParty(true);
+    setError(null);
+    try {
+      await updatePanelPromo({
+        user_email: userEmail,
+        has_own_courier: hasOwnCourier,
+        online_reservation_max_party_size: next,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Limit kaydedilemedi');
+    } finally {
+      setSavingMaxParty(false);
     }
   }
 
@@ -125,6 +147,28 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
             />
             Online rezervasyon acik
           </label>
+        </div>
+        <div className="mt-4 max-w-sm">
+          <label className="block text-sm font-medium text-content">
+            Uygulama uzerinden en fazla kisi
+          </label>
+          <p className="mt-1 text-xs text-content-muted">
+            Bu sayinin uzerindeki gruplar uygulamadan rezervasyon yapamaz; restoranla dogrudan
+            gorusmeleri istenir.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={maxPartySize}
+              disabled={!subscriptionActive || savingMaxParty}
+              onChange={(e) => setMaxPartySize(Number(e.target.value) || 1)}
+              onBlur={() => void saveMaxPartySize(maxPartySize)}
+              className="w-24 rounded-lg border border-border/70 bg-surface-card px-3 py-2 text-sm text-content"
+            />
+            <span className="text-sm text-content-muted">kisi</span>
+          </div>
         </div>
       </section>
 

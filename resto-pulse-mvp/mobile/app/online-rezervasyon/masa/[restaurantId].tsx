@@ -54,7 +54,11 @@ export default function OnlineReservationBookScreen() {
   );
 
   const reservedIso = useMemo(() => parseLocalDatetime(reservedAtInput), [reservedAtInput]);
-  const party = Math.max(1, Math.min(30, Number(partySize) || 1));
+  const maxOnlineParty = active?.max_online_party_size ?? 10;
+  const party = Math.max(1, Number(partySize) || 1);
+  const partyTooLarge = party > maxOnlineParty;
+  const contactPhone =
+    active?.contact_phone?.trim() || restaurant?.phone?.trim() || null;
 
   const refreshPlan = useCallback(async () => {
     if (!restaurantId || !reservedIso) return;
@@ -96,6 +100,15 @@ export default function OnlineReservationBookScreen() {
     }
     if (!phone.trim()) {
       Alert.alert('Telefon', 'Iletisim numarasi girin.');
+      return;
+    }
+    if (partyTooLarge) {
+      Alert.alert(
+        'Kisi sayisi yuksek',
+        `Uygulama uzerinden en fazla ${maxOnlineParty} kisi icin rezervasyon yapilabilir. Lutfen restoranla dogrudan gorunun.${
+          contactPhone ? `\n\nTelefon: ${contactPhone}` : ''
+        }`,
+      );
       return;
     }
     setSubmitting(true);
@@ -163,6 +176,12 @@ export default function OnlineReservationBookScreen() {
           keyboardType="number-pad"
           style={styles.input}
         />
+        {partyTooLarge ? (
+          <Text style={styles.warn}>
+            {maxOnlineParty} kisiden fazla gruplar icin lutfen restoranla dogrudan gorunun
+            {contactPhone ? ` (${contactPhone})` : ''}.
+          </Text>
+        ) : null}
 
         <ReservationFloorPlanPicker
           layout={active.floor_plan.layout}
@@ -192,8 +211,8 @@ export default function OnlineReservationBookScreen() {
         />
 
         <Pressable
-          style={[styles.btn, submitting && styles.btnDisabled]}
-          disabled={submitting}
+          style={[styles.btn, (submitting || partyTooLarge) && styles.btnDisabled]}
+          disabled={submitting || partyTooLarge}
           onPress={() => void onSubmit()}>
           <Text style={styles.btnText}>{submitting ? 'Gonderiliyor...' : 'Rezervasyon talebi gonder'}</Text>
         </Pressable>
@@ -209,6 +228,7 @@ const styles = StyleSheet.create({
   sub: { color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   muted: { color: 'rgba(255,255,255,0.6)', marginTop: 12 },
   label: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 8 },
+  warn: { color: '#fbbf24', fontSize: 13, marginTop: 4, lineHeight: 18 },
   input: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',

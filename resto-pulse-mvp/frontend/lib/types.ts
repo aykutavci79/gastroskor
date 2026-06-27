@@ -207,6 +207,7 @@ export type RestaurantPromoSettings = {
   card_emoji: string | null;
   online_order_hours?: OnlineOrderHours | null;
   online_reservations_enabled?: boolean;
+  online_reservation_max_party_size?: number;
   public_preview: RestaurantPromoPublic | null;
 };
 

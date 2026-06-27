@@ -155,6 +155,7 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     card_emoji: str | None = Field(default=None, max_length=16)
     online_order_hours: dict | None = None
     online_reservations_enabled: bool | None = None
+    online_reservation_max_party_size: int | None = Field(default=None, ge=1, le=100)
 
 
 class PanelResetPublicDataRequest(BaseModel):

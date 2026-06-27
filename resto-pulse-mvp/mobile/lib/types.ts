@@ -153,6 +153,8 @@ export type RestaurantReservationActiveResponse = {
   online_reservations_available: boolean;
   floor_plan: FloorPlanRead | null;
   reserved_table_ids: string[];
+  max_online_party_size?: number;
+  contact_phone?: string | null;
 };
 
 export type TableReservationRead = {

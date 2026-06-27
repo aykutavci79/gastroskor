@@ -25,6 +25,7 @@ from app.services.table_reservations import (
     get_published_plan,
     list_user_reservations,
     online_reservations_configured,
+    effective_online_reservation_max_party,
     raise_reservation_http,
     reservation_to_dict,
     reserved_table_ids_for_slot,
@@ -76,10 +77,26 @@ def get_restaurant_reservation_active(
         reserved_ids = sorted(
             reserved_table_ids_for_slot(db, restaurant_id=restaurant_id, reserved_at=slot)
         )
+    max_online_party = (
+        effective_online_reservation_max_party(ownership)
+        if ownership and available
+        else 10
+    )
+    contact_phone: str | None = None
+    if ownership:
+        contact_phone = (
+            (ownership.promo_direct_order_phone or "").strip()
+            or (ownership.phone_e164 or "").strip()
+            or None
+        )
+    if not contact_phone:
+        contact_phone = (restaurant.phone or "").strip() or None
     return RestaurantReservationActiveResponse(
         online_reservations_available=available,
         floor_plan=FloorPlanRead.model_validate(floor_plan) if floor_plan else None,
         reserved_table_ids=reserved_ids,
+        max_online_party_size=max_online_party,
+        contact_phone=contact_phone,
     )
 
 
