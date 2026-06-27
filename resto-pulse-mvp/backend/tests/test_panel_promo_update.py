@@ -53,7 +53,7 @@ def _seed_online_promo_owner(db: Session) -> RestaurantOwnership:
         panel_tier="full",
         promo_has_own_courier=True,
         online_orders_enabled=True,
-        online_order_category_tags=["pizza"],
+        online_order_category_tags=["firin"],
         promo_direct_order_text="Telefonla siparis icin arayin",
         promo_direct_order_phone="05550000000",
         promo_direct_order_whatsapp="05550000000",
@@ -87,7 +87,7 @@ def test_partial_promo_update_preserves_online_order_settings(db: Session) -> No
     payload = response.json()
     assert payload["has_own_courier"] is True
     assert payload["online_orders_enabled"] is True
-    assert payload["online_order_category_tags"] == ["pizza"]
+    assert payload["online_order_category_tags"] == ["firin"]
     assert payload["direct_order_text"] == "Telefonla siparis icin arayin"
     assert payload["direct_order_phone"] == "05550000000"
     assert payload["direct_order_whatsapp"] == "05550000000"
@@ -96,7 +96,7 @@ def test_partial_promo_update_preserves_online_order_settings(db: Session) -> No
     db.refresh(ownership)
     assert ownership.promo_has_own_courier is True
     assert ownership.online_orders_enabled is True
-    assert ownership.online_order_category_tags == ["pizza"]
+    assert ownership.online_order_category_tags == ["firin"]
     assert ownership.promo_direct_order_text == "Telefonla siparis icin arayin"
     assert ownership.promo_direct_order_phone == "05550000000"
     assert ownership.promo_direct_order_whatsapp == "05550000000"
