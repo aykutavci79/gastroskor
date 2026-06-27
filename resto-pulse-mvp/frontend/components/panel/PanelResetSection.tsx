@@ -45,8 +45,7 @@ export function PanelResetSection({ userEmail, restaurantName, onReset }: Props)
     <section className="rounded-2xl border border-rose-500/40 bg-rose-500/5 p-5">
       <h2 className="text-lg font-semibold text-rose-100">Test verilerini temizle</h2>
       <p className="mt-1 text-sm text-content-muted">
-        Deneme siparisleri, menu ve vitrin fotolarini kalici siler. Canli sitede gercek isletme gorunmesin diye
-        kullanin.
+        Deneme siparisleri, menu ve vitrin fotolarini kalici siler. Panel hesap baglantisi ve mekan adi kalir — koparmak icin admin: Hesabimdaki mekani kopar.
       </p>
       <label className="mt-4 flex items-center gap-2 text-sm text-content">
         <input

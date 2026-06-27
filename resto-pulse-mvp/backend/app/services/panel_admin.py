@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
 from app.models import RestaurantOwnership, User
@@ -181,3 +181,18 @@ async def admin_grant_panel_access(
     db.commit()
     db.refresh(ownership)
     return ownership
+
+
+def release_user_panel_ownership(db: Session, *, user: User) -> dict:
+    """Admin test: hesaptaki mekan bagini kopar (reset-public-data ownership silmez)."""
+    ownership = db.scalar(
+        select(RestaurantOwnership)
+        .where(RestaurantOwnership.user_id == user.id)
+        .options(selectinload(RestaurantOwnership.restaurant))
+    )
+    if not ownership:
+        return {"removed": False, "restaurant_name": None}
+    restaurant_name = ownership.restaurant.name if ownership.restaurant else None
+    db.delete(ownership)
+    db.commit()
+    return {"removed": True, "restaurant_name": restaurant_name}

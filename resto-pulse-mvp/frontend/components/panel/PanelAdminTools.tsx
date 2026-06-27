@@ -259,6 +259,32 @@ export function PanelAdminTools() {
     }
   }
 
+  async function onUnlinkOwnership() {
+    if (!userEmail) return;
+    const ok = window.confirm(
+      'Hesabinizdaki mekan baglantisi tamamen koparilsin mi? (Kokten sifirla sadece menu/siparis siler; bu islem panel kaydini siler.)',
+    );
+    if (!ok) return;
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/panel/admin/unlink-ownership', { method: 'POST' });
+      const data = (await res.json()) as { detail?: string; removed?: boolean; restaurant_name?: string | null };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Mekan koparilamadi');
+      if (data.removed) {
+        setMessage(`${data.restaurant_name ?? 'Mekan'} hesabinizdan koparildi.`);
+      } else {
+        setMessage('Hesapta bagli mekan yoktu.');
+      }
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Mekan koparilamadi');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onResetPlace(place: LivePlaceSearchItem) {
     const ok = window.confirm(
       `${place.name} test siparisleri, menu ve promo silinsin mi?` +
@@ -552,6 +578,16 @@ export function PanelAdminTools() {
           />
           Baska kullanicida olsa mekani devral (force)
         </label>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void onUnlinkOwnership()}
+          className="mt-4 rounded-xl border border-rose-500/40 bg-rose-600/15 px-4 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-600/25 disabled:opacity-50">
+          Hesabimdaki mekani kopar (Ozşark vb.)
+        </button>
+        <p className="mt-2 text-xs text-content-muted">
+          &quot;Kokten sifirla&quot; menu/siparis temizler; panelde isim kalir. Temiz baslangic icin once bunu kullanin.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-border/70 bg-surface-input p-6">

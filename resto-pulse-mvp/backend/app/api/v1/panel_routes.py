@@ -80,6 +80,7 @@ from app.services.request_identity import resolve_authenticated_email
 from app.services.panel_admin import (
     admin_grant_panel_access,
     assert_admin_grant_allowed,
+    release_user_panel_ownership,
     require_panel_admin_access,
     require_panel_admin_jwt,
 )
@@ -447,6 +448,17 @@ async def admin_grant_access_endpoint(
         ) from exc
     state = build_panel_access_state(db, ownership)
     return serialize_access(state)
+
+
+@panel_router.post("/admin/unlink-ownership")
+def admin_unlink_ownership(
+    payload: AdminPanelUserRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    user = resolve_user_by_email(db, payload.user_email)
+    return release_user_panel_ownership(db, user=user)
 
 
 @panel_router.get("/dashboard")
