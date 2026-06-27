@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/context/session-context';
 import { confirmTableReservation } from '@/lib/api';
 import type { TableReservationRead } from '@/lib/types';
 
 export default function OnlineReservationConfirmScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useSession();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {

@@ -16,6 +16,7 @@ from app.schemas.table_reservation import (
     TableReservationListResponse,
     TableReservationRead,
 )
+from app.services.reservation_floor_plan import closed_table_ids_from_layout
 from app.services.restaurant_orders import get_ownership_for_restaurant
 from app.services.table_reservations import (
     ReservationError,
@@ -89,10 +90,14 @@ def get_restaurant_reservation_active(
             or (ownership.phone_e164 or "").strip()
             or None
         )
+    closed_ids: list[str] = []
+    if available and plan_row and plan_row.published_layout:
+        closed_ids = closed_table_ids_from_layout(plan_row.published_layout)
     return RestaurantReservationActiveResponse(
         online_reservations_available=available,
         floor_plan=FloorPlanRead.model_validate(floor_plan) if floor_plan else None,
         reserved_table_ids=reserved_ids,
+        closed_table_ids=closed_ids,
         max_online_party_size=max_online_party,
         contact_phone=contact_phone,
     )

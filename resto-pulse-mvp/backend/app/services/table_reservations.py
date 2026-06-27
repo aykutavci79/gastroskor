@@ -202,6 +202,8 @@ def create_table_reservation(
     table = find_table(layout, table_id)
     if not table:
         raise ReservationError("Secilen masa bulunamadi.")
+    if table.get("reservation_closed"):
+        raise ReservationError("Bu masa su an rezervasyona kapali.")
     max_online_party = effective_online_reservation_max_party(ownership)
     if party_size > max_online_party:
         raise ReservationError(
@@ -223,6 +225,9 @@ def create_table_reservation(
         phone = normalize_phone(customer_phone)
     except OrderError as exc:
         raise ReservationError(exc.message) from exc
+    clean_name = (customer_name or "").strip()
+    if len(clean_name) < 2:
+        raise ReservationError("Ad soyad zorunlu.")
 
     row = RestaurantTableReservation(
         restaurant_id=restaurant.id,
@@ -234,7 +239,7 @@ def create_table_reservation(
         reserved_at=reserved_at,
         note=(note or "").strip() or None,
         customer_phone=phone,
-        customer_name=(customer_name or "").strip() or None,
+        customer_name=clean_name,
         status=RestaurantTableReservationStatus.pending_restaurant,
     )
     db.add(row)

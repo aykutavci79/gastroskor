@@ -219,6 +219,7 @@ export type FloorPlanTable = {
   seats_max: number;
   x: number;
   y: number;
+  reservation_closed?: boolean;
 };
 
 export type FloorPlanPoi = {

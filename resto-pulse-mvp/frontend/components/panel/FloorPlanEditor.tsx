@@ -154,10 +154,11 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
   function addTableAt(x: number, y: number) {
     const id = newTableId();
     const zoneCount = layout.tables.filter((row) => row.zone === activeZone).length;
+    const zoneCode = { salon: 'S', bahce: 'B', teras: 'T' }[activeZone];
     const next: FloorPlanTable = {
       id,
       zone: activeZone,
-      label: `M${zoneCount + 1}`,
+      label: `${zoneCode}${zoneCount + 1}`,
       seats_min: 2,
       seats_max: 4,
       x,
@@ -469,6 +470,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
             })}
             {zoneTables.map((table) => {
               const active = table.id === selectedTableId;
+              const closed = Boolean(table.reservation_closed);
               return (
                 <g
                   key={table.id}
@@ -495,19 +497,41 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                   }}
                   style={{ cursor: subscriptionActive ? 'grab' : 'default' }}
                 >
-                  <circle
-                    cx={table.x}
-                    cy={table.y}
-                    r={0.024}
-                    fill={active ? '#fbbf24' : '#22c55e'}
-                    stroke={active ? '#fff' : '#14532d'}
+                  <rect
+                    x={table.x - 0.035}
+                    y={table.y - 0.022}
+                    width={0.07}
+                    height={0.044}
+                    rx={0.012}
+                    fill={closed ? '#475569' : active ? '#fbbf24' : '#22c55e'}
+                    stroke={closed ? '#94a3b8' : active ? '#fff' : '#14532d'}
                     strokeWidth={0.004}
                   />
+                  {closed ? (
+                    <>
+                      <line
+                        x1={table.x - 0.035}
+                        y1={table.y - 0.022}
+                        x2={table.x + 0.035}
+                        y2={table.y + 0.022}
+                        stroke="#f87171"
+                        strokeWidth={0.003}
+                      />
+                      <line
+                        x1={table.x + 0.035}
+                        y1={table.y - 0.022}
+                        x2={table.x - 0.035}
+                        y2={table.y + 0.022}
+                        stroke="#f87171"
+                        strokeWidth={0.003}
+                      />
+                    </>
+                  ) : null}
                   <text
                     x={table.x}
-                    y={table.y + 0.045}
+                    y={table.y + 0.008}
                     textAnchor="middle"
-                    fontSize={0.03}
+                    fontSize={0.028}
                     fill="#fff"
                   >
                     {table.label}
@@ -631,8 +655,27 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                 </label>
               </div>
               <p className="text-xs text-content-muted">
-                Min ≤ max. Masa fiziksel kapasitesi; uygulama rezervasyon limiti ayri ayarlanir.
+                Min ≤ max. Ornek: 4 kisilik masa + ilave sandalye ile max 6 yazin.
               </p>
+              <p className="text-xs text-content-muted">
+                Masa kodu bolge harfi + numara (S1, B2). Mobilde S-S1 olarak gorunur.
+              </p>
+              <label className="flex cursor-pointer items-start gap-2 text-content-muted">
+                <input
+                  type="checkbox"
+                  checked={Boolean(selectedTable.reservation_closed)}
+                  onChange={(e) =>
+                    updateTable(selectedTable.id, { reservation_closed: e.target.checked })
+                  }
+                  className="mt-1"
+                />
+                <span>
+                  <strong className="text-content">Rezervasyona kapat</strong>
+                  <span className="mt-0.5 block text-xs">
+                    Masa haritada kapali gorunur; musteri bu masadan talep olusturamaz.
+                  </span>
+                </span>
+              </label>
               <button
                 type="button"
                 onClick={removeSelected}

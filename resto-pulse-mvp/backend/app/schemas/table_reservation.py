@@ -30,7 +30,7 @@ class TableReservationCreate(BaseModel):
     reserved_at: str = Field(description="ISO-8601 datetime")
     note: str | None = Field(default=None, max_length=500)
     customer_phone: str = Field(min_length=10, max_length=32)
-    customer_name: str | None = Field(default=None, max_length=120)
+    customer_name: str = Field(min_length=2, max_length=120)
 
 
 class TableReservationRead(BaseModel):
@@ -73,6 +73,7 @@ class RestaurantReservationActiveResponse(BaseModel):
     online_reservations_available: bool
     floor_plan: FloorPlanRead | None = None
     reserved_table_ids: list[str] = Field(default_factory=list)
+    closed_table_ids: list[str] = Field(default_factory=list)
     max_online_party_size: int = 10
     contact_phone: str | None = None
 

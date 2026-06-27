@@ -133,6 +133,7 @@ export type FloorPlanTable = {
   seats_max: number;
   x: number;
   y: number;
+  reservation_closed?: boolean;
 };
 
 export type FloorPlanLayout = {
@@ -153,6 +154,7 @@ export type RestaurantReservationActiveResponse = {
   online_reservations_available: boolean;
   floor_plan: FloorPlanRead | null;
   reserved_table_ids: string[];
+  closed_table_ids?: string[];
   max_online_party_size?: number;
   contact_phone?: string | null;
 };

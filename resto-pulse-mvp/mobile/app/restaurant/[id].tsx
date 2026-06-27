@@ -759,7 +759,10 @@ export default function RestaurantDetailScreen() {
           ) : null}
         </View>
 
-        {restaurant && (restaurant.online_orders_available || hasPublicMenu(restaurant)) ? (
+        {restaurant &&
+        ((restaurant.online_orders_available && !fromOnlineOrder) ||
+          (restaurant.online_reservations_available && !fromOnlineOrder) ||
+          hasPublicMenu(restaurant)) ? (
           <View
             style={styles.section}
             onLayout={(event) => {
@@ -772,10 +775,12 @@ export default function RestaurantDetailScreen() {
                 onFieldFocus={scrollToOrderField}
               />
             ) : null}
-            {restaurant.online_reservations_available ? (
+            {restaurant.online_reservations_available && !fromOnlineOrder ? (
               <Pressable
                 style={styles.reservationBtn}
-                onPress={() => router.push(`/online-rezervasyon/masa/${restaurantId}`)}>
+                onPress={() =>
+                  router.push(`/online-rezervasyon/masa/${restaurant.id}` as never)
+                }>
                 <Text style={styles.reservationBtnText}>Masa rezervasyonu</Text>
               </Pressable>
             ) : null}

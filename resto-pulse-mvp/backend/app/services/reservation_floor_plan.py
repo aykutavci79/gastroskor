@@ -59,6 +59,7 @@ def normalize_layout(raw: dict[str, Any] | None) -> dict[str, Any]:
             raise FloorPlanError("Kisi sayisi gecersiz.") from exc
         seats_min = max(1, seats_min)
         seats_max = max(seats_min, seats_max)
+        reservation_closed = bool(row.get("reservation_closed"))
         tables.append(
             {
                 "id": table_id,
@@ -68,6 +69,7 @@ def normalize_layout(raw: dict[str, Any] | None) -> dict[str, Any]:
                 "seats_max": seats_max,
                 "x": _clamp01(row.get("x")),
                 "y": _clamp01(row.get("y")),
+                "reservation_closed": reservation_closed,
             }
         )
 
@@ -103,6 +105,16 @@ def find_table(layout: dict[str, Any], table_id: str) -> dict[str, Any] | None:
         if isinstance(row, dict) and str(row.get("id")) == table_id:
             return row
     return None
+
+
+def closed_table_ids_from_layout(layout: dict[str, Any] | None) -> list[str]:
+    if not layout:
+        return []
+    ids: list[str] = []
+    for row in layout.get("tables") or []:
+        if isinstance(row, dict) and row.get("reservation_closed") and row.get("id"):
+            ids.append(str(row["id"]))
+    return sorted(ids)
 
 
 def zone_label_tr(zone: str) -> str:

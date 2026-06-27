@@ -64,3 +64,23 @@ def test_clamps_swapped_seats():
     )
     assert layout["tables"][0]["seats_min"] == 8
     assert layout["tables"][0]["seats_max"] == 8
+
+
+def test_reservation_closed_flag():
+    layout = normalize_layout(
+        {
+            "tables": [
+                {
+                    "id": "t1",
+                    "zone": "salon",
+                    "label": "M1",
+                    "seats_min": 2,
+                    "seats_max": 6,
+                    "x": 0.5,
+                    "y": 0.5,
+                    "reservation_closed": True,
+                }
+            ],
+        }
+    )
+    assert layout["tables"][0]["reservation_closed"] is True
