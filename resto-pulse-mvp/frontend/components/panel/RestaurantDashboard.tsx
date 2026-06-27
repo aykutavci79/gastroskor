@@ -12,6 +12,7 @@ import { PanelGoogleBusinessSection } from '@/components/panel/PanelGoogleBusine
 import { PanelFollowerCoupons } from '@/components/panel/PanelFollowerCoupons';
 import { PanelNotificationSettings } from '@/components/panel/PanelNotificationSettings';
 import { PanelOrdersSection } from '@/components/panel/PanelOrdersSection';
+import { PanelReservationsSection } from '@/components/panel/PanelReservationsSection';
 import { PanelResetSection } from '@/components/panel/PanelResetSection';
 import { PanelReviewRemedySection } from '@/components/panel/PanelReviewRemedySection';
 import { addPanelCompetitor, analyzePanelCompetitor, getPanelDashboard, searchLivePlaces } from '@/lib/api';
@@ -161,6 +162,12 @@ export function RestaurantDashboard() {
               total: summary.online_orders_accepted_total,
               last180Days: summary.online_orders_accepted_180_days,
             }}
+          />
+          <PanelReservationsSection
+            userEmail={userEmail}
+            subscriptionActive={
+              access?.subscription_status === 'trial' || access?.subscription_status === 'active'
+            }
           />
           <PanelResetSection
             userEmail={userEmail}

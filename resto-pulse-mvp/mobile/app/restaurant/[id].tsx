@@ -67,6 +67,8 @@ export default function RestaurantDetailScreen() {
   const params = useLocalSearchParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
+  const source = Array.isArray(params.source) ? params.source[0] : params.source;
+  const fromOnlineOrder = source === 'online-order';
   const { user, loading: sessionLoading } = useSession();
   const gastroScores = useMemo((): GastroScoreSnapshot | null => {
     const live = parseLiveScoreParams(params);
@@ -114,6 +116,7 @@ export default function RestaurantDetailScreen() {
   const reviewsSectionY = useRef(0);
   const reviewCardY = useRef<Record<string, number>>({});
   const pendingMenuFocus = useRef(focus === 'menu');
+  const pendingReviewsFocus = useRef(focus === 'reviews');
   const viewedRestaurantIdRef = useRef<string | null>(null);
 
   const scrollToY = useCallback(
@@ -335,6 +338,20 @@ export default function RestaurantDetailScreen() {
     });
   }, [loading, restaurant, focus]);
 
+  useEffect(() => {
+    if (!pendingReviewsFocus.current || loading || !restaurant) return;
+    if (fromOnlineOrder) {
+      setReviewKind('online_order');
+    }
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, reviewsSectionY.current - 12),
+        animated: true,
+      });
+      pendingReviewsFocus.current = false;
+    });
+  }, [loading, restaurant, focus, fromOnlineOrder]);
+
   const visitRating = useMemo(() => {
     const fromApi = coerceNumber(restaurant?.avg_rating);
     if (fromApi != null) return fromApi;
@@ -444,6 +461,9 @@ export default function RestaurantDetailScreen() {
       return;
     }
 
+    const photosToUpload = [...photos];
+    const reviewText = text.trim();
+
     setSubmitting(true);
     setSubmitError(null);
     setModerationHighlights([]);
@@ -452,39 +472,66 @@ export default function RestaurantDetailScreen() {
       let saved = await createReview({
         restaurant_id: restaurant.id,
         rating,
-        review_text: text.trim(),
+        review_text: reviewText,
         author_email: user.email,
         author_name: user.fullName,
         author_name_display: nameDisplay,
       });
-      for (const photo of photos) {
-        saved = await uploadReviewImage(
-          saved.id,
-          user.email,
-          photo.uri,
-          photo.mimeType,
-          photo.fileName,
-        );
-      }
+
       const withMeta: DisplayReview = {
         ...saved,
         viewer_can_edit: saved.viewer_can_edit ?? true,
         created_at: saved.created_at ?? new Date().toISOString(),
       };
       setVisitReviews((prev) => sortReviewsWithViewerFirst([withMeta, ...prev], user?.email, user?.id));
-      posthog.capture('restaurant_review_submitted', {
-        restaurant_id: restaurant.id,
-        rating,
-        has_text: text.trim().length > 0,
-      });
       setText('');
       setPhotos([]);
       setRating(0);
       setModerationHighlights([]);
-      Alert.alert(
-        'Yorumun kaydedildi',
-        `Günlük yorum görevi için +5 ${GASTROCOIN_SHORT} hesabına işlendi (günde bir kez).`,
-      );
+
+      let failedPhotos = 0;
+      for (const photo of photosToUpload) {
+        try {
+          saved = await uploadReviewImage(
+            saved.id,
+            user.email,
+            photo.uri,
+            photo.mimeType,
+            photo.fileName,
+          );
+          setVisitReviews((prev) =>
+            sortReviewsWithViewerFirst(
+              prev.map((row) => (row.id === saved.id ? { ...row, ...saved } : row)),
+              user?.email,
+              user?.id,
+            ),
+          );
+        } catch {
+          failedPhotos += 1;
+        }
+      }
+
+      posthog.capture('restaurant_review_submitted', {
+        restaurant_id: restaurant.id,
+        rating,
+        has_text: reviewText.length > 0,
+        photo_count: photosToUpload.length,
+        failed_photo_count: failedPhotos,
+      });
+
+      if (failedPhotos > 0) {
+        Alert.alert(
+          'Yorum kaydedildi',
+          failedPhotos === photosToUpload.length
+            ? 'Fotoğraflar yüklenemedi. Yorumunu düzenleyerek tekrar ekleyebilirsin.'
+            : `${failedPhotos} fotoğraf yüklenemedi. Yorumunu düzenleyerek tekrar deneyebilirsin.`,
+        );
+      } else {
+        Alert.alert(
+          'Yorumun kaydedildi',
+          `Günlük yorum görevi için +5 ${GASTROCOIN_SHORT} hesabına işlendi (günde bir kez).`,
+        );
+      }
     } catch (err) {
       if (err instanceof ReviewModerationApiError) {
         setSubmitError(err.message);
@@ -718,12 +765,19 @@ export default function RestaurantDetailScreen() {
             onLayout={(event) => {
               menuOffsetY.current = event.nativeEvent.layout.y;
             }}>
-            {restaurant.online_orders_available ? (
+            {restaurant.online_orders_available && !fromOnlineOrder ? (
               <OnlineOrderSection
                 restaurant={restaurant}
                 userEmail={user?.email ?? null}
                 onFieldFocus={scrollToOrderField}
               />
+            ) : null}
+            {restaurant.online_reservations_available ? (
+              <Pressable
+                style={styles.reservationBtn}
+                onPress={() => router.push(`/online-rezervasyon/masa/${restaurantId}`)}>
+                <Text style={styles.reservationBtnText}>Masa rezervasyonu</Text>
+              </Pressable>
             ) : null}
             {hasPublicMenu(restaurant) ? (
               <RestaurantMenuBlock restaurant={restaurant} menuOverride={restaurant.menu} />
@@ -969,6 +1023,15 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   ghostBtnText: { color: GastroColors.text, fontSize: 13, fontWeight: '600' },
+  reservationBtn: {
+    marginBottom: 12,
+    backgroundColor: GastroColors.accent,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  reservationBtnText: { color: GastroColors.accentDark, fontWeight: '800', fontSize: 15 },
   travelPill: {
     borderWidth: 1,
     borderColor: GastroColors.border,

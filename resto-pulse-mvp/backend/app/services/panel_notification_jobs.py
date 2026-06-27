@@ -91,6 +91,39 @@ async def notify_new_online_order(
     )
 
 
+async def notify_new_reservation(
+    db: Session,
+    *,
+    ownership: RestaurantOwnership,
+    reservation,
+) -> None:
+    from app.services.table_reservations import reservation_to_dict, zone_label_tr
+
+    summary = reservation_to_dict(reservation)
+    when = summary.get("reserved_at") or ""
+    zone = zone_label_tr(summary.get("zone") or "")
+    table = summary.get("table_label") or "Masa"
+    party = summary.get("party_size")
+    customer = summary.get("customer_name") or "Musteri"
+    phone = summary.get("customer_phone") or ""
+    restaurant_id = str(reservation.restaurant_id)
+    await send_panel_notification(
+        db,
+        ownership=ownership,
+        notification_type="new_reservation",
+        title="Yeni masa rezervasyonu!",
+        message=f"{customer} — {zone} {table}, {party} kisi. Tel: {phone}",
+        cta_label="Rezervasyonlara git",
+        cta_url=f"{panel_base_url()}/panel?tab=reservations",
+        dedupe_key=f"new_reservation:{reservation.id}",
+        metadata={
+            "reservation_id": str(reservation.id),
+            "restaurant_id": restaurant_id,
+            "reserved_at": when,
+        },
+    )
+
+
 def settings_public_site() -> str:
     from app.core.config import settings
 

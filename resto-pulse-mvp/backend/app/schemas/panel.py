@@ -153,6 +153,8 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     card_cover_image_url: str | None = Field(default=None, max_length=1024)
     instagram: str | None = Field(default=None, max_length=120)
     card_emoji: str | None = Field(default=None, max_length=16)
+    online_order_hours: dict | None = None
+    online_reservations_enabled: bool | None = None
 
 
 class PanelResetPublicDataRequest(BaseModel):

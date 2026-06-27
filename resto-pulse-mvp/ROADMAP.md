@@ -4,7 +4,7 @@
 > **"kral selam"** → asagidaki **Siradaki 1-2** bolumune bak.
 > **"yapilacaklar listesi"** → **Tamamlanan** vs **Backlog** ozetle; 1-2 oncelik hatirlat.
 
-**Son guncelleme:** 21 Haziran 2026
+**Son guncelleme:** 25 Haziran 2026
 
 ---
 
@@ -98,6 +98,44 @@
 
 **F2 davet linki** — [x] kodda. **F4 arkadaslarin bugun widget** — [ ] bekliyor.
 
+### Online rezervasyon (cift onay) — planlandi 25 Haz 2026
+
+> **Ne zaman:** Aykut onayladi; online siparis/calisma saatleri sonrasi veya paralel MVP.
+> **Sure tahmini:** **3-5 is gunu** MVP (oturma plani haric).
+
+**Akis (telefon aramasi yok):**
+
+1. Musteri: tarih, saat, kisi sayisi, not (cam kenari / orta / bebek sandalyesi…) → talep
+2. Restoran panel: Onayla / Reddet
+3. Musteri push: "Restoran onayladi — siz de onaylayin"
+4. Musteri uygulamada onaylar → **kesinlesti**
+5. Sure asimi: musteri 24s onaylamazsa `expired`
+
+**Durumlar:** `pending_restaurant` → `approved_by_restaurant` → `confirmed` | `rejected` | `cancelled` | `expired`
+
+**MVP kapsam:**
+
+| Parca | Is |
+|-------|-----|
+| DB | `restaurant_reservations` + `online_reservations_enabled` (ownership) |
+| API | POST talep, panel list/decide, musteri confirm |
+| Panel | Rezervasyon sekmesi + `new_reservation` bildirim (siparis zili kalibi) |
+| Mobil | Form + "onay bekliyor" / "siz onaylayin" ekrani + push deep link |
+| Not | Serbest metin + hazir etiketler (cam kenari, sigara icilmez alan istiyorum vb.) |
+
+**v1.5 — alan / masa tercihi:**
+
+- Musteri ilk kez de gelebilir, mudur mekani de — ikisi icin ayni harita:
+  - **Bilmeyen:** Bolge secimi (Salon / Bahce / Teras / Cam kenari…) — acik alan adlari yeterli
+  - **Bilen:** Plandan **masa sec** (or. "Bahce 7")
+- **Sigara metni yok:** "Sigara serbest/yasak" UI'da yazilmaz; TR'de bahce/teras = ortak anlasilan kod, salon = kapali. Sadece alan adi.
+- Panel: bolge + masa; opsiyonel `area_type: indoor | outdoor | semi_outdoor` (sadece filtre/ikon icin, musteriye sigara etiketi yok).
+- Mobil: tarih/saat/kisi → plan veya bolge listesi → secim → cift onay.
+
+**v2 (sonra):** Gorsel plan editor (surukle birak), cakisma, bekleme listesi.
+
+**Mevcut altyapi:** Panel bildirim (`panel_notification_jobs`), musteri push token, telefon/ad profili, calisma saatleri tablosu.
+
 ### Urun / topluluk
 - [ ] Yorum klavyesi fix (restoran detay)
 - [ ] Bildirim: yorum begenildi / cevap geldi (Faz A)
@@ -109,6 +147,26 @@
 ### Sesli sipariş (mimari onayli)
 - [ ] iOS: Whisper backend (kalici)
 - [ ] Android: simdilik `expo-speech-recognition`; sonra istege bagli Whisper
+
+### Sesli sipariş — takip listesi scope — onaylandi 25 Haz 2026
+
+> **Ne zaman:** Sesli sepet / akilli sepet sonrasi kisa sprint.
+> **Sure tahmini:** **1-2 is gunu**.
+
+**Problem:** Akilli sepet tum online havuzda en ucuz restorani secer — risk istemeyen kullanici tanidik yer ister.
+
+**Akis:**
+
+1. Parser: `takip listem`, `takip ettiklerim`, `favorilerim` → `scope: follows_only`
+2. Mod B: `takip listemden X restorandan 3 lahmacun 1 salgam` → ad takip listesinde zorunlu
+3. `GET /me/restaurant-follows` ID’leri ∩ online siparis acik ∩ menude urun
+4. `rankSmartCartCandidates` sadece bu havuzda (butce ayni)
+5. Takip bos / eslesme yok → net TTS + opsiyonel genel arama
+6. Profil toggle: **Sesli sipariste sadece takip ettiklerim** (varsayilan kapali)
+
+**Ek:** `salgam` voice catalog alias; follower kupon sepet ozetinde goster.
+
+**Mevcut altyapi:** `listRestaurantFollows`, `smart-voice-cart.ts`, `parse-voice-order-query.ts`.
 
 ### Web / analitik
 - [ ] GA4 custom event'ler (arama, yol tarifi, takip…)

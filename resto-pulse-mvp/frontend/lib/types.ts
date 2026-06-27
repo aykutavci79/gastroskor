@@ -187,6 +187,11 @@ export type RestaurantOrderRead = {
   reject_message?: string | null;
 };
 
+export type OnlineOrderHours = {
+  timezone: string;
+  weekly: Record<string, { closed?: boolean; open?: string; close?: string }>;
+};
+
 export type RestaurantPromoSettings = {
   subscription_active: boolean;
   has_own_courier: boolean;
@@ -200,7 +205,69 @@ export type RestaurantPromoSettings = {
   card_cover_image_url: string | null;
   instagram: string | null;
   card_emoji: string | null;
+  online_order_hours?: OnlineOrderHours | null;
+  online_reservations_enabled?: boolean;
   public_preview: RestaurantPromoPublic | null;
+};
+
+export type FloorPlanTable = {
+  id: string;
+  zone: 'salon' | 'bahce' | 'teras';
+  label: string;
+  seats_min: number;
+  seats_max: number;
+  x: number;
+  y: number;
+};
+
+export type FloorPlanPoi = {
+  id: string;
+  kind: 'entrance' | 'live_music' | 'bar' | 'other';
+  label: string;
+  x: number;
+  y: number;
+};
+
+export type FloorPlanLayout = {
+  version: number;
+  tables: FloorPlanTable[];
+  pois: FloorPlanPoi[];
+};
+
+export type FloorPlanRead = {
+  restaurant_id: string;
+  background_url: string | null;
+  layout: FloorPlanLayout | null;
+  published_at: string | null;
+  has_published: boolean;
+};
+
+export type TableReservationRead = {
+  id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  user_id: string;
+  table_id: string;
+  table_label: string;
+  zone: string;
+  zone_label: string;
+  party_size: number;
+  reserved_at: string;
+  note?: string | null;
+  customer_phone: string;
+  customer_name?: string | null;
+  status:
+    | 'pending_restaurant'
+    | 'approved_by_restaurant'
+    | 'confirmed'
+    | 'rejected'
+    | 'cancelled'
+    | 'expired';
+  reject_reason_text?: string | null;
+  created_at?: string | null;
+  restaurant_decided_at?: string | null;
+  customer_confirmed_at?: string | null;
+  customer_confirm_expires_at?: string | null;
 };
 
 export type PanelResetPublicDataResponse = {

@@ -48,6 +48,13 @@ from app.schemas.restaurant_order import (
     RestaurantOrderDecision,
     RestaurantOrderRead,
 )
+from app.schemas.table_reservation import (
+    FloorPlanDraftUpdate,
+    FloorPlanRead,
+    PanelReservationListResponse,
+    TableReservationDecision,
+    TableReservationRead,
+)
 from app.services.panel_access import build_panel_access_state, get_user_ownership
 from app.services.panel_dashboard import build_dashboard_payload
 from app.services.ai_analysis_trend import build_analysis_trend
@@ -103,6 +110,12 @@ from app.services.restaurant_orders import (
     list_panel_orders,
     order_to_dict,
     raise_order_http,
+)
+from app.services.online_order_hours import (
+    default_online_order_hours,
+    has_valid_online_order_hours,
+    normalize_online_order_hours,
+    validate_online_order_hours,
 )
 from app.services.restaurant_promo import ownership_promo_as_dict, subscription_allows_promo
 from app.services.claim_admin_approval import (
@@ -484,6 +497,26 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
             ownership.online_orders_enabled = False
         elif payload.online_orders_enabled is not None:
             ownership.online_orders_enabled = payload.online_orders_enabled
+        if "online_order_hours" in fields:
+            if payload.online_order_hours is None:
+                ownership.online_order_hours = None
+            else:
+                normalized = normalize_online_order_hours(payload.online_order_hours)
+                if not normalized:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Calisma saati tablosu gecersiz.",
+                    )
+                try:
+                    validate_online_order_hours(normalized)
+                except ValueError as exc:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=str(exc),
+                    ) from exc
+                ownership.online_order_hours = normalized
+        elif ownership.online_orders_enabled and not ownership.online_order_hours:
+            ownership.online_order_hours = default_online_order_hours()
         if "online_order_category_tags" in fields:
             ownership.online_order_category_tags = normalize_category_slugs(payload.online_order_category_tags)
         if ownership.online_orders_enabled and ownership.promo_has_own_courier:
@@ -494,6 +527,13 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
                     detail="Online siparis acikken en az bir mutfak secmelisiniz (or. doner, pizza).",
                 )
             ownership.online_order_category_tags = tags
+            if not has_valid_online_order_hours(ownership):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Online siparis acikken calisma saati tablosu zorunlu (or. 11:00–23:00).",
+                )
+        if payload.online_reservations_enabled is not None:
+            ownership.online_reservations_enabled = payload.online_reservations_enabled
         ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
         ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
         ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
@@ -760,6 +800,113 @@ def patch_panel_order(
         db.commit()
     restaurant_name = order.restaurant.name if order.restaurant else None
     return order_to_dict(order, restaurant_name=restaurant_name)
+
+
+@panel_router.get("/floor-plan", response_model=FloorPlanRead)
+def get_panel_floor_plan(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.table_reservations import floor_plan_to_dict, get_or_create_floor_plan
+
+    row = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
+    payload = floor_plan_to_dict(row, published=False)
+    return FloorPlanRead.model_validate(payload)
+
+
+@panel_router.put("/floor-plan", response_model=FloorPlanRead)
+def put_panel_floor_plan(payload: FloorPlanDraftUpdate, db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.table_reservations import ReservationError, floor_plan_to_dict, save_draft_floor_plan
+
+    try:
+        row = save_draft_floor_plan(
+            db,
+            restaurant_id=ownership.restaurant_id,
+            layout=payload.layout,
+            background_url=payload.background_url,
+        )
+    except ReservationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+    return FloorPlanRead.model_validate(floor_plan_to_dict(row, published=False))
+
+
+@panel_router.post("/floor-plan/publish", response_model=FloorPlanRead)
+def post_panel_floor_plan_publish(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.table_reservations import ReservationError, floor_plan_to_dict, publish_floor_plan
+
+    try:
+        row = publish_floor_plan(db, restaurant_id=ownership.restaurant_id)
+    except ReservationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+    return FloorPlanRead.model_validate(floor_plan_to_dict(row, published=False))
+
+
+@panel_router.get("/reservations", response_model=PanelReservationListResponse)
+def get_panel_reservations(
+    user_email: str = Query(...),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.table_reservations import list_panel_reservations
+
+    items = list_panel_reservations(db, restaurant_id=ownership.restaurant_id, limit=limit)
+    return PanelReservationListResponse(
+        items=[TableReservationRead.model_validate(row) for row in items]
+    )
+
+
+@panel_router.patch("/reservations/{reservation_id}", response_model=TableReservationRead)
+async def patch_panel_reservation(
+    reservation_id: UUID,
+    payload: TableReservationDecision,
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.table_reservations import (
+        ReservationError,
+        decide_reservation,
+        notify_reservation_decided,
+        reservation_to_dict,
+        raise_reservation_http,
+    )
+
+    try:
+        reservation = decide_reservation(
+            db,
+            reservation_id=reservation_id,
+            restaurant_id=ownership.restaurant_id,
+            decision=payload.decision,
+            reject_reason=payload.reject_reason_text,
+        )
+    except ReservationError as exc:
+        raise_reservation_http(exc)
+    restaurant = db.get(Restaurant, ownership.restaurant_id)
+    if restaurant:
+        await notify_reservation_decided(db, reservation=reservation, restaurant=restaurant)
+    return TableReservationRead.model_validate(
+        reservation_to_dict(reservation, restaurant_name=restaurant.name if restaurant else None)
+    )
 
 
 @panel_router.post("/claim/start", response_model=ClaimStartResponse)

@@ -441,6 +441,80 @@ def notify_order_rejected(
     )
 
 
+def notify_reservation_approved(
+    db: Session,
+    *,
+    reservation,
+    restaurant: Restaurant,
+) -> UserNotification | None:
+    from app.services.table_reservations import zone_label_tr
+
+    customer = reservation.user
+    if customer is None:
+        customer = db.get(User, reservation.user_id)
+    if customer is None:
+        return None
+    restaurant_name = (restaurant.name or "Restoran").strip()
+    zone = zone_label_tr(reservation.zone)
+    table = reservation.table_label
+    when = reservation.reserved_at.strftime("%d.%m.%Y %H:%M") if reservation.reserved_at else ""
+    title = f"{restaurant_name} rezervasyonunuzu onayladi"
+    message = (
+        f"{zone} · {table} · {reservation.party_size} kisi · {when}. "
+        "24 saat icinde uygulamadan onaylayin."
+    )
+    metadata = {
+        "reservation_id": str(reservation.id),
+        "restaurant_id": str(restaurant.id),
+        "restaurant_name": restaurant_name,
+        "open_path": f"/online-rezervasyon/{reservation.id}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=customer.id,
+        notification_type="reservation_approved",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=title,
+        push_body="Onay icin uygulamaya dokunun (24 saat).",
+    )
+
+
+def notify_reservation_rejected(
+    db: Session,
+    *,
+    reservation,
+    restaurant: Restaurant,
+) -> UserNotification | None:
+    customer = reservation.user
+    if customer is None:
+        customer = db.get(User, reservation.user_id)
+    if customer is None:
+        return None
+    restaurant_name = (restaurant.name or "Restoran").strip()
+    detail = (reservation.reject_reason_text or "").strip() or "Restoran su an rezervasyon kabul edemiyor"
+    title = f"{restaurant_name} rezervasyon talebinizi reddetti"
+    message = f"{restaurant_name}: {detail}"
+    metadata = {
+        "reservation_id": str(reservation.id),
+        "restaurant_id": str(restaurant.id),
+        "restaurant_name": restaurant_name,
+        "reject_reason_text": reservation.reject_reason_text,
+        "open_path": f"/restaurant/{restaurant.id}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=customer.id,
+        notification_type="reservation_rejected",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=title,
+        push_body=detail,
+    )
+
+
 def notify_friend_request(
     db: Session,
     *,

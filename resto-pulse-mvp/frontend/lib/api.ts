@@ -587,11 +587,69 @@ export function updatePanelPromo(payload: {
   card_cover_image_url?: string | null;
   instagram?: string | null;
   card_emoji?: string | null;
+  online_order_hours?: {
+    timezone: string;
+    weekly: Record<string, { closed?: boolean; open?: string; close?: string }>;
+  } | null;
+  online_reservations_enabled?: boolean;
 }) {
   return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export function getPanelFloorPlan(userEmail: string) {
+  return request<import('@/lib/types').FloorPlanRead>(
+    `/panel/floor-plan?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`,
+  );
+}
+
+export function savePanelFloorPlan(
+  userEmail: string,
+  payload: { layout: import('@/lib/types').FloorPlanLayout; background_url?: string | null },
+) {
+  return request<import('@/lib/types').FloorPlanRead>('/panel/floor-plan', {
+    method: 'PUT',
+    body: JSON.stringify({
+      user_email: userEmail.trim().toLowerCase(),
+      layout: payload.layout,
+      background_url: payload.background_url ?? null,
+    }),
+  });
+}
+
+export function publishPanelFloorPlan(userEmail: string) {
+  return request<import('@/lib/types').FloorPlanRead>(
+    `/panel/floor-plan/publish?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`,
+    { method: 'POST' },
+  );
+}
+
+export function listPanelReservations(userEmail: string, limit = 50) {
+  const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}&limit=${limit}`;
+  return request<{ items: import('@/lib/types').TableReservationRead[] }>(`/panel/reservations${query}`);
+}
+
+export function decidePanelReservation(
+  reservationId: string,
+  payload: {
+    user_email: string;
+    decision: 'approved' | 'rejected';
+    reject_reason_text?: string | null;
+  },
+) {
+  return request<import('@/lib/types').TableReservationRead>(
+    `/panel/reservations/${encodeURIComponent(reservationId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        user_email: payload.user_email.trim().toLowerCase(),
+        decision: payload.decision,
+        reject_reason_text: payload.reject_reason_text?.trim() || undefined,
+      }),
+    },
+  );
 }
 
 export function resetPanelPublicData(userEmail: string, hideFromPublic = true) {

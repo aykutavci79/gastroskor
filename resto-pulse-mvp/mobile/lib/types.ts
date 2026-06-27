@@ -118,9 +118,59 @@ export type OrderPhoneSendOtpResponse = {
 
 export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
+  online_orders_open_now?: boolean;
+  online_order_hours_label?: string | null;
   pending_order: RestaurantOrderRead | null;
   recent_rejected_order?: RestaurantOrderRead | null;
   order_phone?: OrderPhoneStatus | null;
+};
+
+export type FloorPlanTable = {
+  id: string;
+  zone: 'salon' | 'bahce' | 'teras';
+  label: string;
+  seats_min: number;
+  seats_max: number;
+  x: number;
+  y: number;
+};
+
+export type FloorPlanLayout = {
+  version: number;
+  tables: FloorPlanTable[];
+  pois: { id: string; kind: string; label: string; x: number; y: number }[];
+};
+
+export type FloorPlanRead = {
+  restaurant_id: string;
+  background_url: string | null;
+  layout: FloorPlanLayout | null;
+  published_at: string | null;
+  has_published: boolean;
+};
+
+export type RestaurantReservationActiveResponse = {
+  online_reservations_available: boolean;
+  floor_plan: FloorPlanRead | null;
+  reserved_table_ids: string[];
+};
+
+export type TableReservationRead = {
+  id: string;
+  restaurant_id: string;
+  restaurant_name?: string | null;
+  table_id: string;
+  table_label: string;
+  zone: string;
+  zone_label: string;
+  party_size: number;
+  reserved_at: string;
+  note?: string | null;
+  customer_phone: string;
+  customer_name?: string | null;
+  status: string;
+  reject_reason_text?: string | null;
+  customer_confirm_expires_at?: string | null;
 };
 
 export type UserOrderListResponse = {
@@ -138,6 +188,7 @@ export type OrderRatingSummary = {
 
 export type RestaurantPromoPublic = {
   has_own_courier: boolean;
+  online_menu_discount_percent?: number | null;
   online_orders_enabled?: boolean;
   direct_order_text?: string | null;
   direct_order_phone?: string | null;
@@ -171,10 +222,15 @@ export type RestaurantListItem = {
   longitude?: number | null;
   maps_directions_url?: string | null;
   distance_meters?: number | null;
+  delivery_fee_tl?: number | null;
+  online_menu_discount_percent?: number | null;
   google_place_id?: string | null;
   google_photo_url?: string | null;
   check_in_visitor_count?: number;
   online_orders_available?: boolean;
+  online_reservations_available?: boolean;
+  online_orders_open_now?: boolean;
+  online_order_hours_label?: string | null;
   online_order_categories?: string[];
   gastro_score?: number | null;
   distance_score?: number | null;
@@ -183,6 +239,8 @@ export type RestaurantListItem = {
   voice_menu_matches?: VoiceMenuMatch[];
   voice_search_token?: string | null;
   order_ratings?: OrderRatingSummary | null;
+  online_orders_open_now?: boolean;
+  online_order_hours_label?: string | null;
 };
 
 export type OnlineOrderCategoryOption = {

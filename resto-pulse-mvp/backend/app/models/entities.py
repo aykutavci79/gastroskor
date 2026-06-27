@@ -115,6 +115,7 @@ class User(Base):
         foreign_keys="FriendRequest.to_user_id",
     )
     restaurant_orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="user")
+    table_reservations: Mapped[list["RestaurantTableReservation"]] = relationship(back_populates="user")
     order_phone_otps: Mapped[list["UserOrderPhoneOtp"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -456,6 +457,12 @@ class Restaurant(Base):
     check_ins: Mapped[list["RestaurantCheckIn"]] = relationship(back_populates="restaurant")
     foodcast_photos: Mapped[list["FoodcastPhoto"]] = relationship(back_populates="restaurant")
     orders: Mapped[list["RestaurantOrder"]] = relationship(back_populates="restaurant")
+    floor_plan: Mapped["RestaurantFloorPlan | None"] = relationship(
+        back_populates="restaurant", uselist=False, cascade="all, delete-orphan"
+    )
+    table_reservations: Mapped[list["RestaurantTableReservation"]] = relationship(
+        back_populates="restaurant", cascade="all, delete-orphan"
+    )
 
 
 class RestaurantCheckIn(Base):
@@ -595,6 +602,8 @@ class RestaurantOwnership(Base):
     last_competitor_ai_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     promo_has_own_courier: Mapped[bool] = mapped_column(Boolean, default=False)
     online_orders_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    online_reservations_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    online_order_hours: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     online_order_category_tags: Mapped[list] = mapped_column(JSON, default=list)
     promo_direct_order_text: Mapped[str | None] = mapped_column(String(120))
     promo_direct_order_phone: Mapped[str | None] = mapped_column(String(32))
@@ -782,6 +791,68 @@ class RestaurantOrderLine(Base):
 
     order: Mapped["RestaurantOrder"] = relationship(back_populates="lines")
     menu_item: Mapped["RestaurantMenuItem | None"] = relationship()
+
+
+class RestaurantTableReservationStatus(str, enum.Enum):
+    pending_restaurant = "pending_restaurant"
+    approved_by_restaurant = "approved_by_restaurant"
+    confirmed = "confirmed"
+    rejected = "rejected"
+    cancelled = "cancelled"
+    expired = "expired"
+
+
+class RestaurantFloorPlan(Base):
+    __tablename__ = "restaurant_floor_plans"
+    __table_args__ = (UniqueConstraint("restaurant_id", name="uq_restaurant_floor_plans_restaurant"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    draft_layout: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    published_layout: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    background_url: Mapped[str | None] = mapped_column(String(1024))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="floor_plan")
+
+
+class RestaurantTableReservation(Base):
+    __tablename__ = "restaurant_table_reservations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    table_id: Mapped[str] = mapped_column(String(64))
+    table_label: Mapped[str] = mapped_column(String(40))
+    zone: Mapped[str] = mapped_column(String(20))
+    party_size: Mapped[int] = mapped_column(Integer)
+    reserved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    customer_phone: Mapped[str] = mapped_column(String(32))
+    customer_name: Mapped[str | None] = mapped_column(String(120))
+    status: Mapped[RestaurantTableReservationStatus] = mapped_column(
+        Enum(RestaurantTableReservationStatus, name="restaurant_table_reservation_status"),
+        default=RestaurantTableReservationStatus.pending_restaurant,
+        index=True,
+    )
+    reject_reason_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    restaurant_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    customer_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    customer_confirm_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="table_reservations")
+    user: Mapped["User"] = relationship(back_populates="table_reservations")
 
 
 class RestaurantSubscription(Base):

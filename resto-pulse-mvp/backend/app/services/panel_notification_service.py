@@ -22,6 +22,7 @@ NOTIFICATION_TYPES = {
     "competitor_update",
     "new_follower",
     "new_order",
+    "new_reservation",
     "claim_pending_admin",
 }
 

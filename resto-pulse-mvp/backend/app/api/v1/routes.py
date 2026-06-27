@@ -127,7 +127,7 @@ from app.services.city_resolver import normalize_city_key, resolve_city_from_coo
 from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
-from app.services.online_orders_discovery import categories_payload, list_online_order_restaurants
+from app.services.online_order_hours import online_order_hours_status
 from app.services.regional_flavors import discover_regional_product_places, get_regional_product, list_regional_products
 from app.services.discover_review_ticker import list_discover_review_ticker
 from app.services.panel_notification_jobs import notify_negative_gastro_review, run_scheduled_notification_jobs
@@ -385,6 +385,7 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu_preview=partner.get("menu_preview") or [],
         menu_item_count=int(partner.get("menu_item_count") or 0),
         online_orders_available=bool(partner.get("online_orders_available")),
+        online_reservations_available=bool(partner.get("online_reservations_available")),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
         avg_rating=avg_rating,
         order_ratings=order_ratings,
@@ -1598,8 +1599,11 @@ def get_active_restaurant_order(
         if recent_rejected
         else None
     )
+    hours_status = online_order_hours_status(ownership) if ownership else {"open_now": False, "label": None}
     return RestaurantOrderActiveResponse(
         online_orders_available=customer_online_orders_available(db, ownership),
+        online_orders_open_now=bool(hours_status.get("open_now")),
+        online_order_hours_label=hours_status.get("label"),
         pending_order=pending_payload,
         recent_rejected_order=recent_rejected_payload,
         order_phone=OrderPhoneStatus.model_validate(order_phone_status_for_user(user)),
@@ -2458,6 +2462,10 @@ router.include_router(discover_router)
 from app.api.v1.kelime_sofrasi_routes import router as kelime_sofrasi_router
 
 router.include_router(kelime_sofrasi_router)
+
+from app.api.v1.reservation_routes import router as reservation_router
+
+router.include_router(reservation_router)
 
 from app.schemas.sofra_puzzle import SofraBulmacaImportPayload
 

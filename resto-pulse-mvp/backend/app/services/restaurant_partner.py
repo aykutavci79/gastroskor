@@ -9,6 +9,7 @@ from app.models import RestaurantOwnership
 from app.constants.online_order_categories import normalize_category_slugs
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
 from app.services.restaurant_orders import online_orders_available
+from app.services.table_reservations import online_reservations_configured
 from app.services.restaurant_promo import promo_from_ownership, subscription_allows_promo
 from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.tester_restaurant_visibility import is_tester_seed_ownership
@@ -29,6 +30,7 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
             **base,
             "is_premium_partner": False,
             "online_orders_available": False,
+            "online_reservations_available": False,
             "online_order_categories": [],
             "promo": None,
             "menu_preview": [],
@@ -37,10 +39,12 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
         }
     menu_full = public_menu_for_ownership(ownership, preview=False)
     available = online_orders_available(ownership)
+    reservations = online_reservations_configured(ownership)
     return {
         **base,
         "is_premium_partner": False if tester_seed else True,
         "online_orders_available": available,
+        "online_reservations_available": reservations,
         "online_order_categories": normalize_category_slugs(ownership.online_order_category_tags or []),
         "promo": promo_from_ownership(ownership),
         "menu_preview": menu_full[:MENU_PREVIEW_LIMIT],
@@ -64,6 +68,7 @@ def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
             "card_emoji": None,
             "is_premium_partner": False,
             "online_orders_available": False,
+            "online_reservations_available": False,
             "online_order_categories": [],
             "promo": None,
             "menu_preview": [],

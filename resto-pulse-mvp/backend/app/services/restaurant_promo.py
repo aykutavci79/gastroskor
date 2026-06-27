@@ -110,5 +110,7 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "card_cover_image_url": ownership.promo_card_cover_image_url,
         "instagram": ownership.promo_instagram,
         "card_emoji": ownership.card_emoji,
+        "online_order_hours": ownership.online_order_hours,
+        "online_reservations_enabled": bool(ownership.online_reservations_enabled),
         "public_preview": promo_from_ownership(ownership) if active else None,
     }

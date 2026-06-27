@@ -185,7 +185,7 @@ export async function listOnlineOrderRestaurants(params: {
   city?: string;
   category?: string;
   min_rating?: number;
-  sort?: 'gastro_score' | 'distance' | 'rating' | 'popularity';
+  sort?: 'gastro_score' | 'distance' | 'rating' | 'popularity' | 'discount';
   limit?: number;
   voice_product?: string;
   voice_products?: string;
@@ -286,6 +286,50 @@ export function getActiveRestaurantOrder(restaurantId: string, userEmail: string
   const query = `?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`;
   return request<import('@/lib/types').RestaurantOrderActiveResponse>(
     `/restaurants/${restaurantId}/orders/active${query}`,
+  );
+}
+
+export function getRestaurantReservationActive(
+  restaurantId: string,
+  options?: { userEmail?: string; reservedAt?: string },
+) {
+  const params = new URLSearchParams();
+  if (options?.userEmail) params.set('user_email', options.userEmail.trim().toLowerCase());
+  if (options?.reservedAt) params.set('reserved_at', options.reservedAt);
+  const query = params.toString();
+  return request<import('@/lib/types').RestaurantReservationActiveResponse>(
+    `/restaurants/${restaurantId}/reservations/active${query ? `?${query}` : ''}`,
+  );
+}
+
+export function createTableReservation(
+  restaurantId: string,
+  payload: {
+    user_email: string;
+    table_id: string;
+    party_size: number;
+    reserved_at: string;
+    note?: string | null;
+    customer_phone: string;
+    customer_name?: string | null;
+  },
+) {
+  return request<import('@/lib/types').TableReservationRead>(`/restaurants/${restaurantId}/reservations`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      user_email: payload.user_email.trim().toLowerCase(),
+    }),
+  });
+}
+
+export function confirmTableReservation(reservationId: string, userEmail: string) {
+  return request<import('@/lib/types').TableReservationRead>(
+    `/users/me/reservations/${encodeURIComponent(reservationId)}/confirm`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ user_email: userEmail.trim().toLowerCase() }),
+    },
   );
 }
 
@@ -512,19 +556,43 @@ export async function uploadReviewImage(
   mimeType: string,
   fileName: string,
 ) {
-  const form = new FormData();
-  form.append('author_email', authorEmail);
-  form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
-  await ensureSslPinningReady();
-  const response = await fetch(`${getApiV1Base()}/reviews/${encodeURIComponent(reviewId)}/images`, {
-    method: 'POST',
-    body: form,
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(httpErrorMessage(response.status, text, 'Yorum fotografi'));
+  const buildForm = () => {
+    const form = new FormData();
+    form.append('author_email', authorEmail.trim().toLowerCase());
+    form.append('file', { uri: localUri, type: mimeType, name: fileName } as unknown as Blob);
+    return form;
+  };
+
+  let attempt = 0;
+  while (attempt < 2) {
+    try {
+      await ensureAccessToken();
+      await ensureSslPinningReady();
+      const response = await fetch(
+        `${getApiV1Base()}/reviews/${encodeURIComponent(reviewId)}/images`,
+        {
+          method: 'POST',
+          body: buildForm(),
+          headers: authHeaders(),
+          signal: createFetchTimeoutSignal(60_000),
+        },
+      );
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(httpErrorMessage(response.status, text, 'Yorum fotografi'));
+      }
+      return response.json() as Promise<Review>;
+    } catch (err) {
+      if (attempt < 1 && isRetryableNetworkError(err)) {
+        attempt += 1;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      throw new Error(formatApiError(err, 'Yorum fotografi'));
+    }
   }
-  return response.json() as Promise<Review>;
+
+  throw new Error(formatApiError(new TypeError('Network request failed'), 'Yorum fotografi'));
 }
 
 export function syncUser(payload: {
