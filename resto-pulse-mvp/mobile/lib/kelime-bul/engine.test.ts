@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { eslesenKelime, uretKelimeBulBulmaca, yolMetni } from './engine';
-import { KELIME_BUL_YEMEK_RAW } from './words';
+import { kelimeBulGenelHavuz, KELIME_BUL_YEMEK_RAW } from './words';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 const SCAN_DIRS = [
@@ -58,6 +58,14 @@ describe('kelime-bul engine', () => {
       puzzle.words.some((w) => yemekSet.has(sofraKelimeBuyuk(w))),
       'expected at least one food word in puzzle',
     );
+  });
+
+  it('general pool excludes obscure TDK-only entries', () => {
+    const genelSet = new Set(kelimeBulGenelHavuz());
+    assert.ok(genelSet.size > 500, 'expected a broad common-word pool');
+    for (const word of ['MORTO', 'OZUGA', 'HERTZ']) {
+      assert.equal(genelSet.has(word), false, `${word} should not appear in Kelime Bul targets`);
+    }
   });
 
   it('every generated word is readable from grid path', () => {
