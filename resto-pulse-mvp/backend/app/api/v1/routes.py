@@ -129,6 +129,7 @@ from app.services.city_resolver import normalize_city_key, resolve_city_from_coo
 from app.services.city_top_cache import read_city_top_cache
 from app.services.city_top_google import fetch_city_top_google
 from app.services.new_member_restaurants import list_new_member_restaurants
+from app.services.online_orders_discovery import categories_payload, list_online_order_restaurants
 from app.services.online_order_hours import online_order_hours_status
 from app.services.regional_flavors import discover_regional_product_places, get_regional_product, list_regional_products
 from app.services.discover_review_ticker import list_discover_review_ticker
