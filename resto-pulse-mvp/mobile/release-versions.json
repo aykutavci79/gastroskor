@@ -3,9 +3,9 @@
   "play": {
     "track": "Kapali test - Gastroskor-test2",
     "versionName": "1.0.75",
-    "versionCode": 98,
-    "lastUpdated": "2026-06-26",
-    "_note": "Online Siparis beyaz UI — arama+mutfaklar birlestirildi, filtre/Hazir misin acik tema"
+    "versionCode": 99,
+    "lastUpdated": "2026-06-25",
+    "_note": "Rezervasyon UX + online siparis beyaz UI + kelime-bul filtre"
   },
   "appStore": {
     "version": "1.0.50",
