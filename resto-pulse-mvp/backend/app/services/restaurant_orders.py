@@ -23,6 +23,11 @@ from app.models.entities import (
     Review,
     User,
 )
+from app.services.online_order_hours import (
+    has_valid_online_order_hours,
+    online_order_hours_status,
+    online_orders_within_hours,
+)
 from app.constants.order_reject_reasons import (
     build_reject_customer_message,
     reject_reason_label,
@@ -114,7 +119,7 @@ def get_ownership_for_restaurant(db: Session, restaurant_id: UUID) -> Restaurant
     )
 
 
-def online_orders_available(ownership: RestaurantOwnership | None) -> bool:
+def online_orders_configured(ownership: RestaurantOwnership | None) -> bool:
     if not ownership:
         return False
     if not subscription_allows_promo(ownership.subscription):
@@ -123,7 +128,16 @@ def online_orders_available(ownership: RestaurantOwnership | None) -> bool:
         return False
     if not ownership.online_orders_enabled:
         return False
+    if not has_valid_online_order_hours(ownership):
+        return False
     return len(active_menu_items(ownership)) > 0
+
+
+def online_orders_available(ownership: RestaurantOwnership | None) -> bool:
+    if not online_orders_configured(ownership):
+        return False
+    assert ownership is not None
+    return online_orders_within_hours(ownership)
 
 
 def customer_online_orders_available(db: Session, ownership: RestaurantOwnership | None) -> bool:
@@ -228,6 +242,9 @@ def create_restaurant_order(
 ) -> RestaurantOrder:
     ownership = get_ownership_for_restaurant(db, restaurant_id)
     if not online_orders_available(ownership):
+        status = online_order_hours_status(ownership) if online_orders_configured(ownership) else None
+        if status and not status.get("open_now"):
+            raise OrderError(status.get("label") or "Restoran su an mesai disi.")
         raise OrderError("Bu restoran su an online siparis kabul etmiyor.")
     if not meets_online_order_trust_rating(db, restaurant_id):
         raise OrderError("Bu restoran online siparis icin minimum 3.0 puan sartini karsilamiyor.")

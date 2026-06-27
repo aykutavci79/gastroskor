@@ -2,11 +2,20 @@
 
 from types import SimpleNamespace
 
+from unittest.mock import patch
+
 import pytest
 
 from datetime import date
 
-from app.services.restaurant_orders import OrderError, format_order_number, normalize_phone, online_orders_available
+from app.services.restaurant_orders import (
+    OrderError,
+    format_order_number,
+    normalize_phone,
+    online_orders_available,
+    online_orders_configured,
+)
+from app.services.online_order_hours import default_online_order_hours
 
 
 def test_normalize_phone_turkish_mobile():
@@ -35,12 +44,18 @@ def _ownership(
         subscription=subscription,
         promo_has_own_courier=has_courier,
         online_orders_enabled=online_enabled,
+        online_order_hours=default_online_order_hours(),
         menu_items=menu_items,
     )
 
 
-def test_online_orders_available_when_all_conditions_met():
-    assert online_orders_available(_ownership()) is True
+def test_online_orders_configured_when_all_conditions_met():
+    assert online_orders_configured(_ownership()) is True
+
+
+def test_online_orders_available_when_open_now():
+    with patch("app.services.restaurant_orders.online_orders_within_hours", return_value=True):
+        assert online_orders_available(_ownership()) is True
 
 
 def test_online_orders_unavailable_without_ownership():
