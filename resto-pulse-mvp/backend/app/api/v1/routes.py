@@ -121,6 +121,7 @@ from app.services.restaurant_partner import (
     partner_listings_by_google_place_ids,
     partner_listings_for_restaurant_ids,
 )
+from app.services.tester_live_place import build_tester_live_place_details
 from app.services.tester_restaurant_visibility import is_tester_seed_place_id, restaurant_should_seo_noindex
 from app.services.restaurant_menu import public_menu_for_ownership
 from app.services.city_resolver import normalize_city_key, resolve_city_from_coords, resolve_city_name
@@ -843,6 +844,12 @@ async def get_live_place_details(
     ),
     db: Session = Depends(get_db),
 ):
+    if is_tester_seed_place_id(place_id):
+        tester_details = build_tester_live_place_details(db, place_id, city=city)
+        if tester_details:
+            return tester_details
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tester restoran bulunamadi.")
+
     if not settings.google_places_api_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

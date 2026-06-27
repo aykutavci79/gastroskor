@@ -117,7 +117,6 @@ def partner_listings_by_google_place_ids(db: Session, place_ids: list[str]) -> d
             },
         )
         for row in rows
-        if not is_tester_seed_ownership(row)
     }
 
 
@@ -128,12 +127,13 @@ def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
         row.setdefault("online_order_categories", [])
         row.setdefault("promo", None)
         row.setdefault("menu_preview", [])
-    row.setdefault("menu_item_count", 0)
-    row.setdefault("card_emoji", None)
-    row.setdefault("seo_noindex", False)
-    return row
+        row.setdefault("menu_item_count", 0)
+        row.setdefault("card_emoji", None)
+        row.setdefault("seo_noindex", False)
+        return row
     row["is_premium_partner"] = partner["is_premium_partner"]
     row["online_orders_available"] = partner.get("online_orders_available", False)
+    row["online_reservations_available"] = partner.get("online_reservations_available", False)
     row["online_order_categories"] = partner.get("online_order_categories") or []
     row["promo"] = partner.get("promo")
     row["menu_preview"] = partner.get("menu_preview") or []
