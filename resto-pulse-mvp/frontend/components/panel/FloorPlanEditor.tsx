@@ -39,11 +39,35 @@ function emptyLayout(): FloorPlanLayout {
   return { version: 1, tables: [], pois: [] };
 }
 
+const SEATS_MIN = 1;
+const SEATS_MAX = 30;
+
+function clampTableSeats(
+  seatsMin: number,
+  seatsMax: number,
+): { seats_min: number; seats_max: number } {
+  let seats_min = Math.round(Number(seatsMin));
+  let seats_max = Math.round(Number(seatsMax));
+  if (!Number.isFinite(seats_min)) seats_min = SEATS_MIN;
+  if (!Number.isFinite(seats_max)) seats_max = seats_min;
+  seats_min = Math.min(SEATS_MAX, Math.max(SEATS_MIN, seats_min));
+  seats_max = Math.min(SEATS_MAX, Math.max(SEATS_MIN, seats_max));
+  if (seats_max < seats_min) {
+    seats_max = seats_min;
+  }
+  return { seats_min, seats_max };
+}
+
 function normalizeLayout(raw: FloorPlanLayout | null | undefined): FloorPlanLayout {
   if (!raw || typeof raw !== 'object') return emptyLayout();
   return {
     version: 1,
-    tables: Array.isArray(raw.tables) ? raw.tables : [],
+    tables: Array.isArray(raw.tables)
+      ? raw.tables.map((table) => {
+          const seats = clampTableSeats(table.seats_min, table.seats_max);
+          return { ...table, ...seats };
+        })
+      : [],
     pois: Array.isArray(raw.pois) ? raw.pois : [],
   };
 }
@@ -89,7 +113,12 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
   function updateTable(id: string, patch: Partial<FloorPlanTable>) {
     setLayout((prev) => ({
       ...prev,
-      tables: prev.tables.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+      tables: prev.tables.map((row) => {
+        if (row.id !== id) return row;
+        const next = { ...row, ...patch };
+        const seats = clampTableSeats(next.seats_min, next.seats_max);
+        return { ...next, ...seats };
+      }),
     }));
   }
 
@@ -174,7 +203,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
     setMessage(null);
     try {
       const saved = await savePanelFloorPlan(userEmail, {
-        layout,
+        layout: normalizeLayout(layout),
         background_url: backgroundUrl.trim() || null,
       });
       setPlan(saved);
@@ -410,11 +439,11 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                   Min kisi
                   <input
                     type="number"
-                    min={1}
-                    max={30}
+                    min={SEATS_MIN}
+                    max={SEATS_MAX}
                     value={selectedTable.seats_min}
                     onChange={(e) =>
-                      updateTable(selectedTable.id, { seats_min: Number(e.target.value) || 1 })
+                      updateTable(selectedTable.id, { seats_min: Number(e.target.value) })
                     }
                     className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
                   />
@@ -423,16 +452,19 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
                   Max kisi
                   <input
                     type="number"
-                    min={1}
-                    max={30}
+                    min={SEATS_MIN}
+                    max={SEATS_MAX}
                     value={selectedTable.seats_max}
                     onChange={(e) =>
-                      updateTable(selectedTable.id, { seats_max: Number(e.target.value) || 1 })
+                      updateTable(selectedTable.id, { seats_max: Number(e.target.value) })
                     }
                     className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-content"
                   />
                 </label>
               </div>
+              <p className="text-xs text-content-muted">
+                Min ≤ max, her ikisi {SEATS_MIN}–{SEATS_MAX} kisi.
+              </p>
               <button
                 type="button"
                 onClick={removeSelected}

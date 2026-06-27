@@ -56,7 +56,11 @@ def normalize_layout(raw: dict[str, Any] | None) -> dict[str, Any]:
             seats_max = int(row.get("seats_max") or row.get("seats") or seats_min)
         except (TypeError, ValueError) as exc:
             raise FloorPlanError("Kisi sayisi gecersiz.") from exc
-        if seats_min < 1 or seats_max < seats_min or seats_max > 30:
+        seats_min = max(1, min(30, seats_min))
+        seats_max = max(1, min(30, seats_max))
+        if seats_max < seats_min:
+            seats_max = seats_min
+        if seats_min < 1 or seats_max > 30:
             raise FloorPlanError("Masa kapasitesi 1–30 arasinda olmali.")
         tables.append(
             {

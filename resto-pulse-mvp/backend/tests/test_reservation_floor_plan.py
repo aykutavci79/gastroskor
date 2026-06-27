@@ -44,3 +44,23 @@ def test_reject_duplicate_table_id():
     row = {"id": "dup", "zone": "salon", "label": "1", "seats_min": 2, "seats_max": 4, "x": 0.2, "y": 0.2}
     with pytest.raises(FloorPlanError):
         normalize_layout({"tables": [row, row]})
+
+
+def test_clamps_swapped_seats():
+    layout = normalize_layout(
+        {
+            "tables": [
+                {
+                    "id": "t1",
+                    "zone": "salon",
+                    "label": "M1",
+                    "seats_min": 8,
+                    "seats_max": 2,
+                    "x": 0.5,
+                    "y": 0.5,
+                }
+            ],
+        }
+    )
+    assert layout["tables"][0]["seats_min"] == 8
+    assert layout["tables"][0]["seats_max"] == 8
