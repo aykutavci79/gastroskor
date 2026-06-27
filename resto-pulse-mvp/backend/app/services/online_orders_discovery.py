@@ -11,7 +11,7 @@ from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, norma
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
 from app.services.delivery_fee import resolve_delivery_fee_tl
-from app.services.order_review import batch_avg_ratings, visit_review_filter
+from app.services.order_review import batch_avg_ratings, batch_order_rating_summaries, visit_review_filter
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
     haversine_meters,
