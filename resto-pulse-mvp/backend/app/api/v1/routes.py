@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import case, func, select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -655,6 +656,7 @@ def health(db: Session = Depends(get_db)):
     body = {
         "status": "ok" if db_ok else "degraded",
         "service": settings.app_name,
+        "deploy_sha": (os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "")[:7] or None,
         "database": {"ok": db_ok, **({"error": db_error} if db_error else {})},
         "rate_limit": rate_limiter.status(),
     }
@@ -1287,21 +1289,28 @@ def list_online_orders_open(
     db: Session = Depends(get_db),
 ):
     voice_token, voice_slugs = resolve_voice_search_token(voice_product)
-    items = list_online_order_restaurants(
-        db,
-        origin_lat=origin_lat,
-        origin_lng=origin_lng,
-        city=city,
-        category=category,
-        min_rating=min_rating,
-        sort=sort,
-        limit=limit,
-        voice_product=voice_product,
-        voice_products=voice_products,
-        price_max=price_max,
-        max_distance_km=max_distance_km,
-    )
-    merge_check_in_counts_into_rows(db, items)
+    try:
+        items = list_online_order_restaurants(
+            db,
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+            city=city,
+            category=category,
+            min_rating=min_rating,
+            sort=sort,
+            limit=limit,
+            voice_product=voice_product,
+            voice_products=voice_products,
+            price_max=price_max,
+            max_distance_km=max_distance_km,
+        )
+        merge_check_in_counts_into_rows(db, items)
+    except ProgrammingError as exc:
+        logger.exception("online-orders-open database schema error")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Veritabani guncellemesi bekleniyor. Railway deploy / alembic upgrade head tamamlanmadi.",
+        ) from exc
     return OnlineOrderOpenListResponse(
         items=[RestaurantListItem(**row) for row in items],
         categories=categories_payload(),

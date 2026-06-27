@@ -143,24 +143,27 @@ def online_orders_within_hours(ownership, *, now: datetime | None = None) -> boo
 
 
 def online_order_hours_status(ownership, *, now: datetime | None = None) -> dict[str, Any]:
-    normalized = normalize_online_order_hours(getattr(ownership, "online_order_hours", None))
-    dt = now.astimezone(ISTANBUL_TZ) if now else datetime.now(ISTANBUL_TZ)
-    if not normalized:
-        return {"open_now": False, "label": "Calisma saati tanimli degil"}
-    if online_orders_within_hours(ownership, now=dt):
-        close_label = _closing_label_today(normalized, dt)
-        return {"open_now": True, "label": close_label}
-    next_open = _find_next_open(normalized, dt)
-    if not next_open:
-        return {"open_now": False, "label": "Kapali"}
-    open_dt, day_key = next_open
-    if open_dt.date() == dt.date():
-        label = f"Kapali · bugun {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
-    elif open_dt.date() == (dt.date() + timedelta(days=1)):
-        label = f"Kapali · yarin {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
-    else:
-        label = f"Kapali · {DAY_LABELS_TR[day_key]} {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
-    return {"open_now": False, "label": label}
+    try:
+        normalized = normalize_online_order_hours(getattr(ownership, "online_order_hours", None))
+        dt = now.astimezone(ISTANBUL_TZ) if now else datetime.now(ISTANBUL_TZ)
+        if not normalized:
+            return {"open_now": False, "label": "Calisma saati tanimli degil"}
+        if online_orders_within_hours(ownership, now=dt):
+            close_label = _closing_label_today(normalized, dt)
+            return {"open_now": True, "label": close_label}
+        next_open = _find_next_open(normalized, dt)
+        if not next_open:
+            return {"open_now": False, "label": "Kapali"}
+        open_dt, day_key = next_open
+        if open_dt.date() == dt.date():
+            label = f"Kapali · bugun {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
+        elif open_dt.date() == (dt.date() + timedelta(days=1)):
+            label = f"Kapali · yarin {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
+        else:
+            label = f"Kapali · {DAY_LABELS_TR[day_key]} {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
+        return {"open_now": False, "label": label}
+    except (ValueError, TypeError, KeyError):
+        return {"open_now": False, "label": "Calisma saati gecersiz"}
 
 
 def _closing_label_today(normalized: dict[str, Any], dt: datetime) -> str | None:
