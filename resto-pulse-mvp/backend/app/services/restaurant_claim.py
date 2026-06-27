@@ -68,7 +68,12 @@ async def ensure_restaurant_coordinates(db: Session, restaurant: Restaurant) -> 
     db.refresh(restaurant)
 
 
+def _is_tester_place_id(place_id: str) -> bool:
+    return place_id.strip().startswith("gastro-tester-")
+
+
 async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str = "Bursa") -> Restaurant:
+    place_id = place_id.strip()
     profile = db.scalar(
         select(RestaurantPlatformProfile).where(
             RestaurantPlatformProfile.platform == PlatformName.google_maps,
@@ -78,6 +83,8 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
     if profile:
         restaurant = db.get(Restaurant, profile.restaurant_id)
         if restaurant:
+            if _is_tester_place_id(place_id):
+                return restaurant
             details = await google_client.get_place_details(place_id)
             apply_google_details_to_restaurant(restaurant, details, city=city)
             db.add(restaurant)
@@ -85,6 +92,19 @@ async def ensure_restaurant_for_place(db: Session, *, place_id: str, city: str =
                 db.add(profile)
             db.flush()
             return restaurant
+
+    if _is_tester_place_id(place_id):
+        ownership = db.scalar(
+            select(RestaurantOwnership).where(RestaurantOwnership.google_place_id == place_id)
+        )
+        if ownership:
+            restaurant = db.get(Restaurant, ownership.restaurant_id)
+            if restaurant:
+                return restaurant
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tester mekan bulunamadi. Once admin panelden Deneme restoranlarini olustur/guncelle.",
+        )
 
     details = await google_client.get_place_details(place_id)
     name = details.get("name") or "Isimsiz mekan"

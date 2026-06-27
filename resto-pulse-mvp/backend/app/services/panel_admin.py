@@ -111,8 +111,28 @@ async def admin_grant_panel_access(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Mekan baska kullanicida. force_takeover=true ile devralinabilir.",
             )
-        db.delete(existing_place_owner)
-        db.flush()
+        existing_user_owner = db.scalar(
+            select(RestaurantOwnership).where(RestaurantOwnership.user_id == user.id)
+        )
+        if existing_user_owner and existing_user_owner.id != existing_place_owner.id:
+            db.delete(existing_user_owner)
+            db.flush()
+        existing_place_owner.user_id = user.id
+        existing_place_owner.verification_method = ADMIN_VERIFICATION_METHOD
+        existing_place_owner.verification_status = "verified_sms"
+        existing_place_owner.panel_tier = "full"
+        existing_place_owner.verified_at = _utcnow()
+        existing_place_owner.visit_completed_at = _utcnow()
+        note = (admin_note or "").strip() or "Admin bypass: SMS/vergi adimi atlandi."
+        existing_place_owner.admin_notes = note
+        if user.role != "admin":
+            user.role = "admin"
+            db.add(user)
+        start_trial(db, existing_place_owner)
+        db.add(existing_place_owner)
+        db.commit()
+        db.refresh(existing_place_owner)
+        return existing_place_owner
 
     existing_user_owner = db.scalar(select(RestaurantOwnership).where(RestaurantOwnership.user_id == user.id))
     if existing_user_owner and existing_user_owner.google_place_id != place_id:

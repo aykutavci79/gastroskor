@@ -431,14 +431,20 @@ async def admin_grant_access_endpoint(
     assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
 
     user = resolve_user_by_email(db, payload.user_email)
-    ownership = await admin_grant_panel_access(
-        db,
-        user=user,
-        place_id=payload.place_id,
-        city=payload.city,
-        force_takeover=payload.force_takeover,
-        admin_note=payload.admin_note,
-    )
+    try:
+        ownership = await admin_grant_panel_access(
+            db,
+            user=user,
+            place_id=payload.place_id,
+            city=payload.city,
+            force_takeover=payload.force_takeover,
+            admin_note=payload.admin_note,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
     state = build_panel_access_state(db, ownership)
     return serialize_access(state)
 
