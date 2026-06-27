@@ -1,6 +1,11 @@
 from unittest.mock import MagicMock
 
+from app.services import online_orders_discovery
 from app.services.online_orders_discovery import _visit_avg_rating
+
+
+def test_batch_order_rating_summaries_imported_for_list_endpoint():
+    assert online_orders_discovery.batch_order_rating_summaries is not None
 
 
 def test_visit_avg_rating_falls_back_without_visit_filter():

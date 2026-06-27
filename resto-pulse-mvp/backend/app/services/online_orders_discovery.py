@@ -11,7 +11,7 @@ from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, norma
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
 from app.services.delivery_fee import resolve_delivery_fee_tl
-from app.services.order_review import batch_avg_ratings, visit_review_filter
+from app.services.order_review import batch_avg_ratings, batch_order_rating_summaries, visit_review_filter
 from app.services.gastro_score_ranking import (
     distance_score_for_meters,
     haversine_meters,
@@ -19,8 +19,9 @@ from app.services.gastro_score_ranking import (
     popularity_score_for_reviews,
     rating_score_for_stars,
 )
+from app.services.online_order_hours import online_order_hours_status
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
-from app.services.restaurant_orders import online_orders_available
+from app.services.restaurant_orders import online_orders_configured
 from app.services.restaurant_promo import promo_from_ownership
 from app.services.voice_menu_offerings import voice_menu_matches_for_ownership
 from app.constants.voice_product_catalog import resolve_voice_search_token
@@ -167,7 +168,7 @@ def list_online_order_restaurants(
         )
     ).all()
 
-    restaurant_ids = [row.restaurant_id for row in rows if online_orders_available(row)]
+    restaurant_ids = [row.restaurant_id for row in rows if online_orders_configured(row)]
     google_profiles: dict[str, RestaurantPlatformProfile] = {}
     if restaurant_ids:
         for profile in db.scalars(
@@ -183,8 +184,9 @@ def list_online_order_restaurants(
     voice_search = bool(voice_slug_set)
     items: list[dict] = []
     for ownership in rows:
-        if not online_orders_available(ownership):
+        if not online_orders_configured(ownership):
             continue
+        hours_status = online_order_hours_status(ownership)
         restaurant = ownership.restaurant
         # Sesli urun aramasinda sehir metni degil mesafe onemli (tester / pilot Bursa'da olabilir).
         if (
@@ -263,7 +265,9 @@ def list_online_order_restaurants(
                 "is_premium_partner": True,
                 "menu_preview": menu_full[:MENU_PREVIEW_LIMIT],
                 "menu_item_count": len(menu_full),
-                "online_orders_available": True,
+                "online_orders_available": bool(hours_status.get("open_now")),
+                "online_orders_open_now": bool(hours_status.get("open_now")),
+                "online_order_hours_label": hours_status.get("label"),
                 "online_order_categories": tags,
                 "card_emoji": ownership.card_emoji,
                 "google_rating": google_rating,

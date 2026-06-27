@@ -215,7 +215,7 @@ export async function listOnlineOrderRestaurants(params: {
       throw err;
     }
     const raw = err instanceof Error ? err.message : String(err ?? '');
-    if (/500|Internal Server|sunucu/i.test(raw)) {
+    if (/500|Internal Server|sunucu|Beklenmeyen bir hata/i.test(raw)) {
       throw new Error(
         'Online siparis listesi sunucuda gecici olarak acilamiyor. Birkac dakika sonra tekrar dene veya panelden Deneme restoranlarini yeniden seed et.',
       );
