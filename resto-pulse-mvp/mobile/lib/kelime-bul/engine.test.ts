@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { eslesenKelime, uretKelimeBulBulmaca, yolMetni } from './engine';
-import { KELIME_BUL_YEMEK_RAW } from './words';
+import { kelimeBulGenelHavuz, KELIME_BUL_YEMEK_RAW } from './words';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 const SCAN_DIRS = [
@@ -67,6 +67,23 @@ describe('kelime-bul engine', () => {
       assert.ok(path, `word not on grid: ${word}`);
       const text = yolMetni(puzzle.grid, path!);
       assert.equal(eslesenKelime(text, puzzle.words), sofraKelimeBuyuk(word));
+    }
+  });
+
+  it('genel havuz excludes foreign or obscure lexicon entries', () => {
+    const pool = new Set(kelimeBulGenelHavuz().map(sofraKelimeBuyuk));
+    for (const word of ['MORTO', 'OZUGA', 'HERTZ', 'KİLİZ']) {
+      assert.ok(!pool.has(sofraKelimeBuyuk(word)), `unexpected word in pool: ${word}`);
+    }
+  });
+
+  it('generated puzzles avoid disallowed words across seeds', () => {
+    const blocked = new Set(['MORTO', 'OZUGA', 'HERTZ', 'KİLİZ'].map(sofraKelimeBuyuk));
+    for (let i = 0; i < 30; i++) {
+      const puzzle = uretKelimeBulBulmaca(`quality-seed-${i}`);
+      for (const word of puzzle.words) {
+        assert.ok(!blocked.has(sofraKelimeBuyuk(word)), `blocked word in puzzle: ${word}`);
+      }
     }
   });
 });

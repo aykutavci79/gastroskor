@@ -1,5 +1,5 @@
 import { KELIME_BUL_MAX_WORD_LEN } from '@/constants/kelime-bul';
-import { gastroLexiconFullSet } from '@/lib/gastro-lexicon';
+import { sofraHavuzu } from '@/lib/kelime-sofrasi/havuz';
 import { sofraKelimeBuyuk } from '@/lib/kelime-sofrasi/turkce-harf';
 
 const MIN_LEN = 3;
@@ -45,14 +45,38 @@ export const KELIME_BUL_YEMEK_HAVUZ: string[] = [
 /** @deprecated KELIME_BUL_YEMEK_HAVUZ */
 export const KELIME_BUL_HAVUZ = KELIME_BUL_YEMEK_HAVUZ;
 
+/** Ham TDK lexicon'da olup günlük Türkçede kullanılmayan / yabancı kelimeler. */
+const KELIME_BUL_DISALLOWED = new Set(
+  ['MORTO', 'OZUGA', 'HERTZ', 'KİLİZ', 'TOKYO', 'ZOMBI', 'VIRUS', 'FRANK'].map(sofraKelimeBuyuk),
+);
+
 let genelHavuzCache: string[] | null = null;
 
-/** TDK lexicon — 3–9 harf, yemek listesi hariç (lazy, bir kez filtrelenir). */
+/** Sofra kürasyon havuzu — 3–9 harf, yemek listesi hariç (lazy, bir kez filtrelenir). */
 export function kelimeBulGenelHavuz(): string[] {
   if (genelHavuzCache) return genelHavuzCache;
   const yemek = new Set(KELIME_BUL_YEMEK_HAVUZ);
-  genelHavuzCache = [...gastroLexiconFullSet()].filter(
-    (w) => w.length >= MIN_LEN && w.length <= KELIME_BUL_MAX_WORD_LEN && !yemek.has(w),
-  );
+  genelHavuzCache = [
+    ...new Set(
+      sofraHavuzu()
+        .map((row) => sofraKelimeBuyuk(row.kelime))
+        .filter(
+          (w) =>
+            w.length >= MIN_LEN &&
+            w.length <= KELIME_BUL_MAX_WORD_LEN &&
+            !yemek.has(w) &&
+            !KELIME_BUL_DISALLOWED.has(w),
+        ),
+    ),
+  ];
   return genelHavuzCache;
+}
+
+export function kelimeBulKelimeUygun(kelime: string): boolean {
+  const canon = sofraKelimeBuyuk(kelime);
+  return !KELIME_BUL_DISALLOWED.has(canon);
+}
+
+export function kelimeBulKelimelerUygun(kelimeler: string[]): boolean {
+  return kelimeler.every(kelimeBulKelimeUygun);
 }

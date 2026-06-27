@@ -8,6 +8,7 @@ import {
 import { activePuzzleId } from '@/lib/mini-sudoku/schedule';
 
 import type { KelimeBulPuzzle } from './engine';
+import { kelimeBulKelimelerUygun } from './words';
 
 const GUEST_KEY = `${KELIME_BUL_STORAGE_PREFIX}:guest-plays`;
 const GUEST_EXHAUSTED_KEY = `${KELIME_BUL_STORAGE_PREFIX}:guest-exhausted`;
@@ -107,6 +108,10 @@ export async function loadKelimeBulSession(): Promise<KelimeBulProgress | null> 
       return null;
     }
     if (parsed.periodId !== activePuzzleId()) {
+      await AsyncStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    if (!kelimeBulKelimelerUygun(parsed.words)) {
       await AsyncStorage.removeItem(SESSION_KEY);
       return null;
     }
