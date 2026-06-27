@@ -438,7 +438,7 @@ async def admin_grant_access_endpoint(
             user=user,
             place_id=payload.place_id,
             city=payload.city,
-            force_takeover=payload.force_takeover,
+            force_takeover=True,
             admin_note=payload.admin_note,
         )
     except ValueError as exc:

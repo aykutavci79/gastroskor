@@ -14,7 +14,6 @@ export function PanelAdminTools() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LivePlaceSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [forceTakeover, setForceTakeover] = useState(true);
   const [hideFromPublicOnReset, setHideFromPublicOnReset] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -241,7 +240,7 @@ export function PanelAdminTools() {
         body: JSON.stringify({
           place_id: place.place_id,
           city: 'Bursa',
-          force_takeover: forceTakeover,
+          force_takeover: true,
           admin_note: `Admin UI: ${place.name}`,
         }),
       });
@@ -569,15 +568,9 @@ export function PanelAdminTools() {
         <p className="mt-2 text-sm text-amber-50/90">
           SMS, vergi levhasi ve ziyaret adimlari atlanir. Tam panel + deneme acilir. Hesap: {userEmail}
         </p>
-        <label className="mt-4 flex items-center gap-2 text-sm text-content">
-          <input
-            type="checkbox"
-            checked={forceTakeover}
-            onChange={(e) => setForceTakeover(e.target.checked)}
-            className="rounded border-border"
-          />
-          Baska kullanicida olsa mekani devral (force)
-        </label>
+        <p className="mt-2 text-xs text-content-muted">
+          &quot;Panele bagla&quot; baska kullanicidaki mekani (Deneme tester vb.) otomatik devralir.
+        </p>
         <button
           type="button"
           disabled={loading}

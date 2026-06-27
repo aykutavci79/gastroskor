@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       user_email: session!.user!.email,
       place_id: body.place_id.trim(),
       city: body.city?.trim() || 'Bursa',
-      force_takeover: Boolean(body.force_takeover),
+      force_takeover: body.force_takeover !== false,
       admin_note: body.admin_note?.trim() || 'Admin UI ile baglandi.',
     }),
   });
