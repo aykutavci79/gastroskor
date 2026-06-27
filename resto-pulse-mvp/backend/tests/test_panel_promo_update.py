@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -65,7 +65,6 @@ def _seed_online_promo_owner(db: Session) -> RestaurantOwnership:
         ownership_id=ownership.id,
         status="active",
         activated_at=datetime.now(timezone.utc),
-        paid_until=datetime.now(timezone.utc) + timedelta(days=30),
     )
     db.add_all([user, restaurant, ownership, subscription])
     db.commit()
