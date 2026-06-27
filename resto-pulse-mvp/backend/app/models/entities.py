@@ -627,7 +627,7 @@ class RestaurantOwnership(Base):
     user: Mapped["User"] = relationship(back_populates="restaurant_ownerships")
     restaurant: Mapped["Restaurant"] = relationship(back_populates="ownerships")
     subscription: Mapped["RestaurantSubscription | None"] = relationship(
-        back_populates="ownership", uselist=False
+        back_populates="ownership", uselist=False, cascade="all, delete-orphan", passive_deletes=True
     )
     competitors: Mapped[list["RestaurantCompetitor"]] = relationship(
         back_populates="ownership", cascade="all, delete-orphan"

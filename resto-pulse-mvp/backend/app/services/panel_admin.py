@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-from app.models import RestaurantOwnership, User
+from app.models import RestaurantOwnership, RestaurantPanelApplication, User
 from app.services.request_identity import RequestAuth, require_request_auth, resolve_authenticated_email
 from app.services.panel_access import start_trial
 from app.services.restaurant_claim import ensure_restaurant_for_place
@@ -188,11 +189,28 @@ def release_user_panel_ownership(db: Session, *, user: User) -> dict:
     ownership = db.scalar(
         select(RestaurantOwnership)
         .where(RestaurantOwnership.user_id == user.id)
-        .options(selectinload(RestaurantOwnership.restaurant))
+        .options(
+            selectinload(RestaurantOwnership.restaurant),
+            selectinload(RestaurantOwnership.subscription),
+        )
     )
     if not ownership:
         return {"removed": False, "restaurant_name": None}
     restaurant_name = ownership.restaurant.name if ownership.restaurant else None
+
+    if ownership.panel_application_id:
+        application = db.get(RestaurantPanelApplication, ownership.panel_application_id)
+        if application is not None and application.ownership_id == ownership.id:
+            application.ownership_id = None
+            db.add(application)
+
     db.delete(ownership)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Mekan baglantisi koparilamadi (bagli panel kayitlari). Destek ile iletisime gecin.",
+        ) from exc
     return {"removed": True, "restaurant_name": restaurant_name}
