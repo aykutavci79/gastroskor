@@ -2,6 +2,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { registerPushToken } from '@/lib/api';
+import { notificationOpenPath } from '@/lib/notification-open-path';
 
 type NotificationsModule = typeof import('expo-notifications');
 
@@ -74,6 +75,5 @@ export async function registerUserPushToken(userEmail: string): Promise<void> {
 
 export function parseNotificationOpenPath(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
-  const openPath = (data as { open_path?: string }).open_path;
-  return typeof openPath === 'string' && openPath.startsWith('/') ? openPath : null;
+  return notificationOpenPath(data as Record<string, unknown>);
 }

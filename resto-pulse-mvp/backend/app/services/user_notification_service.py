@@ -427,12 +427,51 @@ def notify_order_rejected(
         "reject_reason_code": order.reject_reason_code,
         "reject_reason_text": order.reject_reason_text,
         "reject_message": detail,
-        "open_path": f"/restaurant/{restaurant.id}",
+        "open_path": f"/siparis/{order.id}",
     }
     return _persist_user_notification(
         db,
         recipient_id=customer.id,
         notification_type="order_rejected",
+        title=title,
+        message=message,
+        metadata=metadata,
+        push_title=title,
+        push_body=push_body,
+    )
+
+
+def notify_order_accepted(
+    db: Session,
+    *,
+    order: RestaurantOrder,
+    restaurant: Restaurant,
+) -> UserNotification | None:
+    customer = order.user
+    if customer is None:
+        customer = db.get(User, order.user_id)
+    if customer is None:
+        return None
+
+    order_no = format_order_number(order.order_day, order.daily_no)
+    restaurant_name = (restaurant.name or "Restoran").strip()
+    title = f"{restaurant_name} siparisinizi onayladi"
+    if order_no:
+        message = f"{order_no} numarali siparisiniz onaylandi."
+        push_body = f"{order_no} numarali siparisiniz onaylandi."
+    else:
+        message = "Siparisiniz onaylandi."
+        push_body = "Siparisiniz onaylandi."
+    metadata = {
+        "order_id": str(order.id),
+        "restaurant_id": str(restaurant.id),
+        "restaurant_name": restaurant_name,
+        "open_path": f"/siparis/{order.id}",
+    }
+    return _persist_user_notification(
+        db,
+        recipient_id=customer.id,
+        notification_type="order_accepted",
         title=title,
         message=message,
         metadata=metadata,

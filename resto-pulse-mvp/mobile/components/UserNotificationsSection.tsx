@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GastroColors } from '@/constants/theme';
 import { useAppBadges } from '@/context/app-badges-context';
 import { listUserNotifications, markUserNotificationRead } from '@/lib/api';
+import { notificationOpenPath } from '@/lib/notification-open-path';
 import type { UserNotification } from '@/lib/types';
 
 type Props = {
@@ -62,13 +63,8 @@ export function UserNotificationsSection({
     } catch {
       /* ignore */
     }
-    const restaurantId = item.metadata?.restaurant_id;
-    if (restaurantId) {
-      router.push(`/restaurant/${restaurantId}` as never);
-      return;
-    }
-    const path = item.metadata?.open_path;
-    if (typeof path === 'string' && path.startsWith('/')) {
+    const path = notificationOpenPath(item.metadata ?? undefined);
+    if (path) {
       router.push(path as never);
     }
   }

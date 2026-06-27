@@ -160,6 +160,7 @@ from app.services.follower_promotion_service import (
 from app.services.restaurant_followers import list_panel_followers
 from app.services.user_notification_service import (
     notify_follower_coupon_issued,
+    notify_order_accepted,
     notify_order_rejected,
     notify_remedy_offer_to_customer,
 )
@@ -804,7 +805,14 @@ def patch_panel_order(
         )
     except OrderError as exc:
         raise_order_http(exc)
-    if payload.decision == "rejected" and order.restaurant:
+    if payload.decision == "accepted" and order.restaurant:
+        notify_order_accepted(
+            db,
+            order=order,
+            restaurant=order.restaurant,
+        )
+        db.commit()
+    elif payload.decision == "rejected" and order.restaurant:
         reject_message = build_reject_customer_message(
             reason_code=order.reject_reason_code,
             reason_text=order.reject_reason_text,
