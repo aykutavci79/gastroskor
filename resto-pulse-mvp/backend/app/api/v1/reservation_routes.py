@@ -89,8 +89,6 @@ def get_restaurant_reservation_active(
             or (ownership.phone_e164 or "").strip()
             or None
         )
-    if not contact_phone:
-        contact_phone = (restaurant.phone or "").strip() or None
     return RestaurantReservationActiveResponse(
         online_reservations_available=available,
         floor_plan=FloorPlanRead.model_validate(floor_plan) if floor_plan else None,
