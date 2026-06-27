@@ -126,6 +126,10 @@ def online_orders_available(ownership: RestaurantOwnership | None) -> bool:
     return len(active_menu_items(ownership)) > 0
 
 
+def online_orders_configured(ownership: RestaurantOwnership | None) -> bool:
+    return online_orders_available(ownership)
+
+
 def customer_online_orders_available(db: Session, ownership: RestaurantOwnership | None) -> bool:
     if not online_orders_available(ownership):
         return False
