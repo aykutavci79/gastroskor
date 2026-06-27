@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ReservationConfirmModal } from '@/components/reservation/ReservationConfirmModal';
 import { ReservationDateTimeFields } from '@/components/reservation/ReservationDateTimeFields';
+import { ExpoGoDevSignInCard } from '@/components/ExpoGoDevSignInCard';
 import {
   ReservationFloorPlanPicker,
   tableVisualState,
@@ -32,7 +33,29 @@ import {
   type ReservationSlot,
 } from '@/lib/reservation-datetime';
 import { formatTableCodeLong } from '@/lib/reservation-table-code';
+import { readStoredOrderPhone } from '@/lib/order-contact-secure-storage';
+import { normalizeTrMobileInput } from '@/lib/phone-tr';
 import type { FloorPlanTable, Restaurant } from '@/lib/types';
+
+function isCustomerNameValid(name: string): boolean {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 2 && parts.every((part) => part.length >= 2);
+}
+
+function isPhoneValid(phone: string): boolean {
+  return normalizeTrMobileInput(phone) !== null;
+}
+
+function tableAllowsReservation(
+  table: FloorPlanTable,
+  partySize: number,
+  reservedIds: string[],
+  closedIds: string[],
+): boolean {
+  if (closedIds.includes(table.id) || table.reservation_closed) return false;
+  if (reservedIds.includes(table.id)) return false;
+  return partySize >= table.seats_min && partySize <= table.seats_max;
+}
 
 function stateHint(state: TableVisualState, table: FloorPlanTable): string | null {
   if (state === 'reserved') return 'Bu masa secilen saatte dolu.';
@@ -61,6 +84,8 @@ export default function OnlineReservationBookScreen() {
   const [active, setActive] = useState<Awaited<ReturnType<typeof getRestaurantReservationActive>> | null>(
     null,
   );
+  const scrollRef = useRef<ScrollView>(null);
+  const formOffsetY = useRef(0);
 
   const reservedIso = useMemo(() => slotToIso(slot), [slot]);
   const maxOnlineParty = active?.max_online_party_size ?? 10;
@@ -70,28 +95,33 @@ export default function OnlineReservationBookScreen() {
   const reservedIds = active?.reserved_table_ids ?? [];
   const closedIds = active?.closed_table_ids ?? [];
 
-  const selectedState = useMemo(() => {
-    if (!selectedTable) return null;
-    return tableVisualState(
-      selectedTable,
-      party,
-      new Set(reservedIds),
-      new Set(closedIds),
-      selectedTable.id,
-    );
-  }, [closedIds, party, reservedIds, selectedTable]);
+  const nameValid = isCustomerNameValid(name);
+  const phoneValid = isPhoneValid(phone);
 
-  const nameValid = name.trim().split(/\s+/).filter(Boolean).length >= 2;
-  const canOpenConfirm =
-    Boolean(selectedTable) &&
-    Boolean(reservedIso) &&
-    Boolean(phone.trim()) &&
-    nameValid &&
-    Boolean(user?.email) &&
-    !partyTooLarge &&
-    selectedState !== 'reserved' &&
-    selectedState !== 'closed' &&
-    selectedState !== 'mismatch';
+  const submitBlockers = useMemo(() => {
+    const items: string[] = [];
+    if (!user?.email) items.push('Giris yapin');
+    if (!selectedTable) items.push('Masa secin');
+    if (selectedTable && !tableAllowsReservation(selectedTable, party, reservedIds, closedIds)) {
+      items.push(`Kisi sayisi (${selectedTable.seats_min}–${selectedTable.seats_max})`);
+    }
+    if (!nameValid) items.push('Ad ve soyad');
+    if (!phoneValid) items.push('Gecerli telefon (05xx...)');
+    if (partyTooLarge) items.push(`En fazla ${maxOnlineParty} kisi`);
+    return items;
+  }, [
+    closedIds,
+    maxOnlineParty,
+    nameValid,
+    party,
+    partyTooLarge,
+    phoneValid,
+    reservedIds,
+    selectedTable,
+    user?.email,
+  ]);
+
+  const canOpenConfirm = submitBlockers.length === 0;
 
   const refreshPlan = useCallback(async () => {
     if (!restaurantId || !reservedIso) return;
@@ -134,9 +164,32 @@ export default function OnlineReservationBookScreen() {
   }, [name, user?.fullName]);
 
   useEffect(() => {
+    void readStoredOrderPhone()
+      .then((stored) => {
+        if (stored?.trim()) {
+          setPhone((current) => current.trim() || stored.trim());
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     if (!reservedIso) return;
     void refreshPlan().catch(() => undefined);
   }, [refreshPlan, reservedIso]);
+
+  function handleSelectTable(table: FloorPlanTable | null) {
+    setSelectedTable(table);
+    if (table) {
+      setTableHint(null);
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, formOffsetY.current - 12),
+          animated: true,
+        });
+      }, 80);
+    }
+  }
 
   function handleTablePress(table: FloorPlanTable, state: TableVisualState) {
     const hint = stateHint(state, table);
@@ -147,23 +200,19 @@ export default function OnlineReservationBookScreen() {
   }
 
   function openConfirm() {
-    if (!canOpenConfirm || !selectedTable) {
-      if (!nameValid) {
-        Alert.alert('Ad soyad', 'Lutfen ad ve soyadinizi girin.');
-        return;
-      }
-      if (!phone.trim()) {
-        Alert.alert('Telefon', 'Iletisim numarasi zorunlu.');
-        return;
-      }
-      Alert.alert('Eksik bilgi', 'Masa, tarih, ad soyad ve telefon zorunlu.');
+    if (!selectedTable) {
+      Alert.alert('Masa secin', 'Haritadan bir masa kodu secin.');
       return;
     }
-    if (partyTooLarge) {
+    if (!user?.email) {
       Alert.alert(
-        'Kisi sayisi yuksek',
-        `Uygulama uzerinden en fazla ${maxOnlineParty} kisi icin rezervasyon yapilabilir.${contactPhone ? `\n\nTelefon: ${contactPhone}` : ''}`,
+        'Giris gerekli',
+        'Rezervasyon icin once gelistirici girisi yapin (Expo Go) veya Profil sekmesinden oturum acin.',
       );
+      return;
+    }
+    if (!canOpenConfirm) {
+      Alert.alert('Eksik bilgi', submitBlockers.join('\n'));
       return;
     }
     setConfirmVisible(true);
@@ -179,7 +228,7 @@ export default function OnlineReservationBookScreen() {
         party_size: party,
         reserved_at: reservedIso,
         note: note.trim() || null,
-        customer_phone: phone.trim(),
+        customer_phone: normalizeTrMobileInput(phone.trim()) ?? phone.trim(),
         customer_name: name.trim(),
       });
       setConfirmVisible(false);
@@ -217,11 +266,14 @@ export default function OnlineReservationBookScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{restaurant?.name ?? 'Rezervasyon'}</Text>
-        <Text style={styles.sub}>Masa kodu (S-M12) restoranla ayni · sec · onayla · gonder</Text>
+        <Text style={styles.sub}>Masa sec · bilgileri doldur · onayla</Text>
 
-        <ReservationDateTimeFields value={slot} onChange={setSlot} />
+        {!user?.email ? <ExpoGoDevSignInCard /> : null}
 
         <Text style={styles.label}>Kisi sayisi</Text>
         <TextInput
@@ -243,65 +295,78 @@ export default function OnlineReservationBookScreen() {
           closedTableIds={closedIds}
           selectedTableId={selectedTable?.id ?? null}
           partySize={party}
-          onSelect={(table) => {
-            setSelectedTable(table);
-            if (table) setTableHint(null);
-          }}
+          onSelect={handleSelectTable}
           onTablePress={handleTablePress}
         />
 
         {tableHint ? <Text style={styles.warn}>{tableHint}</Text> : null}
 
-        {selectedTable ? (
-          <View style={styles.selectionCard}>
-            <Text style={styles.selectionTitle}>{formatTableCodeLong(selectedTable.zone, selectedTable.label)}</Text>
-            <Text style={styles.selectionMeta}>
-              {selectedTable.seats_min}–{selectedTable.seats_max} kisi · {formatSlotDateTimeTr(slot)}
-            </Text>
+        <View
+          style={styles.selectionCard}
+          onLayout={(event) => {
+            formOffsetY.current = event.nativeEvent.layout.y;
+          }}>
+          <Text style={styles.formSectionTitle}>Rezervasyon bilgileri</Text>
 
-            <Text style={styles.label}>Ad soyad *</Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Ad Soyad"
-              placeholderTextColor="#64748b"
-              autoCapitalize="words"
-              style={styles.input}
-            />
-            {!nameValid && name.trim().length > 0 ? (
-              <Text style={styles.warn}>Ad ve soyad birlikte zorunlu.</Text>
-            ) : null}
+          {selectedTable ? (
+            <>
+              <Text style={styles.selectionTitle}>{formatTableCodeLong(selectedTable.zone, selectedTable.label)}</Text>
+              <Text style={styles.selectionMeta}>
+                {selectedTable.seats_min}–{selectedTable.seats_max} kisi
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.warn}>Once yukaridan bir masa kodu secin (ornek S-M5).</Text>
+          )}
 
-            <Text style={styles.label}>Telefon *</Text>
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              placeholder="05xx xxx xx xx"
-              placeholderTextColor="#64748b"
-              style={styles.input}
-            />
+          <ReservationDateTimeFields value={slot} onChange={setSlot} />
 
-            <Text style={styles.label}>Not (istege bagli)</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              multiline
-              placeholder="Ozel istek, cocuk sandalyesi..."
-              placeholderTextColor="#64748b"
-              style={[styles.input, { minHeight: 72 }]}
-            />
+          <Text style={styles.label}>Ad soyad *</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Ad Soyad"
+            placeholderTextColor="#64748b"
+            autoCapitalize="words"
+            style={styles.input}
+          />
+          {!nameValid && name.trim().length > 0 ? (
+            <Text style={styles.warn}>Ornek: Ahmet Yilmaz (ad ve soyad ayri)</Text>
+          ) : null}
 
-            <Pressable
-              style={[styles.btn, !canOpenConfirm && styles.btnDisabled]}
-              disabled={!canOpenConfirm}
-              onPress={openConfirm}>
-              <Text style={styles.btnText}>Rezervasyon yap</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Text style={styles.helper}>Haritadan masa kodunu secin (ornek S-M5, B-M2).</Text>
-        )}
+          <Text style={styles.label}>Telefon *</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="05xx xxx xx xx"
+            placeholderTextColor="#64748b"
+            style={styles.input}
+          />
+          {!phoneValid && phone.trim().length > 0 ? (
+            <Text style={styles.warn}>10 haneli cep numarasi girin (5 ile baslamali).</Text>
+          ) : null}
+
+          <Text style={styles.label}>Not (istege bagli)</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            multiline
+            placeholder="Ozel istek, cocuk sandalyesi..."
+            placeholderTextColor="#64748b"
+            style={[styles.input, { minHeight: 72 }]}
+          />
+
+          {submitBlockers.length > 0 ? (
+            <Text style={styles.helper}>Eksik: {submitBlockers.join(' · ')}</Text>
+          ) : (
+            <Text style={styles.helperReady}>Hazir — rezervasyonu onaylayabilirsiniz.</Text>
+          )}
+
+          <Pressable style={[styles.btn, !canOpenConfirm && styles.btnMuted]} onPress={openConfirm}>
+            <Text style={styles.btnText}>Rezervasyon yap</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {selectedTable ? (
@@ -359,6 +424,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  btnDisabled: { opacity: 0.55 },
+  btnMuted: { opacity: 0.72 },
   btnText: { color: '#0f172a', fontWeight: '700', fontSize: 16 },
+  helperReady: { color: '#4ade80', fontSize: 12, marginTop: 6 },
 });

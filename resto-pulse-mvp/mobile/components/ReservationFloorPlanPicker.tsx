@@ -248,11 +248,7 @@ export function ReservationFloorPlanPicker({
     const state = tableVisualState(table, partySize, reserved, closed, selectedTableId);
     onTablePress?.(table, state);
     if (state === 'reserved' || state === 'closed') return;
-    if (state === 'mismatch') {
-      onSelect(table);
-      return;
-    }
-    onSelect(selectedTableId === table.id ? null : table);
+    onSelect(table);
   }
 
   return (
@@ -408,7 +404,7 @@ const styles = StyleSheet.create({
   },
   mapWrap: {
     width: '100%',
-    aspectRatio: 1,
+    height: 280,
     position: 'relative',
     marginHorizontal: 0,
   },

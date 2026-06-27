@@ -32,7 +32,7 @@ export function DevSignInButton({ onError }: Props) {
       const base = getApiBase();
       const hint =
         err instanceof Error && /404|Not found/i.test(err.message)
-          ? ` Bu API (${base}) production olabilir — yerel backend kullan veya EAS build ile Google gir.`
+          ? ` Canli API (${base}) icin EXPO_PUBLIC_DEV_LOGIN_SECRET + Railway DEV_LOGIN_SECRET; ya da yerel backend.`
           : '';
       onError(
         (err instanceof Error ? err.message : 'Gelistirici girisi basarisiz.') + hint,

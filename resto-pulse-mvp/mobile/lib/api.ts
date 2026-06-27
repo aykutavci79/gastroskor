@@ -622,6 +622,7 @@ export function verifyGoogleMobileAuth(idToken: string, kvkkConsentAccepted: boo
 
 /** Production disi backend — Expo Go gelistirici oturumu. */
 export function devLogin(email = 'dev@gastroskor.local') {
+  const devSecret = (process.env.EXPO_PUBLIC_DEV_LOGIN_SECRET ?? '').trim();
   return request<{
     profile: UserProfile;
     access_token: string;
@@ -630,7 +631,10 @@ export function devLogin(email = 'dev@gastroskor.local') {
     refresh_expires_in: number;
   }>('/auth/dev/login', {
     method: 'POST',
-    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      ...(devSecret ? { dev_secret: devSecret } : {}),
+    }),
   });
 }
 
