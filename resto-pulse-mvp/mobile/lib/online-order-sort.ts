@@ -1,14 +1,20 @@
 import { haversineMeters } from '@/lib/travel-estimate';
+import { resolveOnlineMenuDiscountPercent } from '@/lib/resolve-online-discount';
 import type { RestaurantListItem } from '@/lib/types';
 
-export type OnlineOrderSortMode = 'gastro_score' | 'distance' | 'rating' | 'popularity';
+export type OnlineOrderSortMode = 'gastro_score' | 'distance' | 'rating' | 'popularity' | 'discount';
 
 export const ONLINE_ORDER_SORT_OPTIONS: { id: OnlineOrderSortMode; label: string }[] = [
   { id: 'gastro_score', label: 'GastroSkor' },
   { id: 'distance', label: 'Yakınlık' },
   { id: 'rating', label: 'Puan' },
   { id: 'popularity', label: 'Yorum' },
+  { id: 'discount', label: 'En yüksek indirim' },
 ];
+
+function discountOf(row: RestaurantListItem): number {
+  return resolveOnlineMenuDiscountPercent(row) ?? 0;
+}
 
 function ratingOf(row: RestaurantListItem): number {
   return row.google_rating ?? row.avg_rating ?? 0;
@@ -64,6 +70,15 @@ export function sortOnlineOrderRestaurants(
         reviewCountOf(b) - reviewCountOf(a) ||
         ratingOf(b) - ratingOf(a) ||
         (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12),
+    );
+    return copy;
+  }
+  if (mode === 'discount') {
+    copy.sort(
+      (a, b) =>
+        discountOf(b) - discountOf(a) ||
+        (a.distance_meters ?? 1e12) - (b.distance_meters ?? 1e12) ||
+        ratingOf(b) - ratingOf(a),
     );
     return copy;
   }

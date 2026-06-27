@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -16,11 +16,14 @@ import {
 
 import { KesfetKitchenChips } from '@/components/KesfetKitchenChips';
 import { KesfetHomeChrome } from '@/components/KesfetHomeChrome';
+import type { KesfetSearchModel } from '@/components/KesfetSearchModelPicker';
 import { OnlineOrderEntryBanner } from '@/components/OnlineOrderEntryBanner';
+import { OnlineReservationEntryBanner } from '@/components/OnlineReservationEntryBanner';
 import { RecentPhotosStrip } from '@/components/RecentPhotosStrip';
 import { RegionalFlavorsEntryBanner } from '@/components/RegionalFlavorsEntryBanner';
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SocialProofScanBanner } from '@/components/SocialProofScanBanner';
+import { SocialModeScreenHalo } from '@/components/SocialModeScreenHalo';
 import { Screen } from '@/components/ui/Screen';
 import { GastroStyles } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
@@ -42,6 +45,12 @@ import {
   livePlaceToRestaurantCard,
   sortLivePlacesByGastroScore,
 } from '@/lib/live-place-card';
+import {
+  liveSearchAnalyticsProps,
+  liveSearchSourceKey,
+  liveSearchSourceHint,
+  liveSearchSourceLabel,
+} from '@/lib/live-search-source';
 import { kitchenChipLabel, kitchenChipSearchQuery } from '@/lib/kesfet-kitchen-search';
 import {
   consumePendingKesfetVoiceSearch,
@@ -70,6 +79,7 @@ export default function ExploreScreen() {
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createExploreStyles(colors), [colors]);
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
   const coordsRef = useRef<Coords | null>(null);
   const coordsUpdatedAtRef = useRef<number>(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -96,7 +106,11 @@ export default function ExploreScreen() {
   const socialSortModeRef = useRef(false);
   const [socialScanLoading, setSocialScanLoading] = useState(false);
   const [socialSortActive, setSocialSortActive] = useState(false);
+  const [searchModel, setSearchModel] = useState<KesfetSearchModel>('gastroskor');
+  const [searchSource, setSearchSource] = useState<string | null>(null);
 
+  const canRunSocialMode = Boolean(user);
+  const isSocialMode = searchModel === 'sosyal';
   const trimmedQuery = inputQuery.trim();
   const searchMode = trimmedQuery.length >= 2;
 
@@ -110,6 +124,7 @@ export default function ExploreScreen() {
     setLiveParsed(null);
     setActiveKitchenSlug(null);
     setError(null);
+    setSearchSource(null);
     setSocialStatus(null);
     setSocialByPlace(EMPTY_SOCIAL_INDEX);
     socialSortModeRef.current = false;
@@ -215,6 +230,74 @@ export default function ExploreScreen() {
     });
   }, []);
 
+  const applySocialToList = useCallback((baseItems: LivePlaceSearchItem[], index: SocialResultsIndex) => {
+    if (!baseItems.length) return baseItems;
+    return sortLivePlacesBySocialProof(baseItems, index);
+  }, []);
+
+  const runSocialLayer = useCallback(
+    async (query: string, pollToken: number, baseItems: LivePlaceSearchItem[]) => {
+      if (!canRunSocialMode) return;
+
+      let overlay: SocialProofStatus | null = null;
+      try {
+        overlay = await getSocialOverlay({ query, city });
+      } catch {
+        overlay = null;
+      }
+      if (pollTokenRef.current !== pollToken) return;
+
+      if (overlay?.status === 'ready' && overlay.results?.length) {
+        const index = socialResultsIndex(overlay.results);
+        setSocialStatus(overlay);
+        setSocialByPlace(index);
+        socialSortModeRef.current = true;
+        setSocialSortActive(true);
+        const ordered = applySocialToList(baseItems, index);
+        setSearchItems(ordered);
+        setSearchCards(ordered.map(livePlaceToRestaurantCard));
+        return;
+      }
+
+      if (overlay) setSocialStatus(overlay);
+
+      const needsScan =
+        !overlay ||
+        overlay.status === 'uncached' ||
+        (overlay.status === 'insufficient_data' && overlay.can_scan);
+
+      if (!needsScan) return;
+
+      setSocialScanLoading(true);
+      try {
+        const { data: scanned } = await requestSocialScan({ query, city });
+        if (pollTokenRef.current !== pollToken) return;
+        setSocialStatus(scanned);
+        if (scanned.results?.length) {
+          const index = socialResultsIndex(scanned.results);
+          setSocialByPlace(index);
+          socialSortModeRef.current = true;
+          setSocialSortActive(true);
+          const ordered = applySocialToList(baseItems, index);
+          setSearchItems(ordered);
+          setSearchCards(ordered.map(livePlaceToRestaurantCard));
+        }
+        if (scanned.job_id && (scanned.status === 'scanning' || scanned.status === 'pending')) {
+          socialSortModeRef.current = true;
+          setSocialSortActive(true);
+          pollSocialJob(scanned.job_id, pollToken);
+        }
+      } catch (err) {
+        if (pollTokenRef.current !== pollToken) return;
+        setError(formatApiError(err, 'Sosyal tarama'));
+        setSocialStatus((prev) => (prev ? { ...prev, status: 'failed' } : { status: 'failed' }));
+      } finally {
+        setSocialScanLoading(false);
+      }
+    },
+    [applySocialToList, canRunSocialMode, city, pollSocialJob],
+  );
+
   const loadSearchResults = useCallback(async (query: string) => {
     const q = polishVoiceSearchTranscript(query);
     lastSearchQueryRef.current = q;
@@ -227,6 +310,7 @@ export default function ExploreScreen() {
     setSocialByPlace(EMPTY_SOCIAL_INDEX);
     socialSortModeRef.current = false;
     setSocialSortActive(false);
+    setSearchSource(null);
     return;
     }
 
@@ -240,54 +324,56 @@ export default function ExploreScreen() {
     setSocialByPlace(EMPTY_SOCIAL_INDEX);
     socialSortModeRef.current = false;
     setSocialSortActive(false);
+
+    if (isSocialMode && !canRunSocialMode) {
+      setLoadingSearch(false);
+      setError('Sosyal kanıt modu için giriş yap.');
+      return;
+    }
+
     try {
       await refreshCoordsIfStale();
       const coords = (await ensureCoords()) ?? coordsRef.current;
 
       let itemsForVoice: LivePlaceSearchItem[] = [];
 
-      const [result, socialOverlay] = await Promise.all([
-        searchLivePlaces({
-          q,
-          city,
-          limit: 20,
-          origin_lat: coords?.lat,
-          origin_lng: coords?.lng,
-        }),
-        getSocialOverlay({ query: q, city }).catch(() => null),
-      ]);
+      const result = await searchLivePlaces({
+        q,
+        city,
+        limit: isSocialMode ? 20 : 12,
+        origin_lat: coords?.lat,
+        origin_lng: coords?.lng,
+      });
 
       itemsForVoice = result.items;
       setSearchItems(result.items);
       setSearchCards(result.items.map(livePlaceToRestaurantCard));
       setLiveParsed(result.parsed);
+      setSearchSource(liveSearchSourceKey(result.filters_applied));
 
-      if (pollTokenRef.current === pollToken && socialOverlay) {
-        setSocialStatus(socialOverlay);
-        if (socialOverlay.results?.length) {
-          setSocialByPlace(socialResultsIndex(socialOverlay.results));
-        } else {
-          setSocialByPlace(EMPTY_SOCIAL_INDEX);
-        }
-        if (
-          socialOverlay.job_id &&
-          (socialOverlay.status === 'scanning' || socialOverlay.status === 'pending')
-        ) {
-          pollSocialJob(socialOverlay.job_id, pollToken);
-        }
+      if (isSocialMode && canRunSocialMode && pollTokenRef.current === pollToken) {
+        await runSocialLayer(q, pollToken, result.items);
       }
 
       if (isVoiceSearch) {
         posthog.capture('voice_search_used', {
+          ...liveSearchAnalyticsProps(result.filters_applied, {
+            query: q,
+            result_count: itemsForVoice.length,
+            city,
+          }),
           query_text: q,
           success: itemsForVoice.length > 0,
         });
       } else {
-        posthog.capture('restaurant_searched', {
-          query: q,
-          result_count: itemsForVoice.length,
-          city,
-        });
+        posthog.capture(
+          'restaurant_searched',
+          liveSearchAnalyticsProps(result.filters_applied, {
+            query: q,
+            result_count: itemsForVoice.length,
+            city,
+          }),
+        );
       }
 
       if (voiceSearchAnnounceRef.current) {
@@ -306,6 +392,7 @@ export default function ExploreScreen() {
       setError(formatApiError(err, 'Arama'));
       setSearchItems([]);
       setSearchCards([]);
+      setSearchSource(null);
       if (isVoiceSearch) {
         posthog.capture('voice_search_used', { query_text: q, success: false });
       }
@@ -317,7 +404,12 @@ export default function ExploreScreen() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob, posthog]);
+  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob, posthog, isSocialMode, canRunSocialMode, runSocialLayer]);
+
+  const switchToClassicSearch = useCallback(() => {
+    setSearchModel('gastroskor');
+    setError(null);
+  }, []);
 
   const handleRequestSocialScan = useCallback(async () => {
     const q = lastSearchQueryRef.current.trim();
@@ -373,9 +465,14 @@ export default function ExploreScreen() {
         setSearchItems(sorted);
         setSearchCards(sorted.map(livePlaceToRestaurantCard));
         setLiveParsed(result.parsed);
+        setSearchSource(liveSearchSourceKey(result.filters_applied));
         posthog.capture('discover_search_used', {
+          ...liveSearchAnalyticsProps(result.filters_applied, {
+            query: q,
+            result_count: sorted.length,
+            city,
+          }),
           mode: 'best',
-          result_count: sorted.length,
         });
       } catch (err) {
         setError(formatApiError(err, 'Mutfak araması'));
@@ -430,6 +527,13 @@ export default function ExploreScreen() {
   }, [city]);
 
   useEffect(() => {
+    if (searchMode && trimmedQuery.length >= 2) {
+      void loadSearchResults(trimmedQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- arama modeli degisince mevcut sorguyu yenile
+  }, [searchModel]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (searchMode) {
         void loadSearchResults(inputQuery);
@@ -475,6 +579,15 @@ export default function ExploreScreen() {
   }
 
   const listMode = searchMode || kitchenBrowseMode;
+  const socialFinishedEmpty =
+    isSocialMode &&
+    searchMode &&
+    !loadingSearch &&
+    !socialScanLoading &&
+    socialStatus != null &&
+    socialStatus.status !== 'scanning' &&
+    socialStatus.status !== 'pending' &&
+    !socialSortActive;
 
   const chrome = (
     <View style={styles.chromeWrap}>
@@ -491,6 +604,9 @@ export default function ExploreScreen() {
         searchInputRef={searchInputRef}
         searchFocused={searchFocused}
         showReviewTicker={!listMode && !searchFocused}
+        searchModel={searchModel}
+        onSearchModelChange={setSearchModel}
+        canRunSocial={canRunSocialMode}
       />
     </View>
   );
@@ -503,13 +619,24 @@ export default function ExploreScreen() {
           <Text style={styles.kitchenSub}>GastroSkor sıralı · {cityLabel}</Text>
         </View>
       ) : null}
-      <SocialProofScanBanner
-        social={socialStatus}
-        loggedIn={Boolean(user)}
-        scanLoading={socialScanLoading}
-        socialSortActive={socialSortActive}
-        onRequestScan={handleRequestSocialScan}
-      />
+      {isSocialMode && searchMode ? (
+        <SocialProofScanBanner
+          social={socialStatus}
+          loggedIn={canRunSocialMode}
+          scanLoading={socialScanLoading}
+          socialSortActive={socialSortActive}
+          onRequestScan={handleRequestSocialScan}
+        />
+      ) : null}
+      {__DEV__ && searchSource && searchMode ? (
+        <View style={styles.searchSourceDev}>
+          <Text style={styles.searchSourceDevTitle}>
+            Kaynak: {liveSearchSourceLabel(searchSource)}
+          </Text>
+          <Text style={styles.searchSourceDevHint}>{liveSearchSourceHint(searchSource)}</Text>
+          <Text style={styles.searchSourceDevCode}>{searchSource}</Text>
+        </View>
+      ) : null}
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.error}>{error}</Text>
@@ -518,13 +645,25 @@ export default function ExploreScreen() {
       {loadingSearch ? (
         <ActivityIndicator color={colors.accent} style={{ marginVertical: 16 }} />
       ) : searchCards.length === 0 ? (
-        <Text style={styles.empty}>
-          {kitchenBrowseMode && activeKitchenSlug
-            ? `${kitchenChipLabel(activeKitchenSlug)} için sonuç bulunamadı.`
-            : liveParsed?.min_rating != null
-              ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
-              : 'Canlı aramada sonuç bulunamadı.'}
-        </Text>
+        socialFinishedEmpty ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>Sosyal aramada sonuç bulunamadı</Text>
+            <Text style={styles.empty}>
+              Dilersen normal GastroSkor aramasına geç — Google skoru ve mesafeye göre listeler.
+            </Text>
+            <Pressable style={styles.fallbackBtn} onPress={switchToClassicSearch}>
+              <Text style={styles.fallbackBtnText}>Normal arama yap</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Text style={styles.empty}>
+            {kitchenBrowseMode && activeKitchenSlug
+              ? `${kitchenChipLabel(activeKitchenSlug)} için sonuç bulunamadı.`
+              : liveParsed?.min_rating != null
+                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
+                : 'Canlı aramada sonuç bulunamadı.'}
+          </Text>
+        )
       ) : (
         searchCards.map((r, index) => {
           const liveItem = searchItems[index];
@@ -554,7 +693,9 @@ export default function ExploreScreen() {
               googleRating={r.google_rating}
               googleReviewCount={r.google_review_count}
               distanceLabel={liveItem ? livePlaceDistanceLabel(liveItem) : undefined}
-              cornerBadge={socialBadgeLabel(socialRow?.badge)}
+              cornerBadge={
+                isSocialMode && socialSortActive ? socialBadgeLabel(socialRow?.badge) : undefined
+              }
               href={detailHref}
             />
           );
@@ -568,6 +709,9 @@ export default function ExploreScreen() {
         <View style={styles.flexOnline}>
           <OnlineOrderEntryBanner variant="vitrin" style={styles.fillChild} />
         </View>
+        <View style={styles.flexReservation}>
+          <OnlineReservationEntryBanner style={styles.fillChild} />
+        </View>
         <View style={styles.flexRegional}>
           <RegionalFlavorsEntryBanner style={styles.fillChild} />
         </View>
@@ -577,8 +721,14 @@ export default function ExploreScreen() {
 
   const showVitrinDismissOverlay = searchFocused && !listMode;
 
+  const socialScanning =
+    socialScanLoading ||
+    socialStatus?.status === 'scanning' ||
+    socialStatus?.status === 'pending';
+
   return (
     <Screen scroll={false} flush keyboardVerticalOffset={72} style={styles.page}>
+      <View style={styles.pageInner}>
       {chrome}
       <KesfetKitchenChips activeSlug={activeKitchenSlug} onSelect={handleKitchenSelect} />
       <View style={styles.bodyHost}>
@@ -611,6 +761,11 @@ export default function ExploreScreen() {
           />
         ) : null}
       </View>
+      <SocialModeScreenHalo
+        active={isFocused && isSocialMode}
+        intensify={socialScanning}
+      />
+      </View>
     </Screen>
   );
 }
@@ -618,6 +773,7 @@ export default function ExploreScreen() {
 function createExploreStyles(colors: import('@/constants/theme').GastroColorScheme) {
   return StyleSheet.create({
   page: { flex: 1 },
+  pageInner: { flex: 1, position: 'relative' },
   chromeWrap: {
     zIndex: 20,
     elevation: 20,
@@ -637,16 +793,46 @@ function createExploreStyles(colors: import('@/constants/theme').GastroColorSche
     paddingTop: 3,
     gap: 3,
   },
-  flexOnline: { flex: 1.15, minHeight: 0, paddingHorizontal: 12 },
-  flexRegional: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
-  flexPhotos: { flex: 1, minHeight: 0, marginBottom: 4 },
+  flexOnline: { flex: 1.05, minHeight: 0, paddingHorizontal: 12 },
+  flexReservation: { flex: 1.05, minHeight: 0, paddingHorizontal: 12 },
+  flexRegional: { flex: 0.95, minHeight: 0, paddingHorizontal: 12 },
+  flexPhotos: { flex: 0.95, minHeight: 0, marginBottom: 4 },
   fillChild: { flex: 1, marginHorizontal: 0, alignSelf: 'stretch', width: '100%' },
   searchScroll: { paddingHorizontal: 12, gap: 12, paddingBottom: 24 },
   searchBody: { gap: 12, paddingHorizontal: 4 },
+  searchSourceDev: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.45)',
+    backgroundColor: 'rgba(234, 179, 8, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  searchSourceDevTitle: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  searchSourceDevHint: { color: colors.muted, fontSize: 11, lineHeight: 15 },
+  searchSourceDevCode: { color: colors.muted, fontSize: 10, fontFamily: 'monospace' },
   kitchenHeader: { gap: 2, paddingHorizontal: 4, paddingTop: 4 },
   kitchenTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
   kitchenSub: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  empty: { color: colors.muted, textAlign: 'center', padding: 20, lineHeight: 20 },
+  emptyBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
+    padding: 16,
+    gap: 8,
+  },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  empty: { color: colors.muted, textAlign: 'center', lineHeight: 20 },
+  fallbackBtn: {
+    marginTop: 4,
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  fallbackBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   errorBox: {
     borderRadius: 12,
     borderWidth: 1,

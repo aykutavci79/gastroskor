@@ -41,6 +41,33 @@ export function SocialProofScanBanner({ social, onRequestScan, scanLoading, logg
     );
   }
 
+  if (social.status === 'insufficient_data' && !social.can_scan) {
+    return (
+      <View style={styles.box}>
+        <Text style={styles.sub}>
+          Sosyal kanıt için yeterli eşleşme bulunamadı — liste GastroSkor sırasında kaldı.
+        </Text>
+      </View>
+    );
+  }
+
+  if (social.status === 'failed') {
+    return (
+      <View style={styles.box}>
+        <Text style={styles.title}>Sosyal tarama başarısız</Text>
+        <Text style={styles.sub}>Tekrar deneyebilir veya normal aramaya dönebilirsin.</Text>
+        {onRequestScan ? (
+          <Pressable
+            style={[styles.button, scanLoading && styles.buttonDisabled]}
+            onPress={onRequestScan}
+            disabled={scanLoading}>
+            <Text style={styles.buttonText}>{scanLoading ? 'Başlatılıyor…' : 'Yeniden tara'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  }
+
   if (social.status === 'uncached' || (social.status === 'insufficient_data' && social.can_scan)) {
     const label = social.scan_label ?? 'bu ürün';
     if (!loggedIn) {

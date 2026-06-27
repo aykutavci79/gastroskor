@@ -11,13 +11,14 @@ import {
   View,
 } from 'react-native';
 
+import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
 import { VoiceOrderCommandBar } from '@/components/VoiceOrderCommandBar';
 import { VoiceOrderConfirmSheet } from '@/components/VoiceOrderConfirmSheet';
 import { VoiceOrderSheet } from '@/components/VoiceOrderSheet';
 import { OnlineOrderRestaurantCard } from '@/components/OnlineOrderRestaurantCard';
 import { OnlineOrderSortBar } from '@/components/OnlineOrderSortBar';
 import { Screen } from '@/components/ui/Screen';
-import { GastroStyles } from '@/constants/theme';
+import { GastroColorsLight } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useGastroTheme } from '@/context/theme-context';
 import { useSession } from '@/context/session-context';
@@ -43,7 +44,7 @@ import {
   shouldShowVoiceProductPrice,
   type VoiceOrderQuery,
 } from '@/lib/parse-voice-order-query';
-import { restaurantDetailHref } from '@/lib/uuid';
+import { onlineOrderDetailHref } from '@/lib/online-order-detail-route';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import {
   ensureGastroPlaybackReady,
@@ -60,6 +61,8 @@ import {
   smartCartProductGroups,
 } from '@/lib/smart-voice-cart';
 import type { RestaurantListItem, VoiceMenuMatch } from '@/lib/types';
+
+const ONLINE_ORDER_PAGE_BG = '#FFFFFF';
 
 type AppliedFilters = {
   slugs: string[];
@@ -484,7 +487,14 @@ export default function OnlineOrderResultsScreen() {
   if (!routeConfig) {
     return (
       <View style={styles.root}>
-        <Stack.Screen options={{ title: 'Sonuçlar' }} />
+        <Stack.Screen
+          options={{
+            headerTitle: gastroCoinStackHeaderTitle('Sonuçlar', 'light'),
+            headerStyle: { backgroundColor: ONLINE_ORDER_PAGE_BG },
+            headerTintColor: GastroColorsLight.text,
+            headerShadowVisible: false,
+          }}
+        />
         <ActivityIndicator color={colors.accent} style={styles.loader} />
       </View>
     );
@@ -494,15 +504,20 @@ export default function OnlineOrderResultsScreen() {
     <View style={styles.root}>
       <Stack.Screen
         options={{
-          title: 'Sonuçlar',
+          headerTitle: gastroCoinStackHeaderTitle('Sonuçlar', 'light'),
           headerBackTitle: 'Geri',
           headerBackVisible: true,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
-          headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.text,
+          headerStyle: { backgroundColor: ONLINE_ORDER_PAGE_BG },
+          headerTintColor: GastroColorsLight.text,
+          headerShadowVisible: false,
         }}
       />
-      <Screen scroll edges={['left', 'right']} style={styles.page}>
+      <Screen
+        scroll
+        edges={['left', 'right']}
+        backgroundColor={ONLINE_ORDER_PAGE_BG}
+        style={styles.page}>
         {voiceQuery ? (
           <View style={styles.voiceResultBanner}>
             <View style={styles.voiceResultTop}>
@@ -546,7 +561,7 @@ export default function OnlineOrderResultsScreen() {
         ) : null}
 
         {!loading && items.length > 0 ? (
-          <OnlineOrderSortBar value={sortMode} onChange={setSortMode} />
+          <OnlineOrderSortBar tone="light" value={sortMode} onChange={setSortMode} />
         ) : null}
 
         <View style={styles.listHeader}>
@@ -594,16 +609,16 @@ export default function OnlineOrderResultsScreen() {
                 restaurant.distance_meters != null
                   ? formatDistanceLabel({ distance_meters: restaurant.distance_meters })
                   : undefined;
-              const href = restaurantDetailHref({
-                id: restaurant.id,
-                restaurant_id: restaurant.id,
-                google_place_id: null,
+              const href = onlineOrderDetailHref(restaurant.id, {
+                distanceMeters: restaurant.distance_meters,
+                googleRating: restaurant.google_rating,
               });
               return (
                 <OnlineOrderRestaurantCard
                   key={restaurant.id}
+                  tone="light"
                   restaurant={restaurant}
-                  href={href ?? `/restaurant/${restaurant.id}`}
+                  href={href}
                   distanceLabel={distanceLabel}
                   googleRating={restaurant.google_rating}
                   voiceMatches={restaurant.voice_menu_matches}
@@ -666,10 +681,11 @@ export default function OnlineOrderResultsScreen() {
 
 function createResultsStyles(
   colors: import('@/constants/theme').GastroColorScheme,
-  shadow: import('@/constants/theme').GastroShadowScheme,
+  _shadow: import('@/constants/theme').GastroShadowScheme,
 ) {
+  const ink = GastroColorsLight;
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: ONLINE_ORDER_PAGE_BG },
   page: { gap: 8, paddingTop: 4 },
   loader: { marginVertical: 24 },
   commandModal: { flex: 1, justifyContent: 'flex-end' },
@@ -685,8 +701,8 @@ function createResultsStyles(
   voiceResultBanner: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,107,53,0.35)',
-    backgroundColor: colors.accentSoft,
+    borderColor: ink.border,
+    backgroundColor: ONLINE_ORDER_PAGE_BG,
     padding: 12,
     gap: 4,
   },
@@ -703,17 +719,17 @@ function createResultsStyles(
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  voiceResultText: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  voiceResultHint: { color: colors.muted, fontSize: 12, lineHeight: 16, marginTop: 4 },
-  voiceResultEdit: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  voiceResultText: { color: ink.text, fontSize: 15, fontWeight: '700' },
+  voiceResultHint: { color: ink.muted, fontSize: 12, lineHeight: 16, marginTop: 4 },
+  voiceResultEdit: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   voiceOrderLink: {
     marginTop: 2,
     alignSelf: 'flex-start',
     paddingVertical: 4,
   },
-  voiceOrderLinkText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  voiceOrderLinkText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   voiceLegendInline: {
-    color: colors.muted,
+    color: ink.muted,
     fontSize: 11,
     lineHeight: 15,
     marginTop: 2,
@@ -721,23 +737,22 @@ function createResultsStyles(
   filterSummary: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.panel,
+    borderColor: ink.border,
+    backgroundColor: ONLINE_ORDER_PAGE_BG,
     padding: 12,
     gap: 4,
-    ...shadow.card,
   },
   filterSummaryLabel: {
-    color: colors.muted,
+    color: ink.muted,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  filterSummaryText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  filterSummaryEdit: { color: colors.gold, fontSize: 13, fontWeight: '700', marginTop: 2 },
+  filterSummaryText: { color: ink.text, fontSize: 14, fontWeight: '600' },
+  filterSummaryEdit: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 2 },
   sectionTitle: {
-    color: colors.text,
+    color: ink.text,
     fontSize: 17,
     fontWeight: '800',
   },
@@ -747,35 +762,34 @@ function createResultsStyles(
     justifyContent: 'space-between',
     gap: 8,
   },
-  resultCount: { color: colors.gold, fontSize: 13, fontWeight: '700' },
+  resultCount: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   list: { gap: 6 },
   error: { color: colors.bad, fontSize: 13 },
   emptyBox: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.panel,
+    borderColor: ink.border,
+    backgroundColor: ONLINE_ORDER_PAGE_BG,
     padding: 16,
     gap: 6,
-    ...shadow.card,
   },
-  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  emptySub: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  emptyTitle: { color: ink.text, fontSize: 16, fontWeight: '700' },
+  emptySub: { color: ink.muted, fontSize: 13, lineHeight: 18 },
   emptyActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   emptyBtn: {
     borderRadius: 12,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.accent,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  emptyBtnText: { color: colors.accentDark, fontWeight: '800', fontSize: 13 },
+  emptyBtnText: { color: ink.text, fontWeight: '800', fontSize: 13 },
   emptyBtnGhost: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: ink.border,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  emptyBtnGhostText: { color: colors.muted, fontWeight: '700', fontSize: 13 },
+  emptyBtnGhostText: { color: ink.muted, fontWeight: '700', fontSize: 13 },
   });
 }

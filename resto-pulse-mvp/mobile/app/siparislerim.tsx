@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
 import { OrderRatingSheet } from '@/components/OrderRatingSheet';
 import { Screen } from '@/components/ui/Screen';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
@@ -135,7 +136,9 @@ export default function SiparislerimScreen() {
 
   if (!user?.email) {
     return (
-      <Screen scroll edges={['left', 'right']}>
+      <>
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Siparişlerim') }} />
+        <Screen scroll edges={['left', 'right']}>
         <View style={styles.hero}>
           <Text style={styles.title}>Siparislerim</Text>
           <Text style={styles.sub}>
@@ -159,11 +162,14 @@ export default function SiparislerimScreen() {
           </Pressable>
         </View>
       </Screen>
+      </>
     );
   }
 
   return (
-    <Screen
+    <>
+      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Siparişlerim') }} />
+      <Screen
       scroll
       edges={['left', 'right']}
       refreshing={refreshing}
@@ -279,6 +285,7 @@ export default function SiparislerimScreen() {
         />
       ) : null}
     </Screen>
+    </>
   );
 }
 

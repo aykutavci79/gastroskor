@@ -13,6 +13,7 @@ import { KeyboardRoot } from '@/lib/KeyboardRoot';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { GastroAnimatedSplash } from '@/components/GastroAnimatedSplash';
+import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
 import { AppMetricsTracker } from '@/components/AppMetricsTracker';
 import { NotificationBootstrap } from '@/components/NotificationBootstrap';
 import { CityProvider } from '@/context/city-context';
@@ -79,7 +80,7 @@ function NavigationShell() {
         <Stack.Screen
           name="siparis-acik"
           options={{
-            title: 'Online Sipariş',
+            headerTitle: gastroCoinStackHeaderTitle('Online Sipariş', 'light'),
             headerBackTitle: 'Geri',
             headerBackVisible: true,
           }}
@@ -87,15 +88,51 @@ function NavigationShell() {
         <Stack.Screen
           name="siparis-acik-sonuclar"
           options={{
-            title: 'Sonuçlar',
+            headerTitle: gastroCoinStackHeaderTitle('Sonuçlar', 'light'),
             headerBackTitle: 'Geri',
             headerBackVisible: true,
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#141414',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="rezervasyon-acik"
+          options={{
+            title: 'Online Rezervasyon',
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#141414',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="online-siparis/[id]"
+          options={{
+            headerTitle: gastroCoinStackHeaderTitle('Sipariş', 'light'),
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#141414',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="hesap/siparis-bilgileri"
+          options={{
+            headerTitle: gastroCoinStackHeaderTitle('Telefon ve adres', 'light'),
+            headerBackTitle: 'Geri',
+            headerBackVisible: true,
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#141414',
+            headerShadowVisible: false,
           }}
         />
         <Stack.Screen
           name="siparislerim"
           options={{
-            title: 'Siparişlerim',
+            headerTitle: gastroCoinStackHeaderTitle('Siparişlerim'),
             headerBackTitle: 'Geri',
             headerBackVisible: true,
           }}
@@ -111,7 +148,7 @@ function NavigationShell() {
         <Stack.Screen
           name="siparis/[id]"
           options={{
-            title: 'Sipariş detayı',
+            headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı'),
             headerBackTitle: 'Geri',
             headerBackVisible: true,
           }}

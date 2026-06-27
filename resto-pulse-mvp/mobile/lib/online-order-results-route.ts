@@ -35,7 +35,7 @@ function routeNumber(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-const SORT_MODES: OnlineOrderSortMode[] = ['gastro_score', 'distance', 'rating', 'popularity'];
+const SORT_MODES: OnlineOrderSortMode[] = ['gastro_score', 'distance', 'rating', 'popularity', 'discount'];
 
 function parseSort(value: string | null): OnlineOrderSortMode | undefined {
   if (!value) return undefined;

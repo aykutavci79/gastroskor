@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
 import { OrderRatingSheet } from '@/components/OrderRatingSheet';
 import { Screen } from '@/components/ui/Screen';
 import { GastroStyles } from '@/constants/theme';
@@ -93,26 +94,34 @@ export default function SiparisDetayScreen() {
 
   if (!user?.email) {
     return (
-      <Screen scroll edges={['left', 'right']}>
+      <>
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Screen scroll edges={['left', 'right']}>
         <Text style={styles.muted}>Siparis detayi icin giris yap.</Text>
         <Pressable style={styles.btnOutline} onPress={() => router.push('/(tabs)/profil' as never)}>
           <Text style={styles.btnOutlineText}>Hesaba git</Text>
         </Pressable>
       </Screen>
+      </>
     );
   }
 
   if (loading) {
     return (
-      <Screen edges={['left', 'right']}>
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} />
-      </Screen>
+      <>
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Screen edges={['left', 'right']}>
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} />
+        </Screen>
+      </>
     );
   }
 
   if (error || !order) {
     return (
-      <Screen scroll edges={['left', 'right']}>
+      <>
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Screen scroll edges={['left', 'right']}>
         <View style={styles.errorCard}>
           <Text style={styles.errorTitle}>Detay acilamadi</Text>
           <Text style={styles.error}>{error ?? 'Siparis bulunamadi.'}</Text>
@@ -121,11 +130,14 @@ export default function SiparisDetayScreen() {
           </Pressable>
         </View>
       </Screen>
+      </>
     );
   }
 
   return (
-    <Screen scroll edges={['left', 'right']}>
+    <>
+      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+      <Screen scroll edges={['left', 'right']}>
       <View style={styles.hero}>
         <View
           style={[
@@ -230,6 +242,7 @@ export default function SiparisDetayScreen() {
         }}
       />
     </Screen>
+    </>
   );
 }
 

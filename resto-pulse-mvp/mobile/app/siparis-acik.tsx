@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -11,12 +11,14 @@ import {
   View,
 } from 'react-native';
 
-import { VoiceOrderSheet } from '@/components/VoiceOrderSheet';
+import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
+import { OnlineOrderVoiceSearchBar } from '@/components/OnlineOrderVoiceSearchBar';
 import { FilterRangeBar } from '@/components/FilterRangeBar';
 import { KitchenCategoryGrid } from '@/components/KitchenCategoryGrid';
 import { Screen } from '@/components/ui/Screen';
 import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
+import { GastroColorsLight } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useGastroTheme } from '@/context/theme-context';
 import { toggleKitchenSlug } from '@/lib/online-order-filter';
@@ -36,9 +38,9 @@ import type { OnlineOrderCategoryOption } from '@/lib/types';
 const MAX_DISTANCE_KM = 10;
 const DEFAULT_DISTANCE_KM = 5;
 const MAX_RATING = 5;
+const ONLINE_ORDER_PAGE_BG = '#FFFFFF';
 
 export default function OnlineOrdersOpenScreen() {
-  const navigation = useNavigation();
   const router = useRouter();
   const routeParams = useLocalSearchParams();
   const { cityLabel, fallbackCoords } = useCity();
@@ -51,9 +53,8 @@ export default function OnlineOrdersOpenScreen() {
   const [draftMaxDistanceKm, setDraftMaxDistanceKm] = useState(DEFAULT_DISTANCE_KM);
   const [draftMinRating, setDraftMinRating] = useState(ONLINE_ORDER_MIN_RATING);
   const [usingFallbackCoords, setUsingFallbackCoords] = useState(false);
-  const [voiceSheetOpen, setVoiceSheetOpen] = useState(false);
-  const [voiceSheetInitialDraft, setVoiceSheetInitialDraft] = useState<string | undefined>();
-  const [siriVoiceLaunch, setSiriVoiceLaunch] = useState(false);
+  const [voiceSearchDraft, setVoiceSearchDraft] = useState<string | undefined>();
+  const [startMicOnSearch, setStartMicOnSearch] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,15 +67,6 @@ export default function OnlineOrdersOpenScreen() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
-      if (!voiceSheetOpen) return;
-      event.preventDefault();
-      setVoiceSheetOpen(false);
-    });
-    return unsubscribe;
-  }, [navigation, voiceSheetOpen]);
 
   const onListele = useCallback(() => {
     router.push(
@@ -90,7 +82,7 @@ export default function OnlineOrdersOpenScreen() {
     (orderText: string) => {
       const query = parseVoiceOrderQuery(orderText);
       if (!query.voiceProduct && !query.isCartOrder) return false;
-      setVoiceSheetOpen(false);
+      setStartMicOnSearch(false);
       router.push(
         buildOnlineOrderVoiceResultsHref(query, {
           minRating: draftMinRating,
@@ -110,12 +102,11 @@ export default function OnlineOrdersOpenScreen() {
         return;
       }
       if (launch.orderText) {
-        setVoiceSheetInitialDraft(launch.orderText);
+        setVoiceSearchDraft(launch.orderText);
       } else {
-        setVoiceSheetInitialDraft(undefined);
+        setVoiceSearchDraft(undefined);
       }
-      setSiriVoiceLaunch(true);
-      setVoiceSheetOpen(true);
+      setStartMicOnSearch(true);
     },
     [navigateVoiceSearch],
   );
@@ -171,11 +162,11 @@ export default function OnlineOrdersOpenScreen() {
         return;
       }
       if (pending.orderText) {
-        setVoiceSheetInitialDraft(pending.orderText);
+        setVoiceSearchDraft(pending.orderText);
       } else {
-        setVoiceSheetInitialDraft(undefined);
+        setVoiceSearchDraft(undefined);
       }
-      setVoiceSheetOpen(true);
+      setStartMicOnSearch(true);
     }, [navigateVoiceSearch]),
   );
 
@@ -183,42 +174,42 @@ export default function OnlineOrdersOpenScreen() {
     <View style={styles.root}>
       <Stack.Screen
         options={{
-          title: 'Online Sipariş',
+          headerTitle: gastroCoinStackHeaderTitle('Online Sipariş', 'light'),
           headerBackTitle: 'Geri',
           headerBackVisible: true,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
-          headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.text,
+          headerStyle: { backgroundColor: ONLINE_ORDER_PAGE_BG },
+          headerTintColor: GastroColorsLight.text,
+          headerShadowVisible: false,
         }}
       />
-      <Screen scroll edges={['left', 'right']} style={styles.page}>
-        <View style={styles.hero}>
-          <Text style={styles.heroKicker}>GastroSkor</Text>
-          <Text style={styles.heroTitle}>Lezzetler kapında</Text>
-          <Text style={styles.heroSub}>Mutfak seç veya Gastro Sipariş komutuyla ara + sipariş ver</Text>
-          <Pressable
-            style={({ pressed }) => [styles.voiceHeroBtn, pressed && styles.voiceHeroBtnPressed]}
-            onPress={() => setVoiceSheetOpen(true)}>
-            <Text style={styles.voiceHeroEmoji}>🎙️</Text>
-            <View style={styles.voiceHeroTextWrap}>
-              <Text style={styles.voiceHeroTitle}>Gastro Sipariş</Text>
-              <Text style={styles.voiceHeroSub}>Yaz veya konuş: “150 TL lahmacun”</Text>
-            </View>
-          </Pressable>
-        </View>
-
-        <View style={styles.filterPanel}>
-          <Text style={styles.sectionTitle}>Mutfaklar</Text>
+      <Screen scroll edges={['left', 'right', 'bottom']} backgroundColor={ONLINE_ORDER_PAGE_BG} style={styles.page}>
+        <OnlineOrderVoiceSearchBar
+          tone="light"
+          initialDraft={voiceSearchDraft}
+          startMicImmediately={startMicOnSearch}
+          onSearch={(query) => {
+            if (!query.voiceProduct && !query.isCartOrder) return;
+            setStartMicOnSearch(false);
+            router.push(
+              buildOnlineOrderVoiceResultsHref(query, {
+                minRating: draftMinRating,
+              }),
+            );
+          }}
+        >
+          <Text style={styles.kitchensTitle}>Mutfaklar</Text>
           <KitchenCategoryGrid
             categories={categories}
             selectedSlugs={draftSlugs}
             onToggle={(slug) => setDraftSlugs((prev) => toggleKitchenSlug(prev, slug))}
             onClear={() => setDraftSlugs([])}
           />
+        </OnlineOrderVoiceSearchBar>
 
-          <View style={styles.divider} />
-
+        <View style={styles.filterPanel}>
           <FilterRangeBar
+            tone="light"
             label="Mesafe"
             value={draftMaxDistanceKm}
             min={0}
@@ -229,6 +220,7 @@ export default function OnlineOrdersOpenScreen() {
           />
 
           <FilterRangeBar
+            tone="light"
             label="Minimum puan"
             value={draftMinRating}
             min={ONLINE_ORDER_MIN_RATING}
@@ -259,27 +251,6 @@ export default function OnlineOrdersOpenScreen() {
           </Text>
         </View>
       </Screen>
-
-      <VoiceOrderSheet
-        visible={voiceSheetOpen}
-        searching={false}
-        initialDraft={voiceSheetInitialDraft}
-        startMicImmediately={siriVoiceLaunch}
-        onClose={() => {
-          setVoiceSheetOpen(false);
-          setVoiceSheetInitialDraft(undefined);
-          setSiriVoiceLaunch(false);
-        }}
-        onSearch={(query) => {
-          if (!query.voiceProduct) return;
-          setVoiceSheetOpen(false);
-          router.push(
-            buildOnlineOrderVoiceResultsHref(query, {
-              minRating: draftMinRating,
-            }),
-          );
-        }}
-      />
     </View>
   );
 }
@@ -289,71 +260,23 @@ function createStyles(
   shadow: import('@/constants/theme').GastroShadowScheme,
 ) {
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: ONLINE_ORDER_PAGE_BG },
   page: { gap: 16 },
-  hero: {
-    borderRadius: 18,
-    padding: 20,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,53,0.35)',
-    gap: 6,
-    ...shadow.card,
-  },
-  heroKicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-  },
-  heroSub: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  voiceHeroBtn: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,107,53,0.55)',
-    backgroundColor: colors.accentSoft,
-    padding: 14,
-  },
-  voiceHeroBtnPressed: { opacity: 0.92 },
-  voiceHeroEmoji: { fontSize: 28 },
-  voiceHeroTextWrap: { flex: 1, gap: 2 },
-  voiceHeroTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  voiceHeroSub: { color: colors.muted, fontSize: 12, lineHeight: 16 },
-  filterPanel: {
-    borderRadius: 18,
-    padding: 16,
-    gap: 14,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.card,
-  },
-  sectionTitle: {
-    color: colors.text,
+  kitchensTitle: {
+    color: GastroColorsLight.text,
     fontSize: 17,
     fontWeight: '800',
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
+  filterPanel: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+    backgroundColor: ONLINE_ORDER_PAGE_BG,
+    borderWidth: 1,
+    borderColor: GastroColorsLight.border,
   },
-  coordsHint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
-  ratingHint: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
+  coordsHint: { color: GastroColorsLight.muted, fontSize: 12, lineHeight: 17 },
+  ratingHint: { color: GastroColorsLight.muted, fontSize: 12, lineHeight: 17, marginTop: -6 },
   listBtn: {
     marginTop: 4,
     backgroundColor: colors.accent,
@@ -365,21 +288,20 @@ function createStyles(
   },
   listBtnPressed: { opacity: 0.92 },
   listBtnText: {
-    color: colors.accentDark,
+    color: GastroColorsLight.text,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
   promptBox: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.panel,
+    borderColor: GastroColorsLight.border,
+    backgroundColor: ONLINE_ORDER_PAGE_BG,
     padding: 16,
     gap: 6,
-    ...shadow.card,
   },
-  promptTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  promptSub: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  promptTitle: { color: GastroColorsLight.text, fontSize: 16, fontWeight: '800' },
+  promptSub: { color: GastroColorsLight.muted, fontSize: 13, lineHeight: 18 },
   });
 }

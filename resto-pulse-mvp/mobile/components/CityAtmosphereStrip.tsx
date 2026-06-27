@@ -12,7 +12,6 @@ type Props = {
   manual?: boolean;
   showTicker?: boolean;
   onCityPress?: () => void;
-  onCityLongPress?: () => void;
 };
 
 const TICKER_MS = 4500;
@@ -23,7 +22,6 @@ export function CityAtmosphereStrip({
   manual = false,
   showTicker = true,
   onCityPress,
-  onCityLongPress,
 }: Props) {
   const theme = getCityAtmosphere(city);
   const palette = theme.darkStrip;
@@ -69,8 +67,7 @@ export function CityAtmosphereStrip({
     <>
       <Pressable
         onPress={onCityPress}
-        onLongPress={onCityLongPress}
-        disabled={!onCityPress && !onCityLongPress}
+        disabled={!onCityPress}
         style={({ pressed }) => [
           styles.wrap,
           {
@@ -80,7 +77,7 @@ export function CityAtmosphereStrip({
           pressed && styles.wrapPressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`${theme.label} — ${statusLine}. Şehir değiştirmek için dokun.`}>
+        accessibilityLabel={`${theme.label} — ${statusLine}. İl seçmek için dokun.`}>
         <View style={styles.row}>
           <View style={styles.left}>
             {!manual ? (
@@ -91,14 +88,18 @@ export function CityAtmosphereStrip({
             <Text style={[styles.city, { color: palette.text }]} numberOfLines={1}>
               {theme.label}
             </Text>
+            <Ionicons name="chevron-down" size={12} color={theme.darkStrip.muted} />
             <Text style={[styles.status, { color: theme.darkStrip.muted }]} numberOfLines={1}>
               · {statusLine}
             </Text>
           </View>
-          <Text style={[styles.hint, { color: theme.darkStrip.muted }]} numberOfLines={1}>
-            {theme.hint}
+          <Text style={[styles.changeHint, { color: palette.accent }]} numberOfLines={1}>
+            İl seç
           </Text>
         </View>
+        <Text style={[styles.hint, { color: theme.darkStrip.muted }]} numberOfLines={1}>
+          {theme.hint}
+        </Text>
 
         {showTicker && tickerLine ? (
           <Pressable
@@ -158,12 +159,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  changeHint: {
+    fontSize: 11,
+    fontWeight: '700',
+    flexShrink: 0,
+  },
   hint: {
-    flexShrink: 1,
     fontSize: 10,
     fontWeight: '600',
-    textAlign: 'right',
-    maxWidth: '46%',
   },
   tickerRow: {
     flexDirection: 'row',

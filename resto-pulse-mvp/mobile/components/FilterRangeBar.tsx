@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 
 import type { GastroColorScheme } from '@/constants/theme';
+import { GastroColorsLight } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   step: number;
   formatValue: (value: number) => string;
   onChange: (value: number) => void;
+  tone?: 'default' | 'light';
 };
 
 function snapValue(raw: number, min: number, max: number, step: number): number {
@@ -21,9 +23,18 @@ function snapValue(raw: number, min: number, max: number, step: number): number 
   return Number(clamped.toFixed(decimals));
 }
 
-export function FilterRangeBar({ label, value, min, max, step, formatValue, onChange }: Props) {
+export function FilterRangeBar({
+  label,
+  value,
+  min,
+  max,
+  step,
+  formatValue,
+  onChange,
+  tone = 'default',
+}: Props) {
   const { colors } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
   const trackRef = useRef<View>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -77,7 +88,8 @@ export function FilterRangeBar({ label, value, min, max, step, formatValue, onCh
 
 const THUMB = 22;
 
-function createStyles(colors: GastroColorScheme) {
+function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
+  const ink = tone === 'light' ? GastroColorsLight : colors;
   return StyleSheet.create({
     wrap: { gap: 8 },
     labelRow: {
@@ -85,7 +97,7 @@ function createStyles(colors: GastroColorScheme) {
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    label: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    label: { color: ink.text, fontSize: 14, fontWeight: '700' },
     value: { color: colors.accent, fontSize: 14, fontWeight: '800' },
     trackHit: {
       height: 36,
@@ -95,7 +107,7 @@ function createStyles(colors: GastroColorScheme) {
     track: {
       height: 8,
       borderRadius: 4,
-      backgroundColor: colors.border,
+      backgroundColor: ink.border,
       overflow: 'hidden',
     },
     fill: {
@@ -115,12 +127,12 @@ function createStyles(colors: GastroColorScheme) {
       borderRadius: THUMB / 2,
       backgroundColor: colors.accent,
       borderWidth: 2,
-      borderColor: colors.panel,
+      borderColor: tone === 'light' ? '#FFFFFF' : colors.panel,
     },
     edgeRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
     },
-    edge: { color: colors.muted, fontSize: 11, fontWeight: '600' },
+    edge: { color: ink.muted, fontSize: 11, fontWeight: '600' },
   });
 }

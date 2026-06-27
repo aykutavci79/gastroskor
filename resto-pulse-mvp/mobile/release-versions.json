@@ -2,10 +2,10 @@
   "_comment": "Play Console / son local production build. Build oncesi guncelle.",
   "play": {
     "track": "Kapali test - Gastroskor-test2",
-    "versionName": "1.0.74",
-    "versionCode": 96,
+    "versionName": "1.0.75",
+    "versionCode": 98,
     "lastUpdated": "2026-06-26",
-    "_note": "USB APK — 81 il secici, GPS canli arama, yoresel lezzet filtre (531 urun)"
+    "_note": "Online Siparis beyaz UI — arama+mutfaklar birlestirildi, filtre/Hazir misin acik tema"
   },
   "appStore": {
     "version": "1.0.50",

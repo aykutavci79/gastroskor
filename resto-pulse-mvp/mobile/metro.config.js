@@ -1,13 +1,42 @@
 const path = require('path');
 
 const { getSentryExpoConfig } = require('@sentry/react-native/metro');
+const exclusionList = require(path.join(
+  __dirname,
+  'node_modules/metro-config/src/defaults/exclusionList.js',
+)).default;
 
 /** @type {import('expo/metro-config').MetroConfig} */
-const config = getSentryExpoConfig(__dirname);
+const config = getSentryExpoConfig(__dirname, {
+  // Dev'de Sentry kaynak middleware'i ilk bundle'i belirgin yavaslatir.
+  enableSourceContextInDevelopment: false,
+});
 
 // SDK 53+ Metro package exports can break some deps on Hermes.
 config.resolver.unstable_enablePackageExports = false;
 config.resolver.sourceExts.push('cjs');
+
+// Lokal Android build sonrasi Metro'nun .gradle / .cxx taramasini engelle (Windows).
+const nativeBuildBlockList = exclusionList([
+  'android/.gradle/.*',
+  'android/app/.cxx/.*',
+  'android/build/.*',
+  'android/.idea/.*',
+  'ios/Pods/.*',
+  'ios/build/.*',
+  '.expo-tmp-.*/.*',
+  '.android-build/.*',
+]);
+
+const existingBlockList = config.resolver.blockList;
+config.resolver.blockList = [
+  nativeBuildBlockList,
+  ...(Array.isArray(existingBlockList)
+    ? existingBlockList
+    : existingBlockList
+      ? [existingBlockList]
+      : []),
+];
 
 // PostHog subpath imports (@posthog/core/surveys) rely on package exports — map manually.
 const posthogCoreDist = path.resolve(__dirname, 'node_modules/@posthog/core/dist');

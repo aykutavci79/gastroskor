@@ -4,12 +4,21 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
+import { GastroColorsLight } from '@/constants/theme';
 import { categoryLabel } from '@/constants/online-order-categories';
 import { useGastroTheme } from '@/context/theme-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
 import { coerceNumber } from '@/lib/coerce-number';
 import { ensureArray } from '@/lib/ensure-array';
 import { formatPriceTl } from '@/lib/format-price-tl';
+import { formatDeliveryFeeLabel, resolveDeliveryFeeTl } from '@/lib/delivery-fee';
+import {
+  formatDiscountBadgeLabel,
+  formatDiscountBadgeSubline,
+  resolveDiscountBandVisual,
+} from '@/lib/discount-band-visual';
+import { resolveRatingBandVisual } from '@/lib/rating-band-visual';
+import { resolveOnlineMenuDiscountPercent } from '@/lib/resolve-online-discount';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
 import type { RestaurantListItem, RestaurantMenuItem, VoiceMenuMatch } from '@/lib/types';
 
@@ -21,6 +30,7 @@ type Props = {
   voiceMatches?: VoiceMenuMatch[];
   voiceLetter?: string | null;
   showProductPrice?: boolean;
+  tone?: 'default' | 'light';
 };
 
 const THUMB = 48;
@@ -40,10 +50,11 @@ export function OnlineOrderRestaurantCard({
   voiceMatches,
   voiceLetter,
   showProductPrice = false,
+  tone = 'default',
 }: Props) {
   const router = useRouter();
   const { colors, shadow } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
+  const styles = useMemo(() => createStyles(colors, shadow, tone), [colors, shadow, tone]);
   const cover = resolveCardCoverUrl(restaurant);
   const menuPreview = ensureArray<RestaurantMenuItem>(restaurant.menu_preview);
   const visual = resolveCategoryVisual({
@@ -56,6 +67,10 @@ export function OnlineOrderRestaurantCard({
   const rating = coerceNumber(
     lezzetAvg ?? googleRating ?? restaurant.google_rating ?? restaurant.avg_rating,
   );
+  const ratingVisual = resolveRatingBandVisual(rating);
+  const ratingReviewCount = orderRatings?.review_count ?? restaurant.google_review_count ?? null;
+  const ratingUsesLezzet = lezzetAvg != null && lezzetAvg > 0;
+
   const deliverySubline =
     orderRatings && orderRatings.review_count > 0
       ? [
@@ -66,13 +81,22 @@ export function OnlineOrderRestaurantCard({
           .join(' · ')
       : null;
 
+  const hoursLabel = restaurant.online_order_hours_label?.trim() ?? null;
+  const orderOpenNow = restaurant.online_orders_open_now ?? restaurant.online_orders_available ?? true;
+
+  const promo = restaurant.promo;
+  const offerText = promo?.direct_order_text?.trim() ?? '';
+  const discountPercent = resolveOnlineMenuDiscountPercent(restaurant);
+  const discountVisual = resolveDiscountBandVisual(discountPercent);
+  const showOfferChip = offerText.length > 0 && discountVisual == null;
+
+  const deliveryFeeTl =
+    restaurant.delivery_fee_tl ??
+    resolveDeliveryFeeTl(restaurant.distance_meters ?? null);
+
   const metaParts = [
-    rating != null && rating > 0
-      ? lezzetAvg != null
-        ? `★ ${rating.toFixed(1)} lezzet`
-        : `★ ${rating.toFixed(1)}`
-      : null,
     distanceLabel ?? null,
+    deliveryFeeTl != null ? formatDeliveryFeeLabel(deliveryFeeTl) : null,
   ].filter(Boolean);
 
   const voiceList = ensureArray<VoiceMenuMatch>(voiceMatches);
@@ -88,7 +112,14 @@ export function OnlineOrderRestaurantCard({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [
+        styles.card,
+        discountVisual != null && {
+          borderLeftWidth: 3,
+          borderLeftColor: discountVisual.stripe,
+        },
+        pressed && styles.cardPressed,
+      ]}
       onPress={openOrder}
       android_ripple={{ color: colors.overlayRipple }}>
       <View style={styles.thumbWrap}>
@@ -115,6 +146,18 @@ export function OnlineOrderRestaurantCard({
           </Text>
         ) : null}
 
+        {!orderOpenNow && hoursLabel ? (
+          <Text style={styles.closedLine} numberOfLines={2}>
+            {hoursLabel}
+          </Text>
+        ) : null}
+
+        {ratingUsesLezzet ? (
+          <Text style={styles.lezzetHint} numberOfLines={1}>
+            Sipariş lezzet puanı
+          </Text>
+        ) : null}
+
         {deliverySubline ? (
           <Text style={styles.subLine} numberOfLines={1}>
             {deliverySubline}
@@ -130,38 +173,100 @@ export function OnlineOrderRestaurantCard({
             {kitchens}
           </Text>
         ) : null}
+
+        {discountVisual && discountPercent != null ? (
+          <View style={styles.chipRow}>
+            <View
+              style={[
+                styles.discountBadge,
+                {
+                  backgroundColor: discountVisual.background,
+                  borderColor: discountVisual.border,
+                },
+              ]}>
+              <Text
+                style={[styles.discountBadgeMain, { color: discountVisual.text }]}
+                numberOfLines={1}>
+                {formatDiscountBadgeLabel(discountPercent)}
+              </Text>
+              <Text
+                style={[styles.discountBadgeSub, { color: discountVisual.text }]}
+                numberOfLines={1}>
+                {formatDiscountBadgeSubline(discountPercent)}
+              </Text>
+            </View>
+          </View>
+        ) : showOfferChip ? (
+          <View style={styles.chipRow}>
+            <View style={styles.chipOffer}>
+              <Text style={styles.chipOfferText} numberOfLines={1}>
+                {offerText}
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
-      <Text style={styles.cta}>Sipariş →</Text>
+      <View style={styles.trailing}>
+        {ratingVisual && rating != null && rating > 0 ? (
+          <View
+            style={[
+              styles.ratingPill,
+              {
+                backgroundColor: ratingVisual.softBackground,
+                borderColor: ratingVisual.accent,
+              },
+            ]}>
+            <Text style={[styles.ratingPillText, { color: ratingVisual.accent }]}>
+              <Text style={[styles.ratingStar, { color: ratingVisual.accent }]}>★ </Text>
+              {rating.toFixed(1)}
+              {ratingReviewCount != null && ratingReviewCount > 0 ? (
+                <Text style={styles.ratingCount}>
+                  {' '}
+                  ({ratingReviewCount >= 500 ? '500+' : ratingReviewCount.toLocaleString('tr-TR')})
+                </Text>
+              ) : null}
+            </Text>
+          </View>
+        ) : null}
+        <Text style={styles.cta}>Sipariş →</Text>
+      </View>
     </Pressable>
   );
 }
 
-function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
+function createStyles(
+  colors: GastroColorScheme,
+  shadow: GastroShadowScheme,
+  tone: 'default' | 'light',
+) {
+  const ink = tone === 'light' ? GastroColorsLight : colors;
+  const light = tone === 'light';
   return StyleSheet.create({
     card: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 8,
-      paddingVertical: 8,
+      paddingVertical: 10,
       paddingHorizontal: 10,
       borderRadius: 12,
-      backgroundColor: colors.panel,
+      backgroundColor: light ? '#FFFFFF' : colors.panel,
       borderWidth: 1,
-      borderColor: colors.border,
-      ...shadow.card,
+      borderColor: ink.border,
+      ...(light ? {} : shadow.card),
     },
     cardPressed: {
       opacity: 0.92,
     },
     thumbWrap: {
       flexShrink: 0,
+      marginTop: 2,
     },
     thumb: {
       width: THUMB,
       height: THUMB,
       borderRadius: 8,
-      backgroundColor: colors.input,
+      backgroundColor: ink.input,
     },
     thumbFallback: {
       alignItems: 'center',
@@ -179,38 +284,110 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       gap: 6,
     },
     letter: {
-      color: colors.gold,
+      color: colors.accent,
       fontSize: 13,
       fontWeight: '900',
       flexShrink: 0,
     },
     name: {
       flex: 1,
-      color: colors.text,
+      color: ink.text,
       fontSize: 13,
       fontWeight: '800',
       lineHeight: 17,
     },
     metaLine: {
-      color: colors.muted,
+      color: ink.muted,
       fontSize: 11,
       fontWeight: '600',
     },
+    closedLine: {
+      color: '#B45309',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    lezzetHint: {
+      color: ink.muted,
+      fontSize: 10,
+      fontWeight: '600',
+    },
     subLine: {
-      color: colors.muted,
+      color: ink.muted,
       fontSize: 11,
       fontWeight: '600',
     },
     productPriceLine: {
-      color: colors.gold,
+      color: light ? colors.accent : colors.gold,
       fontSize: 11,
       fontWeight: '700',
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 4,
+    },
+    chipOffer: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: light ? 'rgba(217, 119, 6, 0.35)' : 'rgba(255, 183, 3, 0.4)',
+      backgroundColor: light ? 'rgba(255, 183, 3, 0.18)' : 'rgba(255, 183, 3, 0.15)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      flexShrink: 1,
+      maxWidth: '100%',
+    },
+    chipOfferText: {
+      color: light ? GastroColorsLight.amber : colors.gold,
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    discountBadge: {
+      borderRadius: 8,
+      borderWidth: 1,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      flexShrink: 1,
+      maxWidth: '100%',
+      gap: 1,
+    },
+    discountBadgeMain: {
+      fontSize: 11,
+      fontWeight: '900',
+    },
+    discountBadgeSub: {
+      fontSize: 9,
+      fontWeight: '700',
+      opacity: 0.92,
+    },
+    trailing: {
+      alignItems: 'flex-end',
+      gap: 8,
+      flexShrink: 0,
+      paddingTop: 2,
+    },
+    ratingPill: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+    },
+    ratingPillText: {
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    ratingStar: {
+      fontWeight: '900',
+    },
+    ratingCount: {
+      color: ink.muted,
+      fontWeight: '600',
+      fontSize: 10,
     },
     cta: {
       color: colors.accent,
       fontSize: 12,
       fontWeight: '800',
-      flexShrink: 0,
     },
   });
 }

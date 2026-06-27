@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { GastroColorScheme } from '@/constants/theme';
+import { GastroColorsLight } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
 import { gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
@@ -12,11 +13,12 @@ import {
 type Props = {
   value: OnlineOrderSortMode;
   onChange: (mode: OnlineOrderSortMode) => void;
+  tone?: 'default' | 'light';
 };
 
-export function OnlineOrderSortBar({ value, onChange }: Props) {
+export function OnlineOrderSortBar({ value, onChange, tone = 'default' }: Props) {
   const { colors } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
 
   return (
     <View style={styles.wrap}>
@@ -45,24 +47,26 @@ export function OnlineOrderSortBar({ value, onChange }: Props) {
   );
 }
 
-function createStyles(colors: GastroColorScheme) {
+function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
+  const ink = tone === 'light' ? GastroColorsLight : colors;
+  const light = tone === 'light';
   return StyleSheet.create({
     wrap: { gap: 8 },
-    label: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    label: { color: ink.muted, fontSize: 12, fontWeight: '700' },
     row: { gap: 8 },
     chip: {
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: ink.border,
       paddingHorizontal: 14,
       paddingVertical: 8,
-      backgroundColor: colors.panel,
+      backgroundColor: light ? '#FFFFFF' : colors.panel,
     },
     chipOn: {
       borderColor: colors.accent,
-      backgroundColor: colors.accentSoft,
+      backgroundColor: light ? 'rgba(255, 107, 53, 0.12)' : colors.accentSoft,
     },
-    chipText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+    chipText: { color: ink.muted, fontSize: 13, fontWeight: '700' },
     chipTextOn: { color: colors.accent, fontWeight: '800' },
   });
 }

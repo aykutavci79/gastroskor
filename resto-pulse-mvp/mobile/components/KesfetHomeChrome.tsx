@@ -6,6 +6,7 @@ import type { RefObject } from 'react';
 import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
 import { CityPickerModal } from '@/components/CityPickerModal';
 import { DmAvatarButton } from '@/components/DmAvatarButton';
+import { KesfetSearchModelPicker, type KesfetSearchModel } from '@/components/KesfetSearchModelPicker';
 import { OrdersHeaderButton } from '@/components/OrdersHeaderButton';
 import type { GastroColorScheme } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
@@ -21,6 +22,9 @@ type Props = {
   searchInputRef?: RefObject<TextInput | null>;
   searchFocused?: boolean;
   showReviewTicker?: boolean;
+  searchModel?: KesfetSearchModel;
+  onSearchModelChange?: (value: KesfetSearchModel) => void;
+  canRunSocial?: boolean;
 };
 
 export function KesfetHomeChrome({
@@ -33,6 +37,9 @@ export function KesfetHomeChrome({
   searchInputRef,
   searchFocused = false,
   showReviewTicker = true,
+  searchModel = 'gastroskor',
+  onSearchModelChange,
+  canRunSocial = false,
 }: Props) {
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
@@ -43,11 +50,7 @@ export function KesfetHomeChrome({
   const statusLine = manual ? 'Elle seçili' : 'Konumuna göre';
 
   function handleCityPress() {
-    if (manual) {
-      setPickerOpen(true);
-      return;
-    }
-    void refreshFromLocation();
+    setPickerOpen(true);
   }
 
   return (
@@ -72,6 +75,13 @@ export function KesfetHomeChrome({
       <View style={[styles.searchCard, searchFocused && styles.searchCardFocused]}>
         <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
         <Text style={styles.searchSub}>Google Haritalar ile anlık mekan araması</Text>
+        {onSearchModelChange ? (
+          <KesfetSearchModelPicker
+            value={searchModel}
+            onChange={onSearchModelChange}
+            canRunSocial={canRunSocial}
+          />
+        ) : null}
         <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
           <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
@@ -115,7 +125,6 @@ export function KesfetHomeChrome({
         manual={manual}
         showTicker={showReviewTicker}
         onCityPress={handleCityPress}
-        onCityLongPress={() => setPickerOpen(true)}
       />
     </View>
   );
