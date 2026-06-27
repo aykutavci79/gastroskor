@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GastroSkor — Online rezervasyon banner inceleme</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f0f0f;
+      --panel: #1a1a1a;
+      --text: #f5f5f5;
+      --muted: #a3a3a3;
+      --gold: #f59e0b;
+      --purple: #a78bfa;
+      --orange: #ff6b35;
+      --border: #333;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.15rem; }
+    .sub { color: var(--muted); font-size: 0.85rem; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 390px) 1fr;
+      gap: 20px;
+      padding: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .phone {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: #111;
+      padding: 12px;
+      display: grid;
+      gap: 3px;
+      min-height: 520px;
+    }
+    .phone-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .banner {
+      position: relative;
+      border-radius: 11px;
+      overflow: hidden;
+      min-height: 58px;
+      flex: 1;
+      background: #141414;
+    }
+    .banner-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      min-height: 0;
+    }
+    .banner-row { flex: 1; min-height: 58px; display: flex; }
+    .banner img.layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .banner img.layer.hidden { opacity: 0; }
+    .banner img.layer.visible { opacity: 1; }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 11px;
+      gap: 8px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.35) 100%);
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .pill-order { background: rgba(255,107,53,0.94); }
+    .pill-res { background: rgba(88,28,135,0.92); }
+    .pill-reg { border: 1px solid rgba(245,158,11,0.55); color: var(--gold); background: rgba(0,0,0,0.35); }
+    .title { font-size: 17px; font-weight: 800; text-shadow: 0 1px 5px rgba(0,0,0,0.75); }
+    .hint { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.92); text-shadow: 0 1px 5px rgba(0,0,0,0.75); }
+    .accent { color: var(--gold); font-weight: 900; }
+    .border-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 11px;
+      pointer-events: none;
+    }
+    .border-order { border: 1px solid rgba(255,107,53,0.5); }
+    .border-res { border: 1px solid rgba(167,139,250,0.5); }
+    .border-reg { border: 1px solid rgba(245,158,11,0.45); }
+    .scene-tag {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.62);
+      border: 1px solid rgba(167,139,250,0.45);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .thumb { aspect-ratio: 4/3; background: #111; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .body { padding: 10px 12px 12px; display: grid; gap: 4px; }
+    .name { font-weight: 700; font-size: 0.95rem; }
+    .meta { color: var(--muted); font-size: 0.75rem; }
+    .ok { color: #22c55e; font-size: 0.72rem; font-weight: 700; }
+    .foodcast {
+      border-radius: 11px;
+      border: 1px dashed var(--border);
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Online rezervasyon — Keşfet vitrin</h1>
+    <p class="sub">5 slayt · alkolsüz masa · şömine / şamdan / lüks salon. Sol: mobil vitrin sırası. Sağ: ham görseller.</p>
+  </header>
+  <main>
+    <section>
+      <div class="phone-label">Keşfet vitrin (mobil sıra)</div>
+      <div class="phone">
+        <div class="banner-row">
+          <div class="banner border-glow border-order" style="width:100%">
+            <div class="overlay">
+              <div>
+                <span class="pill pill-order">Online Sipariş</span>
+                <div class="title">Tek Tıkla <span class="accent">Liste</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="banner-row">
+          <div class="banner border-glow border-res" id="res-banner" style="width:100%">
+            <img class="layer visible" id="res-a" alt="" />
+            <img class="layer hidden" id="res-b" alt="" />
+            <span class="scene-tag" id="res-tag">—</span>
+            <div class="overlay">
+              <div>
+                <span class="pill pill-res">Online Rezervasyon</span>
+                <div class="title">Tek Tıkla <span class="accent">Masa</span></div>
+                <div class="hint">Masa seç · anında talep</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="banner-row">
+          <div class="banner border-glow border-reg" style="width:100%">
+            <div class="overlay">
+              <div>
+                <span class="pill pill-reg">Yöresel Lezzetler</span>
+                <div class="title">Bursa · tescilli ürünler</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="banner-row">
+          <div class="foodcast">FoodCast şeridi</div>
+        </div>
+      </div>
+    </section>
+    <section>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+  <script>
+    const SLIDES = [
+      { file: 'online-reservation-01-chandelier-fireplace.webp', label: 'Şömineli salon', note: 'Şamdan + şömine · su bardakları' },
+      { file: 'online-reservation-02-candlelit-private.webp', label: 'Mum ışığı', note: 'Boş kadeh · su sürahi' },
+      { file: 'online-reservation-03-grand-hall.webp', label: 'Avlu salon', note: 'Geniş salon · altın ışık' },
+      { file: 'online-reservation-04-terrace-dusk.webp', label: 'Teras akşam', note: 'Boş bardak · su şişesi' },
+      { file: 'online-reservation-05-booth-fireplace.webp', label: 'Lüks köşe', note: 'Köşe loca · şömine' },
+    ];
+    const base = '/images/online-reservation/';
+    const grid = document.getElementById('grid');
+    for (const row of SLIDES) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="thumb"><img src="${base}${row.file}" alt="${row.label}" loading="lazy" /></div>
+        <div class="body">
+          <div class="name">${row.label}</div>
+          <div class="meta">${row.note}</div>
+          <div class="ok">✓ Alkolsüz masa</div>
+        </div>`;
+      grid.appendChild(card);
+    }
+    let idx = 0;
+    let frontA = true;
+    const imgA = document.getElementById('res-a');
+    const imgB = document.getElementById('res-b');
+    const tag = document.getElementById('res-tag');
+    function show(i) {
+      const row = SLIDES[i];
+      tag.textContent = row.label;
+      if (frontA) {
+        imgB.src = base + row.file;
+        imgB.classList.replace('hidden', 'visible');
+        imgA.classList.replace('visible', 'hidden');
+      } else {
+        imgA.src = base + row.file;
+        imgA.classList.replace('hidden', 'visible');
+        imgB.classList.replace('visible', 'hidden');
+      }
+      frontA = !frontA;
+    }
+    show(0);
+    setInterval(() => {
+      idx = (idx + 1) % SLIDES.length;
+      show(idx);
+    }, 5200);
+  </script>
+</body>
+</html>

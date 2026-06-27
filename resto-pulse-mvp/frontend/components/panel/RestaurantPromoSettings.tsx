@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
-import { VoiceProductCatalogPicker } from '@/components/panel/VoiceProductCatalogPicker';
+import { OnlineOrderHoursEditor, defaultOnlineOrderHours, type OnlineOrderHours } from '@/components/panel/OnlineOrderHoursEditor';
 import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
 import { ONLINE_ORDER_CATEGORIES } from '@/lib/online-order-categories';
@@ -20,6 +20,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const [settings, setSettings] = useState<RestaurantPromoSettings | null>(null);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
   const [onlineOrdersEnabled, setOnlineOrdersEnabled] = useState(false);
+  const [onlineOrderHours, setOnlineOrderHours] = useState<OnlineOrderHours | null>(null);
   const [orderCategoryTags, setOrderCategoryTags] = useState<string[]>([]);
   const [directOrderText, setDirectOrderText] = useState('');
   const [directOrderPhone, setDirectOrderPhone] = useState('');
@@ -43,6 +44,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setSettings(data);
         setHasOwnCourier(data.has_own_courier);
         setOnlineOrdersEnabled(data.online_orders_enabled);
+        setOnlineOrderHours(data.online_order_hours ?? defaultOnlineOrderHours());
         setOrderCategoryTags(data.online_order_category_tags ?? []);
         setDirectOrderText(data.direct_order_text ?? '');
         setDirectOrderPhone(data.direct_order_phone ?? '');
@@ -67,6 +69,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         user_email: userEmail,
         has_own_courier: hasOwnCourier,
         online_orders_enabled: hasOwnCourier ? onlineOrdersEnabled : false,
+        online_order_hours: hasOwnCourier ? onlineOrderHours : null,
         online_order_category_tags: hasOwnCourier ? orderCategoryTags : [],
         direct_order_text: directOrderText.trim() || null,
         direct_order_phone: directOrderPhone.trim() || null,
@@ -260,7 +263,13 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
               Online siparis al (uygulamada menu tablosu, telefon ile)
             </label>
             {onlineOrdersEnabled ? (
-              <div>
+              <div className="space-y-4">
+                <OnlineOrderHoursEditor
+                  value={onlineOrderHours}
+                  onChange={setOnlineOrderHours}
+                  required
+                />
+                <div>
                 <p className="text-xs text-content-muted">
                   Musteri listesinde filtre icin en az bir mutfak secin (zorunlu).
                 </p>
