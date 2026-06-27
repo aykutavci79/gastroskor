@@ -479,10 +479,11 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
         ownership.promo_menu_image_url = (payload.menu_image_url or "").strip() or None
 
     if subscription_allows_promo(ownership.subscription):
-        ownership.promo_has_own_courier = payload.has_own_courier
-        if not payload.has_own_courier:
+        if "has_own_courier" in fields:
+            ownership.promo_has_own_courier = payload.has_own_courier
+        if not ownership.promo_has_own_courier:
             ownership.online_orders_enabled = False
-        elif payload.online_orders_enabled is not None:
+        elif "online_orders_enabled" in fields and payload.online_orders_enabled is not None:
             ownership.online_orders_enabled = payload.online_orders_enabled
         if "online_order_category_tags" in fields:
             ownership.online_order_category_tags = normalize_category_slugs(payload.online_order_category_tags)
@@ -494,10 +495,14 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
                     detail="Online siparis acikken en az bir mutfak secmelisiniz (or. doner, pizza).",
                 )
             ownership.online_order_category_tags = tags
-        ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
-        ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
-        ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
-        ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
+        if "direct_order_text" in fields:
+            ownership.promo_direct_order_text = (payload.direct_order_text or "").strip() or None
+        if "direct_order_phone" in fields:
+            ownership.promo_direct_order_phone = (payload.direct_order_phone or "").strip() or None
+        if "direct_order_whatsapp" in fields:
+            ownership.promo_direct_order_whatsapp = (payload.direct_order_whatsapp or "").strip() or None
+        if "direct_order_url" in fields:
+            ownership.promo_direct_order_url = (payload.direct_order_url or "").strip() or None
         if "instagram" in fields:
             ownership.promo_instagram = normalize_instagram(payload.instagram) if payload.instagram else None
 
