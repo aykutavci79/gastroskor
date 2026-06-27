@@ -54,6 +54,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
   const [layout, setLayout] = useState<FloorPlanLayout>(emptyLayout());
   const [backgroundUrl, setBackgroundUrl] = useState('');
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +75,7 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
   }, [userEmail]);
 
   const selectedTable = layout.tables.find((t) => t.id === selectedTableId) ?? null;
+  const selectedPoi = layout.pois.find((p) => p.id === selectedPoiId) ?? null;
 
   const pointerToNorm = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -104,27 +106,67 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
     };
     setLayout((prev) => ({ ...prev, tables: [...prev.tables, next] }));
     setSelectedTableId(id);
+    setSelectedPoiId(null);
   }
 
   function addPoiAt(x: number, y: number) {
+    const id = newPoiId();
     const next: FloorPlanPoi = {
-      id: newPoiId(),
+      id,
       kind: 'entrance',
       label: 'Giris',
       x,
       y,
     };
     setLayout((prev) => ({ ...prev, pois: [...prev.pois, next] }));
+    setSelectedPoiId(id);
+    setSelectedTableId(null);
+  }
+
+  function removeTable(id: string) {
+    setLayout((prev) => ({
+      ...prev,
+      tables: prev.tables.filter((t) => t.id !== id),
+    }));
+    setSelectedTableId((current) => (current === id ? null : current));
+  }
+
+  function removePoi(id: string) {
+    setLayout((prev) => ({
+      ...prev,
+      pois: prev.pois.filter((p) => p.id !== id),
+    }));
+    setSelectedPoiId((current) => (current === id ? null : current));
+  }
+
+  function clearAllTables() {
+    if (!layout.tables.length) return;
+    if (!window.confirm(`${layout.tables.length} masayi silmek istediginize emin misiniz?`)) return;
+    setLayout((prev) => ({ ...prev, tables: [] }));
+    setSelectedTableId(null);
   }
 
   function removeSelected() {
-    if (!selectedTableId) return;
-    setLayout((prev) => ({
-      ...prev,
-      tables: prev.tables.filter((t) => t.id !== selectedTableId),
-    }));
-    setSelectedTableId(null);
+    if (selectedTableId) removeTable(selectedTableId);
+    else if (selectedPoiId) removePoi(selectedPoiId);
   }
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (selectedTableId) {
+        event.preventDefault();
+        removeTable(selectedTableId);
+      } else if (selectedPoiId) {
+        event.preventDefault();
+        removePoi(selectedPoiId);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedPoiId, selectedTableId]);
 
   async function onSaveDraft() {
     setSaving(true);
@@ -230,27 +272,43 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
             className="relative aspect-[4/3] w-full touch-none"
             onClick={(e) => {
               if (!subscriptionActive || dragId) return;
+              if (e.target !== e.currentTarget) return;
+              setSelectedTableId(null);
+              setSelectedPoiId(null);
               const { x, y } = pointerToNorm(e.clientX, e.clientY);
               if (e.shiftKey) addPoiAt(x, y);
               else addTableAt(x, y);
             }}
           >
-            {layout.pois.map((poi) => (
-              <g key={poi.id}>
-                <circle cx={poi.x} cy={poi.y} r={0.018} fill="#a78bfa" />
+            {layout.pois.map((poi) => {
+              const active = poi.id === selectedPoiId;
+              return (
+              <g
+                key={poi.id}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setSelectedPoiId(poi.id);
+                  setSelectedTableId(null);
+                }}
+              >
+                <circle cx={poi.x} cy={poi.y} r={0.018} fill={active ? '#c4b5fd' : '#a78bfa'} />
                 <text x={poi.x + 0.02} y={poi.y} fontSize={0.028} fill="#e9d5ff">
                   {poi.label}
                 </text>
               </g>
-            ))}
+            );
+            })}
             {layout.tables.map((table) => {
               const active = table.id === selectedTableId;
               return (
                 <g
                   key={table.id}
+                  onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     setSelectedTableId(table.id);
+                    setSelectedPoiId(null);
                     setDragId(table.id);
                     (e.target as Element).setPointerCapture(e.pointerId);
                   }}
@@ -289,15 +347,39 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
             })}
           </svg>
           <p className="border-t border-border px-3 py-2 text-xs text-content-muted">
-            Tik = masa ekle · Shift+tik = POI · Surukle = konum
+            Bos alana tik = masa ekle · Shift+tik = POI · Surukle = konum · Secili oge: Delete veya sag panel
           </p>
         </div>
 
         <aside className="rounded-xl border border-border bg-surface-card p-4 text-sm">
-          <h3 className="font-medium text-content">Secili masa</h3>
-          {!selectedTable ? (
-            <p className="mt-2 text-content-muted">Duzenlemek icin bir masa secin.</p>
-          ) : (
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-medium text-content">Secim</h3>
+            {layout.tables.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearAllTables}
+                className="text-xs text-rose-300 hover:text-rose-100"
+              >
+                Tum masalari sil
+              </button>
+            ) : null}
+          </div>
+          {!selectedTable && !selectedPoi ? (
+            <p className="mt-2 text-content-muted">Duzenlemek icin bir masa veya POI secin.</p>
+          ) : selectedPoi ? (
+            <div className="mt-3 space-y-3">
+              <p className="text-content">
+                POI: <strong>{selectedPoi.label}</strong>
+              </p>
+              <button
+                type="button"
+                onClick={removeSelected}
+                className="w-full rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
+              >
+                POI sil
+              </button>
+            </div>
+          ) : selectedTable ? (
             <div className="mt-3 space-y-3">
               <label className="block text-content-muted">
                 Etiket
@@ -354,12 +436,12 @@ export function FloorPlanEditor({ userEmail, subscriptionActive }: Props) {
               <button
                 type="button"
                 onClick={removeSelected}
-                className="text-xs text-rose-300 hover:text-rose-200"
+                className="w-full rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-200 hover:bg-rose-500/20"
               >
                 Masayi sil
               </button>
             </div>
-          )}
+          ) : null}
           <div className="mt-4 border-t border-border pt-3 text-xs text-content-muted">
             POI: {layout.pois.length} · Masa: {layout.tables.length}
           </div>
