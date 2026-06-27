@@ -37,6 +37,11 @@ export function RestaurantDashboard() {
       .finally(() => setLoading(false));
   }, [userEmail, access?.can_access_panel]);
 
+  const refreshDashboard = useCallback(() => {
+    if (!userEmail) return;
+    void getPanelDashboard(userEmail).then(setData);
+  }, [userEmail]);
+
   async function onAnalyzeCompetitor(competitorId: string) {
     if (!userEmail) return;
     setAnalyzingId(competitorId);
@@ -97,11 +102,6 @@ export function RestaurantDashboard() {
     google_business,
     restaurant,
   } = data;
-
-  const refreshDashboard = useCallback(() => {
-    if (!userEmail) return;
-    void getPanelDashboard(userEmail).then(setData);
-  }, [userEmail]);
 
   function refreshQuota(next: typeof ai_quota) {
     setData((prev) => (prev ? { ...prev, ai_quota: next } : prev));
