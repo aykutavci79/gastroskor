@@ -42,15 +42,19 @@ def _sync_tester_showcase(
         ownership.promo_menu_image_url = None
     if seed.enable_online_reservations:
         ownership.online_reservations_enabled = True
-    if seed.floor_plan_background_url:
+    if seed.showcase_gallery_urls:
+        plan = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
+        # Vitrin fotolari kart karuseli icin; salon plani haritasinda kullanma.
+        plan.background_url = seed.floor_plan_background_url
+        now = datetime.now(timezone.utc)
+        plan.draft_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
+        plan.published_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
+        plan.published_at = now
+        plan.updated_at = now
+        db.add(plan)
+    elif seed.floor_plan_background_url:
         plan = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
         plan.background_url = seed.floor_plan_background_url
-        if seed.enable_online_reservations and not plan.published_layout:
-            now = datetime.now(timezone.utc)
-            plan.draft_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
-            plan.published_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
-            plan.published_at = now
-            plan.updated_at = now
         db.add(plan)
 
 
