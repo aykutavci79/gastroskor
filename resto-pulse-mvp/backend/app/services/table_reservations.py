@@ -27,6 +27,7 @@ from app.services.restaurant_orders import normalize_phone, OrderError
 from app.services.restaurant_promo import subscription_allows_promo
 
 CUSTOMER_CONFIRM_HOURS = 24
+DEFAULT_SEATING_DURATION_MINUTES = 180
 DEFAULT_ONLINE_RESERVATION_MAX_PARTY = 10
 PANEL_ONLINE_RESERVATION_MAX_PARTY_CAP = 100
 ACTIVE_STATUSES = (
@@ -136,6 +137,63 @@ def get_published_plan(db: Session, *, restaurant_id: UUID) -> RestaurantFloorPl
     return row
 
 
+def _ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+def seating_duration() -> timedelta:
+    return timedelta(minutes=DEFAULT_SEATING_DURATION_MINUTES)
+
+
+def reservation_blocks_slot(
+    reservation_start: datetime,
+    slot: datetime,
+    *,
+    duration_minutes: int = DEFAULT_SEATING_DURATION_MINUTES,
+) -> bool:
+    """True when slot falls inside [reservation_start, reservation_start + duration)."""
+    start = _ensure_utc(reservation_start)
+    point = _ensure_utc(slot)
+    end = start + timedelta(minutes=duration_minutes)
+    return start <= point < end
+
+
+def reservations_overlap(
+    start_a: datetime,
+    start_b: datetime,
+    *,
+    duration_minutes: int = DEFAULT_SEATING_DURATION_MINUTES,
+) -> bool:
+    """True when two half-open seating windows share any time."""
+    duration = timedelta(minutes=duration_minutes)
+    a = _ensure_utc(start_a)
+    b = _ensure_utc(start_b)
+    return a < b + duration and b < a + duration
+
+
+def _active_reservations_near(
+    db: Session,
+    *,
+    restaurant_id: UUID,
+    center: datetime,
+    table_id: str | None = None,
+) -> list[RestaurantTableReservation]:
+    """Fetch active reservations whose start may overlap a slot or new booking."""
+    center = _ensure_utc(center)
+    duration = seating_duration()
+    query = select(RestaurantTableReservation).where(
+        RestaurantTableReservation.restaurant_id == restaurant_id,
+        RestaurantTableReservation.status.in_(ACTIVE_STATUSES),
+        RestaurantTableReservation.reserved_at > center - duration,
+        RestaurantTableReservation.reserved_at < center + duration,
+    )
+    if table_id is not None:
+        query = query.where(RestaurantTableReservation.table_id == table_id)
+    return list(db.scalars(query).all())
+
+
 def table_is_reserved(
     db: Session,
     *,
@@ -143,15 +201,13 @@ def table_is_reserved(
     table_id: str,
     reserved_at: datetime,
 ) -> bool:
-    existing = db.scalar(
-        select(RestaurantTableReservation.id).where(
-            RestaurantTableReservation.restaurant_id == restaurant_id,
-            RestaurantTableReservation.table_id == table_id,
-            RestaurantTableReservation.reserved_at == reserved_at,
-            RestaurantTableReservation.status.in_(ACTIVE_STATUSES),
-        )
-    )
-    return existing is not None
+    slot = _ensure_utc(reserved_at)
+    for row in _active_reservations_near(
+        db, restaurant_id=restaurant_id, center=slot, table_id=table_id
+    ):
+        if reservation_blocks_slot(row.reserved_at, slot):
+            return True
+    return False
 
 
 def reservation_to_dict(row: RestaurantTableReservation, *, restaurant_name: str | None = None) -> dict:
@@ -359,14 +415,12 @@ def reserved_table_ids_for_slot(
     restaurant_id: UUID,
     reserved_at: datetime,
 ) -> set[str]:
-    rows = db.scalars(
-        select(RestaurantTableReservation.table_id).where(
-            RestaurantTableReservation.restaurant_id == restaurant_id,
-            RestaurantTableReservation.reserved_at == reserved_at,
-            RestaurantTableReservation.status.in_(ACTIVE_STATUSES),
-        )
-    ).all()
-    return {str(row) for row in rows}
+    slot = _ensure_utc(reserved_at)
+    blocked: set[str] = set()
+    for row in _active_reservations_near(db, restaurant_id=restaurant_id, center=slot):
+        if reservation_blocks_slot(row.reserved_at, slot):
+            blocked.add(str(row.table_id))
+    return blocked
 
 
 def raise_reservation_http(exc: ReservationError) -> None:
