@@ -13,7 +13,6 @@ import type {
   ReviewFilterState,
   CityTopResponse,
   NewMemberRestaurantsResponse,
-  OnlineOrderOpenListResponse,
   RegionalProductDetailResponse,
   RegionalProductListResponse,
   Restaurant,
@@ -29,7 +28,6 @@ import type {
 import type { FoodcastFeedResponse } from '@/lib/foodcast-types';
 
 import { getApiBase, getApiV1Base } from '@/lib/api-base';
-import { ONLINE_ORDER_MIN_RATING } from '@/lib/online-orders';
 import { backendAuthHeaders } from '@/lib/backend-auth-token';
 import { parseModerationDetail, ReviewModerationApiError } from '@/lib/review-moderation';
 
@@ -125,20 +123,6 @@ export function listNewMemberRestaurants(params?: { limit?: number }) {
   if (params?.limit != null) search.set('limit', String(params.limit));
   const query = search.toString();
   return request<NewMemberRestaurantsResponse>(`/restaurants/new-members${query ? `?${query}` : ''}`);
-}
-
-export function listOnlineOrderRestaurants(params: {
-  city?: string;
-  min_rating?: number;
-  limit?: number;
-}) {
-  const minRating = Math.max(ONLINE_ORDER_MIN_RATING, params.min_rating ?? ONLINE_ORDER_MIN_RATING);
-  const search = new URLSearchParams();
-  if (params.city) search.set('city', params.city);
-  search.set('min_rating', String(minRating));
-  if (params.limit != null) search.set('limit', String(params.limit));
-  const query = search.toString();
-  return request<OnlineOrderOpenListResponse>(`/restaurants/online-orders-open${query ? `?${query}` : ''}`);
 }
 
 export function listRegionalProducts(params?: { city?: string }) {

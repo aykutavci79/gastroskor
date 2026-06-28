@@ -107,11 +107,6 @@ export type RestaurantListItem = {
   google_place_id?: string | null;
   google_photo_url?: string | null;
   seo_noindex?: boolean;
-  online_reservations_available?: boolean;
-};
-
-export type OnlineOrderOpenListResponse = {
-  items: RestaurantListItem[];
 };
 
 export type FollowerPromotion = {

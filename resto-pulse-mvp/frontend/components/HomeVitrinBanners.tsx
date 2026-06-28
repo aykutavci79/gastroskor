@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useBannerCrossfade } from '@/hooks/useBannerCrossfade';
-import { listOnlineOrderRestaurants, listRegionalProducts } from '@/lib/api';
+import { listRegionalProducts } from '@/lib/api';
 import {
   KESFET_VITRIN_BANNER,
   KESFET_VITRIN_FADE_MS,
@@ -20,8 +20,10 @@ import { regionalProductImageSrc } from '@/lib/regional-product-image';
 import { cityDisplayName } from '@/lib/turkiye-provinces';
 import type { RegionalProductItem } from '@/lib/types';
 
+const MOBILE_ONLY_HINT = 'Sadece mobilde';
+
 type BannerShellProps = {
-  href: string;
+  href?: string;
   borderClassName: string;
   pillClassName: string;
   pillLabel: string;
@@ -39,6 +41,39 @@ function BannerIconCircle({ children }: { children: ReactNode }) {
     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-400/55 bg-[rgba(14,14,14,0.45)] text-brand-gold md:h-14 md:w-14">
       {children}
     </span>
+  );
+}
+
+function GoldAccent({ children }: { children: ReactNode }) {
+  return <span className="font-black text-brand-gold">{children}</span>;
+}
+
+function BagIcon() {
+  return (
+    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M8 8V7a4 4 0 1 1 8 0v1M6 8h12l-1.2 12H7.2L6 8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M7 4V2M17 4V2M4 9h16M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function RibbonIcon() {
+  return (
+    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M8 21 12 17l4 4V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v16Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -61,11 +96,10 @@ function KesfetVitrinBannerShell({
   const slideTag = slideTags?.[activeIndex];
   const fadeStyle = { transition: `opacity ${KESFET_VITRIN_FADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)` };
   const textShadow = { textShadow: KESFET_VITRIN_TEXT_SHADOW };
+  const interactive = Boolean(href);
 
-  return (
-    <Link
-      href={href}
-      className={`group relative block min-h-[58px] overflow-hidden rounded-[11px] bg-[#141414] transition hover:opacity-95 md:min-h-[96px] lg:min-h-[132px] ${borderClassName}`}>
+  const body = (
+    <>
       <div className="absolute inset-0">
         {slideA ? (
           <Image
@@ -91,8 +125,8 @@ function KesfetVitrinBannerShell({
         ) : null}
         {slideTag ? (
           <span
-            className={`absolute bottom-2 right-2 z-[2] max-w-[52%] truncate rounded-md border bg-black/60 px-2 py-1 font-extrabold text-white ${slideTagBorderClassName ?? ''}`}
-            style={{ fontSize: KESFET_VITRIN_BANNER.slideTagFontSize, ...textShadow }}>
+            className={`absolute bottom-2 right-2 z-[2] max-w-[52%] truncate rounded-md border bg-black/60 px-2 py-1 text-[11px] font-extrabold text-white ${slideTagBorderClassName ?? ''}`}
+            style={textShadow}>
             {slideTag}
           </span>
         ) : null}
@@ -116,131 +150,22 @@ function KesfetVitrinBannerShell({
         </div>
         {icon}
       </div>
-    </Link>
-  );
-}
-
-function BagIcon() {
-  return (
-    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 8V7a4 4 0 1 1 8 0v1M6 8h12l-1.2 12H7.2L6 8Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 4V2M17 4V2M4 9h16M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function RibbonIcon() {
-  return (
-    <svg width={KESFET_VITRIN_BANNER.iconSize} height={KESFET_VITRIN_BANNER.iconSize} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 21 12 17l4 4V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v16Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function GoldAccent({ children }: { children: ReactNode }) {
-  return <span className="font-black text-brand-gold">{children}</span>;
-}
-
-function OnlineOrderHomeBanner() {
-  const slides = useMemo(
-    () => ONLINE_ORDER_BANNER_SLIDES.map((row) => ({ src: row.src, alt: row.slug })),
-    [],
+    </>
   );
 
-  return (
-    <KesfetVitrinBannerShell
-      href="/mobil-giris"
-      borderClassName="border border-[rgba(255,107,53,0.5)]"
-      pillClassName="bg-[rgba(255,107,53,0.94)]"
-      pillLabel="Online Sipariş"
-      title={
-        <>
-          Tek Tıkla <GoldAccent>Liste</GoldAccent>
-        </>
-      }
-      icon={
-        <BannerIconCircle>
-          <BagIcon />
-        </BannerIconCircle>
-      }
-      slides={slides}
-    />
-  );
-}
+  const className = `relative block min-h-[58px] overflow-hidden rounded-[11px] bg-[#141414] md:min-h-[96px] lg:min-h-[132px] ${borderClassName} ${
+    interactive ? 'transition hover:opacity-95' : 'cursor-default'
+  }`;
 
-function OnlineReservationHomeBanner({ cityLabel }: { cityLabel: string }) {
-  const [openCount, setOpenCount] = useState<number | null>(null);
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {body}
+      </Link>
+    );
+  }
 
-  useEffect(() => {
-    void listOnlineOrderRestaurants({ city: cityLabel, limit: 80 })
-      .then((res) => {
-        const count = res.items.filter((row) => row.online_reservations_available).length;
-        setOpenCount(count);
-      })
-      .catch(() => setOpenCount(null));
-  }, [cityLabel]);
-
-  const hint =
-    openCount == null
-      ? 'Masa seç · anında talep'
-      : openCount === 0
-        ? 'Yakında pilot restoranlar'
-        : `${openCount} restoran rezervasyon alıyor`;
-
-  const slides = useMemo(
-    () =>
-      ONLINE_RESERVATION_BANNER_SLIDES.map((row) => ({
-        src: onlineReservationBannerSrc(row.file),
-        alt: row.label,
-      })),
-    [],
-  );
-  const slideTags = useMemo(() => ONLINE_RESERVATION_BANNER_SLIDES.map((row) => row.label), []);
-
-  return (
-    <KesfetVitrinBannerShell
-      href="/mobil-giris"
-      borderClassName="border border-violet-400/50"
-      pillClassName="bg-violet-900/90"
-      pillLabel="Online Rezervasyon"
-      title={
-        <>
-          Tek Tıkla <GoldAccent>Masa</GoldAccent>
-        </>
-      }
-      hint={hint}
-      icon={
-        <BannerIconCircle>
-          <CalendarIcon />
-        </BannerIconCircle>
-      }
-      slides={slides}
-      slideTags={slideTags}
-      slideTagBorderClassName="border-violet-400/45"
-    />
-  );
+  return <div className={className}>{body}</div>;
 }
 
 function buildRegionalSlides(items: RegionalProductItem[]) {
@@ -256,7 +181,12 @@ function buildRegionalSlides(items: RegionalProductItem[]) {
   return slides;
 }
 
-function RegionalFlavorsHomeBanner({ cityLabel }: { cityLabel: string }) {
+type Props = {
+  city: string;
+};
+
+export function HomeVitrinBanners({ city }: Props) {
+  const cityLabel = cityDisplayName(city);
   const [count, setCount] = useState<number | null>(null);
   const [regionalSlides, setRegionalSlides] = useState<{ src: string; alt: string; name: string }[]>([]);
 
@@ -272,62 +202,98 @@ function RegionalFlavorsHomeBanner({ cityLabel }: { cityLabel: string }) {
       });
   }, [cityLabel]);
 
-  const hint =
+  const orderSlides = useMemo(
+    () => ONLINE_ORDER_BANNER_SLIDES.map((row) => ({ src: row.src, alt: row.slug })),
+    [],
+  );
+
+  const reservationSlides = useMemo(
+    () =>
+      ONLINE_RESERVATION_BANNER_SLIDES.map((row) => ({
+        src: onlineReservationBannerSrc(row.file),
+        alt: row.label,
+      })),
+    [],
+  );
+  const reservationTags = useMemo(() => ONLINE_RESERVATION_BANNER_SLIDES.map((row) => row.label), []);
+
+  const regionalHint =
     count == null
       ? `${cityLabel} · yükleniyor…`
       : count === 0
         ? `${cityLabel} · tescilli ürün listesi yakında`
         : `${cityLabel} · ${count} tescilli ürün`;
 
-  const slides = useMemo(
+  const yoreselSlides = useMemo(
     () => regionalSlides.map((row) => ({ src: row.src, alt: row.alt })),
     [regionalSlides],
   );
-  const slideTags = useMemo(() => regionalSlides.map((row) => row.name), [regionalSlides]);
-
-  const href = `/yoresel-lezzetler?city=${encodeURIComponent(cityLabel)}`;
-
-  return (
-    <KesfetVitrinBannerShell
-      href={href}
-      borderClassName="border border-amber-500/45"
-      pillClassName="bg-[rgba(180,83,9,0.92)]"
-      pillLabel="Yöresel Lezzetler"
-      title={
-        <>
-          Tek Tıkla <GoldAccent>Keşfet</GoldAccent>
-        </>
-      }
-      hint={hint}
-      icon={
-        <BannerIconCircle>
-          <RibbonIcon />
-        </BannerIconCircle>
-      }
-      slides={slides}
-      slideTags={slideTags}
-      slideTagBorderClassName="border-amber-500/45"
-      fallback={
-        <div className="absolute inset-0 flex items-center justify-center bg-[#2a2018] text-3xl opacity-55">
-          🏺
-        </div>
-      }
-    />
-  );
-}
-
-type Props = {
-  city: string;
-};
-
-export function HomeVitrinBanners({ city }: Props) {
-  const cityLabel = cityDisplayName(city);
+  const yoreselTags = useMemo(() => regionalSlides.map((row) => row.name), [regionalSlides]);
+  const yoreselHref = `/yoresel-lezzetler?city=${encodeURIComponent(cityLabel)}`;
 
   return (
     <div className="flex flex-col gap-[3px] pt-[3px] lg:grid lg:grid-cols-3 lg:gap-3 lg:pt-0">
-      <OnlineOrderHomeBanner />
-      <OnlineReservationHomeBanner cityLabel={cityLabel} />
-      <RegionalFlavorsHomeBanner cityLabel={cityLabel} />
+      <KesfetVitrinBannerShell
+        borderClassName="border border-[rgba(255,107,53,0.5)]"
+        pillClassName="bg-[rgba(255,107,53,0.94)]"
+        pillLabel="Online Sipariş"
+        title={
+          <>
+            Tek Tıkla <GoldAccent>Liste</GoldAccent>
+          </>
+        }
+        hint={MOBILE_ONLY_HINT}
+        icon={
+          <BannerIconCircle>
+            <BagIcon />
+          </BannerIconCircle>
+        }
+        slides={orderSlides}
+      />
+      <KesfetVitrinBannerShell
+        borderClassName="border border-violet-400/50"
+        pillClassName="bg-violet-900/90"
+        pillLabel="Online Rezervasyon"
+        title={
+          <>
+            Tek Tıkla <GoldAccent>Masa</GoldAccent>
+          </>
+        }
+        hint={MOBILE_ONLY_HINT}
+        icon={
+          <BannerIconCircle>
+            <CalendarIcon />
+          </BannerIconCircle>
+        }
+        slides={reservationSlides}
+        slideTags={reservationTags}
+        slideTagBorderClassName="border-violet-400/45"
+      />
+      <KesfetVitrinBannerShell
+        href={yoreselHref}
+        borderClassName="border border-amber-500/45"
+        pillClassName="bg-[rgba(180,83,9,0.92)]"
+        pillLabel="Yöresel Lezzetler"
+        title={
+          <>
+            Tek Tıkla <GoldAccent>Keşfet</GoldAccent>
+          </>
+        }
+        hint={regionalHint}
+        icon={
+          <BannerIconCircle>
+            <RibbonIcon />
+          </BannerIconCircle>
+        }
+        slides={yoreselSlides}
+        slideTags={yoreselTags}
+        slideTagBorderClassName="border-amber-500/45"
+        fallback={
+          <div className="absolute inset-0 flex items-center justify-center bg-[#2a2018] text-3xl opacity-55">
+            🏺
+          </div>
+        }
+      />
     </div>
   );
 }

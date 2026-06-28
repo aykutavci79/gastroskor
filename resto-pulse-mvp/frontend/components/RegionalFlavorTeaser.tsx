@@ -60,11 +60,11 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
         </div>
       </div>
 
-      {!ready ? <RegionalFlavorScrollSkeleton /> : null}
+      {!ready ? <RegionalFlavorScrollSkeleton large /> : null}
 
       {ready && items.length > 0 ? (
         <>
-          <RegionalFlavorScrollGrid items={items} city={cityLabel} />
+          <RegionalFlavorScrollGrid items={items} city={cityLabel} variant="home" />
           <Link
             href={`/yoresel-lezzetler?city=${encodeURIComponent(cityLabel)}`}
             className="inline-flex text-sm font-semibold text-brand-gold hover:underline">
