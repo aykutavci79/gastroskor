@@ -110,4 +110,44 @@ describe('sentry-scrub', () => {
 
     assert.equal(dropped, null);
   });
+
+  it('drops best-effort eglence friend activity network noise', () => {
+    const beforeSend = createSentryBeforeSend();
+    const dropped = beforeSend(
+      {
+        tags: { flow: 'eglence_friend_activity', game: 'kelime_sofrasi' },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'Internet veya API baglantisi kurulamadi (https://api.example.test).',
+            },
+          ],
+        },
+      } as Parameters<ReturnType<typeof createSentryBeforeSend>>[0],
+      {},
+    );
+
+    assert.equal(dropped, null);
+  });
+
+  it('keeps non-eglence network errors visible', () => {
+    const beforeSend = createSentryBeforeSend();
+    const kept = beforeSend(
+      {
+        tags: { flow: 'checkout' },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'Internet veya API baglantisi kurulamadi (https://api.example.test).',
+            },
+          ],
+        },
+      } as Parameters<ReturnType<typeof createSentryBeforeSend>>[0],
+      {},
+    );
+
+    assert.notEqual(kept, null);
+  });
 });

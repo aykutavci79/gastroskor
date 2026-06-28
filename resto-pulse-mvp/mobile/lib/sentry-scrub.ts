@@ -94,12 +94,26 @@ function isBackgroundExpoAvNoise(event: ErrorEvent): boolean {
   return /background|currently in the background/i.test(text);
 }
 
+function isEglenceFriendActivityNetworkNoise(event: ErrorEvent): boolean {
+  const flow = event.tags?.flow;
+  if (String(flow ?? '') !== 'eglence_friend_activity') return false;
+
+  const chunks: string[] = [];
+  for (const value of event.exception?.values ?? []) {
+    if (value.value) chunks.push(value.value);
+  }
+  if (event.message) chunks.push(event.message);
+  const text = chunks.join(' ');
+  return /Internet veya API baglantisi kurulamadi|Network request failed/i.test(text);
+}
+
 export function createSentryBeforeSend(): (
   event: ErrorEvent,
   hint: EventHint,
 ) => ErrorEvent | null {
   return (event, _hint) => {
     if (isBackgroundExpoAvNoise(event)) return null;
+    if (isEglenceFriendActivityNetworkNoise(event)) return null;
     return scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as ErrorEvent;
   };
 }
