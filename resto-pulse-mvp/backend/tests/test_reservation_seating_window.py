@@ -91,6 +91,35 @@ def test_reservations_overlap_half_open_window() -> None:
     assert reservations_overlap(_dt(20, 5), existing) is False
 
 
+def test_reservations_overlap_backward_when_existing_starts_later() -> None:
+    """18:10 rezervasyonu varken 18:00 yeni slot cakismali (geriye donuk kapanma)."""
+    existing = _dt(18, 10)
+    assert reservations_overlap(existing, _dt(18, 0)) is True
+    assert reservations_overlap(existing, _dt(15, 11)) is True
+    assert reservations_overlap(existing, _dt(15, 10)) is False
+
+
+def test_table_is_reserved_blocks_backward_overlap(db: Session) -> None:
+    restaurant = Restaurant(id=uuid4(), name="Deneme", city="Bursa", is_active=True)
+    db.add(restaurant)
+    db.commit()
+    _seed_reservation(db, restaurant_id=restaurant.id, reserved_at=_dt(18, 10))
+
+    assert table_is_reserved(db, restaurant_id=restaurant.id, table_id="m1", reserved_at=_dt(18, 0))
+    assert table_is_reserved(db, restaurant_id=restaurant.id, table_id="m1", reserved_at=_dt(18, 15))
+    assert not table_is_reserved(db, restaurant_id=restaurant.id, table_id="m1", reserved_at=_dt(15, 10))
+
+
+def test_reserved_table_ids_shows_backward_blocked_tables(db: Session) -> None:
+    restaurant = Restaurant(id=uuid4(), name="Deneme", city="Bursa", is_active=True)
+    db.add(restaurant)
+    db.commit()
+    _seed_reservation(db, restaurant_id=restaurant.id, table_id="m1", reserved_at=_dt(18, 10))
+
+    blocked = reserved_table_ids_for_slot(db, restaurant_id=restaurant.id, reserved_at=_dt(18, 0))
+    assert blocked == {"m1"}
+
+
 def test_table_is_reserved_uses_seating_window(db: Session) -> None:
     restaurant = Restaurant(id=uuid4(), name="Deneme", city="Bursa", is_active=True)
     db.add(restaurant)
@@ -106,7 +135,7 @@ def test_reserved_table_ids_for_slot_blocks_overlapping_tables(db: Session) -> N
     db.add(restaurant)
     db.commit()
     _seed_reservation(db, restaurant_id=restaurant.id, table_id="m1", reserved_at=_dt(17, 0))
-    _seed_reservation(db, restaurant_id=restaurant.id, table_id="m2", reserved_at=_dt(21, 0))
+    _seed_reservation(db, restaurant_id=restaurant.id, table_id="m2", reserved_at=_dt(23, 10))
 
     blocked = reserved_table_ids_for_slot(db, restaurant_id=restaurant.id, reserved_at=_dt(18, 15))
     assert blocked == {"m1"}

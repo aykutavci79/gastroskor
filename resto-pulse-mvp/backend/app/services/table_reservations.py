@@ -205,7 +205,7 @@ def table_is_reserved(
     for row in _active_reservations_near(
         db, restaurant_id=restaurant_id, center=slot, table_id=table_id
     ):
-        if reservation_blocks_slot(row.reserved_at, slot):
+        if reservations_overlap(row.reserved_at, slot):
             return True
     return False
 
@@ -418,7 +418,7 @@ def reserved_table_ids_for_slot(
     slot = _ensure_utc(reserved_at)
     blocked: set[str] = set()
     for row in _active_reservations_near(db, restaurant_id=restaurant_id, center=slot):
-        if reservation_blocks_slot(row.reserved_at, slot):
+        if reservations_overlap(row.reserved_at, slot):
             blocked.add(str(row.table_id))
     return blocked
 
