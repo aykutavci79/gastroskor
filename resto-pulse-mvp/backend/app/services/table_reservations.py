@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import zlib
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models.entities import (
@@ -45,6 +46,54 @@ class ReservationError(Exception):
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _normalize_reserved_at(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _active_slot_clause(now: datetime):
+    return or_(
+        RestaurantTableReservation.status == RestaurantTableReservationStatus.pending_restaurant,
+        RestaurantTableReservation.status == RestaurantTableReservationStatus.confirmed,
+        and_(
+            RestaurantTableReservation.status == RestaurantTableReservationStatus.approved_by_restaurant,
+            or_(
+                RestaurantTableReservation.customer_confirm_expires_at.is_(None),
+                RestaurantTableReservation.customer_confirm_expires_at > now,
+            ),
+        ),
+    )
+
+
+def _booked_slot_clause(now: datetime):
+    return or_(
+        RestaurantTableReservation.status == RestaurantTableReservationStatus.confirmed,
+        and_(
+            RestaurantTableReservation.status == RestaurantTableReservationStatus.approved_by_restaurant,
+            or_(
+                RestaurantTableReservation.customer_confirm_expires_at.is_(None),
+                RestaurantTableReservation.customer_confirm_expires_at > now,
+            ),
+        ),
+    )
+
+
+def _lock_reservation_slot(
+    db: Session,
+    *,
+    restaurant_id: UUID,
+    table_id: str,
+    reserved_at: datetime,
+) -> None:
+    bind = db.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
+    slot = _normalize_reserved_at(reserved_at).isoformat()
+    lock_key = zlib.crc32(f"{restaurant_id}:{table_id}:{slot}".encode()) & 0xFFFFFFFF
+    db.execute(text("SELECT pg_advisory_xact_lock(:lock_key)"), {"lock_key": lock_key})
 
 
 def online_reservations_configured(ownership: RestaurantOwnership | None) -> bool:
@@ -143,15 +192,38 @@ def table_is_reserved(
     table_id: str,
     reserved_at: datetime,
 ) -> bool:
+    reserved_at = _normalize_reserved_at(reserved_at)
+    now = _utcnow()
     existing = db.scalar(
         select(RestaurantTableReservation.id).where(
             RestaurantTableReservation.restaurant_id == restaurant_id,
             RestaurantTableReservation.table_id == table_id,
             RestaurantTableReservation.reserved_at == reserved_at,
-            RestaurantTableReservation.status.in_(ACTIVE_STATUSES),
+            _active_slot_clause(now),
         )
     )
     return existing is not None
+
+
+def table_has_booked_reservation(
+    db: Session,
+    *,
+    restaurant_id: UUID,
+    table_id: str,
+    reserved_at: datetime,
+    exclude_reservation_id: UUID | None = None,
+) -> bool:
+    reserved_at = _normalize_reserved_at(reserved_at)
+    now = _utcnow()
+    stmt = select(RestaurantTableReservation.id).where(
+        RestaurantTableReservation.restaurant_id == restaurant_id,
+        RestaurantTableReservation.table_id == table_id,
+        RestaurantTableReservation.reserved_at == reserved_at,
+        _booked_slot_clause(now),
+    )
+    if exclude_reservation_id is not None:
+        stmt = stmt.where(RestaurantTableReservation.id != exclude_reservation_id)
+    return db.scalar(stmt) is not None
 
 
 def reservation_to_dict(row: RestaurantTableReservation, *, restaurant_name: str | None = None) -> dict:
@@ -215,10 +287,10 @@ def create_table_reservation(
         raise ReservationError(
             f"Bu masa {table['seats_min']}–{table['seats_max']} kisi icin uygun."
         )
-    if reserved_at.tzinfo is None:
-        reserved_at = reserved_at.replace(tzinfo=timezone.utc)
+    reserved_at = _normalize_reserved_at(reserved_at)
     if reserved_at <= _utcnow():
         raise ReservationError("Gecmis bir saat secilemez.")
+    _lock_reservation_slot(db, restaurant_id=restaurant.id, table_id=table_id, reserved_at=reserved_at)
     if table_is_reserved(db, restaurant_id=restaurant.id, table_id=table_id, reserved_at=reserved_at):
         raise ReservationError("Bu masa secilen saatte dolu.")
     try:
@@ -268,6 +340,15 @@ def decide_reservation(
         raise ReservationError("Bu rezervasyon zaten islendi.")
     now = _utcnow()
     if decision == "approved":
+        _lock_reservation_slot(db, restaurant_id=row.restaurant_id, table_id=row.table_id, reserved_at=row.reserved_at)
+        if table_has_booked_reservation(
+            db,
+            restaurant_id=row.restaurant_id,
+            table_id=row.table_id,
+            reserved_at=row.reserved_at,
+            exclude_reservation_id=row.id,
+        ):
+            raise ReservationError("Bu masa secilen saatte baska bir rezervasyonla dolu.")
         row.status = RestaurantTableReservationStatus.approved_by_restaurant
         row.restaurant_decided_at = now
         row.customer_confirm_expires_at = now + timedelta(hours=CUSTOMER_CONFIRM_HOURS)
@@ -359,11 +440,13 @@ def reserved_table_ids_for_slot(
     restaurant_id: UUID,
     reserved_at: datetime,
 ) -> set[str]:
+    reserved_at = _normalize_reserved_at(reserved_at)
+    now = _utcnow()
     rows = db.scalars(
         select(RestaurantTableReservation.table_id).where(
             RestaurantTableReservation.restaurant_id == restaurant_id,
             RestaurantTableReservation.reserved_at == reserved_at,
-            RestaurantTableReservation.status.in_(ACTIVE_STATUSES),
+            _active_slot_clause(now),
         )
     ).all()
     return {str(row) for row in rows}

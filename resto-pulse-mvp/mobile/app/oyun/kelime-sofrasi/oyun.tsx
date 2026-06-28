@@ -724,7 +724,11 @@ export default function KelimeSofrasiOyunScreen() {
       return;
     }
     const hintIndex = dailyUsed;
-    if (hintIndex >= SOFRA_FREE_IPUCU && user?.email) {
+    if (hintIndex >= SOFRA_FREE_IPUCU) {
+      if (!user?.email) {
+        setMessage('Ücretli ipucu için giriş yapmalısın');
+        return;
+      }
       try {
         const spend = await spendGameHint({
           userEmail: user.email,
