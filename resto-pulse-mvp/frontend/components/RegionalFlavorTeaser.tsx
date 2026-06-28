@@ -44,17 +44,18 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="min-w-[200px]">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <p className="text-sm text-content-muted">Tescilli ürünler — isim + görsel</p>
+        <div className="w-full max-w-[240px] sm:w-auto">
           {cityStatus === 'loading' ? (
-            <span className="text-[11px] text-content-muted">Konum…</span>
+            <span className="mb-1 block text-[11px] text-content-muted">Konum…</span>
           ) : null}
           <ProvinceSelect
             id="regional-teaser-city"
             value={city}
             onChange={onCityChange}
             hideLabel
-            className="w-full min-w-[200px]"
+            className="w-full"
           />
         </div>
       </div>

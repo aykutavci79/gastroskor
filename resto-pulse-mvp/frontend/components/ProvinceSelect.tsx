@@ -54,8 +54,7 @@ export function ProvinceSelect({
           onChange(event.target.value);
           setQuery('');
         }}
-        size={Math.min(8, Math.max(4, filtered.length))}
-        className="max-h-48 rounded-lg border border-border bg-surface-input px-2 py-1 text-sm text-content outline-none focus:border-brand-gold/50">
+        className="w-full rounded-lg border border-border bg-surface-input px-2.5 py-2 text-sm text-content outline-none focus:border-brand-gold/50">
         {filtered.map((option) => (
           <option key={option} value={option}>
             {option}

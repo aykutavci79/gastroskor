@@ -7,6 +7,10 @@ export const KESFET_VITRIN_BANNER = {
   iconSize: 24,
   iconCircle: 48,
   minHeight: 58,
+  /** Web md+ — vitrin satır yüksekliği */
+  minHeightMd: 96,
+  /** Web lg+ — üç sütun vitrin */
+  minHeightLg: 132,
 } as const;
 
 export const KESFET_VITRIN_TEXT_SHADOW = '0 1px 5px rgba(0,0,0,0.75)';

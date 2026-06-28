@@ -36,9 +36,7 @@ type BannerShellProps = {
 
 function BannerIconCircle({ children }: { children: ReactNode }) {
   return (
-    <span
-      className="flex shrink-0 items-center justify-center rounded-full border border-amber-400/55 bg-[rgba(14,14,14,0.45)] text-brand-gold"
-      style={{ width: KESFET_VITRIN_BANNER.iconCircle, height: KESFET_VITRIN_BANNER.iconCircle }}>
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-400/55 bg-[rgba(14,14,14,0.45)] text-brand-gold md:h-14 md:w-14">
       {children}
     </span>
   );
@@ -67,8 +65,7 @@ function KesfetVitrinBannerShell({
   return (
     <Link
       href={href}
-      className={`group relative block overflow-hidden rounded-[11px] bg-[#141414] transition hover:opacity-95 ${borderClassName}`}
-      style={{ minHeight: KESFET_VITRIN_BANNER.minHeight }}>
+      className={`group relative block min-h-[58px] overflow-hidden rounded-[11px] bg-[#141414] transition hover:opacity-95 md:min-h-[96px] lg:min-h-[132px] ${borderClassName}`}>
       <div className="absolute inset-0">
         {slideA ? (
           <Image
@@ -77,7 +74,7 @@ function KesfetVitrinBannerShell({
             fill
             className="object-cover"
             style={{ ...fadeStyle, opacity: layerA.opacity }}
-            sizes="(max-width: 768px) 100vw, 720px"
+            sizes="(max-width: 1024px) 100vw, 33vw"
           />
         ) : (
           fallback
@@ -89,7 +86,7 @@ function KesfetVitrinBannerShell({
             fill
             className="object-cover"
             style={{ ...fadeStyle, opacity: layerB.opacity }}
-            sizes="(max-width: 768px) 100vw, 720px"
+            sizes="(max-width: 1024px) 100vw, 33vw"
           />
         ) : null}
         {slideTag ? (
@@ -102,20 +99,17 @@ function KesfetVitrinBannerShell({
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/55 via-black/15 to-black/35" />
       </div>
 
-      <div className="relative z-[1] flex min-h-[58px] items-center justify-between gap-2 px-[11px] py-2">
+      <div className="relative z-[1] flex min-h-[58px] items-center justify-between gap-2 px-[11px] py-2 md:min-h-[96px] md:px-4 md:py-3 lg:min-h-[132px] lg:px-5">
         <div className="min-w-0 flex-1 space-y-[3px]">
           <span
-            className={`inline-block rounded-md px-2.5 py-1 font-black tracking-wide text-white ${pillClassName}`}
-            style={{ fontSize: KESFET_VITRIN_BANNER.pillFontSize }}>
+            className={`inline-block rounded-md px-2.5 py-1 text-[18px] font-black tracking-wide text-white md:text-[19px] ${pillClassName}`}>
             {pillLabel}
           </span>
-          <p className="font-extrabold text-white" style={{ fontSize: KESFET_VITRIN_BANNER.titleFontSize, ...textShadow }}>
+          <p className="text-[18px] font-extrabold text-white md:text-[20px]" style={textShadow}>
             {title}
           </p>
           {hint ? (
-            <p
-              className="font-bold text-white/90"
-              style={{ fontSize: KESFET_VITRIN_BANNER.hintFontSize, ...textShadow }}>
+            <p className="text-[14px] font-bold text-white/90 md:text-[15px]" style={textShadow}>
               {hint}
             </p>
           ) : null}
@@ -330,7 +324,7 @@ export function HomeVitrinBanners({ city }: Props) {
   const cityLabel = cityDisplayName(city);
 
   return (
-    <div className="flex flex-col gap-[3px] pt-[3px]">
+    <div className="flex flex-col gap-[3px] pt-[3px] lg:grid lg:grid-cols-3 lg:gap-3 lg:pt-0">
       <OnlineOrderHomeBanner />
       <OnlineReservationHomeBanner cityLabel={cityLabel} />
       <RegionalFlavorsHomeBanner cityLabel={cityLabel} />
