@@ -84,6 +84,7 @@ function voiceQueryFromParams(params: Extract<OnlineOrderResultsParams, { mode: 
     isCartOrder: false,
     cartLines: [],
     maxDistanceKm: params.maxDistanceKm,
+    minRating: params.minRating ?? null,
     confidence: 'high',
     issues: [],
   };

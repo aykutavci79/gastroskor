@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
-import { gastroPrepareVoiceInput, gastroSpeakRetry, gastroStopSpeaking, ensureGastroPlaybackReady } from '@/lib/gastro-speak';
+import { gastroSpeakRetry, gastroStopSpeaking, ensureGastroPlaybackReady } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderCommandSummary,
   parseVoiceOrderCommand,
@@ -29,42 +29,22 @@ const EXAMPLES = [
 export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, onSubmit }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState('');
-  const [micActive, setMicActive] = useState(false);
   const [micHint, setMicHint] = useState<string | null>(null);
   const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
     listening: false,
     transcribing: false,
   });
   const submittedRef = useRef(false);
-  const voicePrepCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     submittedRef.current = false;
     setDraft('');
     setMicHint(null);
     setMicUiState({ listening: false, transcribing: false });
-    setMicActive(false);
-    let cancelled = false;
-    const mountDelayMs = Platform.OS === 'ios' ? 420 : 180;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      voicePrepCancelRef.current = gastroPrepareVoiceInput(() => setMicActive(true));
-    }, mountDelayMs);
     return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      voicePrepCancelRef.current?.();
-      voicePrepCancelRef.current = null;
-      setMicActive(false);
       gastroStopSpeaking();
     };
   }, [restaurants]);
-
-  useEffect(() => {
-    if (micUiState.transcribing) {
-      setMicActive(false);
-    }
-  }, [micUiState.transcribing]);
 
   useEffect(() => {
     if (micUiState.listening) {
@@ -85,7 +65,6 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
       if (submittedRef.current) return;
       if (command.confidence !== 'high' && !isSmartCartCommand(command)) return;
       submittedRef.current = true;
-      setMicActive(false);
       onSubmit(command);
     },
     [onSubmit],
@@ -99,10 +78,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         return;
       }
       setDraft(polished);
-      if (!isFinal) {
-        setMicActive(false);
-        return;
-      }
+      if (!isFinal) return;
       const command = parseVoiceOrderCommand(polished, restaurants, defaultProductSearchGroup);
       if (command.confidence === 'high' || isSmartCartCommand(command)) {
         trySubmit(command);
@@ -136,8 +112,9 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         <SpeechMicErrorBoundary compact>
           <GastroVoiceMicButton
             compact
-            active={micActive && !micUiState.transcribing}
-            autoStart={micActive}
+            active
+            autoStart={false}
+            disabled={micUiState.transcribing}
             onTranscript={handleTranscript}
             onUiStateChange={setMicUiState}
             onHintChange={setMicHint}

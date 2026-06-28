@@ -18,7 +18,7 @@ import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import { GastroColors } from '@/constants/theme';
 import { useKeyboardBottomInset } from '@/hooks/use-keyboard-bottom-inset';
 import { useKeyboardFieldFocus } from '@/hooks/use-keyboard-field-focus';
-import { gastroPrepareVoiceInput, gastroStopSpeaking } from '@/lib/gastro-speak';
+import { gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
   formatVoiceOrderSummary,
   parseVoiceOrderQuery,
@@ -31,8 +31,6 @@ type Props = {
   visible: boolean;
   searching?: boolean;
   initialDraft?: string;
-  /** Siri / shortcut acilisinda TTS beklemeden mikrofonu ac. */
-  startMicImmediately?: boolean;
   onClose: () => void;
   onSearch: (query: VoiceOrderQuery) => void;
 };
@@ -47,7 +45,6 @@ export function VoiceOrderSheet({
   visible,
   searching = false,
   initialDraft,
-  startMicImmediately = false,
   onClose,
   onSearch,
 }: Props) {
@@ -57,7 +54,6 @@ export function VoiceOrderSheet({
   const onFieldFocus = useKeyboardFieldFocus(scrollRef);
   const inputRowYRef = useRef(0);
   const [draft, setDraft] = useState('');
-  const [micActive, setMicActive] = useState(true);
   const [micHint, setMicHint] = useState<string | null>(null);
   const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
     listening: false,
@@ -71,7 +67,6 @@ export function VoiceOrderSheet({
   useEffect(() => {
     if (!visible) {
       setSheetShown(false);
-      setMicActive(false);
       setMicHint(null);
       setMicUiState({ listening: false, transcribing: false });
       gastroStopSpeaking();
@@ -79,26 +74,7 @@ export function VoiceOrderSheet({
     }
     setDraft(initialDraft?.trim() ?? '');
     setMicHint(null);
-    setMicActive(false);
   }, [visible, initialDraft]);
-
-  useEffect(() => {
-    if (!visible || !sheetShown) return;
-    let cancelled = false;
-    const cancelPrep = gastroPrepareVoiceInput(() => {
-      if (!cancelled) setMicActive(true);
-    });
-    return () => {
-      cancelled = true;
-      cancelPrep();
-    };
-  }, [visible, sheetShown]);
-
-  useEffect(() => {
-    if (micUiState.transcribing || searching) {
-      setMicActive(false);
-    }
-  }, [micUiState.transcribing, searching]);
 
   useEffect(() => {
     if (micUiState.listening) {
@@ -108,7 +84,6 @@ export function VoiceOrderSheet({
   }, [micUiState.listening]);
 
   function applyExample(text: string) {
-    setMicActive(false);
     setDraft(text);
     const query = parseVoiceOrderQuery(text);
     if ((query.voiceProduct || query.isCartOrder) && !searching) {
@@ -118,7 +93,6 @@ export function VoiceOrderSheet({
 
   function handleSearch() {
     if (!canSearch) return;
-    setMicActive(false);
     onSearch(parsed);
   }
 
@@ -129,14 +103,10 @@ export function VoiceOrderSheet({
       return;
     }
     setDraft(polished);
-    if (!isFinal) {
-      setMicActive(false);
-      return;
-    }
+    if (!isFinal) return;
     if (searching) return;
     const query = parseVoiceOrderQuery(polished);
     if (query.voiceProduct || query.isCartOrder) {
-      setMicActive(false);
       onSearch(query);
     }
   }
@@ -193,8 +163,9 @@ export function VoiceOrderSheet({
                   <SpeechMicErrorBoundary compact>
                     <GastroVoiceMicButton
                       compact
-                      active={micActive && !micUiState.transcribing && !searching}
-                      autoStart={micActive && !searching}
+                      active={sheetShown && !searching}
+                      autoStart={false}
+                      disabled={searching || micUiState.transcribing}
                       disabled={searching}
                       onTranscript={handleVoiceTranscript}
                       onUiStateChange={setMicUiState}

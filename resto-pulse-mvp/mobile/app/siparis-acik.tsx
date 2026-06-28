@@ -54,7 +54,6 @@ export default function OnlineOrdersOpenScreen() {
   const [draftMinRating, setDraftMinRating] = useState(ONLINE_ORDER_MIN_RATING);
   const [usingFallbackCoords, setUsingFallbackCoords] = useState(false);
   const [voiceSearchDraft, setVoiceSearchDraft] = useState<string | undefined>();
-  const [startMicOnSearch, setStartMicOnSearch] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,10 +81,9 @@ export default function OnlineOrdersOpenScreen() {
     (orderText: string) => {
       const query = parseVoiceOrderQuery(orderText);
       if (!query.voiceProduct && !query.isCartOrder) return false;
-      setStartMicOnSearch(false);
       router.push(
         buildOnlineOrderVoiceResultsHref(query, {
-          minRating: draftMinRating,
+          minRating: query.minRating ?? draftMinRating,
         }),
       );
       return true;
@@ -106,7 +104,6 @@ export default function OnlineOrdersOpenScreen() {
       } else {
         setVoiceSearchDraft(undefined);
       }
-      setStartMicOnSearch(true);
     },
     [navigateVoiceSearch],
   );
@@ -166,7 +163,6 @@ export default function OnlineOrdersOpenScreen() {
       } else {
         setVoiceSearchDraft(undefined);
       }
-      setStartMicOnSearch(true);
     }, [navigateVoiceSearch]),
   );
 
@@ -187,10 +183,8 @@ export default function OnlineOrdersOpenScreen() {
         <OnlineOrderVoiceSearchBar
           tone="light"
           initialDraft={voiceSearchDraft}
-          startMicImmediately={startMicOnSearch}
           onSearch={(query) => {
             if (!query.voiceProduct && !query.isCartOrder) return;
-            setStartMicOnSearch(false);
             router.push(
               buildOnlineOrderVoiceResultsHref(query, {
                 minRating: draftMinRating,

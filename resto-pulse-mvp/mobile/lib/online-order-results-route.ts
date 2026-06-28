@@ -69,7 +69,7 @@ export function buildOnlineOrderVoiceResultsHref(
   if (query.priceMax != null && !query.isCartOrder) q.set('priceMax', String(query.priceMax));
   if (query.priceMaxBudget != null) q.set('priceMaxBudget', String(query.priceMaxBudget));
   if (query.maxDistanceKm != null) q.set('maxDistanceKm', String(query.maxDistanceKm));
-  q.set('minRating', String(extras?.minRating ?? 3));
+  q.set('minRating', String(query.minRating ?? extras?.minRating ?? 3));
   if (extras?.sort) q.set('sort', extras.sort);
   if (query.rawText.trim()) q.set('voiceText', query.rawText.trim());
   return `/siparis-acik-sonuclar?${q.toString()}` as Href;

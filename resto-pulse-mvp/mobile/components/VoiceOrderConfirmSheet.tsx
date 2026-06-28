@@ -508,7 +508,7 @@ export function VoiceOrderConfirmSheet({
                     <GastroVoiceMicButton
                       compact
                       active={confirmMicActive}
-                      autoStart
+                      autoStart={false}
                       disabled={submitting}
                       onTranscript={handleConfirmVoice}
                     />

@@ -76,10 +76,13 @@ export function isVoiceBudgetCeiling(text: string): boolean {
   return (
     /\bgecmesin\b/.test(folded) ||
     /\bgecmeyecek\b/.test(folded) ||
+    /\bgecme\b/.test(folded) ||
     /\basmasin\b/.test(folded) ||
     /\basmayacak\b/.test(folded) ||
+    /\basma\b/.test(folded) ||
     /\btl\s*gecmesin\b/.test(folded) ||
-    /\bgecmesin\b.*\btl\b/.test(folded)
+    /\bgecmesin\b.*\btl\b/.test(folded) ||
+    /\btl\s*(?:i|yi|yı)?\s*gecme\b/.test(folded)
   );
 }
 
@@ -90,7 +93,8 @@ export function extractPriceMax(text: string): number | null {
     folded.match(/(\d+(?:[.,]\d+)?)\s*tl(?:yi|yi)?\s*gecmesin/) ??
     folded.match(/gecmesin.*?(\d+(?:[.,]\d+)?)\s*tl/) ??
     folded.match(/(\d+(?:[.,]\d+)?)\s*(?:u|ü)?\s*gecmesin/) ??
-    folded.match(/(\d+(?:[.,]\d+)?)\s*(?:u|ü)\s*gecmesin/);
+    folded.match(/(\d+(?:[.,]\d+)?)\s*(?:u|ü)\s*gecmesin/) ??
+    folded.match(/(\d+(?:[.,]\d+)?)\s*tl\s*(?:i|yi|yı)?\s*gecme\b/);
   if (ceiling) {
     const n = Number(ceiling[1].replace(',', '.'));
     if (Number.isFinite(n) && n > 0) return Math.round(n);

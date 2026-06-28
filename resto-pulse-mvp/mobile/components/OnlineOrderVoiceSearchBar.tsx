@@ -1,19 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import type { GastroColorScheme } from '@/constants/theme';
 import { GastroColorsLight } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
-import { gastroPrepareVoiceInput, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { parseVoiceOrderQuery, type VoiceOrderQuery } from '@/lib/parse-voice-order-query';
 import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
 
 type Props = {
   initialDraft?: string;
-  startMicImmediately?: boolean;
   searching?: boolean;
   onSearch: (query: VoiceOrderQuery) => void;
   tone?: 'default' | 'light';
@@ -22,7 +20,6 @@ type Props = {
 
 export function OnlineOrderVoiceSearchBar({
   initialDraft,
-  startMicImmediately = false,
   searching = false,
   onSearch,
   tone = 'default',
@@ -32,7 +29,6 @@ export function OnlineOrderVoiceSearchBar({
   const ink = tone === 'light' ? GastroColorsLight : colors;
   const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
   const [draft, setDraft] = useState('');
-  const [micActive, setMicActive] = useState(false);
   const [micHint, setMicHint] = useState<string | null>(null);
   const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
     listening: false,
@@ -46,36 +42,6 @@ export function OnlineOrderVoiceSearchBar({
   }, [initialDraft]);
 
   useEffect(() => {
-    if (!startMicImmediately) {
-      setMicActive(false);
-      return;
-    }
-
-    let cancelled = false;
-    let cancelPrep: (() => void) | null = null;
-    const delayMs = Platform.OS === 'ios' ? 320 : 180;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      cancelPrep = gastroPrepareVoiceInput(() => {
-        if (!cancelled) setMicActive(true);
-      });
-    }, delayMs);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      cancelPrep?.();
-      setMicActive(false);
-      gastroStopSpeaking();
-    };
-  }, [startMicImmediately]);
-
-  useEffect(() => {
-    if (micUiState.transcribing || searching) {
-      setMicActive(false);
-    }
-  }, [micUiState.transcribing, searching]);
-
-  useEffect(() => {
     if (micUiState.listening) {
       setDraft('');
       setMicHint(null);
@@ -84,7 +50,6 @@ export function OnlineOrderVoiceSearchBar({
 
   const handleSearch = useCallback(() => {
     if (!canSearch) return;
-    setMicActive(false);
     onSearch(parsed);
   }, [canSearch, onSearch, parsed]);
 
@@ -96,14 +61,10 @@ export function OnlineOrderVoiceSearchBar({
         return;
       }
       setDraft(polished);
-      if (!isFinal) {
-        setMicActive(false);
-        return;
-      }
+      if (!isFinal) return;
       if (searching) return;
       const query = parseVoiceOrderQuery(polished);
       if (query.voiceProduct || query.isCartOrder) {
-        setMicActive(false);
         onSearch(query);
       }
     },
@@ -130,9 +91,9 @@ export function OnlineOrderVoiceSearchBar({
           <SpeechMicErrorBoundary compact>
             <GastroVoiceMicButton
               compact
-              active={!searching && (!startMicImmediately || micActive) && !micUiState.transcribing}
-              autoStart={startMicImmediately && micActive && !searching}
-              disabled={searching}
+              active={!searching}
+              autoStart={false}
+              disabled={searching || micUiState.transcribing}
               onTranscript={handleVoiceTranscript}
               onUiStateChange={setMicUiState}
               onHintChange={setMicHint}

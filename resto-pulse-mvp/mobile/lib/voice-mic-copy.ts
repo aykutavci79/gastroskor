@@ -1,4 +1,4 @@
-/** Suskunluk VAD kapali — iOS ve Android'de kullanici dokunarak bitirir. */
+/** Suskunluk VAD kapali — kullanici dokunarak baslar, bitirince tekrar dokunarak STT. */
 export function usesManualMicFinish(): boolean {
   return true;
 }
@@ -9,11 +9,11 @@ export function usesIosManualMicFinish(): boolean {
 }
 
 export function voiceMicSheetSubcopy(): string {
-  return 'Mikrofon açılır, ürünü söyle. Bitirince mikrofona tekrar dokun — arama başlar. Bütçe şart değil.';
+  return 'Mikrofona dokun, ürünü söyle. Bitirince mikrofona tekrar dokun — arama başlar. Bütçe şart değil.';
 }
 
 export function voiceMicCompactRecordingHint(): string {
-  return 'Aramak için tekrar dokun';
+  return 'Bitirince mikrofona tekrar dokun';
 }
 
 export function voiceMicRecordingLabel(): string {
@@ -25,5 +25,5 @@ export function voiceMicIdleAccessibilityHint(): string {
 }
 
 export function voiceMicRecordingAccessibilityHint(): string {
-  return 'Aramayı bitirmek için tekrar dokun';
+  return 'Konuşmayı bitirmek için mikrofona tekrar dokun';
 }

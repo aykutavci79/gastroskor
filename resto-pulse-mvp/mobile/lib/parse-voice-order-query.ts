@@ -26,6 +26,8 @@ export type VoiceOrderQuery = {
   isCartOrder: boolean;
   cartLines: VoiceOrderLineIntent[];
   maxDistanceKm: number | null;
+  /** Sesli komuttan — or. en az 4 yıldız */
+  minRating: number | null;
   confidence: 'high' | 'partial' | 'low';
   issues: string[];
 };
@@ -41,6 +43,46 @@ function extractDistanceKm(foldedText: string): number | null {
   if (/\b1\s*km\b|\bbir\s*km\b|\bbir\s*kilometre\b/.test(foldedText)) return 1;
   if (/\b2\s*km\b|\biki\s*km\b|\biki\s*kilometre\b/.test(foldedText)) return 2;
   if (/\byakinimda\b|\byakin\b/.test(foldedText)) return 2;
+  return null;
+}
+
+const RATING_WORDS: Record<string, number> = {
+  bir: 1,
+  iki: 2,
+  uc: 3,
+  dort: 4,
+  bes: 5,
+};
+
+function parseRatingToken(token: string): number | null {
+  const n = Number(token.replace(',', '.'));
+  if (Number.isFinite(n) && n >= 1 && n <= 5) return n;
+  return RATING_WORDS[token] ?? null;
+}
+
+function extractMinRating(text: string): number | null {
+  const folded = foldTrAscii(text);
+  if (!/\b(?:yildiz|puan)\b/.test(folded)) return null;
+
+  const patterns = [
+    /en\s*az\s*(\d+(?:[.,]\d+)?)\s*(?:yildiz|puan)/,
+    /minimum\s*(\d+(?:[.,]\d+)?)\s*(?:yildiz|puan)/,
+    /(\d+(?:[.,]\d+)?)\s*(?:yildiz|puan)\s*(?:ustu|uzeri|ve\s*uzeri)/,
+    /(\d+(?:[.,]\d+)?)\s*(?:yildiz|puan)/,
+  ];
+  for (const pattern of patterns) {
+    const match = folded.match(pattern);
+    if (!match) continue;
+    const rating = parseRatingToken(match[1]);
+    if (rating != null) return rating;
+  }
+
+  const wordMatch = folded.match(/en\s*az\s*(bir|iki|uc|dort|bes)\s*(?:yildiz|puan)/);
+  if (wordMatch) {
+    const rating = parseRatingToken(wordMatch[1]);
+    if (rating != null) return rating;
+  }
+
   return null;
 }
 
@@ -151,6 +193,7 @@ export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
 
   const priceMax = isCartOrder ? null : extractPriceMax(text);
   const maxDistanceKm = extractDistanceKm(foldTrAscii(text));
+  const minRating = extractMinRating(text);
 
   if (!isCartOrder && !product) {
     issues.push('Ürün anlaşılamadı (ör. lahmacun, sütlaç, cantık).');
@@ -161,7 +204,9 @@ export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
 
   let confidence: VoiceOrderQuery['confidence'] = 'low';
   if ((isCartOrder && cartLines.length > 0) || product) confidence = 'high';
-  else if (priceMax != null || priceMaxBudget != null || maxDistanceKm != null) confidence = 'partial';
+  else if (priceMax != null || priceMaxBudget != null || maxDistanceKm != null || minRating != null) {
+    confidence = 'partial';
+  }
 
   return {
     rawText: rawText.trim(),
@@ -172,6 +217,7 @@ export function parseVoiceOrderQuery(rawText: string): VoiceOrderQuery {
     isCartOrder,
     cartLines,
     maxDistanceKm,
+    minRating,
     confidence,
     issues,
   };
@@ -195,6 +241,9 @@ export function formatVoiceOrderSummary(query: VoiceOrderQuery): string {
 
   if (query.maxDistanceKm != null) {
     parts.push(`${query.maxDistanceKm} km mesafe`);
+  }
+  if (query.minRating != null) {
+    parts.push(`en az ${query.minRating.toFixed(1)} ★`);
   }
   return parts.length ? parts.join(' · ') : 'Komutu netleştirin';
 }

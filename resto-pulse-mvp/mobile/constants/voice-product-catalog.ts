@@ -50,6 +50,7 @@ export const VOICE_CATALOG_PRODUCTS: VoiceCatalogProduct[] = [
   { slug: 'doner-durum', label: 'Döner Dürüm', searchGroup: 'doner', aliases: ['döner', 'doner', 'dürüm', 'durum'] },
   { slug: 'iskender', label: 'İskender', searchGroup: 'iskender', aliases: ['iskender', 'iskender kebap'] },
   { slug: 'ayran', label: 'Ayran', searchGroup: 'ayran', aliases: ['ayran'] },
+  { slug: 'salgam', label: 'Şalgam', searchGroup: 'salgam', aliases: ['şalgam', 'salgam'] },
   { slug: 'kola', label: 'Kola', searchGroup: 'kola', aliases: ['kola', 'cola'] },
   { slug: 'su', label: 'Su', searchGroup: 'su', aliases: ['su', 'şişe su', 'sise su'] },
   {

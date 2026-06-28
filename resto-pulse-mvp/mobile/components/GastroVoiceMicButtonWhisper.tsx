@@ -76,8 +76,8 @@ export function GastroVoiceMicButtonWhisper({
         onTranscriptRef.current(text, true);
       } else {
         updateHint('Ses duyulmadi. Tekrar dokunup tum cumleyi soyleyin.');
-        autoStartedRef.current = false;
       }
+      autoStartedRef.current = false;
     } catch (err) {
       updateHint(err instanceof Error ? err.message : 'Ses tanima basarisiz. Metin ile deneyin.');
       autoStartedRef.current = false;
