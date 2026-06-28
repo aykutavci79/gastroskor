@@ -169,7 +169,10 @@ def list_online_order_restaurants(
         )
     ).all()
 
-    restaurant_ids = [row.restaurant_id for row in rows if online_orders_configured(row)]
+    def _include_in_open_list(ownership: RestaurantOwnership) -> bool:
+        return online_orders_configured(ownership) or online_reservations_configured(ownership)
+
+    restaurant_ids = [row.restaurant_id for row in rows if _include_in_open_list(row)]
     google_profiles: dict[str, RestaurantPlatformProfile] = {}
     if restaurant_ids:
         for profile in db.scalars(
@@ -185,7 +188,7 @@ def list_online_order_restaurants(
     voice_search = bool(voice_slug_set)
     items: list[dict] = []
     for ownership in rows:
-        if not online_orders_configured(ownership):
+        if not _include_in_open_list(ownership):
             continue
         hours_status = online_order_hours_status(ownership)
         restaurant = ownership.restaurant

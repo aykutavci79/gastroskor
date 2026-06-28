@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.constants.tester_reservation_floor_plan import ATLAS_SOFRA_PUBLISHED_LAYOUT
 from app.constants.tester_online_restaurants import (
     BURSA_LAT,
     BURSA_LNG,
@@ -44,6 +45,12 @@ def _sync_tester_showcase(
     if seed.floor_plan_background_url:
         plan = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
         plan.background_url = seed.floor_plan_background_url
+        if seed.enable_online_reservations and not plan.published_layout:
+            now = datetime.now(timezone.utc)
+            plan.draft_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
+            plan.published_layout = ATLAS_SOFRA_PUBLISHED_LAYOUT
+            plan.published_at = now
+            plan.updated_at = now
         db.add(plan)
 
 
