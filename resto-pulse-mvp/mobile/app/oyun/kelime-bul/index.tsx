@@ -135,7 +135,7 @@ export default function KelimeBulLobbyScreen() {
       });
       if (!result.ok) {
         if (result.reason === 'login_required') {
-          showKelimeBulLoginAlert(() => router.push('/(tabs)/hesap' as Href));
+          showKelimeBulLoginAlert(() => router.push('/(tabs)/profil' as Href));
           return;
         }
         if (result.reason === 'insufficient_gc') {
