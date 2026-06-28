@@ -17,13 +17,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KelimeSofrasiGrid } from '@/components/kelime-sofrasi/KelimeSofrasiGrid';
 import { KelimeSofrasiWheel } from '@/components/kelime-sofrasi/KelimeSofrasiWheel';
 import { SofraBonusBadge } from '@/components/kelime-sofrasi/SofraBonusBadge';
+import { SofraHintButton } from '@/components/kelime-sofrasi/SofraHintButton';
 import { Screen } from '@/components/ui/Screen';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
 import { parseEglenceZorluk } from '@/constants/eglence-zorluk';
 import {
+  SOFRA_BG_COVER_FRAC,
   SOFRA_BONUS_HINT_THRESHOLD,
   SOFRA_FREE_IPUCU,
   SOFRA_GUNLUK_TAMAMLAMA_LIMIT,
+  SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD,
   SOFRA_MIN_KELIME_UZUNLUGU,
 } from '@/constants/kelime-sofrasi';
 import { logWheelAttempt } from '@/lib/kelime-sofrasi/attempt-log';
@@ -37,6 +40,7 @@ import { EGLENCE_LOBBY_ROUTES } from '@/lib/eglence-lobby-routes';
 import { scoreKelimeSofrasi } from '@/lib/eglence-scoring';
 import {
   bonusKelimeMi,
+  bonusIpucuIlerleme,
   bulmacaTamamlandi,
   carkKaristir,
   hedefKelimeMi,
@@ -48,7 +52,10 @@ import {
   partialOfUnfoundLongerTarget,
   sameAxisSubstringSpoiler,
   sonrakiIpucuHucresi,
-  sofraMaxIpucu,
+  sofraBonusHintTiersClaimed,
+  sofraDailyHintsUsed,
+  sofraIpucuKalan,
+  sofraPendingBonusHintClaims,
 } from '@/lib/kelime-sofrasi/engine';
 import {
   ensureSofraPuzzleAsync,
@@ -69,7 +76,7 @@ import type { SofraProgress, SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
 
 const STACK_HEADER = 48;
-const WHEEL_TOOLBAR_H = 34;
+const WHEEL_TOOLBAR_H = 0;
 const WHEEL_PREVIEW_H = 10;
 const META_BLOCK_H = 22;
 const MESSAGE_H = 14;
@@ -178,6 +185,8 @@ export default function KelimeSofrasiOyunScreen() {
   const [selectedPath, setSelectedPath] = useState<number[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadRetryTick, setLoadRetryTick] = useState(0);
   const [roundComplete, setRoundComplete] = useState(false);
   const [nextRoundLoading, setNextRoundLoading] = useState(false);
   const [resultScore, setResultScore] = useState<{ score: number; detail: string } | null>(null);
@@ -197,7 +206,21 @@ export default function KelimeSofrasiOyunScreen() {
     () =>
       StyleSheet.create({
         root: { flex: 1 },
-        bgImage: { ...StyleSheet.absoluteFillObject, opacity: 1 },
+        bgWrap: {
+          ...StyleSheet.absoluteFillObject,
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        bgCoverStage: {
+          width: `${SOFRA_BG_COVER_FRAC * 100}%`,
+          height: `${SOFRA_BG_COVER_FRAC * 100}%`,
+          transform: [{ scale: 1 / SOFRA_BG_COVER_FRAC }],
+        },
+        bgImage: {
+          ...StyleSheet.absoluteFillObject,
+          opacity: 1,
+        },
         bgImageHidden: { opacity: 0 },
         content: {
           flex: 1,
@@ -214,10 +237,18 @@ export default function KelimeSofrasiOyunScreen() {
           alignItems: 'center',
           justifyContent: 'flex-end',
           position: 'relative',
+          overflow: 'visible',
         },
         bonusBadgeAnchor: {
           position: 'absolute',
           left: 0,
+          bottom: WHEEL_TOOLBAR_H + 2,
+          overflow: 'visible',
+          paddingTop: 14,
+        },
+        hintBadgeAnchor: {
+          position: 'absolute',
+          right: 0,
           bottom: WHEEL_TOOLBAR_H + 2,
         },
         message: {
@@ -305,6 +336,7 @@ export default function KelimeSofrasiOyunScreen() {
     progress?.puzzleId,
     progress?.foundWordIds,
     progress?.bonusFound,
+    progress?.bonusHintTiersClaimed,
     progress?.hintedCells,
     progress?.wheelOrder,
     persistProgress,
@@ -332,6 +364,7 @@ export default function KelimeSofrasiOyunScreen() {
     loadStartedAtRef.current = Date.now();
     wheelAttemptRef.current = 0;
     setLoading(true);
+    setLoadError(null);
     setPuzzle(null);
     setProgress(null);
     setBgReady(false);
@@ -375,7 +408,7 @@ export default function KelimeSofrasiOyunScreen() {
           setTimerRunning(false);
           const scoreResult = scoreKelimeSofrasi({
             elapsedMs: saved.elapsedMs,
-            hintsUsed: saved.hintedCells.length,
+            hintsUsed: sofraDailyHintsUsed(saved),
           });
           setResultScore(scoreResult);
           resultElapsedRef.current = saved.elapsedMs;
@@ -393,11 +426,17 @@ export default function KelimeSofrasiOyunScreen() {
       } catch (err) {
         if (alive) {
           setLoading(false);
+          setLoadError(
+            err instanceof Error && err.message.includes('Sofra bulmacasi yuklenemedi')
+              ? 'Sofra bulmacasi hazirlanamadi. Interneti kontrol edip tekrar dene.'
+              : 'Sofra yuklenemedi. Tekrar dene.',
+          );
           posthog.capture('game_error', {
             screen: 'kelime_sofrasi',
             error_message: err instanceof Error ? err.message : 'load_failed',
             gun_id: gunId,
           });
+          if (__DEV__) console.warn('[sofra-oyun] load failed', err);
         }
       }
     })();
@@ -411,7 +450,7 @@ export default function KelimeSofrasiOyunScreen() {
       bgTask.cancel?.();
       setTimerRunning(false);
     };
-  }, [gunId, user?.email, zorluk, posthog]);
+  }, [gunId, user?.email, zorluk, posthog, loadRetryTick]);
 
   const completed =
     progress?.completedAt != null || sofraGunlukLimitDoldu(progress) || roundComplete;
@@ -434,7 +473,11 @@ export default function KelimeSofrasiOyunScreen() {
 
     try {
       const nextPuzzle = await ensureSofraPuzzleAsync(gunId, zorluk, nextTamamlama, user?.email);
-      const next = await beginNextSofraRound(nextPuzzle, nextTamamlama, gunId, zorluk);
+      const next = await beginNextSofraRound(nextPuzzle, nextTamamlama, gunId, zorluk, {
+        bonusFound: current.bonusFound,
+        dailyHintsUsed: sofraDailyHintsUsed(current),
+        bonusHintTiersClaimed: sofraBonusHintTiersClaimed(current),
+      });
       setPuzzle(nextPuzzle);
       progressRef.current = next;
       setProgress(next);
@@ -512,12 +555,12 @@ export default function KelimeSofrasiOyunScreen() {
         const limitMsg =
           nextTamamlama >= SOFRA_GUNLUK_TAMAMLAMA_LIMIT
             ? 'Sofra tamam! Bugünlük hakkın doldu.'
-            : `Sofra tamam! (${nextTamamlama}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT})`;
+            : `Sofra tamam! (${Math.min(nextTamamlama, SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD)}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD})`;
         setMessage(successMessage ?? limitMsg);
         setTimerRunning(false);
         const scoreResult = scoreKelimeSofrasi({
           elapsedMs: elapsedRef.current,
-          hintsUsed: completedProgress.hintedCells.length,
+          hintsUsed: sofraDailyHintsUsed(completedProgress),
         });
         setResultScore(scoreResult);
         resultElapsedRef.current = elapsedRef.current;
@@ -580,10 +623,6 @@ export default function KelimeSofrasiOyunScreen() {
         progress.foundWordIds,
       );
       if (longerKutu) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        setMessage(
-          `${longerKutu.kelime.length} harfli kelime — tamamını yaz: ${longerKutu.kelime} (${norm.length} harf yetmez)`,
-        );
         setSelectedPath([]);
         return;
       }
@@ -596,6 +635,7 @@ export default function KelimeSofrasiOyunScreen() {
             return;
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          playHubSfx('bonus');
           const nextBonus = [...progress.bonusFound, norm];
           const prevTier = Math.floor(progress.bonusFound.length / SOFRA_BONUS_HINT_THRESHOLD);
           const nextTier = Math.floor(nextBonus.length / SOFRA_BONUS_HINT_THRESHOLD);
@@ -606,9 +646,10 @@ export default function KelimeSofrasiOyunScreen() {
           });
           setSelectedPath([]);
           if (nextTier > prevTier) {
-            setMessage(`Bonus: ${norm} — +1 ipucu! (ızgara bitmeden kullan)`);
+            setMessage(`Bonus: ${norm} — 10/10! B rozetinin üstündeki ödüle dokun`);
           } else {
-            setMessage(`Bonus: ${norm}`);
+            const { cycle, hedef } = bonusIpucuIlerleme(nextBonus.length);
+            setMessage(`Bonus: ${norm} — ${cycle}/${hedef} (+1 ipucu yolunda)`);
           }
           return;
         }
@@ -616,7 +657,7 @@ export default function KelimeSofrasiOyunScreen() {
         setMessage(
           norm.length <= 3
             ? 'Bonus değil — çarktaki harflerle başka kelime dene'
-            : 'Sözlükte yok veya ızgarada — bonus için geçerli kelime dene',
+            : 'Geçerli bonus değil — TDK’da yok veya ızgarada',
         );
         setSelectedPath([]);
         return;
@@ -633,10 +674,6 @@ export default function KelimeSofrasiOyunScreen() {
       }
       const spoiler = sameAxisSubstringSpoiler(puzzle.words, target, progress.foundWordIds);
       if (spoiler) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        setMessage(
-          `${target.kelime} ipucu verir — önce ${spoiler.kelime} (${spoiler.kelime.length} harf) bul`,
-        );
         setSelectedPath([]);
         return;
       }
@@ -664,13 +701,29 @@ export default function KelimeSofrasiOyunScreen() {
     setMessage(null);
   }, [completed, puzzle, progress]);
 
+  const onClaimBonusHint = useCallback(() => {
+    if (!progress) return;
+    const pending = sofraPendingBonusHintClaims(progress);
+    if (pending <= 0) return;
+    playHubSfx('bonus');
+    const claimed = sofraBonusHintTiersClaimed(progress) + 1;
+    setProgress({
+      ...progress,
+      bonusHintTiersClaimed: claimed,
+      elapsedMs: elapsedRef.current,
+    });
+    setMessage('+1 ipucu kazandın! Ampüle dokun.');
+  }, [progress]);
+
   const onHint = useCallback(async () => {
     if (!puzzle || !progress || completed) return;
-    if (!ipucuHakkiKaldi(progress.hintedCells.length, progress.bonusFound.length)) {
+    const dailyUsed = sofraDailyHintsUsed(progress);
+    const claimedTiers = sofraBonusHintTiersClaimed(progress);
+    if (!ipucuHakkiKaldi(dailyUsed, claimedTiers)) {
       setMessage('İpucu hakkın bitti');
       return;
     }
-    const hintIndex = progress.hintedCells.length;
+    const hintIndex = dailyUsed;
     if (hintIndex >= SOFRA_FREE_IPUCU && user?.email) {
       try {
         const spend = await spendGameHint({
@@ -711,6 +764,7 @@ export default function KelimeSofrasiOyunScreen() {
     const nextProgress: SofraProgress = {
       ...progress,
       hintedCells: nextHinted,
+      dailyHintsUsed: dailyUsed + 1,
       elapsedMs: elapsedRef.current,
     };
     setMessage(`İpucu: ${cell.letter}`);
@@ -728,9 +782,37 @@ export default function KelimeSofrasiOyunScreen() {
     setProgress(nextProgress);
   }, [applyFoundWordIds, completed, puzzle, progress, user?.email, posthog]);
 
+  const claimedBonusTiers = progress ? sofraBonusHintTiersClaimed(progress) : 0;
+  const pendingBonusClaims = progress ? sofraPendingBonusHintClaims(progress) : 0;
   const hintsLeft = progress
-    ? Math.max(0, sofraMaxIpucu(progress.bonusFound.length) - progress.hintedCells.length)
+    ? sofraIpucuKalan(sofraDailyHintsUsed(progress), claimedBonusTiers)
     : 0;
+
+  if (loadError) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
+        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 17, textAlign: 'center' }}>
+          Sofra acilamadi
+        </Text>
+        <Text style={{ color: colors.muted, fontWeight: '600', fontSize: 14, textAlign: 'center' }}>
+          {loadError}
+        </Text>
+        <Pressable
+          onPress={() => setLoadRetryTick((n) => n + 1)}
+          style={{
+            backgroundColor: colors.accent,
+            borderRadius: 12,
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+          }}>
+          <Text style={{ color: '#fff', fontWeight: '800' }}>Tekrar dene</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()}>
+          <Text style={{ color: colors.muted, fontWeight: '700' }}>Lobiye dön</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (
     loading ||
@@ -753,16 +835,19 @@ export default function KelimeSofrasiOyunScreen() {
   return (
     <Screen scroll={false} flush edges={['left', 'right', 'bottom']}>
       <View style={styles.root}>
-        <Image
-          source={sofraBackgroundForPuzzle(puzzle.id)}
-          style={[styles.bgImage, !bgReady ? styles.bgImageHidden : null]}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={0}
-          recyclingKey={puzzle.id}
-          priority="low"
-          pointerEvents="none"
-        />
+        <View style={styles.bgWrap} pointerEvents="none">
+          <View style={styles.bgCoverStage}>
+            <Image
+              source={sofraBackgroundForPuzzle(puzzle.id)}
+              style={[styles.bgImage, !bgReady ? styles.bgImageHidden : null]}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={0}
+              recyclingKey={puzzle.id}
+              priority="low"
+            />
+          </View>
+        </View>
 
         <View style={styles.content}>
           <View style={styles.topBlock}>
@@ -796,12 +881,21 @@ export default function KelimeSofrasiOyunScreen() {
                 onPathChange={handlePathChange}
                 onCommit={submitPath}
                 onShuffle={onShuffle}
-                onHint={onHint}
-                hintsLeft={hintsLeft}
                 disabled={completed}
               />
               <View style={styles.bonusBadgeAnchor} pointerEvents="box-none">
-                <SofraBonusBadge bonusFoundCount={bonusCount} />
+                <SofraBonusBadge
+                  bonusFoundCount={bonusCount}
+                  pendingClaims={pendingBonusClaims}
+                  onClaimReward={onClaimBonusHint}
+                />
+              </View>
+              <View style={styles.hintBadgeAnchor} pointerEvents="box-none">
+                <SofraHintButton
+                  hintsLeft={hintsLeft}
+                  onPress={() => void onHint()}
+                  disabled={completed}
+                />
               </View>
             </View>
           </View>
@@ -814,7 +908,7 @@ export default function KelimeSofrasiOyunScreen() {
                 ? `${resultScore.score} puan · ${formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs)}`
                 : 'Sofra tamam!'}
             </Text>
-            {hintsLeft > 0 && bonusCount >= SOFRA_BONUS_HINT_THRESHOLD ? (
+            {hintsLeft > 0 && claimedBonusTiers > 0 ? (
               <Text style={styles.completeSub}>
                 Kalan ipucu: {hintsLeft} — ızgara bittikten sonra kullanılamaz
               </Text>

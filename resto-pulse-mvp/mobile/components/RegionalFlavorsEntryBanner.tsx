@@ -1,17 +1,26 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Animated, Keyboard, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewStyle } from 'react-native';
+import {
+  Animated,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ImageSourcePropType,
+  type ViewStyle,
+} from 'react-native';
 
+import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import { listRegionalProducts } from '@/lib/api';
 import { regionalProductImageSource } from '@/lib/regional-product-image';
 import type { RegionalProductItem } from '@/lib/types';
-
-const MIN_HEIGHT = 58;
 
 type Slide = {
   name: string;
@@ -113,13 +122,6 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
             </Text>
           </Animated.View>
         ) : null}
-        {slideB ? (
-          <Animated.View style={[styles.productTag, { opacity: opacityB }]} pointerEvents="none">
-            <Text style={styles.productTagText} numberOfLines={1}>
-              {slideB.name}
-            </Text>
-          </Animated.View>
-        ) : null}
       </View>
 
       <View style={styles.content} pointerEvents="none">
@@ -127,7 +129,13 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
           <View style={styles.pill}>
             <Text style={styles.pillText}>Yöresel Lezzetler</Text>
           </View>
-          <Text style={styles.title}>{countLine}</Text>
+          <Text style={styles.title}>
+            Tek Tıkla <Text style={styles.accent}>Keşfet</Text>
+          </Text>
+          <Text style={styles.hint}>{countLine}</Text>
+        </View>
+        <View style={styles.iconCircle}>
+          <Ionicons name="ribbon-outline" size={KESFET_VITRIN_BANNER.iconSize} color={GastroColors.gold} />
         </View>
       </View>
 
@@ -136,18 +144,14 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
   );
 }
 
-const textShadow = {
-  textShadowColor: 'rgba(0,0,0,0.75)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 5,
-} as const;
+const textShadow = KESFET_VITRIN_TEXT_SHADOW;
 
 const styles = StyleSheet.create({
   banner: {
     borderRadius: 11,
     overflow: 'hidden',
     backgroundColor: '#141414',
-    minHeight: MIN_HEIGHT,
+    minHeight: KESFET_VITRIN_BANNER.minHeight,
     flex: 1,
   },
   pressed: { opacity: 0.94, transform: [{ scale: 0.995 }] },
@@ -161,37 +165,59 @@ const styles = StyleSheet.create({
   fallbackEmoji: { fontSize: 28, opacity: 0.55 },
   content: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    gap: 8,
   },
-  textBlock: { gap: 4 },
+  textBlock: { flex: 1, gap: 3 },
   pill: {
     alignSelf: 'flex-start',
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.55)',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(180,83,9,0.92)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   pillText: {
-    color: GastroColors.gold,
-    fontSize: 10,
+    color: '#fff',
+    fontSize: KESFET_VITRIN_BANNER.pillFontSize,
     fontWeight: '900',
-    ...textShadow,
+    letterSpacing: 0.2,
   },
   title: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: KESFET_VITRIN_BANNER.titleFontSize,
     fontWeight: '800',
     ...textShadow,
+  },
+  accent: {
+    color: GastroColors.gold,
+    fontWeight: '900',
+    ...textShadow,
+  },
+  hint: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: KESFET_VITRIN_BANNER.hintFontSize,
+    fontWeight: '700',
+    ...textShadow,
+  },
+  iconCircle: {
+    width: KESFET_VITRIN_BANNER.iconCircle,
+    height: KESFET_VITRIN_BANNER.iconCircle,
+    borderRadius: KESFET_VITRIN_BANNER.iconCircle / 2,
+    backgroundColor: 'rgba(14,14,14,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   productTag: {
     position: 'absolute',
     right: 8,
     bottom: 8,
-    maxWidth: '58%',
+    maxWidth: '52%',
     borderRadius: 6,
     backgroundColor: 'rgba(0,0,0,0.62)',
     borderWidth: 1,
@@ -201,7 +227,7 @@ const styles = StyleSheet.create({
   },
   productTagText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: KESFET_VITRIN_BANNER.slideTagFontSize,
     fontWeight: '800',
     ...textShadow,
   },

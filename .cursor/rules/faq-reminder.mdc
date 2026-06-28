@@ -1,10 +1,18 @@
 ---
-description: FAQ tamamlandı — selamda hatırlatma kapalı
+description: FAQ tamamlandı — selamda veya sohbette FAQ hatırlatma YAPMA
 alwaysApply: true
 ---
 
 # FAQ hatırlatıcısı
 
-**Durum (2026-06-23):** GastroSkor FAQ sayfası/akışı **tamamlandı** — selam mesajlarında FAQ hatırlatması yapma.
+**Durum (2026-06-24): Tamamlandı.** GastroSkor SSS/FAQ akışı canlıda.
 
-Eski kural (devre dışı): selamda "FAQ hâlâ yapılmadı" demek.
+- Web: `resto-pulse-mvp/frontend/app/sss/page.tsx` → `/sss`
+- İçerik: `resto-pulse-mvp/frontend/lib/faq-content.ts` (`GASTRO_FAQ_ITEMS`)
+- Footer + sitemap bağlı
+
+## Agent davranışı
+
+- Kullanıcı "kral selam", "günaydın kral" vb. dese bile **FAQ işi hatırlatma**.
+- "FAQ hâlâ yapılmadı", "bugün FAQ ele alalım mı?" gibi cümleler **yasak**.
+- FAQ ancak kullanıcı açıkça SSS içeriği, mobil FAQ veya yeni soru eklemek isterse gündeme gelir.

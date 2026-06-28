@@ -2,11 +2,12 @@ import { Audio } from 'expo-av';
 
 import { applySpeakerPlaybackMode } from '@/lib/gastro-audio-session';
 
-export type HubSfxKey = 'click' | 'coin' | 'finish' | 'waterdrop' | 'buzzer' | 'applause';
+export type HubSfxKey = 'click' | 'coin' | 'bonus' | 'finish' | 'waterdrop' | 'buzzer' | 'applause';
 
 const HUB_SFX_FILES: Record<HubSfxKey, number> = {
   click: require('@/assets/audio/gastro/clikc.mp3'),
   coin: require('@/assets/audio/gastro/coin2.mp3'),
+  bonus: require('@/assets/audio/gastro/coin2.mp3'),
   finish: require('@/assets/audio/gastro/finish.mp3'),
   waterdrop: require('@/assets/audio/gastro/waterdrop.mp3'),
   buzzer: require('@/assets/audio/gastro/buzzer.mp3'),
@@ -16,6 +17,7 @@ const HUB_SFX_FILES: Record<HubSfxKey, number> = {
 const VOLUMES: Record<HubSfxKey, number> = {
   click: 0.55,
   coin: 0.85,
+  bonus: 0.8,
   finish: 0.9,
   waterdrop: 0.45,
   buzzer: 0.75,

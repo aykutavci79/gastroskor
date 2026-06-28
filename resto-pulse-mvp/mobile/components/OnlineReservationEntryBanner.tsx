@@ -14,13 +14,14 @@ import {
 } from 'react-native';
 
 import { ONLINE_RESERVATION_BANNER_SLIDES } from '@/constants/online-reservation-banner-images';
+import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 
-const MIN_HEIGHT = 58;
+const MIN_HEIGHT = KESFET_VITRIN_BANNER.minHeight;
 
 type Props = {
   style?: ViewStyle;
@@ -111,7 +112,7 @@ export function OnlineReservationEntryBanner({ style }: Props) {
           <Text style={styles.hint}>{countLine}</Text>
         </View>
         <View style={styles.iconCircle}>
-          <Ionicons name="calendar" size={20} color={GastroColors.gold} />
+          <Ionicons name="calendar" size={KESFET_VITRIN_BANNER.iconSize} color={GastroColors.gold} />
         </View>
       </View>
 
@@ -120,11 +121,7 @@ export function OnlineReservationEntryBanner({ style }: Props) {
   );
 }
 
-const textShadow = {
-  textShadowColor: 'rgba(0,0,0,0.75)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 5,
-} as const;
+const textShadow = KESFET_VITRIN_TEXT_SHADOW;
 
 const styles = StyleSheet.create({
   banner: {
@@ -155,13 +152,13 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: KESFET_VITRIN_BANNER.pillFontSize,
     fontWeight: '900',
     letterSpacing: 0.2,
   },
   title: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: KESFET_VITRIN_BANNER.titleFontSize,
     fontWeight: '800',
     ...textShadow,
   },
@@ -172,14 +169,14 @@ const styles = StyleSheet.create({
   },
   hint: {
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 11,
+    fontSize: KESFET_VITRIN_BANNER.hintFontSize,
     fontWeight: '700',
     ...textShadow,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: KESFET_VITRIN_BANNER.iconCircle,
+    height: KESFET_VITRIN_BANNER.iconCircle,
+    borderRadius: KESFET_VITRIN_BANNER.iconCircle / 2,
     backgroundColor: 'rgba(14,14,14,0.45)',
     borderWidth: 1,
     borderColor: 'rgba(245,158,11,0.55)',
@@ -200,7 +197,7 @@ const styles = StyleSheet.create({
   },
   sceneTagText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: KESFET_VITRIN_BANNER.slideTagFontSize,
     fontWeight: '800',
     ...textShadow,
   },

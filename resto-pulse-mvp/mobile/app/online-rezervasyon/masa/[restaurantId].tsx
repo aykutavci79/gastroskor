@@ -234,7 +234,7 @@ export default function OnlineReservationBookScreen() {
       setConfirmVisible(false);
       Alert.alert(
         'Talep gonderildi',
-        'Restoran paneline dusuruldu. Onayladiginda bildirim alacaksiniz; 24 saat icinde kesinlestirmeniz gerekir.',
+        'Restoran onayini bekleyin. Durumu bu ekrandan takip edebilirsiniz; onaydan sonra bildirim gelir.',
         [{ text: 'Tamam', onPress: () => router.replace(`/online-rezervasyon/${row.id}`) }],
       );
     } catch (err) {

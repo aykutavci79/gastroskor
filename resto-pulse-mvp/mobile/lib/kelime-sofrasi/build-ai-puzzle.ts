@@ -13,7 +13,7 @@ import {
 } from '@/lib/kelime-sofrasi/ai-puzzle-assist';
 import { packCrosswordFromCandidatesAsync } from '@/lib/kelime-sofrasi/crossword-pack';
 import { validateSofraCrossword } from '@/lib/kelime-sofrasi/grid-runs';
-import { cantadanKelimeAdaylari } from '@/lib/kelime-sofrasi/letter-bag';
+import { cantadanKelimeAdaylari, sofraBonusKelimeleri } from '@/lib/kelime-sofrasi/letter-bag';
 import type { HavuzKelime } from '@/lib/kelime-sofrasi/havuz';
 import { havuzKelimeFiltre, havuzZorlukFiltre } from '@/lib/kelime-sofrasi/havuz';
 import { tdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
@@ -90,17 +90,13 @@ function compileGrid(words: SofraPlacedWord[]): {
   return { grid, rows, cols };
 }
 
-function bonusFromCandidates(candidates: HavuzKelime[], placed: SofraPlacedWord[], extra: string[]): string[] {
-  const onGrid = new Set(placed.map((w) => sofraKelimeBuyuk(w.kelime)));
-  const out = new Set<string>();
-  for (const w of extra) {
-    const norm = sofraKelimeBuyuk(w);
-    if (!onGrid.has(norm)) out.add(norm);
-  }
-  for (const row of candidates) {
-    if (!onGrid.has(row.kelime)) out.add(row.kelime);
-  }
-  return [...out].sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr'));
+function bonusFromWheel(
+  wheel: string[],
+  pool: HavuzKelime[],
+  placed: SofraPlacedWord[],
+  extra: string[] = [],
+): string[] {
+  return sofraBonusKelimeleri(wheel, placed, pool, extra);
 }
 
 function toAiCandidate(kelime: string, pool: HavuzKelime[], hints: Record<string, string>): HavuzKelime | null {
@@ -210,7 +206,7 @@ export async function tryBuildSofraPuzzleAiAssisted(
       id: puzzleId,
       zorluk,
       words,
-      bonusKelimeler: bonusFromCandidates(candidates, words, bonusExtra),
+      bonusKelimeler: bonusFromWheel(wheel, pool, words, bonusExtra),
       wheel,
       rows,
       cols,

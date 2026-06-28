@@ -6,7 +6,7 @@ import { sofraPuzzleKey } from '@/constants/eglence-zorluk';
 import { sofraBackgroundForPuzzle } from '@/constants/regional-flavor-images';
 import { fetchSofraPuzzleFromPool } from '@/lib/kelime-sofrasi/puzzle-api';
 import { buildSofraPuzzleFallbackQuick } from '@/lib/kelime-sofrasi/puzzle-fallback-static';
-import { tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
+import { enrichSofraPuzzleBonuses, tryBuildDailySofraPuzzleAsync } from '@/lib/kelime-sofrasi/puzzle';
 import { isSofraPuzzleStructurallyValid } from '@/lib/kelime-sofrasi/puzzle-validate';
 import {
   loadSofraPuzzleFromDisk,
@@ -148,13 +148,14 @@ function storePuzzle(
   puzzle: SofraPuzzle,
   aliasGunId?: string,
 ): SofraPuzzle {
-  cache.set(cacheKey(gunId, zorluk, tur), puzzle);
+  const enriched = enrichSofraPuzzleBonuses(puzzle);
+  cache.set(cacheKey(gunId, zorluk, tur), enriched);
   if (aliasGunId && aliasGunId !== gunId) {
-    cache.set(cacheKey(aliasGunId, zorluk, tur), puzzle);
+    cache.set(cacheKey(aliasGunId, zorluk, tur), enriched);
   }
-  saveSofraPuzzleToDisk(gunId, zorluk, puzzle, tur);
-  puzzleReady(puzzle);
-  return puzzle;
+  saveSofraPuzzleToDisk(gunId, zorluk, enriched, tur);
+  puzzleReady(enriched);
+  return enriched;
 }
 
 /** Disk → API → (dev) yerel uretim; tek seferde bir istek birlestirilir. */
@@ -166,7 +167,7 @@ export function ensureSofraPuzzleAsync(
 ): Promise<SofraPuzzle> {
   const key = cacheKey(gunId, zorluk, tur);
   const mem = cache.get(key);
-  if (mem) return Promise.resolve(mem);
+  if (mem) return Promise.resolve(enrichSofraPuzzleBonuses(mem));
 
   const pending = inflight.get(key);
   if (pending) return pending;

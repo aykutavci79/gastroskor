@@ -17,78 +17,63 @@ export function KesfetSearchModelPicker({ value, onChange, canRunSocial }: Props
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.legend}>Arama modeli</Text>
-      <View style={styles.row}>
-        <Pressable
-          style={[styles.option, value === 'gastroskor' && styles.optionOn]}
-          onPress={() => onChange('gastroskor')}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: value === 'gastroskor' }}>
-          <Text style={[styles.optionTitle, value === 'gastroskor' && styles.optionTitleOn]}>
-            GastroSkor
-          </Text>
-          <Text style={styles.optionSub}>Google skoru, mesafe, yorum</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.option, value === 'sosyal' && styles.optionOn, !canRunSocial && styles.optionMuted]}
-          onPress={() => onChange('sosyal')}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: value === 'sosyal' }}>
-          <Text style={[styles.optionTitle, value === 'sosyal' && styles.optionTitleOn]}>
-            Sosyal kanıt
-          </Text>
-          <Text style={styles.optionSub}>
-            {canRunSocial ? 'Reddit / X / YouTube' : 'Giriş gerekir'}
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={[styles.chip, value === 'gastroskor' && styles.chipOn]}
+        onPress={() => onChange('gastroskor')}
+        accessibilityRole="radio"
+        accessibilityState={{ selected: value === 'gastroskor' }}
+        accessibilityLabel="GastroSkor araması, Google skoru ve mesafe">
+        <Text style={[styles.chipText, value === 'gastroskor' && styles.chipTextOn]}>GastroSkor</Text>
+      </Pressable>
+      <Pressable
+        style={[
+          styles.chip,
+          value === 'sosyal' && styles.chipOn,
+          !canRunSocial && styles.chipMuted,
+        ]}
+        onPress={() => onChange('sosyal')}
+        accessibilityRole="radio"
+        accessibilityState={{ selected: value === 'sosyal' }}
+        accessibilityLabel={
+          canRunSocial ? 'Sosyal kanıt araması' : 'Sosyal kanıt, giriş gerekir'
+        }>
+        <Text style={[styles.chipText, value === 'sosyal' && styles.chipTextOn]}>Sosyal</Text>
+      </Pressable>
     </View>
   );
 }
 
 function createStyles(colors: GastroColorScheme) {
   return StyleSheet.create({
-    wrap: { gap: 8 },
-    legend: {
-      color: colors.muted,
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 0.3,
-      textTransform: 'uppercase',
-    },
-    row: {
+    wrap: {
       flexDirection: 'row',
-      gap: 8,
-    },
-    option: {
-      flex: 1,
-      borderRadius: 12,
+      alignSelf: 'flex-start',
+      gap: 6,
+      borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.input,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      gap: 2,
+      padding: 3,
     },
-    optionOn: {
-      borderColor: colors.accent,
+    chip: {
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+    },
+    chipOn: {
       backgroundColor: colors.accentSoft,
     },
-    optionMuted: {
-      opacity: 0.92,
+    chipMuted: {
+      opacity: 0.55,
     },
-    optionTitle: {
-      color: colors.text,
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    optionTitleOn: {
-      color: colors.accent,
-    },
-    optionSub: {
+    chipText: {
       color: colors.muted,
-      fontSize: 10,
-      lineHeight: 14,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    chipTextOn: {
+      color: colors.accent,
+      fontWeight: '800',
     },
   });
 }

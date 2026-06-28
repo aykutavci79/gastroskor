@@ -5,7 +5,7 @@ import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/
 import { SofraDatePicker } from '@/components/kelime-sofrasi/SofraDatePicker';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraKelimeHedefEtiket, sofraPuzzleKey } from '@/constants/eglence-zorluk';
-import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT } from '@/constants/kelime-sofrasi';
+import { SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD } from '@/constants/kelime-sofrasi';
 import { useSession } from '@/context/session-context';
 import { fetchArchiveUnlocks, unlockArchiveDay } from '@/lib/eglence-archive-api';
 import { warmEglenceGame } from '@/lib/eglence-warm';
@@ -22,7 +22,7 @@ import { activePuzzleId, formatNextResetHint, formatPuzzlePeriodLabel } from '@/
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function KelimeSofrasiLobbyScreen() {
   const router = useRouter();
@@ -94,34 +94,27 @@ export default function KelimeSofrasiLobbyScreen() {
     let cancelled = false;
     setPuzzle(null);
     setLoadError(null);
+    warmEglenceGame('kelime-sofrasi');
 
-    const task = InteractionManager.runAfterInteractions(() => {
-      if (cancelled) return;
-      warmEglenceGame('kelime-sofrasi');
-
-      void resolveSofraSessionTur(selectedGunId, zorluk).then((tur) => {
+    void (async () => {
+      try {
+        const tur = await resolveSofraSessionTur(selectedGunId, zorluk);
         if (cancelled) return;
         prefetchSofraPuzzlesForToday(selectedGunId, zorluk);
-
-        void ensureSofraPuzzleAsync(selectedGunId, zorluk, tur, user?.email)
-          .then((loaded) => {
-            if (!cancelled) {
-              setPuzzle(loaded);
-              prefetchSofraBackgroundForPuzzle(loaded.id);
-            }
-          })
-          .catch((err) => {
-            if (!cancelled) {
-              setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
-              if (__DEV__) console.warn('[sofra-lobby]', err);
-            }
-          });
-      });
-    });
+        const loaded = await ensureSofraPuzzleAsync(selectedGunId, zorluk, tur, user?.email);
+        if (cancelled) return;
+        setPuzzle(loaded);
+        prefetchSofraBackgroundForPuzzle(loaded.id);
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError('Bulmaca yüklenemedi. İnterneti kontrol edip tekrar dene.');
+          if (__DEV__) console.warn('[sofra-lobby]', err);
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
-      task.cancel();
     };
   }, [selectedGunId, zorluk, retryTick, user?.email]);
 
@@ -178,7 +171,7 @@ export default function KelimeSofrasiLobbyScreen() {
   // Arkadaş tablosu: aynı gün+zorluk için tüm turların en iyi süresi (backend birleştirir).
   const leaderboardPeriodKey = sofraPuzzleKey(selectedGunId, zorluk, 0);
   const sofraHazir = puzzle?.zorluk === zorluk;
-  const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT - tamamlamaSayisi);
+  const kalanTur = Math.max(0, SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD - tamamlamaSayisi);
   const oyunAcik = sofraHazir && !limitDoldu;
   const archiveDay = isSofraArchiveDay(selectedGunId);
 
@@ -232,10 +225,10 @@ export default function KelimeSofrasiLobbyScreen() {
           </Text>
           <Text style={styles.madde}>Takılırsan İpucu ile ızgarada rastgele bir harf açılır.</Text>
           <Text style={styles.madde}>
-            Her turda yeni kelimeler ve düzen gelir. Günde {SOFRA_GUNLUK_TAMAMLAMA_LIMIT} tur oynayabilirsin.
+            Her turda yeni kelimeler ve düzen gelir. Günde {SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD} tur oynayabilirsin.
             {limitDoldu
               ? ' Bugünlük hakkın doldu.'
-              : kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+              : kalanTur > 0 && kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD
                 ? ` Kalan: ${kalanTur} tur.`
                 : ''}
           </Text>
@@ -258,7 +251,7 @@ export default function KelimeSofrasiLobbyScreen() {
               : loadError
                 ? 'Tekrar dene'
                 : sofraHazir
-                  ? kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT
+                  ? kalanTur > 0 && kalanTur < SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD
                     ? `Sofraya Otur (${kalanTur} tur kaldı)`
                     : 'Sofraya Otur'
                   : 'Sofra hazırlanıyor…'}

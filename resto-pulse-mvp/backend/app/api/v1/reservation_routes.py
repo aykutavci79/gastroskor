@@ -24,6 +24,7 @@ from app.services.table_reservations import (
     create_table_reservation,
     floor_plan_to_dict,
     get_published_plan,
+    get_user_reservation,
     list_user_reservations,
     online_reservations_configured,
     effective_online_reservation_max_party,
@@ -137,6 +138,22 @@ async def post_restaurant_reservation(
         raise_reservation_http(exc)
     await notify_new_table_reservation(db, ownership=ownership, reservation=reservation)
     return TableReservationRead.model_validate(reservation_to_dict(reservation, restaurant_name=restaurant.name))
+
+
+@router.get("/users/me/reservations/{reservation_id}", response_model=TableReservationRead)
+def get_my_reservation(
+    reservation_id: UUID,
+    user_email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+):
+    user = _load_user(db, user_email)
+    row = get_user_reservation(db, reservation_id=reservation_id, user_id=user.id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rezervasyon bulunamadi.")
+    restaurant = db.get(Restaurant, row.restaurant_id)
+    return TableReservationRead.model_validate(
+        reservation_to_dict(row, restaurant_name=restaurant.name if restaurant else None)
+    )
 
 
 @router.get("/users/me/reservations", response_model=TableReservationListResponse)

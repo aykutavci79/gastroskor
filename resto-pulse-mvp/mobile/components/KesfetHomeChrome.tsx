@@ -57,10 +57,6 @@ export function KesfetHomeChrome({
     <View style={styles.wrap}>
       <View style={styles.topRow}>
         <Text style={styles.brand}>GastroSkor</Text>
-        <View style={styles.topActions}>
-          <OrdersHeaderButton />
-          <DmAvatarButton />
-        </View>
       </View>
       <CityPickerModal
         visible={pickerOpen}
@@ -73,50 +69,64 @@ export function KesfetHomeChrome({
         }}
       />
       <View style={[styles.searchCard, searchFocused && styles.searchCardFocused]}>
-        <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
-        <Text style={styles.searchSub}>Google Haritalar ile anlık mekan araması</Text>
-        {onSearchModelChange ? (
-          <KesfetSearchModelPicker
-            value={searchModel}
-            onChange={onSearchModelChange}
-            canRunSocial={canRunSocial}
-          />
-        ) : null}
-        <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            ref={searchInputRef}
-            value={query}
-            onChangeText={onQueryChange}
-            onFocus={onSearchFocus}
-            onBlur={onSearchBlur}
-            placeholder="İskender, cantık, pideli köfte…"
-            placeholderTextColor={colors.placeholder}
-            style={styles.searchInput}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-            blurOnSubmit={false}
-          />
-          {showClear ? (
-            <Pressable
-              onPress={onClear}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Aramayı temizle">
-              <Ionicons name="close-circle" size={18} color={colors.muted} />
-            </Pressable>
-          ) : searchFocused && onDismiss ? (
-            <Pressable
-              onPress={onDismiss}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Aramadan vazgeç">
-              <Text style={styles.cancel}>Vazgeç</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.clearSlot} />
-          )}
+        <View style={styles.searchHeadingRow}>
+          <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
+          <View style={styles.searchHeadingActions}>
+            <OrdersHeaderButton />
+            <DmAvatarButton />
+          </View>
+        </View>
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchBox,
+              searchFocused && styles.searchBoxFocused,
+              onSearchModelChange && (searchFocused || query.trim().length > 0)
+                ? styles.searchBoxFlex
+                : null,
+            ]}>
+            <Text style={styles.searchIcon}>⌕</Text>
+            <TextInput
+              ref={searchInputRef}
+              value={query}
+              onChangeText={onQueryChange}
+              onFocus={onSearchFocus}
+              onBlur={onSearchBlur}
+              placeholder="İskender, cantık, pideli köfte…"
+              placeholderTextColor={colors.placeholder}
+              style={styles.searchInput}
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+            />
+            {showClear ? (
+              <Pressable
+                onPress={onClear}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Aramayı temizle">
+                <Ionicons name="close-circle" size={18} color={colors.muted} />
+              </Pressable>
+            ) : searchFocused && onDismiss ? (
+              <Pressable
+                onPress={onDismiss}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Aramadan vazgeç">
+                <Text style={styles.cancel}>Vazgeç</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.clearSlot} />
+            )}
+          </View>
+          {onSearchModelChange && (searchFocused || query.trim().length > 0) ? (
+            <KesfetSearchModelPicker
+              value={searchModel}
+              onChange={onSearchModelChange}
+              canRunSocial={canRunSocial}
+            />
+          ) : null}
         </View>
       </View>
       <CityAtmosphereStrip
@@ -148,11 +158,6 @@ function createStyles(colors: GastroColorScheme, shadow: ReturnType<typeof impor
       justifyContent: 'space-between',
       gap: 8,
     },
-    topActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
     brand: {
       color: colors.text,
       fontSize: 13,
@@ -170,20 +175,38 @@ function createStyles(colors: GastroColorScheme, shadow: ReturnType<typeof impor
     searchCardFocused: {
       borderColor: colors.accent,
     },
+    searchHeadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
     searchHeading: {
+      flex: 1,
       color: colors.text,
       fontSize: 16,
       fontWeight: '800',
     },
-    searchSub: {
-      color: colors.muted,
-      fontSize: 11,
-      fontWeight: '600',
+    searchHeadingActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexShrink: 0,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    searchBoxFlex: {
+      flex: 1,
+      minWidth: 0,
     },
     searchBox: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      flex: 1,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.border,

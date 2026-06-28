@@ -5,9 +5,9 @@ import { useEffect, useRef } from 'react';
 
 import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
 import { FoodCastHomeSection } from '@/components/FoodCastHomeSection';
+import { HomeVitrinBanners } from '@/components/HomeVitrinBanners';
 import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
-import { OnlineReservationHomeTeaser } from '@/components/OnlineReservationHomeTeaser';
 import { RegionalFlavorTeaser } from '@/components/RegionalFlavorTeaser';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { citySearchHeading } from '@/lib/detect-city';
@@ -37,7 +37,7 @@ export function HomePageContent() {
         />
         <CityAtmosphereStrip city={city} status={status} />
       </div>
-      <OnlineReservationHomeTeaser />
+      <HomeVitrinBanners city={city} />
       <RegionalFlavorTeaser city={city} cityStatus={status} onCityChange={setCity} />
       <FoodCastHomeSection city={city} />
       <NewMemberRestaurants />

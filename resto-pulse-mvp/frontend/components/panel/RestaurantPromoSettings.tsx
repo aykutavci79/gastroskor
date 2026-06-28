@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
 import { OnlineOrderHoursEditor, defaultOnlineOrderHours, type OnlineOrderHours } from '@/components/panel/OnlineOrderHoursEditor';
+import { VoiceProductCatalogPicker } from '@/components/panel/VoiceProductCatalogPicker';
 import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
 import { ONLINE_ORDER_CATEGORIES } from '@/lib/online-order-categories';
@@ -298,6 +299,7 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
                       </button>
                     );
                   })}
+                </div>
                 </div>
                 <VoiceProductCatalogPicker
                   userEmail={userEmail}

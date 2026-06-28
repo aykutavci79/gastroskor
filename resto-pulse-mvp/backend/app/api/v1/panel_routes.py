@@ -932,6 +932,7 @@ async def patch_panel_reservation(
     restaurant = db.get(Restaurant, ownership.restaurant_id)
     if restaurant:
         await notify_reservation_decided(db, reservation=reservation, restaurant=restaurant)
+        db.commit()
     return TableReservationRead.model_validate(
         reservation_to_dict(reservation, restaurant_name=restaurant.name if restaurant else None)
     )

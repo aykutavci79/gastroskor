@@ -11,7 +11,7 @@ import { packCrosswordFromCandidates, packCrosswordFromCandidatesAsync } from '@
 import { buildSofraPuzzleFallbackQuick } from '@/lib/kelime-sofrasi/puzzle-fallback-static';
 import { validateSofraCrossword } from '@/lib/kelime-sofrasi/grid-runs';
 import { tdkLexicon } from '@/lib/kelime-sofrasi/tdk-lexicon';
-import { cantadanKelimeAdaylari } from '@/lib/kelime-sofrasi/letter-bag';
+import { cantadanKelimeAdaylari, sofraBonusKelimeleri } from '@/lib/kelime-sofrasi/letter-bag';
 import type { HavuzKelime } from '@/lib/kelime-sofrasi/havuz';
 import { havuzKelimeFiltre, havuzZorlukFiltre } from '@/lib/kelime-sofrasi/havuz';
 import { sofraKelimeBuyuk, sofraKelimeEsit } from '@/lib/kelime-sofrasi/turkce-harf';
@@ -96,12 +96,26 @@ function wheelFromSeed(seed: string, rand: () => number): string[] {
   return order.map((i) => letters[i]!);
 }
 
-function bonusFromCandidates(candidates: HavuzKelime[], placed: SofraPlacedWord[]): string[] {
-  const onGrid = new Set(placed.map((w) => sofraKelimeBuyuk(w.kelime)));
-  return candidates
-    .filter((w) => !onGrid.has(w.kelime))
-    .map((w) => w.kelime)
-    .sort((a, b) => a.length - b.length || a.localeCompare(b, 'tr'));
+function bonusFromWheel(
+  wheel: string[],
+  pool: HavuzKelime[],
+  placed: SofraPlacedWord[],
+  extra: string[] = [],
+): string[] {
+  return sofraBonusKelimeleri(wheel, placed, pool, extra);
+}
+
+export function enrichSofraPuzzleBonuses(puzzle: SofraPuzzle): SofraPuzzle {
+  if (puzzle.bonusKelimeler.length > 0) return puzzle;
+  const pool = poolForZorluk(puzzle.zorluk);
+  const bonusKelimeler = bonusFromWheel(puzzle.wheel, pool, puzzle.words, puzzle.bonusKelimeler);
+  if (
+    bonusKelimeler.length === puzzle.bonusKelimeler.length &&
+    bonusKelimeler.every((w, i) => w === puzzle.bonusKelimeler[i])
+  ) {
+    return puzzle;
+  }
+  return { ...puzzle, bonusKelimeler };
 }
 
 function buildPuzzleFromWheel(
@@ -133,7 +147,7 @@ function buildPuzzleFromWheel(
     id: puzzleId,
     zorluk,
     words: placed,
-    bonusKelimeler: bonusFromCandidates(candidates, placed),
+    bonusKelimeler: bonusFromWheel(wheel, pool, placed),
     wheel,
     rows,
     cols,
@@ -170,7 +184,7 @@ async function buildPuzzleFromWheelAsync(
     id: puzzleId,
     zorluk,
     words: placed,
-    bonusKelimeler: bonusFromCandidates(candidates, placed),
+    bonusKelimeler: bonusFromWheel(wheel, pool, placed),
     wheel,
     rows,
     cols,
@@ -219,12 +233,11 @@ function fallbackPuzzle(puzzleId: string, rand: () => number, zorluk: EglenceZor
   ];
   const { grid, rows, cols } = compileGrid(words);
   const pool = poolForZorluk(zorluk);
-  const fbCandidates = cantadanKelimeAdaylari(wheel, pool);
   return {
     id: puzzleId,
     zorluk,
     words,
-    bonusKelimeler: bonusFromCandidates(fbCandidates, words),
+    bonusKelimeler: bonusFromWheel(wheel, pool, words),
     wheel,
     rows,
     cols,

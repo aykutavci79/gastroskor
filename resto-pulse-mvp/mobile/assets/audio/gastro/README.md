@@ -16,6 +16,7 @@ Dosyalar yoksa uygulama TTS yedegine duser.
 |-------|----------|
 | `clikc.mp3` | GastroHub tiklamalari |
 | `coin2.mp3` | Gunluk gorev odulu alininca |
+| `coin2.mp3` (gecici) | Kelime Sofrasi bonus kelime — `bonus.mp3` ile degistir |
 | `finish.mp3` | Oyun basariyla bitince (sonuc modali) |
 | `waterdrop.mp3` | Kelime Sofrasi cemberinde harf uzerine gelince |
 | `buzzer.mp3` | Mini Sudoku hatali rakam girisi |

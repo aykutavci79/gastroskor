@@ -108,6 +108,7 @@ export default function ExploreScreen() {
   const [socialSortActive, setSocialSortActive] = useState(false);
   const [searchModel, setSearchModel] = useState<KesfetSearchModel>('gastroskor');
   const [searchSource, setSearchSource] = useState<string | null>(null);
+  const [vitrinViewportHeight, setVitrinViewportHeight] = useState(0);
 
   const canRunSocialMode = Boolean(user);
   const isSocialMode = searchModel === 'sosyal';
@@ -564,6 +565,11 @@ export default function ExploreScreen() {
     setSearchFocused(false);
   }
 
+  function handleBodyHostLayout(event: { nativeEvent: { layout: { height: number } } }) {
+    const next = Math.round(event.nativeEvent.layout.height);
+    if (next > 0) setVitrinViewportHeight(next);
+  }
+
   function handleKitchenSelect(slug: string) {
     dismissKeyboard();
     if (activeKitchenSlug === slug) {
@@ -705,18 +711,29 @@ export default function ExploreScreen() {
   ) : null;
 
   const vitrinBody = !listMode ? (
-    <View style={styles.vitrinFill}>
-        <View style={styles.flexOnline}>
+    <ScrollView
+      style={styles.vitrinScroll}
+      contentContainerStyle={styles.vitrinScrollContent}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}>
+      <View
+        style={[
+          styles.vitrinTripleHost,
+          vitrinViewportHeight > 0 ? { minHeight: vitrinViewportHeight } : null,
+        ]}>
+        <View style={styles.vitrinThird}>
           <OnlineOrderEntryBanner variant="vitrin" style={styles.fillChild} />
         </View>
-        <View style={styles.flexReservation}>
+        <View style={styles.vitrinThird}>
           <OnlineReservationEntryBanner style={styles.fillChild} />
         </View>
-        <View style={styles.flexRegional}>
+        <View style={styles.vitrinThird}>
           <RegionalFlavorsEntryBanner style={styles.fillChild} />
         </View>
-        <RecentPhotosStrip style={styles.flexPhotos} onDismissKeyboard={dismissKeyboard} />
-    </View>
+      </View>
+      <RecentPhotosStrip style={styles.foodcastBelow} onDismissKeyboard={dismissKeyboard} />
+    </ScrollView>
   ) : null;
 
   const showVitrinDismissOverlay = searchFocused && !listMode;
@@ -731,7 +748,7 @@ export default function ExploreScreen() {
       <View style={styles.pageInner}>
       {chrome}
       <KesfetKitchenChips activeSlug={activeKitchenSlug} onSelect={handleKitchenSelect} />
-      <View style={styles.bodyHost}>
+      <View style={styles.bodyHost} onLayout={handleBodyHostLayout}>
         {listMode ? (
           <ScrollView
             ref={scrollRef}
@@ -750,7 +767,7 @@ export default function ExploreScreen() {
             {searchBody}
           </ScrollView>
         ) : (
-          <View style={styles.vitrinTapArea}>{vitrinBody}</View>
+          vitrinBody
         )}
         {showVitrinDismissOverlay ? (
           <Pressable
@@ -780,23 +797,21 @@ function createExploreStyles(colors: import('@/constants/theme').GastroColorSche
   },
   bodyHost: { flex: 1, minHeight: 0, position: 'relative' },
   searchScrollHost: { flex: 1 },
-  vitrinTapArea: { flex: 1, minHeight: 0 },
+  vitrinScroll: { flex: 1 },
+  vitrinScrollContent: { flexGrow: 1 },
+  vitrinTripleHost: {
+    flexDirection: 'column',
+    gap: 3,
+    paddingTop: 3,
+  },
+  vitrinThird: { flex: 1, minHeight: 0, paddingHorizontal: 12 },
+  foodcastBelow: { flex: 0, flexGrow: 0, flexShrink: 0, paddingTop: 8, paddingBottom: 16 },
   vitrinDismissOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 15,
     elevation: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.18)',
   },
-  vitrinFill: {
-    flex: 1,
-    minHeight: 0,
-    paddingTop: 3,
-    gap: 3,
-  },
-  flexOnline: { flex: 1.05, minHeight: 0, paddingHorizontal: 12 },
-  flexReservation: { flex: 1.05, minHeight: 0, paddingHorizontal: 12 },
-  flexRegional: { flex: 0.95, minHeight: 0, paddingHorizontal: 12 },
-  flexPhotos: { flex: 0.95, minHeight: 0, marginBottom: 4 },
   fillChild: { flex: 1, marginHorizontal: 0, alignSelf: 'stretch', width: '100%' },
   searchScroll: { paddingHorizontal: 12, gap: 12, paddingBottom: 24 },
   searchBody: { gap: 12, paddingHorizontal: 4 },

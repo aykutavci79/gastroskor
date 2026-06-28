@@ -97,13 +97,10 @@ export function CityAtmosphereStrip({
             İl seç
           </Text>
         </View>
-        <Text style={[styles.hint, { color: theme.darkStrip.muted }]} numberOfLines={1}>
-          {theme.hint}
-        </Text>
 
         {showTicker && tickerLine ? (
           <Pressable
-            style={({ pressed }) => [styles.tickerRow, pressed && styles.tickerPressed]}
+            style={({ pressed }) => [styles.subLine, pressed && styles.tickerPressed]}
             onPress={(event) => {
               event.stopPropagation();
               if (activeItem) setSheetItem(activeItem);
@@ -115,7 +112,11 @@ export function CityAtmosphereStrip({
               {tickerLine}
             </Text>
           </Pressable>
-        ) : null}
+        ) : (
+          <Text style={[styles.hint, { color: theme.darkStrip.muted }]} numberOfLines={1}>
+            {theme.hint}
+          </Text>
+        )}
       </Pressable>
 
       <KesfetReviewTickerSheet item={sheetItem} onClose={() => setSheetItem(null)} />
@@ -128,8 +129,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    gap: 6,
+    paddingVertical: 7,
+    gap: 4,
   },
   wrapPressed: { opacity: 0.94 },
   row: {
@@ -168,13 +169,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  tickerRow: {
+  subLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    paddingTop: 6,
+    minHeight: 14,
   },
   tickerPressed: { opacity: 0.9 },
   tickerLabel: {

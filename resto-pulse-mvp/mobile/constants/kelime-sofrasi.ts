@@ -13,7 +13,7 @@ export const SOFRA_MAX_HEDEF = 6;
 export const SOFRA_UC_HARF_MIN = 2;
 export const SOFRA_UC_HARF_MAX = 3;
 
-/** Oyunda kullanılabilecek ipucu sayısı */
+/** Gunluk toplam ipucu hakki (tum turlar) — bonus ile artar */
 export const SOFRA_MAX_IPUCU = 8;
 
 /** Ücretsiz ipucu (sonrası jeton) — backend ile uyumlu */
@@ -33,14 +33,19 @@ export const SOFRA_LETTER_COLOR = '#000000';
 export const SOFRA_WHEEL_FONT_FAMILY = 'SofraMontserratBlack';
 
 /** Bu kadar bonus kelime = +1 ipucu hakki */
-export const SOFRA_BONUS_HINT_THRESHOLD = 3;
+export const SOFRA_BONUS_HINT_THRESHOLD = 10;
 
 /** Prod: ayni gunluk bulmacayi en fazla 5 kez bitir. Dev: sinirsiz tekrar. */
+export const SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD = 5;
+
 export const SOFRA_GUNLUK_TAMAMLAMA_LIMIT =
-  typeof __DEV__ !== 'undefined' && __DEV__ ? 999 : 5;
+  typeof __DEV__ !== 'undefined' && __DEV__ ? 999 : SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD;
 
 /** Arsiv baslangici — bu tarihten onceki gunler lobide secilemez. */
 export const SOFRA_ARCHIVE_EPOCH = '2026-06-25';
 
 /** Aktif gunden geriye en fazla kac gun arsiv acik. */
 export const SOFRA_ARCHIVE_MAX_DAYS = 90;
+
+/** Oyun arka plani — cover penceresi (1=normal; dusuk=genis aci, ekran yine tam dolar). */
+export const SOFRA_BG_COVER_FRAC = 0.62;

@@ -325,6 +325,20 @@ def list_panel_reservations(
     return [reservation_to_dict(row) for row in rows]
 
 
+def get_user_reservation(
+    db: Session,
+    *,
+    reservation_id: UUID,
+    user_id: UUID,
+) -> RestaurantTableReservation | None:
+    return db.scalar(
+        select(RestaurantTableReservation).where(
+            RestaurantTableReservation.id == reservation_id,
+            RestaurantTableReservation.user_id == user_id,
+        )
+    )
+
+
 def list_user_reservations(db: Session, *, user_id: UUID, limit: int = 30) -> list[dict]:
     rows = db.scalars(
         select(RestaurantTableReservation, Restaurant.name)

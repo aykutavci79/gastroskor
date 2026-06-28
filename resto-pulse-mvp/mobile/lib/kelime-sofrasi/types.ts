@@ -40,6 +40,10 @@ export type SofraProgress = {
   wheelOrder: number[];
   completedAt: string | null;
   elapsedMs: number;
+  /** Ayni gun / zorlukta tum turlarda harcanan ipucu (8 gunluk hak + bonus ekleri) */
+  dailyHintsUsed?: number;
+  /** Bonus 10'lu dilimlerden kullanicinin aldigi +1 ipucu sayisi */
+  bonusHintTiersClaimed?: number;
   /** Ayni gunluk bulmaca (puzzleId) kac kez tamamlandi */
   gunlukTamamlamaSayisi?: number;
 };

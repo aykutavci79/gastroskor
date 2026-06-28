@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { EglenceZorluk } from '@/constants/eglence-zorluk';
 import { sofraTurFromPuzzleId } from '@/constants/eglence-zorluk';
 import { SOFRA_STORAGE_PREFIX } from '@/constants/kelime-sofrasi';
-import { baslangicCarkSirasi } from '@/lib/kelime-sofrasi/engine';
+import { baslangicCarkSirasi, sofraBonusHintTiersClaimed, sofraDailyHintsUsed } from '@/lib/kelime-sofrasi/engine';
 import {
   sofraGunlukLimitDoldu,
   sofraKalanGunlukHak,
@@ -64,32 +64,56 @@ export function warmSofraProgress(puzzle: SofraPuzzle): void {
   });
 }
 
-export function freshProgress(
-  puzzle: SofraPuzzle,
-  opts?: { gunlukTamamlamaSayisi?: number },
-): SofraProgress {
-  const round = opts?.gunlukTamamlamaSayisi ?? 0;
-  const rand = mulberry32(seedFromString(`${puzzle.id}:wheel:round:${round}`));
+export type SofraSessionCarry = Pick<
+  SofraProgress,
+  'bonusFound' | 'dailyHintsUsed' | 'bonusHintTiersClaimed'
+>;
+
+function applySessionCarry(progress: SofraProgress, carry?: SofraSessionCarry): SofraProgress {
+  if (!carry) return progress;
   return {
-    puzzleId: puzzle.id,
-    foundWordIds: [],
-    bonusFound: [],
-    hintedCells: [],
-    wheelOrder: baslangicCarkSirasi(puzzle.wheel, rand),
-    completedAt: null,
-    elapsedMs: 0,
-    gunlukTamamlamaSayisi: round,
+    ...progress,
+    bonusFound: [...carry.bonusFound],
+    dailyHintsUsed: carry.dailyHintsUsed ?? 0,
+    bonusHintTiersClaimed: carry.bonusHintTiersClaimed ?? 0,
   };
 }
 
-/** Tamamlanan tur sonrası yeni tur — diske yazar, bellek önbelleğini günceller. */
+export function freshProgress(
+  puzzle: SofraPuzzle,
+  opts?: { gunlukTamamlamaSayisi?: number; session?: SofraSessionCarry },
+): SofraProgress {
+  const round = opts?.gunlukTamamlamaSayisi ?? 0;
+  const rand = mulberry32(seedFromString(`${puzzle.id}:wheel:round:${round}`));
+  return applySessionCarry(
+    {
+      puzzleId: puzzle.id,
+      foundWordIds: [],
+      bonusFound: [],
+      hintedCells: [],
+      dailyHintsUsed: 0,
+      bonusHintTiersClaimed: 0,
+      wheelOrder: baslangicCarkSirasi(puzzle.wheel, rand),
+      completedAt: null,
+      elapsedMs: 0,
+      gunlukTamamlamaSayisi: round,
+    },
+    opts?.session,
+  );
+}
+
+/** Tamamlanan tur sonrası yeni tur — bonus ve gunluk ipucu devam eder. */
 export async function beginNextSofraRound(
   puzzle: SofraPuzzle,
   tamamlamaSayisi: number,
   gunId?: string,
   zorluk?: EglenceZorluk,
+  session?: SofraSessionCarry,
 ): Promise<SofraProgress> {
-  const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlamaSayisi });
+  const next = freshProgress(puzzle, {
+    gunlukTamamlamaSayisi: tamamlamaSayisi,
+    session,
+  });
   await saveSofraProgress(next, gunId, zorluk);
   return next;
 }
@@ -117,6 +141,14 @@ export async function resolveSofraSessionTur(
   }
 }
 
+function sessionCarryFrom(parsed: SofraProgress): SofraSessionCarry {
+  return {
+    bonusFound: Array.isArray(parsed.bonusFound) ? parsed.bonusFound : [],
+    dailyHintsUsed: sofraDailyHintsUsed(parsed),
+    bonusHintTiersClaimed: sofraBonusHintTiersClaimed(parsed),
+  };
+}
+
 export async function loadSofraProgress(
   puzzle: SofraPuzzle,
   gunId?: string,
@@ -130,12 +162,21 @@ export async function loadSofraProgress(
     return progress;
   };
   const defaultTamamlama = turTamamlamaSayisi(puzzle, resolvedGunId, resolvedZorluk);
+  const dayPrefix = `${resolvedGunId}:${resolvedZorluk}`;
   try {
     const parsed = await readStoredProgress(resolvedGunId, resolvedZorluk);
     if (!parsed) {
       return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
     }
     if (parsed.puzzleId !== puzzle.id || !Array.isArray(parsed.foundWordIds)) {
+      if (parsed.puzzleId.startsWith(dayPrefix)) {
+        return store(
+          freshProgress(puzzle, {
+            gunlukTamamlamaSayisi: defaultTamamlama,
+            session: sessionCarryFrom(parsed),
+          }),
+        );
+      }
       return store(freshProgress(puzzle, { gunlukTamamlamaSayisi: defaultTamamlama }));
     }
     const wheelOrder =
@@ -152,13 +193,18 @@ export async function loadSofraProgress(
         : Array.isArray(parsed.hintedWordIds)
           ? []
           : [],
+      dailyHintsUsed: sofraDailyHintsUsed(parsed),
+      bonusHintTiersClaimed: sofraBonusHintTiersClaimed(parsed),
       wheelOrder,
       completedAt: parsed.completedAt ?? null,
       elapsedMs: typeof parsed.elapsedMs === 'number' ? parsed.elapsedMs : 0,
       gunlukTamamlamaSayisi: tamamlama,
     };
     if (progress.completedAt && !sofraGunlukLimitDoldu(progress)) {
-      const next = freshProgress(puzzle, { gunlukTamamlamaSayisi: tamamlama });
+      const next = freshProgress(puzzle, {
+        gunlukTamamlamaSayisi: tamamlama,
+        session: sessionCarryFrom(progress),
+      });
       await saveSofraProgress(next, resolvedGunId, resolvedZorluk);
       return store(next);
     }

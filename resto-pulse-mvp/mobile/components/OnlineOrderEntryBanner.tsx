@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { LOCAL_KITCHEN_IMAGES } from '@/constants/kitchen-category-images';
+import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
 import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { GastroColors } from '@/constants/theme';
@@ -22,7 +23,7 @@ import { useCity } from '@/context/city-context';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 
 const BANNER_HEIGHT_FULL = 148;
-const BANNER_HEIGHT_VITRIN = 58;
+const BANNER_HEIGHT_VITRIN = KESFET_VITRIN_BANNER.minHeight;
 const AUTO_SCROLL_MS = 5200;
 const FADE_MS = 1400;
 const SCREEN_H_PAD = 16;
@@ -186,7 +187,7 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
       </View>
 
       <View style={[styles.content, vitrin && styles.contentVitrin]} pointerEvents="none">
-        <View style={styles.textBlock}>
+        <View style={[styles.textBlock, vitrin && styles.textBlockVitrin]}>
           <View style={[styles.titlePill, vitrin && styles.titlePillVitrin]}>
             <Text style={[styles.main, vitrin && styles.mainVitrin]}>Online Sipariş</Text>
           </View>
@@ -206,7 +207,11 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
 
         <View style={[styles.chevronBox, vitrin && styles.chevronBoxVitrin]}>
           <View style={[styles.iconCircle, vitrin && styles.iconCircleVitrin]}>
-            <Ionicons name="bag-handle" size={vitrin ? 20 : 22} color={GastroColors.gold} />
+            <Ionicons
+              name="bag-handle"
+              size={vitrin ? KESFET_VITRIN_BANNER.iconSize : 22}
+              color={GastroColors.gold}
+            />
           </View>
           {!vitrin ? <Ionicons name="chevron-forward" size={20} color="#fff" style={styles.chevron} /> : null}
         </View>
@@ -217,11 +222,7 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
   );
 }
 
-const textShadow = {
-  textShadowColor: 'rgba(0,0,0,0.75)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 5,
-} as const;
+const textShadow = KESFET_VITRIN_TEXT_SHADOW;
 
 const styles = StyleSheet.create({
   banner: {
@@ -255,6 +256,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textBlock: { flex: 1, gap: 6 },
+  textBlockVitrin: { gap: 3 },
   titlePill: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,107,53,0.94)',
@@ -273,14 +275,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.2,
   },
-  mainVitrin: { fontSize: 13 },
+  mainVitrin: {
+    fontSize: KESFET_VITRIN_BANNER.pillFontSize,
+  },
   sub: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '800',
     ...textShadow,
   },
-  subVitrin: { fontSize: 17 },
+  subVitrin: {
+    fontSize: KESFET_VITRIN_BANNER.titleFontSize,
+  },
   accent: {
     color: GastroColors.gold,
     fontWeight: '900',
@@ -309,9 +315,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconCircleVitrin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: KESFET_VITRIN_BANNER.iconCircle,
+    height: KESFET_VITRIN_BANNER.iconCircle,
+    borderRadius: KESFET_VITRIN_BANNER.iconCircle / 2,
   },
   chevron: {
     ...textShadow,

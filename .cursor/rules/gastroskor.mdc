@@ -48,6 +48,7 @@ Yeni canlı oda özellikleri için REST polling kurma — FastAPI WebSockets + R
 ## Stack
 
 - **Mobil:** Expo SDK 54, RN 0.81.5, Expo Router 6, `lib/api.ts` (fetch).
+- **Mobil header (online sipariş):** Stack `headerTitle` → `GastroCoinHeaderTitle` + `wallet-coin` ikonu zorunlu (`components/GastroCoinHeaderTitle.tsx`, `gastroCoinStackHeaderTitle()`). Düz string title kullanma.
 - **Backend:** FastAPI, PostgreSQL, SQLAlchemy, Alembic.
 - **Deploy:** Railway (API+DB), Vercel (web), EAS (iOS TestFlight + Android Play).
 - **Güvenlik:** SecureStore, Sentry, SSL pinning (`EXPO_PUBLIC_SSL_PINNING_ENABLED` — prod'da pin çifti hazır olmadan açma).

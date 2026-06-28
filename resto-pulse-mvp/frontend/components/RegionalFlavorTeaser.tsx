@@ -44,11 +44,7 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-extrabold text-content sm:text-lg">Yöresel Lezzetler</h2>
-          <p className="mt-1 text-sm text-content-muted">Tescilli ürünler — isim + görsel</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="min-w-[200px]">
           {cityStatus === 'loading' ? (
             <span className="text-[11px] text-content-muted">Konum…</span>

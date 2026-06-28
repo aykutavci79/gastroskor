@@ -296,19 +296,60 @@ export function sonrakiIpucuHucresi(
   return adaylar[Math.floor(rand() * adaylar.length)]!;
 }
 
-export function sofraMaxIpucu(bonusFoundCount: number): number {
-  const bonusExtra = Math.floor(bonusFoundCount / SOFRA_BONUS_HINT_THRESHOLD);
-  return SOFRA_MAX_IPUCU + bonusExtra;
+export function sofraEarnedBonusHintTiers(bonusFoundCount: number): number {
+  return Math.floor(bonusFoundCount / SOFRA_BONUS_HINT_THRESHOLD);
 }
 
-export function ipucuHakkiKaldi(hintedCount: number, bonusFoundCount = 0): boolean {
-  return hintedCount < sofraMaxIpucu(bonusFoundCount);
+export function sofraBonusHintTiersClaimed(progress: {
+  bonusFound: readonly string[];
+  bonusHintTiersClaimed?: number;
+}): number {
+  if (typeof progress.bonusHintTiersClaimed === 'number') return progress.bonusHintTiersClaimed;
+  return sofraEarnedBonusHintTiers(progress.bonusFound.length);
 }
 
-export function bonusIpucuIlerleme(bonusFoundCount: number): {
+export function sofraPendingBonusHintClaims(progress: {
+  bonusFound: readonly string[];
+  bonusHintTiersClaimed?: number;
+}): number {
+  return Math.max(
+    0,
+    sofraEarnedBonusHintTiers(progress.bonusFound.length) - sofraBonusHintTiersClaimed(progress),
+  );
+}
+
+/** Gunluk toplam ipucu hakki — yalnizca alinmis bonus odulleri ekler */
+export function sofraMaxIpucu(claimedBonusHintTiers: number): number {
+  return SOFRA_MAX_IPUCU + claimedBonusHintTiers;
+}
+
+/** Gunluk harcanan ipucu — eski kayitlarda hintedCells sayisi. */
+export function sofraDailyHintsUsed(progress: {
+  dailyHintsUsed?: number;
+  hintedCells: readonly string[];
+}): number {
+  if (typeof progress.dailyHintsUsed === 'number') return progress.dailyHintsUsed;
+  return progress.hintedCells.length;
+}
+
+export function sofraIpucuKalan(dailyHintsUsed: number, claimedBonusHintTiers = 0): number {
+  return Math.max(0, sofraMaxIpucu(claimedBonusHintTiers) - dailyHintsUsed);
+}
+
+export function ipucuHakkiKaldi(dailyHintsUsed: number, claimedBonusHintTiers = 0): boolean {
+  return dailyHintsUsed < sofraMaxIpucu(claimedBonusHintTiers);
+}
+
+export function bonusIpucuIlerleme(
+  bonusFoundCount: number,
+  pendingClaims = 0,
+): {
   cycle: number;
   hedef: number;
 } {
-  const cycle = bonusFoundCount % SOFRA_BONUS_HINT_THRESHOLD;
-  return { cycle, hedef: SOFRA_BONUS_HINT_THRESHOLD };
+  const hedef = SOFRA_BONUS_HINT_THRESHOLD;
+  if (pendingClaims > 0) {
+    return { cycle: hedef, hedef };
+  }
+  return { cycle: bonusFoundCount % SOFRA_BONUS_HINT_THRESHOLD, hedef };
 }

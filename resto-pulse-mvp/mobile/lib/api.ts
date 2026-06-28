@@ -323,6 +323,15 @@ export function createTableReservation(
   });
 }
 
+export function getMyTableReservation(reservationId: string, userEmail: string) {
+  const params = new URLSearchParams({
+    user_email: userEmail.trim().toLowerCase(),
+  });
+  return request<import('@/lib/types').TableReservationRead>(
+    `/users/me/reservations/${encodeURIComponent(reservationId)}?${params.toString()}`,
+  );
+}
+
 export function confirmTableReservation(reservationId: string, userEmail: string) {
   return request<import('@/lib/types').TableReservationRead>(
     `/users/me/reservations/${encodeURIComponent(reservationId)}/confirm`,

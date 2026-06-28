@@ -29,8 +29,6 @@ type Props = {
   onPathChange: (path: number[]) => void;
   onCommit: (path: number[]) => void;
   onShuffle: () => void;
-  onHint?: () => void;
-  hintsLeft?: number;
   disabled?: boolean;
 };
 
@@ -69,8 +67,6 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
   onPathChange,
   onCommit,
   onShuffle,
-  onHint,
-  hintsLeft = 0,
   disabled,
 }: Props) {
   const { colors } = useGastroTheme();
@@ -278,16 +274,6 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
           borderColor: SOFRA_GLASS_BORDER,
           ...(Platform.OS === 'android' ? { elevation: 18 } : null),
         },
-        toolbar: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 3 },
-        toolBtn: {
-          paddingHorizontal: 14,
-          paddingVertical: 6,
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: SOFRA_GLASS_BORDER,
-          backgroundColor: SOFRA_GLASS_BG,
-        },
-        toolText: { color: SOFRA_LETTER_COLOR, fontWeight: '800', fontSize: 12 },
       }),
     [colors, diameter, letterFont, letterHit, previewFont, ringDiameter, ringInset, shuffleBtnSize, wheelCenter],
   );
@@ -366,17 +352,6 @@ export const KelimeSofrasiWheel = memo(function KelimeSofrasiWheel({
           <Ionicons name="sync" size={shuffleIconSize} color={SOFRA_LETTER_COLOR} />
         </Pressable>
       </View>
-
-      {onHint ? (
-        <View style={styles.toolbar}>
-          <Pressable
-            style={styles.toolBtn}
-            onPress={onHint}
-            disabled={disabled || hintsLeft <= 0}>
-            <Text style={styles.toolText}>İpucu ({hintsLeft})</Text>
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 });
