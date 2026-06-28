@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.constants.tester_restaurant_showcase import (
+    ATLAS_SOFRA_FLOOR_BACKGROUND_URL,
+    ATLAS_SOFRA_GALLERY_URLS,
+)
+
 
 @dataclass(frozen=True)
 class TesterMenuItem:
@@ -26,6 +31,9 @@ class TesterRestaurantSeed:
     google_rating: float
     review_count: int
     menu: tuple[TesterMenuItem, ...]
+    showcase_gallery_urls: tuple[str, ...] = ()
+    floor_plan_background_url: str | None = None
+    enable_online_reservations: bool = False
 
 
 # Bursa merkez ~ 40.1885, 29.0610
@@ -53,25 +61,19 @@ TESTER_RESTAURANTS: tuple[TesterRestaurantSeed, ...] = (
     ),
     TesterRestaurantSeed(
         key="deneme-2",
-        name="Deneme 2 — Kebap & Fırın",
-        category_label="Kebap & Fırın",
+        name="Atlas Sofra (test)",
+        category_label="Fine Dining",
         online_order_categories=("kebap-izgara", "firin"),
-        card_emoji="🥙",
+        card_emoji="✨",
         district="Nilufer",
         lat_offset=0.012,
         lng_offset=0.008,
         google_rating=4.5,
         review_count=210,
-        menu=(
-            TesterMenuItem("lahmacun", "Lahmacun", 95.0),
-            TesterMenuItem("acili-lahmacun", "Acili Lahmacun", 110.0),
-            TesterMenuItem("adana-kebap", "Adana Kebap", 280.0),
-            TesterMenuItem("urfa-kebap", "Urfa Kebap", 270.0),
-            TesterMenuItem("pide", "Pide", 150.0),
-            TesterMenuItem("kiymali-pide", "Kiymali Pide", 175.0),
-            TesterMenuItem("ayran", "Ayran", 30.0),
-            TesterMenuItem("kola", "Kola", 45.0),
-        ),
+        menu=(),
+        showcase_gallery_urls=ATLAS_SOFRA_GALLERY_URLS,
+        floor_plan_background_url=ATLAS_SOFRA_FLOOR_BACKGROUND_URL,
+        enable_online_reservations=True,
     ),
     TesterRestaurantSeed(
         key="deneme-3",
@@ -144,7 +146,7 @@ BURSA_LNG = 29.0610
 # Online liste indirim rozeti demo — panel alani gelene kadar promo metni.
 TESTER_PROMO_TEXT_BY_KEY: dict[str, str] = {
     "deneme-1": "%12 tüm menüde",
-    "deneme-2": "%25 tüm menüde",
+    "deneme-2": "Salon · Bahçe · Teras rezervasyon",
     "deneme-3": "%18 tüm menüde",
     "deneme-4": "%20 tüm menüde",
     "deneme-5": "2 Al 1 Öde",

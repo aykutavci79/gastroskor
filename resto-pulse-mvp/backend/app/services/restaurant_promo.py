@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import RestaurantOwnership, RestaurantSubscription
 from app.services.online_menu_discount import parse_menu_discount_percent
+from app.constants.tester_restaurant_showcase import gallery_urls_for_place
 from app.services.promo_social import normalize_instagram
 
 
@@ -24,6 +25,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
     url = (ownership.promo_direct_order_url or "").strip() or None
     menu_image_url = (ownership.promo_menu_image_url or "").strip() or None
     card_cover_image_url = (ownership.promo_card_cover_image_url or "").strip() or None
+    gallery_image_urls = gallery_urls_for_place(ownership.google_place_id)
     instagram_url = normalize_instagram(ownership.promo_instagram)
     if (
         not has_courier
@@ -33,6 +35,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         and not url
         and not menu_image_url
         and not card_cover_image_url
+        and not gallery_image_urls
         and not instagram_url
     ):
         return None
@@ -45,6 +48,7 @@ def promo_from_ownership(ownership: RestaurantOwnership) -> dict | None:
         "direct_order_url": url,
         "menu_image_url": menu_image_url,
         "card_cover_image_url": card_cover_image_url,
+        "gallery_image_urls": gallery_image_urls,
         "instagram_url": instagram_url,
         "online_menu_discount_percent": discount_percent,
     }

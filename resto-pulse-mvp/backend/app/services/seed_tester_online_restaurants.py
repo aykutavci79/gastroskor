@@ -26,6 +26,24 @@ from app.models import (
 )
 from app.services.online_order_hours import default_online_order_hours
 from app.services.user_accounts import get_or_create_user
+from app.services.table_reservations import get_or_create_floor_plan
+
+
+def _sync_tester_showcase(
+    db: Session,
+    *,
+    ownership: RestaurantOwnership,
+    seed: TesterRestaurantSeed,
+) -> None:
+    if seed.showcase_gallery_urls:
+        ownership.promo_card_cover_image_url = seed.showcase_gallery_urls[0]
+        ownership.promo_menu_image_url = None
+    if seed.enable_online_reservations:
+        ownership.online_reservations_enabled = True
+    if seed.floor_plan_background_url:
+        plan = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
+        plan.background_url = seed.floor_plan_background_url
+        db.add(plan)
 
 
 def _menu_item_label_match(item_name: str, label: str) -> bool:
@@ -186,6 +204,8 @@ def _upsert_tester_restaurant(db: Session, owner_id, seed: TesterRestaurantSeed)
         if key not in seed_keys and item.is_active:
             item.is_active = False
             db.add(item)
+
+    _sync_tester_showcase(db, ownership=ownership, seed=seed)
 
     db.add(restaurant)
     db.add(ownership)

@@ -24,11 +24,24 @@ def test_tester_restaurants_cover_requested_concepts():
 
 def test_tester_restaurants_have_menus_prices_and_ratings():
     for row in TESTER_RESTAURANTS:
+        if len(row.menu) == 0:
+            assert row.google_rating >= 3.0
+            assert row.review_count > 0
+            continue
         assert len(row.menu) >= 5
         assert row.google_rating >= 3.0
         assert row.review_count > 0
         assert all(item.price_tl > 0 for item in row.menu)
         assert BURSA_LAT + row.lat_offset != BURSA_LNG + row.lng_offset
+
+
+def test_atlas_sofra_showcase_is_deneme_2():
+    by_key = {row.key: row for row in TESTER_RESTAURANTS}
+    row = by_key["deneme-2"]
+    assert row.name == "Atlas Sofra (test)"
+    assert len(row.menu) == 0
+    assert len(row.showcase_gallery_urls) == 6
+    assert row.enable_online_reservations is True
 
 
 def test_place_ids_are_stable():

@@ -200,6 +200,7 @@ export type RestaurantPromoPublic = {
   direct_order_url?: string | null;
   menu_image_url?: string | null;
   card_cover_image_url?: string | null;
+  gallery_image_urls?: string[];
   instagram_url?: string | null;
 };
 

@@ -7,7 +7,6 @@ import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { ReservationTheme } from '@/constants/reservation-theme';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import {
-  MIN_RESTAURANT_HERO_PHOTOS,
   resolveRestaurantHeroPhotos,
 } from '@/lib/restaurant-card-photos';
 import {
@@ -60,8 +59,10 @@ export function ReservationRestaurantCard({
   );
   const menuItems = restaurantMenuItems(restaurant);
   const menuCount = restaurantMenuItemCount(restaurant);
-  const showMenu = hasPublicMenu(restaurant);
-  const photoReady = photos.length >= MIN_RESTAURANT_HERO_PHOTOS;
+  const showMenu =
+    hasPublicMenu(restaurant) &&
+    menuItems.length > 0 &&
+    (restaurant.menu_item_count ?? menuCount) > 0;
 
   return (
     <Pressable
@@ -88,12 +89,6 @@ export function ReservationRestaurantCard({
         <View style={styles.badge}>
           <Text style={styles.badgeText}>ÖNE ÇIKAN</Text>
         </View>
-
-        {!photoReady ? (
-          <View style={styles.photoWarn}>
-            <Text style={styles.photoWarnText}>Salon fotoğrafları tamamlanıyor</Text>
-          </View>
-        ) : null}
 
         <View style={styles.body}>
           <View style={styles.topRow}>
@@ -190,21 +185,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.4,
-  },
-  photoWarn: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  photoWarnText: {
-    color: ReservationTheme.warn,
-    fontSize: 10,
-    fontWeight: '700',
   },
   body: {
     position: 'relative',

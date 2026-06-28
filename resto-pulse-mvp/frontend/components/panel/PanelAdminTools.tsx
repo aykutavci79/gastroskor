@@ -342,7 +342,7 @@ export function PanelAdminTools() {
       const data = (await res.json()) as { items?: Array<{ name?: string }> };
       return (data.items ?? [])
         .map((row) => row.name ?? '')
-        .filter((name) => name.includes('Deneme'));
+        .filter((name) => name.includes('Deneme') || name.includes('(test)'));
     } catch {
       return null;
     }

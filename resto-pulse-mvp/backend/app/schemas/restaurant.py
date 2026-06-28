@@ -42,6 +42,7 @@ class RestaurantPromoPublic(BaseModel):
     direct_order_url: str | None = None
     menu_image_url: str | None = None
     card_cover_image_url: str | None = None
+    gallery_image_urls: list[str] = Field(default_factory=list)
     instagram_url: str | None = None
 
 
