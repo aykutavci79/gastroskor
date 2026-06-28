@@ -10,25 +10,26 @@ import {
   View,
 } from 'react-native';
 
-import { RestaurantCard } from '@/components/RestaurantCard';
+import { ReservationRestaurantCard } from '@/components/ReservationRestaurantCard';
 import { Screen } from '@/components/ui/Screen';
+import { ReservationTheme } from '@/constants/reservation-theme';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
-import { GastroColorsLight } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
-import { useGastroTheme } from '@/context/theme-context';
-import { listOnlineOrderRestaurants } from '@/lib/api';
+import { getRestaurantReservationActive, listOnlineOrderRestaurants } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
 import type { RestaurantListItem } from '@/lib/types';
 
-const PAGE_BG = '#FFFFFF';
+type ReservationListRow = {
+  restaurant: RestaurantListItem;
+  floorBackgroundUrl: string | null;
+};
 
 export default function OnlineReservationOpenScreen() {
   const { city, cityLabel } = useCity();
-  const { colors } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(), []);
 
-  const [items, setItems] = useState<RestaurantListItem[]>([]);
+  const [items, setItems] = useState<ReservationListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +42,21 @@ export default function OnlineReservationOpenScreen() {
         limit: 80,
         min_rating: ONLINE_ORDER_MIN_RATING,
       });
-      setItems(res.items.filter((row) => row.online_reservations_available));
+      const open = res.items.filter((row) => row.online_reservations_available);
+      const enriched = await Promise.all(
+        open.map(async (restaurant) => {
+          try {
+            const active = await getRestaurantReservationActive(restaurant.id);
+            return {
+              restaurant,
+              floorBackgroundUrl: active.floor_plan?.background_url ?? null,
+            };
+          } catch {
+            return { restaurant, floorBackgroundUrl: null };
+          }
+        }),
+      );
+      setItems(enriched);
     } catch (err) {
       setError(formatApiError(err, 'Rezervasyon listesi yüklenemedi.'));
       setItems([]);
@@ -60,8 +75,8 @@ export default function OnlineReservationOpenScreen() {
         options={{
           headerTitle: 'Online Rezervasyon',
           headerBackTitle: 'Geri',
-          headerStyle: { backgroundColor: PAGE_BG },
-          headerTintColor: GastroColorsLight.text,
+          headerStyle: { backgroundColor: ReservationTheme.bg },
+          headerTintColor: ReservationTheme.text,
           headerShadowVisible: false,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
         }}
@@ -73,7 +88,7 @@ export default function OnlineReservationOpenScreen() {
         </Text>
 
         {loading ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
+          <ActivityIndicator color={ReservationTheme.accent} style={{ marginTop: 24 }} />
         ) : error ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
@@ -89,16 +104,17 @@ export default function OnlineReservationOpenScreen() {
             </Text>
           </View>
         ) : (
-          items.map((restaurant) => (
-            <RestaurantCard
+          items.map(({ restaurant, floorBackgroundUrl }) => (
+            <ReservationRestaurantCard
               key={restaurant.id}
               restaurant={restaurant}
+              floorBackgroundUrl={floorBackgroundUrl}
               href={`/online-rezervasyon/masa/${restaurant.id}`}
               googleRating={restaurant.google_rating}
               googleReviewCount={restaurant.google_review_count}
-              distanceLabel={formatDistanceLabel({
-                distance_meters: restaurant.distance_meters,
-              }) ?? undefined}
+              distanceLabel={
+                formatDistanceLabel({ distance_meters: restaurant.distance_meters }) ?? undefined
+              }
             />
           ))
         )}
@@ -107,22 +123,22 @@ export default function OnlineReservationOpenScreen() {
   );
 }
 
-function createStyles(colors: import('@/constants/theme').GastroColorScheme) {
+function createStyles() {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: PAGE_BG },
+    root: { flex: 1, backgroundColor: ReservationTheme.bg },
     scroll: { padding: 16, gap: 12, paddingBottom: 32 },
-    lead: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+    lead: { color: ReservationTheme.textMuted, fontSize: 13, lineHeight: 19 },
     emptyBox: {
       marginTop: 12,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.panel,
+      borderColor: ReservationTheme.borderSoft,
+      backgroundColor: ReservationTheme.panel,
       padding: 16,
       gap: 8,
     },
-    emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-    emptyBody: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+    emptyTitle: { color: ReservationTheme.text, fontSize: 16, fontWeight: '800' },
+    emptyBody: { color: ReservationTheme.textMuted, fontSize: 13, lineHeight: 19 },
     errorBox: {
       marginTop: 12,
       borderRadius: 12,
@@ -132,14 +148,14 @@ function createStyles(colors: import('@/constants/theme').GastroColorScheme) {
       padding: 14,
       gap: 10,
     },
-    errorText: { color: colors.text, fontSize: 13 },
+    errorText: { color: ReservationTheme.text, fontSize: 13 },
     retryBtn: {
       alignSelf: 'flex-start',
-      backgroundColor: colors.accent,
+      backgroundColor: ReservationTheme.accent,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
-    retryText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+    retryText: { color: ReservationTheme.ctaText, fontWeight: '800', fontSize: 13 },
   });
 }

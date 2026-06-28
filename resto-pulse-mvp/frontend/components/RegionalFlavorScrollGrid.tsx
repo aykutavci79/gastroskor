@@ -7,45 +7,74 @@ import { RegionalProductImage } from '@/components/RegionalProductImage';
 import { trimImageAlt } from '@/lib/seo-title';
 import type { RegionalProductItem } from '@/lib/types';
 
-/** Sabit karo — ürün sayısına göre boyut değişmez; fazlası yatay kaydırılır. */
-export const REGIONAL_FLAVOR_TILE_WIDTH_PX = 152;
-export const REGIONAL_FLAVOR_THUMB_HEIGHT = 120;
-export const REGIONAL_FLAVOR_TILE_WIDTH_MD = 168;
-export const REGIONAL_FLAVOR_THUMB_HEIGHT_MD = 136;
+/** Sabit karo (+10%) — ürün sayısına göre boyut değişmez; fazlası yatay kaydırılır. */
+export const REGIONAL_FLAVOR_TILE_WIDTH_PX = 167;
+export const REGIONAL_FLAVOR_THUMB_HEIGHT = 132;
+export const REGIONAL_FLAVOR_TILE_WIDTH_MD = 185;
+export const REGIONAL_FLAVOR_THUMB_HEIGHT_MD = 150;
+
+export const REGIONAL_FLAVOR_TILE_WIDTH_SM = 119;
+export const REGIONAL_FLAVOR_THUMB_HEIGHT_SM = 97;
 
 const SKELETON_ITEM_COUNT = 12;
-const SCROLL_STEP_PX = 352;
+const SCROLL_STEP_PX = 388;
+const ROW_GAP_PX = 20;
+const COL_GAP_PX = 16;
 
 function shortLabel(name: string): string {
   const words = name.split(/\s+/).filter(Boolean);
   return words.length > 1 ? words[words.length - 1]! : name;
 }
 
+type TileMetrics = {
+  width: number;
+  thumbHeight: number;
+  widthMd?: number;
+  thumbHeightMd?: number;
+};
+
+function tileMetrics(large: boolean): TileMetrics {
+  if (large) {
+    return {
+      width: REGIONAL_FLAVOR_TILE_WIDTH_PX,
+      thumbHeight: REGIONAL_FLAVOR_THUMB_HEIGHT,
+      widthMd: REGIONAL_FLAVOR_TILE_WIDTH_MD,
+      thumbHeightMd: REGIONAL_FLAVOR_THUMB_HEIGHT_MD,
+    };
+  }
+  return {
+    width: REGIONAL_FLAVOR_TILE_WIDTH_SM,
+    thumbHeight: REGIONAL_FLAVOR_THUMB_HEIGHT_SM,
+  };
+}
+
 type TileProps = {
   item: RegionalProductItem;
   city: string;
-  size?: 'default' | 'large';
+  large: boolean;
 };
 
-export function RegionalFlavorTile({ item, city, size = 'default' }: TileProps) {
-  const large = size === 'large';
+export function RegionalFlavorTile({ item, city, large }: TileProps) {
+  const metrics = tileMetrics(large);
+  const imageWidth = large ? metrics.widthMd ?? metrics.width : metrics.width;
+  const imageHeight = large ? metrics.thumbHeightMd ?? metrics.thumbHeight : metrics.thumbHeight;
 
   return (
     <Link
       href={`/yoresel-lezzetler/${item.slug}?city=${encodeURIComponent(city)}`}
-      className={`group block shrink-0 snap-start ${large ? 'w-[152px] md:w-[168px]' : 'w-[108px]'}`}>
+      className={`group block shrink-0 snap-start ${large ? 'w-[167px] md:w-[185px]' : 'w-[119px]'}`}>
       <div
         className={`relative overflow-hidden rounded-xl border border-border/70 bg-surface-input ${
-          large ? 'h-[120px] w-[152px] md:h-[136px] md:w-[168px]' : 'h-[88px] w-[108px]'
+          large ? 'h-[132px] w-[167px] md:h-[150px] md:w-[185px]' : 'h-[97px] w-[119px]'
         }`}>
         {item.image_url ? (
           <RegionalProductImage
             src={item.image_url}
             alt={trimImageAlt(`${item.name} — yöresel lezzet`)}
-            width={large ? REGIONAL_FLAVOR_TILE_WIDTH_MD : 108}
-            height={large ? REGIONAL_FLAVOR_THUMB_HEIGHT_MD : 88}
+            width={imageWidth}
+            height={imageHeight}
             className="h-full w-full object-cover transition group-hover:scale-[1.03]"
-            sizes={large ? '(max-width: 768px) 152px, 168px' : '108px'}
+            sizes={large ? '(max-width: 768px) 167px, 185px' : '119px'}
           />
         ) : (
           <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-medium text-content-muted">
@@ -65,10 +94,11 @@ export function RegionalFlavorTile({ item, city, size = 'default' }: TileProps) 
 
 function SkeletonTile({ large }: { large: boolean }) {
   return (
-    <div className={`shrink-0 snap-start space-y-2 ${large ? 'w-[152px] md:w-[168px]' : 'w-[108px]'}`}>
+    <div
+      className={`shrink-0 snap-start space-y-2 ${large ? 'w-[167px] md:w-[185px]' : 'w-[119px]'}`}>
       <div
         className={`animate-pulse rounded-xl bg-surface-input ${
-          large ? 'h-[120px] w-[152px] md:h-[136px] md:w-[168px]' : 'h-[88px] w-[108px]'
+          large ? 'h-[132px] w-[167px] md:h-[150px] md:w-[185px]' : 'h-[97px] w-[119px]'
         }`}
       />
       <div className="h-4 w-4/5 animate-pulse rounded bg-surface-input" />
@@ -84,8 +114,10 @@ type ScrollStripProps = {
 };
 
 function RegionalFlavorScrollStrip({ children, large = false, className = '' }: ScrollStripProps) {
+  const stripMinHeight = large ? 320 : 248;
+
   return (
-    <div className={`${large ? 'min-h-[292px] md:min-h-[324px]' : ''} ${className}`.trim()}>
+    <div className={className} style={{ minHeight: stripMinHeight }}>
       <HorizontalScrollPeek edgeBleed scrollStep={SCROLL_STEP_PX}>
         {children}
       </HorizontalScrollPeek>
@@ -108,11 +140,15 @@ function TwoRowScrollTrack({
   const columns = Math.max(topRow.length, bottomRow.length);
 
   return (
-    <div className="grid w-max grid-flow-col auto-cols-max grid-rows-2 gap-x-4 gap-y-5">
+    <div
+      className="flex w-max flex-row"
+      style={{ gap: COL_GAP_PX }}>
       {Array.from({ length: columns }).map((_, colIndex) => (
-        <div key={colIndex} className="flex flex-col gap-5">
-          {topRow[colIndex] ? <RegionalFlavorTile item={topRow[colIndex]!} city={city} size={large ? 'large' : 'default'} /> : null}
-          {bottomRow[colIndex] ? <RegionalFlavorTile item={bottomRow[colIndex]!} city={city} size={large ? 'large' : 'default'} /> : null}
+        <div key={colIndex} className="flex shrink-0 flex-col" style={{ gap: ROW_GAP_PX }}>
+          {topRow[colIndex] ? <RegionalFlavorTile item={topRow[colIndex]!} city={city} large={large} /> : null}
+          {bottomRow[colIndex] ? (
+            <RegionalFlavorTile item={bottomRow[colIndex]!} city={city} large={large} />
+          ) : null}
         </div>
       ))}
     </div>
@@ -130,9 +166,9 @@ export function RegionalFlavorScrollSkeleton({
 
   return (
     <RegionalFlavorScrollStrip large={large}>
-      <div className="grid w-max grid-flow-col auto-cols-max grid-rows-2 gap-x-4 gap-y-5">
+      <div className="flex w-max flex-row" style={{ gap: COL_GAP_PX }}>
         {Array.from({ length: columns }).map((_, colIndex) => (
-          <div key={colIndex} className="flex flex-col gap-5">
+          <div key={colIndex} className="flex shrink-0 flex-col" style={{ gap: ROW_GAP_PX }}>
             <SkeletonTile large={large} />
             {colIndex * 2 + 1 < itemCount ? <SkeletonTile large={large} /> : null}
           </div>
@@ -146,12 +182,12 @@ type GridProps = {
   items: RegionalProductItem[];
   city: string;
   className?: string;
-  /** Ana sayfa vitrin — daha büyük karo + tam genişlik kaydırma */
+  /** Ana sayfa + liste sayfası — büyük sabit karo */
   variant?: 'default' | 'home';
 };
 
-export function RegionalFlavorScrollGrid({ items, city, className = '', variant = 'default' }: GridProps) {
-  const large = variant === 'home';
+export function RegionalFlavorScrollGrid({ items, city, className = '', variant = 'home' }: GridProps) {
+  const large = variant !== 'default' ? true : false;
 
   return (
     <RegionalFlavorScrollStrip large={large} className={className}>

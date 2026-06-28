@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 
+import { RESERVATION_TABLE_COLORS, ReservationTheme } from '@/constants/reservation-theme';
 import type { FloorPlanLayout, FloorPlanTable } from '@/lib/types';
-import { formatTableCode, ZONE_LABEL } from '@/lib/reservation-table-code';
+import { formatTableCode, tableSurfaceLabel, ZONE_LABEL } from '@/lib/reservation-table-code';
 
 const ZONE_ORDER = ['salon', 'bahce', 'teras'] as const;
 const MIN_HIT_PX = 44;
@@ -14,6 +16,7 @@ type TableVisualState = 'available' | 'selected' | 'reserved' | 'closed' | 'mism
 
 type Props = {
   layout: FloorPlanLayout;
+  backgroundUrl?: string | null;
   reservedTableIds: string[];
   closedTableIds?: string[];
   selectedTableId: string | null;
@@ -49,28 +52,18 @@ function tableVisualState(
   return 'available';
 }
 
-const TABLE_COLORS: Record<
-  TableVisualState,
-  { fill: string; stroke: string; label: string; chair: string }
-> = {
-  available: { fill: '#166534', stroke: '#4ade80', label: '#ecfdf5', chair: '#86efac' },
-  selected: { fill: '#92400e', stroke: '#fbbf24', label: '#fffbeb', chair: '#fde68a' },
-  reserved: { fill: '#334155', stroke: '#64748b', label: '#cbd5e1', chair: '#475569' },
-  closed: { fill: '#1e293b', stroke: '#475569', label: '#94a3b8', chair: '#334155' },
-  mismatch: { fill: '#312e81', stroke: '#6366f1', label: '#e0e7ff', chair: '#818cf8' },
-};
+const TABLE_COLORS = RESERVATION_TABLE_COLORS;
 
 function displaySeatCount(table: FloorPlanTable): number {
   return Math.min(8, Math.max(2, table.seats_max));
 }
 
-/** 2 kisilik siralar yatay; 4+ kare/dikdortgen. */
 function tableDimensions(table: FloorPlanTable): { w: number; h: number } {
   const seats = displaySeatCount(table);
-  if (seats <= 2) return { w: 0.074, h: 0.036 };
-  if (seats <= 4) return { w: 0.056, h: 0.056 };
-  if (seats <= 6) return { w: 0.084, h: 0.046 };
-  return { w: 0.098, h: 0.05 };
+  if (seats <= 2) return { w: 0.1, h: 0.048 };
+  if (seats <= 4) return { w: 0.078, h: 0.078 };
+  if (seats <= 6) return { w: 0.116, h: 0.062 };
+  return { w: 0.134, h: 0.068 };
 }
 
 function chairPositions(
@@ -148,8 +141,8 @@ function FloorPlanTableShape({
   const cy = table.y;
   const seats = displaySeatCount(table);
   const chairs = chairPositions(cx, cy, w, h, seats);
-  const chairR = seats <= 2 ? 0.008 : 0.007;
-  const code = formatTableCode(table.zone, table.label);
+  const chairR = seats <= 2 ? 0.011 : 0.01;
+  const surfaceLabel = tableSurfaceLabel(table.label);
 
   return (
     <>
@@ -189,12 +182,12 @@ function FloorPlanTableShape({
       ) : null}
       <SvgText
         x={cx}
-        y={cy + 0.005}
+        y={cy + 0.006}
         fill={colors.label}
-        fontSize={seats <= 2 ? 0.02 : 0.018}
-        fontWeight="800"
+        fontSize={seats <= 2 ? 0.032 : 0.028}
+        fontWeight="900"
         textAnchor="middle">
-        {code}
+        {surfaceLabel}
       </SvgText>
     </>
   );
@@ -202,6 +195,7 @@ function FloorPlanTableShape({
 
 export function ReservationFloorPlanPicker({
   layout,
+  backgroundUrl,
   reservedTableIds,
   closedTableIds = [],
   selectedTableId,
@@ -280,6 +274,15 @@ export function ReservationFloorPlanPicker({
       </Text>
 
       <View style={styles.mapWrap} onLayout={onMapLayout}>
+        {backgroundUrl ? (
+          <Image
+            source={{ uri: backgroundUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        ) : null}
+        <View style={styles.mapPhotoDim} pointerEvents="none" />
         <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none" pointerEvents="none">
           {zonePois.map((poi) => (
             <Fragment key={poi.id}>
@@ -339,7 +342,7 @@ export function ReservationFloorPlanPicker({
       </View>
 
       <Text style={styles.legend}>
-        Sandalye sayisi masa kapasitesini gosterir · Yesil: uygun · Sari: secili · Gri: dolu · Capraz: kapali
+        Masa numarası masanın üzerinde · Altın: seçili · Yeşil: uygun · Gri: dolu
       </Text>
     </View>
   );
@@ -353,8 +356,8 @@ const styles = StyleSheet.create({
   wrap: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(15,23,42,0.6)',
+    borderColor: ReservationTheme.border,
+    backgroundColor: ReservationTheme.panel,
     overflow: 'hidden',
     paddingBottom: 10,
   },
@@ -373,40 +376,45 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(15,23,42,0.85)',
+    borderColor: ReservationTheme.borderSoft,
+    backgroundColor: ReservationTheme.bgElevated,
   },
   zoneChipActive: {
-    borderColor: '#fbbf24',
-    backgroundColor: 'rgba(251,191,36,0.14)',
+    borderColor: ReservationTheme.accent,
+    backgroundColor: ReservationTheme.accentGlow,
   },
   zoneChipText: {
-    color: 'rgba(255,255,255,0.72)',
+    color: ReservationTheme.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
   zoneChipTextActive: {
-    color: '#fbbf24',
+    color: ReservationTheme.accent,
   },
   zoneChipCount: {
-    color: 'rgba(255,255,255,0.45)',
+    color: ReservationTheme.textSoft,
     fontSize: 11,
     fontWeight: '700',
   },
   zoneChipCountActive: {
-    color: 'rgba(251,191,36,0.85)',
+    color: 'rgba(255,183,3,0.85)',
   },
   zoneHint: {
     paddingHorizontal: 12,
     paddingBottom: 6,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.55)',
+    color: ReservationTheme.textSoft,
   },
   mapWrap: {
     width: '100%',
-    height: 280,
+    height: 360,
     position: 'relative',
     marginHorizontal: 0,
+    backgroundColor: ReservationTheme.bg,
+  },
+  mapPhotoDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: ReservationTheme.mapOverlay,
   },
   tableHit: {
     position: 'absolute',
@@ -415,14 +423,14 @@ const styles = StyleSheet.create({
   },
   tableHitSelected: {
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.35)',
-    backgroundColor: 'rgba(251,191,36,0.06)',
+    borderColor: ReservationTheme.accentGlow,
+    backgroundColor: 'rgba(255,183,3,0.08)',
   },
   legend: {
     paddingHorizontal: 12,
     paddingTop: 8,
     fontSize: 10,
     lineHeight: 14,
-    color: 'rgba(255,255,255,0.55)',
+    color: ReservationTheme.textSoft,
   },
 });

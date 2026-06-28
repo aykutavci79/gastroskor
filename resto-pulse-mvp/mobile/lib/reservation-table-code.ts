@@ -25,3 +25,10 @@ export function formatTableCodeLong(zone: string, label: string): string {
   const zoneName = ZONE_LABEL[zone] ?? zone;
   return `${zoneName} · ${formatTableCode(zone, label)}`;
 }
+
+/** Masa ustu etiket — salon planinda sadece numara/ad. */
+export function tableSurfaceLabel(label: string): string {
+  const clean = label.trim();
+  if (!clean) return '?';
+  return clean.replace(/^([SBT])-?/i, '').trim() || clean;
+}

@@ -40,11 +40,11 @@ export function YoreselLezzetlerContent({ city }: Props) {
 
   return (
     <>
-      {loading ? <RegionalFlavorScrollSkeleton /> : null}
+      {loading ? <RegionalFlavorScrollSkeleton large /> : null}
 
       {!loading && items.length > 0 ? (
         <section className="mt-4">
-          <RegionalFlavorScrollGrid items={items} city={city} />
+          <RegionalFlavorScrollGrid items={items} city={city} variant="home" />
         </section>
       ) : null}
 

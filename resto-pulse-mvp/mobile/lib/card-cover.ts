@@ -11,7 +11,7 @@ export function isBillableGooglePhotoUrl(url: string | null | undefined): boolea
   return false;
 }
 
-function allowedCardCoverUrl(url: string | null | undefined): string | null {
+export function allowedCardCoverUrl(url: string | null | undefined): string | null {
   const raw = url?.trim();
   if (!raw) return null;
   if (!googleCardPhotosEnabled() && isBillableGooglePhotoUrl(raw)) return null;

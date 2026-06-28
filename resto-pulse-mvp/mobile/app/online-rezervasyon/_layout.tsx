@@ -1,13 +1,15 @@
 import { Stack } from 'expo-router';
 
+import { ReservationTheme } from '@/constants/reservation-theme';
+
 export default function OnlineRezervasyonLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#0f172a' },
-        headerTintColor: '#fff',
+        headerStyle: { backgroundColor: ReservationTheme.bg },
+        headerTintColor: ReservationTheme.text,
         headerBackTitle: 'Geri',
-        contentStyle: { backgroundColor: '#0f172a' },
+        contentStyle: { backgroundColor: ReservationTheme.bg },
       }}>
       <Stack.Screen name="masa/[restaurantId]" options={{ title: 'Masa sec' }} />
       <Stack.Screen name="[id]" options={{ title: 'Rezervasyon' }} />

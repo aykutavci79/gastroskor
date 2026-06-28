@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReservationConfirmModal } from '@/components/reservation/ReservationConfirmModal';
 import { ReservationDateTimeFields } from '@/components/reservation/ReservationDateTimeFields';
 import { ExpoGoDevSignInCard } from '@/components/ExpoGoDevSignInCard';
+import { ReservationTheme } from '@/constants/reservation-theme';
 import {
   ReservationFloorPlanPicker,
   tableVisualState,
@@ -291,6 +292,7 @@ export default function OnlineReservationBookScreen() {
 
         <ReservationFloorPlanPicker
           layout={active.floor_plan.layout}
+          backgroundUrl={active.floor_plan.background_url}
           reservedTableIds={reservedIds}
           closedTableIds={closedIds}
           selectedTableId={selectedTable?.id ?? null}
@@ -389,42 +391,42 @@ export default function OnlineReservationBookScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f172a' },
+  safe: { flex: 1, backgroundColor: ReservationTheme.bg },
   scroll: { padding: 16, gap: 10, paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: '700', color: '#fff' },
-  sub: { color: 'rgba(255,255,255,0.6)', marginBottom: 4, lineHeight: 18 },
-  muted: { color: 'rgba(255,255,255,0.6)', marginTop: 12 },
-  label: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 },
-  helper: { color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 17 },
-  warn: { color: '#fbbf24', fontSize: 13, marginTop: 4, lineHeight: 18 },
+  title: { fontSize: 22, fontWeight: '700', color: ReservationTheme.text },
+  sub: { color: ReservationTheme.textMuted, marginBottom: 4, lineHeight: 18 },
+  muted: { color: ReservationTheme.textMuted, marginTop: 12 },
+  label: { color: ReservationTheme.textMuted, fontSize: 13, marginTop: 4 },
+  helper: { color: ReservationTheme.textSoft, fontSize: 12, lineHeight: 17 },
+  warn: { color: ReservationTheme.warn, fontSize: 13, marginTop: 4, lineHeight: 18 },
   input: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: ReservationTheme.borderSoft,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#fff',
-    backgroundColor: 'rgba(15,23,42,0.8)',
+    color: ReservationTheme.text,
+    backgroundColor: ReservationTheme.panel,
   },
   selectionCard: {
     marginTop: 4,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.35)',
-    backgroundColor: 'rgba(251,191,36,0.08)',
+    borderColor: ReservationTheme.border,
+    backgroundColor: ReservationTheme.accentGlow,
     padding: 14,
     gap: 4,
   },
-  selectionTitle: { color: '#fbbf24', fontSize: 17, fontWeight: '700' },
-  selectionMeta: { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginBottom: 6 },
+  selectionTitle: { color: ReservationTheme.accent, fontSize: 17, fontWeight: '700' },
+  selectionMeta: { color: ReservationTheme.textMuted, fontSize: 13, marginBottom: 6 },
   btn: {
     marginTop: 12,
-    backgroundColor: '#fbbf24',
+    backgroundColor: ReservationTheme.cta,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
   },
   btnMuted: { opacity: 0.72 },
-  btnText: { color: '#0f172a', fontWeight: '700', fontSize: 16 },
-  helperReady: { color: '#4ade80', fontSize: 12, marginTop: 6 },
+  btnText: { color: ReservationTheme.ctaText, fontWeight: '700', fontSize: 16 },
+  helperReady: { color: ReservationTheme.success, fontSize: 12, marginTop: 6 },
 });
