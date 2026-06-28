@@ -3,9 +3,9 @@
   "play": {
     "track": "Kapali test - Gastroskor-test2",
     "versionName": "1.0.75",
-    "versionCode": 99,
-    "lastUpdated": "2026-06-25",
-    "_note": "Rezervasyon UX + online siparis beyaz UI + kelime-bul filtre"
+    "versionCode": 100,
+    "lastUpdated": "2026-06-28",
+    "_note": "Sesli siparis mic + parser + Kelime Bul iOS touch fix"
   },
   "appStore": {
     "version": "1.0.50",
