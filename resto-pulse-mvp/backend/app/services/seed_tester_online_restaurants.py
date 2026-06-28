@@ -25,6 +25,7 @@ from app.models import (
     RestaurantSubscription,
 )
 from app.services.online_order_hours import default_online_order_hours
+from app.services.turkish_text_fold import fold_tr_ascii
 from app.services.user_accounts import get_or_create_user
 from app.services.table_reservations import get_or_create_floor_plan
 
