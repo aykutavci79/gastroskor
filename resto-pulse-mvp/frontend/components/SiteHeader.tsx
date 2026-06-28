@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 
+import { POST_AUTH_WELCOME_PATH } from '@/lib/post-auth-callback';
+
 import { GastroSkorLogo } from '@/components/GastroSkorLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
@@ -66,7 +68,7 @@ export function SiteHeader() {
               Çıkış
             </button>
           ) : (
-            <Link href="/auth/giris?callbackUrl=/" className="btn-primary btn-sm whitespace-nowrap">
+            <Link href={`/auth/giris?callbackUrl=${encodeURIComponent(POST_AUTH_WELCOME_PATH)}`} className="btn-primary btn-sm whitespace-nowrap">
               Kullanıcı girişi
             </Link>
           )}

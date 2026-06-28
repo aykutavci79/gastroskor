@@ -6,6 +6,7 @@ import { Suspense, useMemo, useState } from 'react';
 
 import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
 import { setKvkkConsentCookie } from '@/lib/kvkk-consent';
+import { resolvePostAuthCallbackUrl } from '@/lib/post-auth-callback';
 
 const AUTH_ERROR_TR: Record<string, string> = {
   AccessDenied:
@@ -38,13 +39,15 @@ function GirisInner() {
   const authError = errorCode ? (AUTH_ERROR_TR[errorCode] ?? AUTH_ERROR_TR.Default) : null;
   const isMobile = mode === 'mobil' && isAllowedReturnUrl(returnUrl);
 
-  const callbackUrl = useMemo(() => {
-    if (callbackFromQuery?.startsWith('/')) return callbackFromQuery;
-    if (isMobile && returnUrl) {
-      return `/mobil-giris/tamam?return=${encodeURIComponent(returnUrl)}`;
-    }
-    return '/';
-  }, [callbackFromQuery, isMobile, returnUrl]);
+  const callbackUrl = useMemo(
+    () =>
+      resolvePostAuthCallbackUrl({
+        callbackFromQuery,
+        isMobileDeepLink: isMobile,
+        mobileReturnUrl: returnUrl,
+      }),
+    [callbackFromQuery, isMobile, returnUrl],
+  );
 
   const title = isMobile ? 'GastroSkor — Mobil giris' : 'GastroSkor — Giris';
 
