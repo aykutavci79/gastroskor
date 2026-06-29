@@ -19,6 +19,7 @@ from app.models.entities import (
 )
 from app.services.table_reservations import (
     DEFAULT_SEATING_DURATION_MINUTES,
+    list_user_reservations,
     reservation_blocks_slot,
     reservations_overlap,
     reserved_table_ids_for_slot,
@@ -142,6 +143,34 @@ def test_reserved_table_ids_for_slot_blocks_overlapping_tables(db: Session) -> N
 
     blocked_later = reserved_table_ids_for_slot(db, restaurant_id=restaurant.id, reserved_at=_dt(20, 5))
     assert blocked_later == set()
+
+
+def test_list_user_reservations_includes_restaurant_name(db: Session) -> None:
+    user = User(id=uuid4(), email="guest@example.com", full_name="Guest", role="user")
+    restaurant = Restaurant(id=uuid4(), name="Atlas Sofra", city="Bursa", is_active=True)
+    db.add_all([user, restaurant])
+    db.add(
+        RestaurantTableReservation(
+            id=uuid4(),
+            restaurant_id=restaurant.id,
+            user_id=user.id,
+            table_id="m1",
+            table_label="M1",
+            zone="salon",
+            party_size=2,
+            reserved_at=_dt(19, 0),
+            customer_phone="+905551112233",
+            customer_name="Ali Veli",
+            status=RestaurantTableReservationStatus.confirmed,
+        )
+    )
+    db.commit()
+
+    reservations = list_user_reservations(db, user_id=user.id)
+
+    assert len(reservations) == 1
+    assert reservations[0]["restaurant_name"] == "Atlas Sofra"
+    assert reservations[0]["table_label"] == "M1"
 
 
 def test_rejected_reservation_does_not_block(db: Session) -> None:

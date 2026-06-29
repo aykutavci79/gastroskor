@@ -396,7 +396,7 @@ def get_user_reservation(
 
 
 def list_user_reservations(db: Session, *, user_id: UUID, limit: int = 30) -> list[dict]:
-    rows = db.scalars(
+    rows = db.execute(
         select(RestaurantTableReservation, Restaurant.name)
         .join(Restaurant, Restaurant.id == RestaurantTableReservation.restaurant_id)
         .where(RestaurantTableReservation.user_id == user_id)
