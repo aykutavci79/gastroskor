@@ -72,3 +72,4 @@ jobs:
         run: |
           npm run test:sentry-scrub
           npx tsx --test ./lib/kelime-bul/engine.test.ts
+          npx tsx --test ./lib/gunluk-kelime/engine.test.ts

@@ -40,3 +40,15 @@ def test_spoken_rating_dort_bucuk_yildiz() -> None:
     parsed = parse_search_query("dört buçuk yıldız üstü kebap")
     assert parsed.min_rating == 4.5
     assert parsed.query == "kebap"
+
+
+def test_distance_filter_without_search_terms_defaults_to_restaurant() -> None:
+    parsed = parse_search_query("500 metre")
+    assert parsed.max_distance_m == 500.0
+    assert parsed.query == "restoran"
+
+
+def test_rating_symbol_filter_is_removed_from_query() -> None:
+    parsed = parse_search_query("4.5★ döner")
+    assert parsed.min_rating == 4.5
+    assert parsed.query == "döner"
