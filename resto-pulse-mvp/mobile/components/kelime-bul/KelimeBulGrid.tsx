@@ -2,9 +2,11 @@ import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
   type View as RNView,
 } from 'react-native';
 
@@ -116,25 +118,42 @@ export function KelimeBulGrid({
     touchRef.current?.measureInWindow((pageX, pageY, width, height) => {
       const sizePx = Math.min(width, height);
       if (sizePx <= 0) return;
-      layoutRef.current = { pageX, pageY, sizePx };
+      layoutRef.current = {
+        pageX: Platform.OS === 'android' ? 0 : pageX,
+        pageY: Platform.OS === 'android' ? 0 : pageY,
+        sizePx,
+      };
       setCellSize(Math.floor(sizePx / size));
     });
   }, [size]);
 
-  const onLayout = useCallback(
-    (_event: LayoutChangeEvent) => {
-      syncLayoutFromWindow();
+  const onTouchLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const { width, height } = event.nativeEvent.layout;
+      const sizePx = Math.min(width, height);
+      if (sizePx <= 0) return;
+      layoutRef.current = { ...layoutRef.current, sizePx };
+      setCellSize(Math.floor(sizePx / size));
+      if (Platform.OS !== 'android') {
+        syncLayoutFromWindow();
+      }
     },
-    [syncLayoutFromWindow],
+    [size, syncLayoutFromWindow],
   );
 
-  const hitCellFromPage = useCallback(
-    (pageX: number, pageY: number): { row: number; col: number } | null => {
+  const hitCellFromEvent = useCallback(
+    (nativeEvent: GestureResponderEvent['nativeEvent']): { row: number; col: number } | null => {
       const { pageX: originX, pageY: originY, sizePx } = layoutRef.current;
       if (sizePx <= 0) return null;
 
-      const localX = pageX - originX;
-      const localY = pageY - originY;
+      const localX =
+        Platform.OS === 'android'
+          ? nativeEvent.locationX
+          : nativeEvent.pageX - originX;
+      const localY =
+        Platform.OS === 'android'
+          ? nativeEvent.locationY
+          : nativeEvent.pageY - originY;
       if (localX < 0 || localY < 0 || localX >= sizePx || localY >= sizePx) return null;
 
       const step = sizePx / size;
@@ -155,8 +174,8 @@ export function KelimeBulGrid({
   }, []);
 
   const finishSelection = useCallback(
-    (pageX: number, pageY: number) => {
-      const end = hitCellFromPage(pageX, pageY);
+    (nativeEvent: GestureResponderEvent['nativeEvent']) => {
+      const end = hitCellFromEvent(nativeEvent);
       if (end) applyPathEnd(end);
 
       const path = pathRef.current;
@@ -167,7 +186,36 @@ export function KelimeBulGrid({
       setLocalPath([]);
       onSelectingChange?.(false);
     },
-    [applyPathEnd, hitCellFromPage, onSelectionEnd, onSelectingChange],
+    [applyPathEnd, hitCellFromEvent, onSelectionEnd, onSelectingChange],
+  );
+
+  const beginSelection = useCallback(
+    (nativeEvent: GestureResponderEvent['nativeEvent']) => {
+      onSelectingChange?.(true);
+
+      const startHit = () => {
+        const cell = hitCellFromEvent(nativeEvent);
+        if (!cell) return;
+        startRef.current = cell;
+        pathRef.current = [cell];
+        setLocalPath([cell]);
+      };
+
+      if (Platform.OS === 'android') {
+        startHit();
+        return;
+      }
+
+      const { pageX, pageY } = nativeEvent;
+      touchRef.current?.measureInWindow((originX, originY, width, height) => {
+        const sizePx = Math.min(width, height);
+        if (sizePx <= 0) return;
+        layoutRef.current = { pageX: originX, pageY: originY, sizePx };
+        setCellSize(Math.floor(sizePx / size));
+        startHit();
+      });
+    },
+    [hitCellFromEvent, onSelectingChange, size],
   );
 
   const panResponder = useMemo(
@@ -177,26 +225,14 @@ export function KelimeBulGrid({
         onMoveShouldSetPanResponder: () => !disabled,
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (evt) => {
-          onSelectingChange?.(true);
-          const { pageX, pageY } = evt.nativeEvent;
-          touchRef.current?.measureInWindow((originX, originY, width, height) => {
-            const sizePx = Math.min(width, height);
-            if (sizePx <= 0) return;
-            layoutRef.current = { pageX: originX, pageY: originY, sizePx };
-            setCellSize(Math.floor(sizePx / size));
-            const cell = hitCellFromPage(pageX, pageY);
-            if (!cell) return;
-            startRef.current = cell;
-            pathRef.current = [cell];
-            setLocalPath([cell]);
-          });
+          beginSelection(evt.nativeEvent);
         },
         onPanResponderMove: (evt) => {
-          const cell = hitCellFromPage(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          const cell = hitCellFromEvent(evt.nativeEvent);
           if (cell) applyPathEnd(cell);
         },
         onPanResponderRelease: (evt) => {
-          finishSelection(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          finishSelection(evt.nativeEvent);
         },
         onPanResponderTerminate: () => {
           startRef.current = null;
@@ -207,11 +243,10 @@ export function KelimeBulGrid({
       }),
     [
       disabled,
-      hitCellFromPage,
+      beginSelection,
+      hitCellFromEvent,
       applyPathEnd,
       finishSelection,
-      onSelectingChange,
-      size,
     ],
   );
 
@@ -245,7 +280,7 @@ export function KelimeBulGrid({
   const gridPx = cellSize > 0 ? cellSize * size : undefined;
 
   return (
-    <View style={styles.wrap} onLayout={onLayout}>
+    <View style={styles.wrap} onLayout={onTouchLayout}>
       <View style={styles.grid} pointerEvents="none">
         {Array.from({ length: size * size }, (_, index) => {
           const { row, col } = hucreKoordinat(index, size);
@@ -269,7 +304,7 @@ export function KelimeBulGrid({
           styles.touchLayer,
           gridPx ? { width: gridPx, height: gridPx } : StyleSheet.absoluteFillObject,
         ]}
-        onLayout={onLayout}
+        onLayout={onTouchLayout}
         collapsable={false}
         {...panResponder.panHandlers}
       />

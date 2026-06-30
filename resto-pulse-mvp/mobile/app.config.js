@@ -39,8 +39,8 @@ const googleSignInPlugin = googleIosUrlScheme
 module.exports = ({ config }) => ({
   ...config,
   name: 'GastroSkor',
-  owner: 'delimanyah',
-  slug: 'gastroskor',
+  owner: 'gastroskors-team',
+  slug: 'aykut',
   version: '1.0.75',
   orientation: 'portrait',
   icon: './assets/logo.png',
@@ -54,7 +54,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '53',
+    buildNumber: '54',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -165,7 +165,7 @@ module.exports = ({ config }) => ({
     googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || null,
     eas: {
       projectId:
-        process.env.EAS_PROJECT_ID ?? '3009c65b-6419-4567-a859-363698cf6880',
+        process.env.EAS_PROJECT_ID ?? 'f1b0f615-fade-46b5-8bd2-fe6d61a9ad1e',
     },
   },
 });

@@ -8,9 +8,9 @@
     "_note": "Sesli siparis mic + parser + Kelime Bul iOS touch fix"
   },
   "appStore": {
-    "version": "1.0.50",
-    "buildNumber": 52,
-    "lastUpdated": "2026-06-20",
-    "_note": "EAS iOS production 1.0.50 / build 52 — TestFlight submit"
+    "version": "1.0.75",
+    "buildNumber": 53,
+    "lastUpdated": "2026-06-30",
+    "_note": "TestFlight 1.0.75 build 53 — sonraki genel cikis build 54+"
   }
 }

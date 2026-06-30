@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { AccountDeletionFlow } from '@/components/AccountDeletionFlow';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { GourmetProfileSection } from '@/components/GourmetProfileSection';
 import { GastroBrandMark } from '@/components/GastroBrandMark';
 import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
@@ -37,6 +38,7 @@ import { getGoogleSignInSetupHint, isExpoGo } from '@/lib/google-signin-config';
 import { ensureSslPinningReady } from '@/lib/ssl-pinning';
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
+import { useTranslation } from 'react-i18next';
 
 async function fetchMyDataExport(): Promise<Record<string, unknown>> {
   await ensureSslPinningReady();
@@ -70,6 +72,7 @@ async function fetchMyDataExport(): Promise<Record<string, unknown>> {
 
 export default function ProfilScreen() {
   const { user, loading, signOut, clearLocalSession } = useSession();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [deleteFlowOpen, setDeleteFlowOpen] = useState(false);
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
@@ -138,7 +141,7 @@ export default function ProfilScreen() {
 
       const canShare = await Sharing.isAvailableAsync();
       if (!canShare) {
-        showToast('Paylasim bu cihazda kullanilamiyor. Dosya uygulama onbelleginde kaydedildi.');
+        showToast(t('profile.shareNotAvailable'));
         return;
       }
 
@@ -147,10 +150,10 @@ export default function ProfilScreen() {
       await Sharing.shareAsync(shareUri, {
         mimeType: 'application/json',
         UTI: 'public.json',
-        dialogTitle: 'GastroSkor veri export',
+        dialogTitle: t('profile.dataExportTitle'),
       });
     } catch (err) {
-      showToast(formatApiError(err, 'Veriler indirilemedi'));
+      showToast(formatApiError(err, t('profile.exportError')));
     } finally {
       setExportBusy(false);
     }
@@ -159,13 +162,13 @@ export default function ProfilScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.title}>Hesap</Text>
-        <Text style={styles.sub}>
-          Giris, bildirimler ve gizlilik ayarlari. Takip ve arkadaslar Takip sekmesinde.
-        </Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
+        <Text style={styles.sub}>{t('profile.subtitle')}</Text>
         <Text style={styles.versionMeta}>
-          Surum {Constants.expoConfig?.version ?? '?'} · build{' '}
-          {Constants.expoConfig?.android?.versionCode ?? '?'}
+          {t('profile.version', {
+            version: Constants.expoConfig?.version ?? '?',
+            build: Constants.nativeBuildVersion ?? Constants.expoConfig?.ios?.buildNumber ?? '?',
+          })}
         </Text>
       </View>
 
@@ -187,36 +190,34 @@ export default function ProfilScreen() {
       ) : null}
 
       {loading ? (
-        <Text style={styles.muted}>Yukleniyor...</Text>
+        <Text style={styles.muted}>{t('common.loading')}</Text>
       ) : user ? (
         <View style={styles.card}>
-          <Text style={styles.label}>Giris yapildi</Text>
+          <Text style={styles.label}>{t('profile.loggedIn')}</Text>
           <Text style={styles.email}>{user.email}</Text>
           {user.fullName ? <Text style={styles.muted}>{user.fullName}</Text> : null}
           <Link href="/remedy" asChild>
             <Pressable style={styles.btnOutline}>
-              <Text style={styles.btnOutlineText}>Telafi teklifleri</Text>
+              <Text style={styles.btnOutlineText}>{t('profile.compensationOffers')}</Text>
             </Pressable>
           </Link>
           <Link href="/yorumlarim" asChild>
             <Pressable style={styles.btnOutline}>
-              <Text style={styles.btnOutlineText}>Yorumlarım</Text>
+              <Text style={styles.btnOutlineText}>{t('nav.myReviews')}</Text>
             </Pressable>
           </Link>
           <Link href="/siparislerim" asChild>
             <Pressable style={styles.btnOutline}>
-              <Text style={styles.btnOutlineText}>Siparişlerim</Text>
+              <Text style={styles.btnOutlineText}>{t('nav.myOrders')}</Text>
             </Pressable>
           </Link>
           <Pressable style={styles.btnOutline} onPress={() => void signOut()}>
-            <Text style={styles.btnOutlineText}>Cikis</Text>
+            <Text style={styles.btnOutlineText}>{t('auth.logout')}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.muted}>
-            Guvenlik icin yalnizca Google hesabinizla giris yapabilirsiniz.
-          </Text>
+          <Text style={styles.muted}>{t('profile.googleOnly')}</Text>
           <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} />
           <GoogleSignInButton
             consentAccepted={kvkkAccepted}
@@ -234,7 +235,7 @@ export default function ProfilScreen() {
 
       {user ? (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Bildirimler</Text>
+          <Text style={styles.sectionTitle}>{t('profile.notifications')}</Text>
           <PushNotificationsToggle />
           <UserNotificationsSection userEmail={user.email} embedded />
         </View>
@@ -242,10 +243,8 @@ export default function ProfilScreen() {
 
       {user ? (
         <View style={styles.privacyCard}>
-          <Text style={styles.privacyTitle}>Yorumlarda isim gizliligi</Text>
-          <Text style={styles.muted}>
-            Varsayilan: yeni yorumlarda adin nasil gorunsun (Tam ad veya ay*** gibi gizli).
-          </Text>
+          <Text style={styles.privacyTitle}>{t('profile.reviewPrivacy')}</Text>
+          <Text style={styles.muted}>{t('profile.reviewPrivacyHint')}</Text>
           <ReviewNameDisplayPicker
             fullName={user.fullName ?? user.email}
             nickname={user.nickname}
@@ -255,35 +254,35 @@ export default function ProfilScreen() {
         </View>
       ) : null}
 
+      <LanguageSwitcher />
+
       <View style={styles.legal}>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacy)}>
-          <Text style={styles.legalLink}>Gizlilik Politikasi</Text>
+          <Text style={styles.legalLink}>{t('profile.privacyPolicy')}</Text>
         </Pressable>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.kvkk)}>
           <Text style={styles.legalLink}>KVKK</Text>
         </Pressable>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.terms)}>
-          <Text style={styles.legalLink}>Kullanim Kosullari</Text>
+          <Text style={styles.legalLink}>{t('profile.termsOfService')}</Text>
         </Pressable>
       </View>
 
       <View style={styles.about}>
         <GastroBrandMark size="sm" showTagline />
-        <Text style={styles.aboutTitle}>Hakkinda</Text>
-        <Text style={styles.muted}>Yakinindaki en iyi lezzetleri kesfet.</Text>
+        <Text style={styles.aboutTitle}>{t('profile.about')}</Text>
+        <Text style={styles.muted}>{t('profile.tagline')}</Text>
         <Pressable onPress={() => void WebBrowser.openBrowserAsync('https://cursor.com')}>
           <Text style={styles.aboutCredit}>
-            Gelistirme aracı: <Text style={styles.aboutCreditLink}>Cursor</Text>
+            {t('profile.developmentTool')}<Text style={styles.aboutCreditLink}>Cursor</Text>
           </Text>
         </Pressable>
       </View>
 
       {user ? (
         <View style={styles.privacyExportCard}>
-          <Text style={styles.privacyTitle}>KVKK verilerin</Text>
-          <Text style={styles.muted}>
-            Profil, siparis, yorum ve cuzdan verilerini JSON olarak indirip paylasabilirsin.
-          </Text>
+          <Text style={styles.privacyTitle}>{t('profile.kvkkData')}</Text>
+          <Text style={styles.muted}>{t('profile.kvkkDataHint')}</Text>
           <Pressable
             style={[styles.btnOutline, exportBusy && styles.btnOutlineDisabled]}
             disabled={exportBusy}
@@ -291,7 +290,7 @@ export default function ProfilScreen() {
             {exportBusy ? (
               <ActivityIndicator color={GastroColors.muted} />
             ) : (
-              <Text style={styles.btnOutlineText}>Verilerimi indir</Text>
+              <Text style={styles.btnOutlineText}>{t('profile.downloadMyData')}</Text>
             )}
           </Pressable>
         </View>
@@ -299,12 +298,10 @@ export default function ProfilScreen() {
 
       {user ? (
         <View style={styles.dangerZone}>
-          <Text style={styles.dangerTitle}>Tehlikeli bolge</Text>
-          <Text style={styles.dangerSub}>
-            Hesabini kalici olarak silmek geri alinamaz. Cikis yapmak icin yukaridaki Cikis dugmesini kullan.
-          </Text>
+          <Text style={styles.dangerTitle}>{t('profile.dangerZone')}</Text>
+          <Text style={styles.dangerSub}>{t('profile.dangerZoneHint')}</Text>
           <Pressable style={styles.dangerBtn} onPress={() => setDeleteFlowOpen(true)}>
-            <Text style={styles.dangerBtnText}>Hesabimi Sil</Text>
+            <Text style={styles.dangerBtnText}>{t('profile.deleteAccount')}</Text>
           </Pressable>
         </View>
       ) : null}
