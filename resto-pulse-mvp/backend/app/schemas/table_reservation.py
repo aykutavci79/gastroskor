@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from app.constants.reservation_occasion import ReservationOccasionType
+
 
 class FloorPlanLayout(BaseModel):
     version: int = 1
@@ -29,6 +31,7 @@ class TableReservationCreate(BaseModel):
     party_size: int = Field(ge=1, le=500)
     reserved_at: str = Field(description="ISO-8601 datetime")
     note: str | None = Field(default=None, max_length=500)
+    occasion_type: ReservationOccasionType | None = None
     customer_phone: str = Field(min_length=10, max_length=32)
     customer_name: str = Field(min_length=2, max_length=120)
 
@@ -45,6 +48,8 @@ class TableReservationRead(BaseModel):
     party_size: int
     reserved_at: str
     note: str | None = None
+    occasion_type: str | None = None
+    occasion_label: str | None = None
     customer_phone: str
     customer_name: str | None = None
     status: str

@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { FloorPlanEditor } from '@/components/panel/FloorPlanEditor';
 import {
+  applyPanelReservationVitrin,
   decidePanelReservation,
   getPanelPromo,
+  getPanelReservationVitrin,
   listPanelReservations,
   updatePanelPromo,
 } from '@/lib/api';
-import type { TableReservationRead } from '@/lib/types';
+import type { ReservationVitrinState, TableReservationRead } from '@/lib/types';
 
 type Props = {
   userEmail: string;
@@ -38,10 +40,20 @@ function statusLabel(status: TableReservationRead['status']): string {
   return status;
 }
 
+function vitrinStatusLabel(status: string): string {
+  if (status === 'approved') return 'Vitrinde yayinda';
+  if (status === 'pending') return 'Incelemede';
+  if (status === 'rejected') return 'Reddedildi';
+  if (status === 'suspended') return 'Askida';
+  return 'Basvuru yapilmadi';
+}
+
 export function PanelReservationsSection({ userEmail, subscriptionActive }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [hasOwnCourier, setHasOwnCourier] = useState(false);
   const [maxPartySize, setMaxPartySize] = useState(10);
+  const [vitrin, setVitrin] = useState<ReservationVitrinState | null>(null);
+  const [vitrinBusy, setVitrinBusy] = useState(false);
   const [savingMaxParty, setSavingMaxParty] = useState(false);
   const [items, setItems] = useState<TableReservationRead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,14 +64,16 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
 
   const refresh = useCallback(async () => {
     try {
-      const [promo, reservations] = await Promise.all([
+      const [promo, reservations, vitrinState] = await Promise.all([
         getPanelPromo(userEmail),
         listPanelReservations(userEmail),
+        getPanelReservationVitrin(userEmail),
       ]);
       setEnabled(Boolean(promo.online_reservations_enabled));
       setHasOwnCourier(Boolean(promo.has_own_courier));
       setMaxPartySize(promo.online_reservation_max_party_size ?? 10);
       setItems(reservations.items);
+      setVitrin(vitrinState);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rezervasyonlar yuklenemedi');
@@ -126,6 +140,19 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
     }
   }
 
+  async function onApplyVitrin() {
+    setVitrinBusy(true);
+    setError(null);
+    try {
+      const next = await applyPanelReservationVitrin(userEmail);
+      setVitrin(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Vitrin basvurusu gonderilemedi');
+    } finally {
+      setVitrinBusy(false);
+    }
+  }
+
   const pending = items.filter((row) => row.status === 'pending_restaurant');
 
   return (
@@ -172,6 +199,69 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
         </div>
       </section>
 
+      <section className="rounded-2xl border border-violet-500/30 bg-violet-500/5 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-violet-100">Rezervasyon vitrini</h2>
+            <p className="mt-1 text-sm text-content-muted">
+              Uygulamadaki &quot;Online Rezervasyon&quot; listesinde gorunmek icin basvuru gerekir.
+              Panelden rezervasyon acik olsa bile vitrin onayi olmadan herkese acik listede cikmazsiniz.
+            </p>
+          </div>
+          {vitrin ? (
+            <span className="rounded-full border border-violet-400/40 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-100">
+              {vitrinStatusLabel(vitrin.status)}
+            </span>
+          ) : null}
+        </div>
+
+        {vitrin ? (
+          <div className="mt-4 space-y-3 text-sm">
+            <p className="text-content-muted">
+              Salon: {vitrin.table_count} masa · {vitrin.seat_capacity} kisi kapasitesi
+            </p>
+            {vitrin.reject_reason ? (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-100">
+                {vitrin.reject_reason}
+              </p>
+            ) : null}
+            <ul className="space-y-2">
+              {vitrin.checklist.map((item) => (
+                <li
+                  key={item.code}
+                  className={`rounded-lg border px-3 py-2 ${
+                    item.passed
+                      ? 'border-emerald-500/30 bg-emerald-500/5 text-content'
+                      : 'border-amber-500/30 bg-amber-500/5 text-content'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-xs">{item.passed ? 'Tamam' : 'Eksik'}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-content-muted">{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+            {vitrin.can_apply && enabled && subscriptionActive ? (
+              <button
+                type="button"
+                disabled={vitrinBusy}
+                onClick={() => void onApplyVitrin()}
+                className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {vitrinBusy ? 'Gonderiliyor...' : 'Vitrin basvurusu gonder'}
+              </button>
+            ) : null}
+            {!enabled ? (
+              <p className="text-xs text-content-muted">Once online rezervasyonu acin.</p>
+            ) : null}
+          </div>
+        ) : loading ? (
+          <p className="mt-3 text-sm text-content-muted">Vitrin durumu yukleniyor...</p>
+        ) : null}
+      </section>
+
       <FloorPlanEditor userEmail={userEmail} subscriptionActive={subscriptionActive} />
 
       <section className="rounded-2xl border border-border/70 bg-surface-input p-5">
@@ -187,15 +277,22 @@ export function PanelReservationsSection({ userEmail, subscriptionActive }: Prop
                 className="rounded-xl border border-brand-gold/30 bg-surface-card p-4 ring-1 ring-brand-gold/20"
               >
                 <div className="flex flex-wrap justify-between gap-2">
-                  <strong className="text-content">
-                    {row.zone_label} · {row.table_label} · {row.party_size} kisi
-                  </strong>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {row.occasion_label ? (
+                      <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-200">
+                        {row.occasion_label}
+                      </span>
+                    ) : null}
+                    <strong className="text-content">
+                      {row.zone_label} · {row.table_label} · {row.party_size} kisi
+                    </strong>
+                  </div>
                   <span className="text-xs text-content-muted">{formatWhen(row.reserved_at)}</span>
                 </div>
                 <p className="mt-1 text-sm text-content-muted">
                   {row.customer_name || 'Musteri'} · {row.customer_phone}
                 </p>
-                {row.note ? <p className="mt-2 text-sm text-content">Not: {row.note}</p> : null}
+                {row.note ? <p className="mt-2 text-sm text-content">Ek not: {row.note}</p> : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"

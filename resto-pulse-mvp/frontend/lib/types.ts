@@ -212,6 +212,45 @@ export type RestaurantPromoSettings = {
   public_preview: RestaurantPromoPublic | null;
 };
 
+export type ReservationVitrinChecklistItem = {
+  code: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+};
+
+export type ReservationVitrinState = {
+  status: string;
+  listed: boolean;
+  applied_at: string | null;
+  decided_at: string | null;
+  reject_reason: string | null;
+  table_count: number;
+  seat_capacity: number;
+  can_apply: boolean;
+  checklist: ReservationVitrinChecklistItem[];
+};
+
+export type ReservationVitrinApplication = {
+  ownership_id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  restaurant_city: string | null;
+  restaurant_category: string | null;
+  owner_email: string;
+  owner_name: string | null;
+  google_place_id: string | null;
+  status: string;
+  online_reservations_enabled: boolean;
+  table_count: number;
+  seat_capacity: number;
+  online_order_categories: string[];
+  applied_at: string | null;
+  decided_at: string | null;
+  reject_reason: string | null;
+  tester_seed: boolean;
+};
+
 export type FloorPlanTable = {
   id: string;
   zone: 'salon' | 'bahce' | 'teras';
@@ -258,6 +297,8 @@ export type TableReservationRead = {
   party_size: number;
   reserved_at: string;
   note?: string | null;
+  occasion_type?: string | null;
+  occasion_label?: string | null;
   customer_phone: string;
   customer_name?: string | null;
   status:

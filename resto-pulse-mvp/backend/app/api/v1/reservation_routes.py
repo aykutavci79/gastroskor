@@ -131,6 +131,7 @@ async def post_restaurant_reservation(
             party_size=payload.party_size,
             reserved_at=_parse_reserved_at(payload.reserved_at),
             note=payload.note,
+            occasion_type=payload.occasion_type,
             customer_phone=payload.customer_phone,
             customer_name=payload.customer_name,
         )

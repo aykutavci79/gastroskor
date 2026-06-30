@@ -30,6 +30,14 @@ class PlatformName(str, enum.Enum):
     tripadvisor = "tripadvisor"
 
 
+class ReservationVitrinStatus(str, enum.Enum):
+    disabled = "disabled"
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+    suspended = "suspended"
+
+
 class SentimentLabel(str, enum.Enum):
     positive = "positive"
     neutral = "neutral"
@@ -603,6 +611,15 @@ class RestaurantOwnership(Base):
     promo_has_own_courier: Mapped[bool] = mapped_column(Boolean, default=False)
     online_orders_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     online_reservations_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    reservation_vitrin_status: Mapped[ReservationVitrinStatus] = mapped_column(
+        Enum(ReservationVitrinStatus, name="reservation_vitrin_status"),
+        default=ReservationVitrinStatus.disabled,
+        index=True,
+    )
+    reservation_vitrin_applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reservation_vitrin_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reservation_vitrin_decided_by: Mapped[str | None] = mapped_column(String(255))
+    reservation_vitrin_reject_reason: Mapped[str | None] = mapped_column(Text)
     online_reservation_max_party_size: Mapped[int] = mapped_column(Integer, default=10)
     online_order_hours: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     online_order_category_tags: Mapped[list] = mapped_column(JSON, default=list)
@@ -839,6 +856,7 @@ class RestaurantTableReservation(Base):
     party_size: Mapped[int] = mapped_column(Integer)
     reserved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     note: Mapped[str | None] = mapped_column(Text)
+    occasion_type: Mapped[str | None] = mapped_column(String(32), index=True)
     customer_phone: Mapped[str] = mapped_column(String(32))
     customer_name: Mapped[str | None] = mapped_column(String(120))
     status: Mapped[RestaurantTableReservationStatus] = mapped_column(

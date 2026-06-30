@@ -97,6 +97,7 @@ async def notify_new_reservation(
     ownership: RestaurantOwnership,
     reservation,
 ) -> None:
+    from app.constants.reservation_occasion import occasion_label_tr
     from app.services.table_reservations import reservation_to_dict, zone_label_tr
 
     summary = reservation_to_dict(reservation)
@@ -106,13 +107,15 @@ async def notify_new_reservation(
     party = summary.get("party_size")
     customer = summary.get("customer_name") or "Musteri"
     phone = summary.get("customer_phone") or ""
+    occasion = occasion_label_tr(summary.get("occasion_type")) or ""
     restaurant_id = str(reservation.restaurant_id)
+    headline = f"{occasion} · {party} kisi · {zone} {table}" if occasion else f"{zone} {table}, {party} kisi"
     await send_panel_notification(
         db,
         ownership=ownership,
         notification_type="new_reservation",
         title="Yeni masa rezervasyonu!",
-        message=f"{customer} — {zone} {table}, {party} kisi. Tel: {phone}",
+        message=f"{customer} — {headline}. Tel: {phone}",
         cta_label="Rezervasyonlara git",
         cta_url=f"{panel_base_url()}/panel?tab=reservations",
         dedupe_key=f"new_reservation:{reservation.id}",

@@ -217,3 +217,35 @@ class PanelNotificationPreferencesUpdate(BaseModel):
     trial_reminders: bool | None = None
     negative_review_alerts: bool | None = None
     competitor_alerts: bool | None = None
+
+
+class ReservationVitrinChecklistItem(BaseModel):
+    code: str
+    label: str
+    passed: bool
+    detail: str
+
+
+class ReservationVitrinState(BaseModel):
+    status: str
+    listed: bool
+    applied_at: str | None = None
+    decided_at: str | None = None
+    reject_reason: str | None = None
+    table_count: int = 0
+    seat_capacity: int = 0
+    can_apply: bool = False
+    checklist: list[ReservationVitrinChecklistItem] = Field(default_factory=list)
+
+
+class ReservationVitrinApplyRequest(BaseModel):
+    user_email: str
+
+
+class ReservationVitrinAdminActionRequest(BaseModel):
+    user_email: str
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class ReservationVitrinApplicationListResponse(BaseModel):
+    items: list[dict] = Field(default_factory=list)

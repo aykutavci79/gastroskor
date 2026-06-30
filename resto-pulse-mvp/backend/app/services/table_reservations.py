@@ -9,6 +9,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.constants.reservation_occasion import ReservationOccasionType, occasion_label_tr
 from app.models.entities import (
     Restaurant,
     RestaurantFloorPlan,
@@ -223,6 +224,8 @@ def reservation_to_dict(row: RestaurantTableReservation, *, restaurant_name: str
         "party_size": row.party_size,
         "reserved_at": row.reserved_at.isoformat(),
         "note": row.note,
+        "occasion_type": row.occasion_type,
+        "occasion_label": occasion_label_tr(row.occasion_type),
         "customer_phone": row.customer_phone,
         "customer_name": row.customer_name,
         "status": row.status.value,
@@ -246,6 +249,7 @@ def create_table_reservation(
     party_size: int,
     reserved_at: datetime,
     note: str | None,
+    occasion_type: ReservationOccasionType | None,
     customer_phone: str,
     customer_name: str | None,
 ) -> RestaurantTableReservation:
@@ -294,6 +298,7 @@ def create_table_reservation(
         party_size=party_size,
         reserved_at=reserved_at,
         note=(note or "").strip() or None,
+        occasion_type=occasion_type.value if occasion_type else None,
         customer_phone=phone,
         customer_name=clean_name,
         status=RestaurantTableReservationStatus.pending_restaurant,

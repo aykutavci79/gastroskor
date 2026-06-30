@@ -120,6 +120,7 @@ export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
   online_orders_open_now?: boolean;
   online_order_hours_label?: string | null;
+  online_order_hours_range_label?: string | null;
   pending_order: RestaurantOrderRead | null;
   recent_rejected_order?: RestaurantOrderRead | null;
   order_phone?: OrderPhoneStatus | null;
@@ -170,6 +171,8 @@ export type TableReservationRead = {
   party_size: number;
   reserved_at: string;
   note?: string | null;
+  occasion_type?: import('@/lib/reservation-occasion').ReservationOccasionType | null;
+  occasion_label?: string | null;
   customer_phone: string;
   customer_name?: string | null;
   status: string;
@@ -234,8 +237,11 @@ export type RestaurantListItem = {
   check_in_visitor_count?: number;
   online_orders_available?: boolean;
   online_reservations_available?: boolean;
+  reservation_vitrin_listed?: boolean;
+  reservation_vitrin_status?: string;
   online_orders_open_now?: boolean;
   online_order_hours_label?: string | null;
+  online_order_hours_range_label?: string | null;
   online_order_categories?: string[];
   gastro_score?: number | null;
   distance_score?: number | null;
@@ -246,6 +252,7 @@ export type RestaurantListItem = {
   order_ratings?: OrderRatingSummary | null;
   online_orders_open_now?: boolean;
   online_order_hours_label?: string | null;
+  online_order_hours_range_label?: string | null;
 };
 
 export type OnlineOrderCategoryOption = {

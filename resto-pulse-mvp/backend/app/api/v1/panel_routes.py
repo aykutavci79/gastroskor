@@ -38,6 +38,10 @@ from app.schemas.panel import (
     PanelAdminResetPublicDataRequest,
     PanelResetPublicDataRequest,
     PanelResetPublicDataResponse,
+    ReservationVitrinApplyRequest,
+    ReservationVitrinApplicationListResponse,
+    ReservationVitrinAdminActionRequest,
+    ReservationVitrinState,
     RestaurantPromoSettingsUpdate,
     TaxDocumentRequest,
 )
@@ -936,6 +940,118 @@ async def patch_panel_reservation(
     return TableReservationRead.model_validate(
         reservation_to_dict(reservation, restaurant_name=restaurant.name if restaurant else None)
     )
+
+
+@panel_router.get("/reservation-vitrin", response_model=ReservationVitrinState)
+def get_panel_reservation_vitrin(user_email: str = Query(...), db: Session = Depends(get_db)):
+    user = resolve_user_by_email(db, user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.reservation_vitrin import vitrin_payload_for_ownership
+
+    return ReservationVitrinState.model_validate(vitrin_payload_for_ownership(db, ownership=ownership))
+
+
+@panel_router.post("/reservation-vitrin/apply", response_model=ReservationVitrinState)
+def apply_panel_reservation_vitrin(
+    payload: ReservationVitrinApplyRequest,
+    db: Session = Depends(get_db),
+):
+    user = resolve_user_by_email(db, payload.user_email)
+    ownership = get_user_ownership(db, user.id)
+    state = build_panel_access_state(db, ownership)
+    if not ownership or not state.can_access_panel:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Panel erisimi yok.")
+    from app.services.reservation_vitrin import apply_reservation_vitrin
+
+    try:
+        result = apply_reservation_vitrin(db, ownership=ownership)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return ReservationVitrinState.model_validate(result)
+
+
+@panel_router.get("/admin/reservation-vitrin", response_model=ReservationVitrinApplicationListResponse)
+def admin_list_reservation_vitrin(
+    user_email: str = Query(...),
+    status: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=200),
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=user_email, secret_header=x_panel_admin_secret)
+    from app.services.reservation_vitrin import list_vitrin_applications
+
+    return ReservationVitrinApplicationListResponse(
+        items=list_vitrin_applications(db, status=status, limit=limit)
+    )
+
+
+@panel_router.post("/admin/reservation-vitrin/{ownership_id}/approve", response_model=ReservationVitrinState)
+def admin_approve_reservation_vitrin(
+    ownership_id: UUID,
+    payload: ReservationVitrinAdminActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    from app.services.reservation_vitrin import approve_reservation_vitrin, vitrin_payload_for_ownership
+
+    try:
+        ownership = approve_reservation_vitrin(
+            db,
+            ownership_id=ownership_id,
+            admin_email=payload.user_email,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return ReservationVitrinState.model_validate(vitrin_payload_for_ownership(db, ownership=ownership))
+
+
+@panel_router.post("/admin/reservation-vitrin/{ownership_id}/reject", response_model=ReservationVitrinState)
+def admin_reject_reservation_vitrin(
+    ownership_id: UUID,
+    payload: ReservationVitrinAdminActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    from app.services.reservation_vitrin import reject_reservation_vitrin, vitrin_payload_for_ownership
+
+    try:
+        ownership = reject_reservation_vitrin(
+            db,
+            ownership_id=ownership_id,
+            admin_email=payload.user_email,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return ReservationVitrinState.model_validate(vitrin_payload_for_ownership(db, ownership=ownership))
+
+
+@panel_router.post("/admin/reservation-vitrin/{ownership_id}/suspend", response_model=ReservationVitrinState)
+def admin_suspend_reservation_vitrin(
+    ownership_id: UUID,
+    payload: ReservationVitrinAdminActionRequest,
+    db: Session = Depends(get_db),
+    x_panel_admin_secret: str | None = Header(default=None, alias="X-Panel-Admin-Secret"),
+):
+    assert_admin_grant_allowed(user_email=payload.user_email, secret_header=x_panel_admin_secret)
+    from app.services.reservation_vitrin import suspend_reservation_vitrin, vitrin_payload_for_ownership
+
+    try:
+        ownership = suspend_reservation_vitrin(
+            db,
+            ownership_id=ownership_id,
+            admin_email=payload.user_email,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return ReservationVitrinState.model_validate(vitrin_payload_for_ownership(db, ownership=ownership))
 
 
 @panel_router.post("/claim/start", response_model=ClaimStartResponse)

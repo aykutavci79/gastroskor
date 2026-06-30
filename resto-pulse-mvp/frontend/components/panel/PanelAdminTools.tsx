@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { usePanel } from '@/components/panel/PanelContext';
 import { searchLivePlaces } from '@/lib/api';
-import type { LivePlaceSearchItem, PanelApplication } from '@/lib/types';
+import type { LivePlaceSearchItem, PanelApplication, ReservationVitrinApplication } from '@/lib/types';
 
 export function PanelAdminTools() {
   const { userEmail, refresh } = usePanel();
@@ -48,6 +48,11 @@ export function PanelAdminTools() {
   >([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewSearch, setReviewSearch] = useState('');
+  const [vitrinApps, setVitrinApps] = useState<ReservationVitrinApplication[]>([]);
+  const [vitrinLoading, setVitrinLoading] = useState(false);
+  const [vitrinFilter, setVitrinFilter] = useState<'pending' | 'approved' | 'rejected' | 'suspended' | ''>(
+    'pending',
+  );
   const [adminStatus, setAdminStatus] = useState<{
     is_panel_admin?: boolean;
     admin_emails_configured?: boolean;
@@ -130,6 +135,47 @@ export function PanelAdminTools() {
     }
   }
 
+  async function loadVitrinApplications(filter = vitrinFilter) {
+    setVitrinLoading(true);
+    try {
+      const query = filter ? `?status=${filter}` : '';
+      const res = await fetch(`/api/panel/admin/reservation-vitrin${query}`);
+      const data = (await res.json()) as { items?: ReservationVitrinApplication[]; detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Vitrin basvurulari yuklenemedi');
+      setVitrinApps(data.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Vitrin basvurulari yuklenemedi');
+    } finally {
+      setVitrinLoading(false);
+    }
+  }
+
+  async function onVitrinAction(ownershipId: string, action: 'approve' | 'reject' | 'suspend') {
+    const reason =
+      action === 'reject' || action === 'suspend'
+        ? window.prompt(action === 'reject' ? 'Red nedeni (opsiyonel):' : 'Askiya alma nedeni (opsiyonel):') ??
+          undefined
+        : undefined;
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/panel/admin/reservation-vitrin/${ownershipId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason?.trim() || undefined }),
+      });
+      const data = (await res.json()) as { detail?: string };
+      if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Islem basarisiz');
+      setMessage(`Vitrin basvurusu ${action} tamamlandi.`);
+      await loadVitrinApplications();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Islem basarisiz');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadClaimRequests() {
     setClaimsLoading(true);
     try {
@@ -187,9 +233,10 @@ export function PanelAdminTools() {
     if (allowed) {
       void loadClaimRequests();
       void loadApplications();
+      void loadVitrinApplications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed, appFilter]);
+  }, [allowed, appFilter, vitrinFilter]);
 
   async function onAppAction(appId: string, action: 'approve' | 'reject' | 'mark-contract-received') {
     setLoading(true);
@@ -427,6 +474,93 @@ export function PanelAdminTools() {
           className="mt-4 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
           Deneme restoranlarini olustur / guncelle
         </button>
+      </section>
+      <section className="rounded-2xl border border-violet-500/40 bg-violet-500/5 p-6">
+        <h2 className="text-xl font-semibold text-violet-100">Rezervasyon vitrin basvurulari</h2>
+        <p className="mt-1 text-sm text-content-muted">
+          Oturmalı mekanlar icin online rezervasyon vitrin onayi. Sahip e-postasi ve kapasite bilgisi burada.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(['pending', 'approved', 'rejected', 'suspended', ''] as const).map((value) => (
+            <button
+              key={value || 'all'}
+              type="button"
+              onClick={() => setVitrinFilter(value)}
+              className={`rounded-lg px-3 py-1 text-xs ${
+                vitrinFilter === value ? 'bg-violet-500/30 text-violet-50' : 'border border-border text-content-muted'
+              }`}
+            >
+              {value === 'pending'
+                ? 'Bekleyen'
+                : value === 'approved'
+                  ? 'Onayli'
+                  : value === 'rejected'
+                    ? 'Red'
+                    : value === 'suspended'
+                      ? 'Askida'
+                      : 'Tumu'}
+            </button>
+          ))}
+        </div>
+        {vitrinLoading ? <p className="mt-3 text-sm text-content-muted">Yukleniyor...</p> : null}
+        <ul className="mt-4 space-y-3">
+          {vitrinApps.map((item) => (
+            <li key={item.ownership_id} className="rounded-xl border border-border bg-surface/80 p-4 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-content">
+                    {item.restaurant_name}{' '}
+                    <span className="text-xs font-normal text-content-muted">({item.status})</span>
+                  </p>
+                  <p className="text-xs text-content-muted">
+                    {item.owner_name ?? '—'} · {item.owner_email}
+                  </p>
+                  <p className="text-xs text-content-muted">
+                    {item.restaurant_city ?? '—'} · {item.table_count} masa · {item.seat_capacity} kisi
+                  </p>
+                  {item.reject_reason ? (
+                    <p className="mt-1 text-xs text-rose-200">{item.reject_reason}</p>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {item.status === 'pending' ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void onVitrinAction(item.ownership_id, 'approve')}
+                        className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white"
+                      >
+                        Onayla
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void onVitrinAction(item.ownership_id, 'reject')}
+                        className="rounded-lg bg-rose-600/80 px-2 py-1 text-xs text-white"
+                      >
+                        Reddet
+                      </button>
+                    </>
+                  ) : null}
+                  {item.status === 'approved' ? (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => void onVitrinAction(item.ownership_id, 'suspend')}
+                      className="rounded-lg bg-amber-600 px-2 py-1 text-xs font-semibold text-white"
+                    >
+                      Askiya al
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {!vitrinLoading && vitrinApps.length === 0 ? (
+          <p className="mt-3 text-sm text-content-muted">Kayit yok.</p>
+        ) : null}
       </section>
       <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6">
         <h2 className="text-xl font-semibold text-emerald-100">Mekan claim talepleri</h2>

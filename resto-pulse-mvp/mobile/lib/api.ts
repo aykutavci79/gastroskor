@@ -310,6 +310,7 @@ export function createTableReservation(
     party_size: number;
     reserved_at: string;
     note?: string | null;
+    occasion_type?: import('@/lib/reservation-occasion').ReservationOccasionType | null;
     customer_phone: string;
     customer_name?: string | null;
   },

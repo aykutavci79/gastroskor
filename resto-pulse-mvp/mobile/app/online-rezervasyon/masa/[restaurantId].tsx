@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,7 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ReservationConfirmModal } from '@/components/reservation/ReservationConfirmModal';
+import { ReservationOccasionPicker } from '@/components/reservation/ReservationOccasionPicker';
+import { ReservationBookHeader } from '@/components/reservation/ReservationBookHeader';
+import { ReservationBookSection } from '@/components/reservation/ReservationBookSection';
 import { ReservationDateTimeFields } from '@/components/reservation/ReservationDateTimeFields';
+import { ReservationPartySizeStepper } from '@/components/reservation/ReservationPartySizeStepper';
 import { ExpoGoDevSignInCard } from '@/components/ExpoGoDevSignInCard';
 import { ReservationTheme } from '@/constants/reservation-theme';
 import {
@@ -29,14 +33,16 @@ import {
 } from '@/lib/api';
 import {
   defaultReservationSlot,
-  formatSlotDateTimeTr,
   slotToIso,
   type ReservationSlot,
 } from '@/lib/reservation-datetime';
 import { formatTableCodeLong } from '@/lib/reservation-table-code';
+import type { ReservationOccasionType } from '@/lib/reservation-occasion';
 import { readStoredOrderPhone } from '@/lib/order-contact-secure-storage';
 import { normalizeTrMobileInput } from '@/lib/phone-tr';
 import type { FloorPlanTable, Restaurant } from '@/lib/types';
+
+const PLACEHOLDER = ReservationTheme.textSoft;
 
 function isCustomerNameValid(name: string): boolean {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -59,10 +65,10 @@ function tableAllowsReservation(
 }
 
 function stateHint(state: TableVisualState, table: FloorPlanTable): string | null {
-  if (state === 'reserved') return 'Bu masa secilen saatte dolu.';
-  if (state === 'closed') return 'Restoran bu masayi rezervasyona kapatmis.';
+  if (state === 'reserved') return 'Bu masa seçilen saatte dolu.';
+  if (state === 'closed') return 'Restoran bu masayı rezervasyona kapatmış.';
   if (state === 'mismatch') {
-    return `Bu masa ${table.seats_min}–${table.seats_max} kisi icin uygun. Kisi sayisini guncelleyin veya baska masa secin.`;
+    return `Bu masa ${table.seats_min}–${table.seats_max} kişi için uygun. Kişi sayısını güncelleyin veya başka masa seçin.`;
   }
   return null;
 }
@@ -71,13 +77,16 @@ export default function OnlineReservationBookScreen() {
   const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
   const router = useRouter();
   const { user } = useSession();
+  const styles = useMemo(() => createStyles(), []);
+
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [partySize, setPartySize] = useState('2');
+  const [partySize, setPartySize] = useState(2);
   const [slot, setSlot] = useState<ReservationSlot>(defaultReservationSlot);
   const [note, setNote] = useState('');
+  const [occasionType, setOccasionType] = useState<ReservationOccasionType | null>(null);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [selectedTable, setSelectedTable] = useState<FloorPlanTable | null>(null);
@@ -90,7 +99,7 @@ export default function OnlineReservationBookScreen() {
 
   const reservedIso = useMemo(() => slotToIso(slot), [slot]);
   const maxOnlineParty = active?.max_online_party_size ?? 10;
-  const party = Math.max(1, Number(partySize) || 1);
+  const party = Math.max(1, partySize);
   const partyTooLarge = party > maxOnlineParty;
   const contactPhone = active?.contact_phone?.trim() || null;
   const reservedIds = active?.reserved_table_ids ?? [];
@@ -101,14 +110,14 @@ export default function OnlineReservationBookScreen() {
 
   const submitBlockers = useMemo(() => {
     const items: string[] = [];
-    if (!user?.email) items.push('Giris yapin');
-    if (!selectedTable) items.push('Masa secin');
+    if (!user?.email) items.push('Giriş yapın');
+    if (!selectedTable) items.push('Masa seçin');
     if (selectedTable && !tableAllowsReservation(selectedTable, party, reservedIds, closedIds)) {
-      items.push(`Kisi sayisi (${selectedTable.seats_min}–${selectedTable.seats_max})`);
+      items.push(`Kişi sayısı (${selectedTable.seats_min}–${selectedTable.seats_max})`);
     }
     if (!nameValid) items.push('Ad ve soyad');
-    if (!phoneValid) items.push('Gecerli telefon (05xx...)');
-    if (partyTooLarge) items.push(`En fazla ${maxOnlineParty} kisi`);
+    if (!phoneValid) items.push('Geçerli telefon (05xx…)');
+    if (partyTooLarge) items.push(`En fazla ${maxOnlineParty} kişi`);
     return items;
   }, [
     closedIds,
@@ -138,7 +147,7 @@ export default function OnlineReservationBookScreen() {
       ];
       if (unavailable.includes(selectedTable.id)) {
         setSelectedTable(null);
-        setTableHint('Secilen masa artik uygun degil.');
+        setTableHint('Seçilen masa artık uygun değil.');
       }
     }
   }, [restaurantId, reservedIso, user?.email, selectedTable]);
@@ -152,7 +161,7 @@ export default function OnlineReservationBookScreen() {
         setActive(a);
       })
       .catch((err) => {
-        Alert.alert('Hata', err instanceof Error ? err.message : 'Yuklenemedi');
+        Alert.alert('Hata', err instanceof Error ? err.message : 'Yüklenemedi');
         router.back();
       })
       .finally(() => setLoading(false));
@@ -193,8 +202,7 @@ export default function OnlineReservationBookScreen() {
   }
 
   function handleTablePress(table: FloorPlanTable, state: TableVisualState) {
-    const hint = stateHint(state, table);
-    setTableHint(hint);
+    setTableHint(stateHint(state, table));
     if (state === 'reserved' || state === 'closed') {
       setSelectedTable(null);
     }
@@ -202,13 +210,13 @@ export default function OnlineReservationBookScreen() {
 
   function openConfirm() {
     if (!selectedTable) {
-      Alert.alert('Masa secin', 'Haritadan bir masa kodu secin.');
+      Alert.alert('Masa seçin', 'Haritadan bir masa kodu seçin.');
       return;
     }
     if (!user?.email) {
       Alert.alert(
-        'Giris gerekli',
-        'Rezervasyon icin once gelistirici girisi yapin (Expo Go) veya Profil sekmesinden oturum acin.',
+        'Giriş gerekli',
+        'Rezervasyon için oturum açın (Profil sekmesi veya geliştirici girişi).',
       );
       return;
     }
@@ -229,17 +237,18 @@ export default function OnlineReservationBookScreen() {
         party_size: party,
         reserved_at: reservedIso,
         note: note.trim() || null,
+        occasion_type: occasionType,
         customer_phone: normalizeTrMobileInput(phone.trim()) ?? phone.trim(),
         customer_name: name.trim(),
       });
       setConfirmVisible(false);
       Alert.alert(
-        'Talep gonderildi',
-        'Restoran onayini bekleyin. Durumu bu ekrandan takip edebilirsiniz; onaydan sonra bildirim gelir.',
+        'Talep gönderildi',
+        'Restoran onayını bekleyin. Onaydan sonra bildirim gelir; 24 saat içinde kesinleştirmeniz gerekir.',
         [{ text: 'Tamam', onPress: () => router.replace(`/online-rezervasyon/${row.id}`) }],
       );
     } catch (err) {
-      Alert.alert('Hata', err instanceof Error ? err.message : 'Rezervasyon gonderilemedi');
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Rezervasyon gönderilemedi');
     } finally {
       setSubmitting(false);
     }
@@ -248,7 +257,8 @@ export default function OnlineReservationBookScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ActivityIndicator color="#fbbf24" style={{ marginTop: 40 }} />
+        <Stack.Screen options={{ title: 'Masa seç' }} />
+        <ActivityIndicator color={ReservationTheme.accent} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
@@ -256,118 +266,147 @@ export default function OnlineReservationBookScreen() {
   if (!active?.online_reservations_available || !active.floor_plan?.layout) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.title}>Online rezervasyon</Text>
-        <Text style={styles.muted}>Bu restoran su an online rezervasyon almiyor.</Text>
-        <Pressable style={styles.btn} onPress={() => router.back()}>
-          <Text style={styles.btnText}>Geri</Text>
-        </Pressable>
+        <Stack.Screen options={{ title: 'Masa seç' }} />
+        <View style={styles.unavailable}>
+          <Text style={styles.title}>Online rezervasyon</Text>
+          <Text style={styles.muted}>Bu restoran şu an online rezervasyon almıyor.</Text>
+          <Pressable style={styles.btn} onPress={() => router.back()}>
+            <Text style={styles.btnText}>Geri</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <Stack.Screen options={{ title: 'Masa seç' }} />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{restaurant?.name ?? 'Rezervasyon'}</Text>
-        <Text style={styles.sub}>Masa sec · bilgileri doldur · onayla</Text>
+        {restaurant ? (
+          <ReservationBookHeader
+            restaurant={restaurant}
+            floorBackgroundUrl={active.floor_plan.background_url}
+          />
+        ) : null}
 
         {!user?.email ? <ExpoGoDevSignInCard /> : null}
 
-        <Text style={styles.label}>Kisi sayisi</Text>
-        <TextInput
-          value={partySize}
-          onChangeText={setPartySize}
-          keyboardType="number-pad"
-          style={styles.input}
-        />
-        {partyTooLarge ? (
-          <Text style={styles.warn}>
-            {maxOnlineParty} kisiden fazla gruplar icin lutfen restoranla dogrudan gorunun
-            {contactPhone ? ` (${contactPhone})` : ''}.
-          </Text>
-        ) : null}
+        <ReservationBookSection
+          step="1"
+          title="Kişi sayısı"
+          subtitle="Grubunuz kaç kişi? Masa kapasitesi buna göre renklendirilir.">
+          <ReservationPartySizeStepper
+            value={party}
+            max={Math.max(maxOnlineParty, party)}
+            onChange={setPartySize}
+          />
+          {partyTooLarge ? (
+            <Text style={styles.warn}>
+              {maxOnlineParty} kişiden fazla gruplar için lütfen restoranla doğrudan görüşün
+              {contactPhone ? ` (${contactPhone})` : ''}.
+            </Text>
+          ) : null}
+        </ReservationBookSection>
 
-        <ReservationFloorPlanPicker
-          layout={active.floor_plan.layout}
-          backgroundUrl={active.floor_plan.background_url}
-          reservedTableIds={reservedIds}
-          closedTableIds={closedIds}
-          selectedTableId={selectedTable?.id ?? null}
-          partySize={party}
-          onSelect={handleSelectTable}
-          onTablePress={handleTablePress}
-        />
+        <ReservationBookSection
+          step="2"
+          title="Tarih ve saat"
+          subtitle="Seçtiğiniz saatte dolu masalar haritada gri görünür.">
+          <ReservationDateTimeFields embedded value={slot} onChange={setSlot} />
+        </ReservationBookSection>
 
-        {tableHint ? <Text style={styles.warn}>{tableHint}</Text> : null}
+        <ReservationBookSection
+          step="3"
+          title="Salon planı"
+          subtitle="Altın: seçili · Yeşil: uygun · Gri: dolu">
+          <View style={styles.floorWrap}>
+            <ReservationFloorPlanPicker
+              layout={active.floor_plan.layout}
+              backgroundUrl={active.floor_plan.background_url}
+              reservedTableIds={reservedIds}
+              closedTableIds={closedIds}
+              selectedTableId={selectedTable?.id ?? null}
+              partySize={party}
+              onSelect={handleSelectTable}
+              onTablePress={handleTablePress}
+            />
+          </View>
+          {tableHint ? <Text style={styles.warn}>{tableHint}</Text> : null}
+          {!selectedTable ? (
+            <Text style={styles.helper}>Haritadan bir masa kodu seçin (örnek S-M5).</Text>
+          ) : (
+            <View style={styles.tableChip}>
+              <Text style={styles.tableChipLabel}>Seçilen masa</Text>
+              <Text style={styles.tableChipValue}>
+                {formatTableCodeLong(selectedTable.zone, selectedTable.label)} · {selectedTable.seats_min}–
+                {selectedTable.seats_max} kişi
+              </Text>
+            </View>
+          )}
+        </ReservationBookSection>
 
         <View
-          style={styles.selectionCard}
           onLayout={(event) => {
             formOffsetY.current = event.nativeEvent.layout.y;
           }}>
-          <Text style={styles.formSectionTitle}>Rezervasyon bilgileri</Text>
+          <ReservationBookSection
+            step="4"
+            title="İletişim bilgileri"
+            subtitle="Talep restoran paneline düşer; onay sonrası çift onay ile kesinleşir.">
+            <Text style={styles.label}>Ad soyad *</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Ad Soyad"
+              placeholderTextColor={PLACEHOLDER}
+              autoCapitalize="words"
+              style={styles.input}
+            />
+            {!nameValid && name.trim().length > 0 ? (
+              <Text style={styles.warn}>Örnek: Ahmet Yılmaz (ad ve soyad ayrı)</Text>
+            ) : null}
 
-          {selectedTable ? (
-            <>
-              <Text style={styles.selectionTitle}>{formatTableCodeLong(selectedTable.zone, selectedTable.label)}</Text>
-              <Text style={styles.selectionMeta}>
-                {selectedTable.seats_min}–{selectedTable.seats_max} kisi
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.warn}>Once yukaridan bir masa kodu secin (ornek S-M5).</Text>
-          )}
+            <Text style={styles.label}>Telefon *</Text>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              placeholder="05xx xxx xx xx"
+              placeholderTextColor={PLACEHOLDER}
+              style={styles.input}
+            />
+            {!phoneValid && phone.trim().length > 0 ? (
+              <Text style={styles.warn}>10 haneli cep numarası girin (5 ile başlamalı).</Text>
+            ) : null}
 
-          <ReservationDateTimeFields value={slot} onChange={setSlot} />
+            <ReservationOccasionPicker value={occasionType} onChange={setOccasionType} />
 
-          <Text style={styles.label}>Ad soyad *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Ad Soyad"
-            placeholderTextColor="#64748b"
-            autoCapitalize="words"
-            style={styles.input}
-          />
-          {!nameValid && name.trim().length > 0 ? (
-            <Text style={styles.warn}>Ornek: Ahmet Yilmaz (ad ve soyad ayri)</Text>
-          ) : null}
+            <Text style={[styles.label, { marginTop: 10 }]}>Ek not (isteğe bağlı)</Text>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              multiline
+              placeholder="Cam kenarı, çocuk sandalyesi, pasta…"
+              placeholderTextColor={PLACEHOLDER}
+              style={[styles.input, styles.inputMultiline]}
+            />
 
-          <Text style={styles.label}>Telefon *</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            placeholder="05xx xxx xx xx"
-            placeholderTextColor="#64748b"
-            style={styles.input}
-          />
-          {!phoneValid && phone.trim().length > 0 ? (
-            <Text style={styles.warn}>10 haneli cep numarasi girin (5 ile baslamali).</Text>
-          ) : null}
+            {submitBlockers.length > 0 ? (
+              <Text style={styles.helper}>Eksik: {submitBlockers.join(' · ')}</Text>
+            ) : (
+              <Text style={styles.helperReady}>Hazır — rezervasyon talebini gönderebilirsiniz.</Text>
+            )}
 
-          <Text style={styles.label}>Not (istege bagli)</Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            multiline
-            placeholder="Ozel istek, cocuk sandalyesi..."
-            placeholderTextColor="#64748b"
-            style={[styles.input, { minHeight: 72 }]}
-          />
-
-          {submitBlockers.length > 0 ? (
-            <Text style={styles.helper}>Eksik: {submitBlockers.join(' · ')}</Text>
-          ) : (
-            <Text style={styles.helperReady}>Hazir — rezervasyonu onaylayabilirsiniz.</Text>
-          )}
-
-          <Pressable style={[styles.btn, !canOpenConfirm && styles.btnMuted]} onPress={openConfirm}>
-            <Text style={styles.btnText}>Rezervasyon yap</Text>
-          </Pressable>
+            <Pressable
+              style={[styles.btn, !canOpenConfirm && styles.btnMuted]}
+              disabled={!canOpenConfirm}
+              onPress={openConfirm}>
+              <Text style={styles.btnText}>Rezervasyon talebi gönder</Text>
+            </Pressable>
+          </ReservationBookSection>
         </View>
       </ScrollView>
 
@@ -380,6 +419,7 @@ export default function OnlineReservationBookScreen() {
           partySize={party}
           customerName={name.trim()}
           customerPhone={phone.trim()}
+          occasionType={occasionType}
           note={note}
           submitting={submitting}
           onCancel={() => setConfirmVisible(false)}
@@ -390,43 +430,58 @@ export default function OnlineReservationBookScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: ReservationTheme.bg },
-  scroll: { padding: 16, gap: 10, paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: '700', color: ReservationTheme.text },
-  sub: { color: ReservationTheme.textMuted, marginBottom: 4, lineHeight: 18 },
-  muted: { color: ReservationTheme.textMuted, marginTop: 12 },
-  label: { color: ReservationTheme.textMuted, fontSize: 13, marginTop: 4 },
-  helper: { color: ReservationTheme.textSoft, fontSize: 12, lineHeight: 17 },
-  warn: { color: ReservationTheme.warn, fontSize: 13, marginTop: 4, lineHeight: 18 },
-  input: {
-    borderWidth: 1,
-    borderColor: ReservationTheme.borderSoft,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: ReservationTheme.text,
-    backgroundColor: ReservationTheme.panel,
-  },
-  selectionCard: {
-    marginTop: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: ReservationTheme.border,
-    backgroundColor: ReservationTheme.accentGlow,
-    padding: 14,
-    gap: 4,
-  },
-  selectionTitle: { color: ReservationTheme.accent, fontSize: 17, fontWeight: '700' },
-  selectionMeta: { color: ReservationTheme.textMuted, fontSize: 13, marginBottom: 6 },
-  btn: {
-    marginTop: 12,
-    backgroundColor: ReservationTheme.cta,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnMuted: { opacity: 0.72 },
-  btnText: { color: ReservationTheme.ctaText, fontWeight: '700', fontSize: 16 },
-  helperReady: { color: ReservationTheme.success, fontSize: 12, marginTop: 6 },
-});
+function createStyles() {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: ReservationTheme.bg },
+    scroll: { padding: 16, gap: 14, paddingBottom: 36 },
+    unavailable: { padding: 20, gap: 12 },
+    title: { fontSize: 22, fontWeight: '800', color: ReservationTheme.text },
+    muted: { color: ReservationTheme.textMuted, lineHeight: 20 },
+    label: { color: ReservationTheme.textMuted, fontSize: 13, marginTop: 2 },
+    helper: { color: ReservationTheme.textSoft, fontSize: 12, lineHeight: 17 },
+    warn: { color: ReservationTheme.warn, fontSize: 13, lineHeight: 18 },
+    input: {
+      borderWidth: 1,
+      borderColor: ReservationTheme.borderSoft,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      color: ReservationTheme.text,
+      backgroundColor: ReservationTheme.bg,
+    },
+    inputMultiline: { minHeight: 72, textAlignVertical: 'top' },
+    floorWrap: { marginHorizontal: -2 },
+    tableChip: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: ReservationTheme.border,
+      backgroundColor: ReservationTheme.accentGlow,
+      padding: 12,
+      gap: 4,
+    },
+    tableChipLabel: {
+      color: ReservationTheme.textSoft,
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    tableChipValue: {
+      color: ReservationTheme.accent,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    btn: {
+      marginTop: 4,
+      backgroundColor: ReservationTheme.cta,
+      borderRadius: 14,
+      paddingVertical: 15,
+      alignItems: 'center',
+      minHeight: 48,
+      justifyContent: 'center',
+    },
+    btnMuted: { opacity: 0.55 },
+    btnText: { color: ReservationTheme.ctaText, fontWeight: '800', fontSize: 16 },
+    helperReady: { color: ReservationTheme.success, fontSize: 12, lineHeight: 17 },
+  });
+}

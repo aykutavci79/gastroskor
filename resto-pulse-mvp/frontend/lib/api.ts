@@ -620,6 +620,19 @@ export function savePanelFloorPlan(
   });
 }
 
+export function getPanelReservationVitrin(userEmail: string) {
+  return request<import('@/lib/types').ReservationVitrinState>(
+    `/panel/reservation-vitrin?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`,
+  );
+}
+
+export function applyPanelReservationVitrin(userEmail: string) {
+  return request<import('@/lib/types').ReservationVitrinState>('/panel/reservation-vitrin/apply', {
+    method: 'POST',
+    body: JSON.stringify({ user_email: userEmail.trim().toLowerCase() }),
+  });
+}
+
 export function publishPanelFloorPlan(userEmail: string) {
   return request<import('@/lib/types').FloorPlanRead>(
     `/panel/floor-plan/publish?user_email=${encodeURIComponent(userEmail.trim().toLowerCase())}`,
