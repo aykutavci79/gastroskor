@@ -81,10 +81,10 @@ export function BusinessApplicationForm() {
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-6 text-emerald-50">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
         <h2 className="text-lg font-semibold">{t('successTitle')}</h2>
         <p className="mt-2 text-sm leading-relaxed">{success}</p>
-        <p className="mt-3 text-sm leading-relaxed text-emerald-100/90">{t('successTrialNote')}</p>
+        <p className="mt-3 text-sm leading-relaxed text-emerald-800">{t('successTrialNote')}</p>
         <p className="mt-3 text-sm">
           Panel açıldığında aynı e-posta ile{' '}
           <Link href="/panel" className="underline">
@@ -98,62 +98,62 @@ export function BusinessApplicationForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <section className="rounded-2xl border border-border/70 bg-surface-input p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-content">{t('formTitle')}</h2>
-        <p className="text-sm text-content-muted">{t('formHint')}</p>
+      <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm">
+        <h2 className="text-lg font-semibold text-neutral-900">{t('formTitle')}</h2>
+        <p className="text-sm text-neutral-600">{t('formHint')}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm sm:col-span-2">
-            <span className="text-content-muted">{t('businessName')}</span>
+            <span className="text-neutral-600">{t('businessName')}</span>
             <input
               required
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
           <label className="block text-sm">
-            <span className="text-content-muted">{t('contactName')}</span>
+            <span className="text-neutral-600">{t('contactName')}</span>
             <input
               required
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
           <label className="block text-sm">
-            <span className="text-content-muted">{t('panelEmail')}</span>
+            <span className="text-neutral-600">{t('panelEmail')}</span>
             <input
               required
               type="email"
               value={panelEmail}
               onChange={(e) => setPanelEmail(e.target.value)}
               placeholder="ornek@gmail.com"
-              className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
           <label className="block text-sm">
-            <span className="text-content-muted">{t('phone')}</span>
+            <span className="text-neutral-600">{t('phone')}</span>
             <input
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="05xx xxx xx xx"
-              className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
           <label className="block text-sm">
-            <span className="text-content-muted">{t('city')}</span>
+            <span className="text-neutral-600">{t('city')}</span>
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border/70 bg-surface-input p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-content">{t('placeSectionTitle')}</h2>
+      <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white/95 p-6 shadow-sm backdrop-blur-sm">
+        <h2 className="text-lg font-semibold text-neutral-900">{t('placeSectionTitle')}</h2>
         <div className="flex gap-2">
           <input
             value={placeQuery}
@@ -165,7 +165,7 @@ export function BusinessApplicationForm() {
               }
             }}
             placeholder={t('placePlaceholder')}
-            className="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-content"
+            className="flex-1 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900"
           />
           <button
             type="button"
@@ -176,7 +176,7 @@ export function BusinessApplicationForm() {
           </button>
         </div>
         {selectedPlace ? (
-          <p className="text-sm text-emerald-200">
+          <p className="text-sm text-emerald-700">
             {t('placeSelected')}: <strong>{selectedPlace.name}</strong> — {selectedPlace.address}
           </p>
         ) : null}
@@ -189,11 +189,11 @@ export function BusinessApplicationForm() {
                   onClick={() => selectPlace(place)}
                   className={`w-full rounded-xl border p-3 text-left text-sm ${
                     selectedPlace?.place_id === place.place_id
-                      ? 'border-emerald-400 bg-emerald-500/10'
-                      : 'border-border bg-surface/80'
+                      ? 'border-emerald-400 bg-emerald-50'
+                      : 'border-neutral-200 bg-white'
                   }`}>
-                  <p className="font-medium text-content">{place.name}</p>
-                  <p className="text-xs text-content-muted">{place.address}</p>
+                  <p className="font-medium text-neutral-900">{place.name}</p>
+                  <p className="text-xs text-neutral-600">{place.address}</p>
                 </button>
               </li>
             ))}
@@ -202,24 +202,24 @@ export function BusinessApplicationForm() {
       </section>
 
       <label className="block text-sm">
-        <span className="text-content-muted">{t('notes')}</span>
+        <span className="text-neutral-600">{t('notes')}</span>
         <textarea
           rows={2}
           value={applicantNotes}
           onChange={(e) => setApplicantNotes(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-content"
+          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
         />
       </label>
 
-      <label className="flex items-start gap-2 text-sm text-content">
+      <label className="flex items-start gap-2 text-sm text-neutral-800">
         <input
           type="checkbox"
           checked={kvkkConsent}
           onChange={(e) => setKvkkConsent(e.target.checked)}
-          className="mt-1 rounded border-border"
+          className="mt-1 rounded border-neutral-300"
         />
         <span>
-          <Link href="/gizlilik" className="text-accent underline">
+          <Link href="/gizlilik" className="text-orange-600 underline">
             KVKK / gizlilik metnini
           </Link>{' '}
           okudum, iletişim için onaylıyorum.
@@ -227,14 +227,14 @@ export function BusinessApplicationForm() {
       </label>
 
       {error ? (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div>
       ) : null}
 
       <button type="submit" disabled={loading || !kvkkConsent} className="btn-primary w-full py-3 text-base disabled:opacity-50">
         {loading ? t('submitting') : t('submit')}
       </button>
 
-      <p className="text-xs leading-relaxed text-content-muted">{t('fullFormLater')}</p>
+      <p className="text-xs leading-relaxed text-neutral-500">{t('fullFormLater')}</p>
     </form>
   );
 }
