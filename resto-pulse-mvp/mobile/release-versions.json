@@ -9,8 +9,8 @@
   },
   "appStore": {
     "version": "1.0.75",
-    "buildNumber": 53,
-    "lastUpdated": "2026-06-30",
-    "_note": "TestFlight 1.0.75 build 53 — sonraki genel cikis build 54+"
+    "buildNumber": 55,
+    "lastUpdated": "2026-07-01",
+    "_note": "Sign in with Apple (Guideline 4.8) — build 54 red sonrasi"
   }
 }

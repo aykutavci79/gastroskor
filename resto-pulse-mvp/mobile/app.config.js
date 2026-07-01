@@ -54,7 +54,7 @@ module.exports = ({ config }) => ({
   },
   ios: {
     supportsTablet: true,
-    buildNumber: '54',
+    buildNumber: '55',
     bundleIdentifier: 'com.gastroskor.app',
     associatedDomains: ['applinks:www.gastroskor.com.tr'],
     infoPlist: {
@@ -64,6 +64,7 @@ module.exports = ({ config }) => ({
     entitlements: {
       'aps-environment': 'production',
       'com.apple.developer.associated-domains': ['applinks:www.gastroskor.com.tr'],
+      'com.apple.developer.applesignin': ['Default'],
     },
     config: {
       usesNonExemptEncryption: false,
@@ -103,6 +104,7 @@ module.exports = ({ config }) => ({
       },
     ],
     googleSignInPlugin,
+    'expo-apple-authentication',
     'expo-localization',
     'expo-web-browser',
     'expo-router',

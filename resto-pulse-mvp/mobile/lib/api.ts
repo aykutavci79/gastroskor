@@ -610,6 +610,7 @@ export function syncUser(payload: {
   full_name?: string | null;
   avatar_url?: string | null;
   google_sub?: string | null;
+  apple_sub?: string | null;
   record_login?: boolean;
   default_review_name_display?: 'full' | 'masked' | 'nickname';
   kvkk_consent_accepted?: boolean;
@@ -627,6 +628,27 @@ export function verifyGoogleMobileAuth(idToken: string, kvkkConsentAccepted: boo
   }>('/auth/google/mobile', {
     method: 'POST',
     body: JSON.stringify({ id_token: idToken, kvkk_consent_accepted: kvkkConsentAccepted }),
+  });
+}
+
+export function verifyAppleMobileAuth(
+  identityToken: string,
+  kvkkConsentAccepted: boolean,
+  fullName?: string | null,
+) {
+  return request<{
+    profile: UserProfile;
+    access_token: string;
+    refresh_token: string;
+    expires_in: number;
+    refresh_expires_in: number;
+  }>('/auth/apple/mobile', {
+    method: 'POST',
+    body: JSON.stringify({
+      identity_token: identityToken,
+      kvkk_consent_accepted: kvkkConsentAccepted,
+      full_name: fullName?.trim() || null,
+    }),
   });
 }
 

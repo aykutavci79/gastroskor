@@ -22,6 +22,7 @@ import { PushNotificationsToggle } from '@/components/PushNotificationsToggle';
 import { Screen } from '@/components/ui/Screen';
 import { UserNotificationsSection } from '@/components/UserNotificationsSection';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { DevSignInButton } from '@/components/DevSignInButton';
 import { KvkkConsentCheckbox } from '@/components/KvkkConsentCheckbox';
 import { ReviewNameDisplayPicker } from '@/components/ReviewNameDisplayPicker';
@@ -217,8 +218,15 @@ export default function ProfilScreen() {
         </View>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.muted}>{t('profile.googleOnly')}</Text>
+          <Text style={styles.muted}>{t('profile.signInHint')}</Text>
           <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} />
+          <AppleSignInButton
+            consentAccepted={kvkkAccepted}
+            onError={(message) => {
+              setError(null);
+              handleGoogleError(message);
+            }}
+          />
           <GoogleSignInButton
             consentAccepted={kvkkAccepted}
             onError={(message) => {

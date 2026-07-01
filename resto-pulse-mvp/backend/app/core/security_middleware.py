@@ -28,6 +28,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/health",
     "/api/v1/auth/refresh",
     "/api/v1/auth/google/",
+    "/api/v1/auth/apple/",
     "/api/v1/auth/dev/",
     "/api/v1/users/avatar-presets",
     "/api/v1/panel/applications",

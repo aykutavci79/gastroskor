@@ -17,6 +17,7 @@ import { registerUserPushToken } from '@/lib/push-notifications';
 import {
   clearStoredSession,
   readStoredSession,
+  type AuthMethod,
   type StoredSessionUser,
   writeStoredSession,
 } from '@/lib/session-secure-storage';
@@ -27,9 +28,22 @@ export type SessionUser = StoredSessionUser & {
   accessToken?: string | null;
 };
 
+type AuthIdentity = {
+  authMethod: AuthMethod;
+  googleSub?: string | null;
+  appleSub?: string | null;
+};
+
 type SessionContextValue = {
   user: SessionUser | null;
   loading: boolean;
+  signInWithAuthProfile: (
+    profile: UserProfile,
+    identity: AuthIdentity,
+    accessToken?: string | null,
+    refreshToken?: string | null,
+  ) => Promise<void>;
+  /** @deprecated use signInWithAuthProfile */
   signInWithGoogleProfile: (
     profile: UserProfile,
     googleSub?: string | null,
@@ -47,7 +61,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 function profileToSession(
   email: string,
   profile: UserProfile,
-  googleSub?: string | null,
+  identity: AuthIdentity,
   accessToken?: string | null,
 ): SessionUser {
   return {
@@ -58,9 +72,10 @@ function profileToSession(
     avatarPreset: profile.avatar_preset ?? null,
     nickname: profile.nickname ?? null,
     needsNicknameSetup: profile.needs_nickname_setup ?? !profile.nickname,
-    googleSub: googleSub ?? null,
+    googleSub: identity.googleSub ?? profile.google_sub ?? null,
+    appleSub: identity.appleSub ?? profile.apple_sub ?? null,
+    authMethod: identity.authMethod,
     accessToken: accessToken ?? null,
-    authMethod: 'google',
   };
 }
 
@@ -93,21 +108,39 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const applyProfile = useCallback(async (profile: UserProfile) => {
-    const email = profile.email.trim().toLowerCase();
-    if (!user?.googleSub) return;
-    const next = profileToSession(email, profile, user.googleSub, user.accessToken);
+    if (!user) return;
+    const next = profileToSession(
+      user.email,
+      profile,
+      {
+        authMethod: user.authMethod,
+        googleSub: user.googleSub,
+        appleSub: user.appleSub,
+      },
+      user.accessToken,
+    );
     await persistUser(next, refreshToken);
     setUser(next);
-  }, [user?.googleSub, user?.accessToken, refreshToken]);
+  }, [user, refreshToken]);
 
   const refreshProfile = useCallback(async () => {
-    if (!user?.email || !user.googleSub) return;
+    if (!user?.email) return;
     const profile = await syncUser({
       email: user.email,
       full_name: user.fullName ?? null,
-      google_sub: user.googleSub,
+      google_sub: user.authMethod === 'google' ? user.googleSub ?? null : null,
+      apple_sub: user.authMethod === 'apple' ? user.appleSub ?? null : null,
     });
-    const next = profileToSession(user.email, profile, user.googleSub, user.accessToken);
+    const next = profileToSession(
+      user.email,
+      profile,
+      {
+        authMethod: user.authMethod,
+        googleSub: profile.google_sub ?? user.googleSub ?? null,
+        appleSub: profile.apple_sub ?? user.appleSub ?? null,
+      },
+      user.accessToken,
+    );
     await persistUser(next, refreshToken);
     setUser(next);
   }, [user, refreshToken]);
@@ -136,9 +169,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           const profile = await syncUser({
             email: parsed.email,
             full_name: parsed.fullName ?? null,
-            google_sub: parsed.googleSub!,
+            google_sub: parsed.authMethod === 'google' ? parsed.googleSub ?? null : null,
+            apple_sub: parsed.authMethod === 'apple' ? parsed.appleSub ?? null : null,
           });
-          const next = profileToSession(parsed.email, profile, parsed.googleSub, parsed.accessToken);
+          const next = profileToSession(parsed.email, profile, {
+            authMethod: parsed.authMethod,
+            googleSub: profile.google_sub ?? parsed.googleSub ?? null,
+            appleSub: profile.apple_sub ?? parsed.appleSub ?? null,
+          }, parsed.accessToken);
           await persistUser(next, storedRefresh);
           setUser(next);
           void registerUserPushToken(next.email);
@@ -154,14 +192,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, [forceLogout]);
 
-  const signInWithGoogleProfile = useCallback(async (
+  const signInWithAuthProfile = useCallback(async (
     profile: UserProfile,
-    googleSub?: string | null,
+    identity: AuthIdentity,
     accessToken?: string | null,
     nextRefreshToken?: string | null,
   ) => {
     const email = profile.email.trim().toLowerCase();
-    const next = profileToSession(email, profile, googleSub ?? 'google', accessToken ?? null);
+    const next = profileToSession(
+      email,
+      profile,
+      {
+        authMethod: identity.authMethod,
+        googleSub: identity.googleSub ?? profile.google_sub ?? null,
+        appleSub: identity.appleSub ?? profile.apple_sub ?? null,
+      },
+      accessToken ?? null,
+    );
     const refresh = nextRefreshToken?.trim() ? nextRefreshToken.trim() : null;
     if (!refresh) {
       throw new Error('Oturum yenileme bilgisi alinamadi.');
@@ -171,6 +218,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUser(next);
     void registerUserPushToken(email);
   }, []);
+
+  const signInWithGoogleProfile = useCallback(async (
+    profile: UserProfile,
+    googleSub?: string | null,
+    accessToken?: string | null,
+    nextRefreshToken?: string | null,
+  ) => {
+    await signInWithAuthProfile(
+      profile,
+      { authMethod: 'google', googleSub: googleSub ?? profile.google_sub ?? null },
+      accessToken,
+      nextRefreshToken,
+    );
+  }, [signInWithAuthProfile]);
 
   const signOut = useCallback(async () => {
     const token = refreshToken ?? (await loadRefreshToken());
@@ -193,13 +254,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       loading,
+      signInWithAuthProfile,
       signInWithGoogleProfile,
       applyProfile,
       signOut,
       clearLocalSession: forceLogout,
       refreshProfile,
     }),
-    [user, loading, signInWithGoogleProfile, applyProfile, signOut, forceLogout, refreshProfile],
+    [user, loading, signInWithAuthProfile, signInWithGoogleProfile, applyProfile, signOut, forceLogout, refreshProfile],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

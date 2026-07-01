@@ -65,6 +65,7 @@ class User(Base):
     full_name: Mapped[str | None] = mapped_column(String(255))
     avatar_url: Mapped[str | None] = mapped_column(String(1024))
     google_sub: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
+    apple_sub: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
     role: Mapped[str] = mapped_column(String(30), default="end_user")
     review_moderation_strikes: Mapped[int] = mapped_column(Integer, default=0)
     review_banned_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

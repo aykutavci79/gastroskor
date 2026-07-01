@@ -248,6 +248,7 @@ from app.services.private_feedback_service import (
 )
 from app.services.compensation_service import issue_compensation_coupon
 from app.api.v1.auth_routes import router as auth_router
+from app.api.v1.apple_auth_routes import router as apple_auth_router
 from app.api.v1.auth_refresh_routes import router as auth_refresh_router
 from app.api.v1.dev_auth_routes import router as dev_auth_router
 from app.api.v1.metrics_routes import metrics_router
@@ -389,6 +390,8 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         menu_item_count=int(partner.get("menu_item_count") or 0),
         online_orders_available=bool(partner.get("online_orders_available")),
         online_reservations_available=bool(partner.get("online_reservations_available")),
+        reservation_vitrin_listed=bool(partner.get("reservation_vitrin_listed")),
+        reservation_vitrin_status=str(partner.get("reservation_vitrin_status") or "disabled"),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
         avg_rating=avg_rating,
         order_ratings=order_ratings,
@@ -1621,6 +1624,7 @@ def get_active_restaurant_order(
         online_orders_available=customer_online_orders_available(db, ownership),
         online_orders_open_now=bool(hours_status.get("open_now")),
         online_order_hours_label=hours_status.get("label"),
+        online_order_hours_range_label=hours_status.get("hours_range_label"),
         pending_order=pending_payload,
         recent_rejected_order=recent_rejected_payload,
         order_phone=OrderPhoneStatus.model_validate(order_phone_status_for_user(user)),
@@ -1799,10 +1803,10 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
             )
     else:
         email = payload.email.strip().lower()
-    if payload.record_login and not payload.google_sub:
+    if payload.record_login and not payload.google_sub and not payload.apple_sub:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="E-posta ile giris desteklenmiyor. Google ile giris yapin.",
+            detail="E-posta ile giris desteklenmiyor. Google veya Apple ile giris yapin.",
         )
 
     existing = db.scalar(select(User).where(User.email == email))
@@ -1813,10 +1817,16 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
             detail="Bu e-posta baska bir Google hesabina bagli.",
         )
 
-    if not existing and not payload.google_sub:
+    if existing and payload.apple_sub and existing.apple_sub and existing.apple_sub != payload.apple_sub:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Hesap acmak icin Google ile giris yapin.",
+            detail="Bu e-posta baska bir Apple hesabina bagli.",
+        )
+
+    if not existing and not payload.google_sub and not payload.apple_sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Hesap acmak icin Google veya Apple ile giris yapin.",
         )
 
     user, _ = get_or_create_user(
@@ -1825,6 +1835,7 @@ def sync_user(payload: UserSyncPayload, db: Session = Depends(get_db)):
         full_name=payload.full_name,
         avatar_url=payload.avatar_url,
         google_sub=payload.google_sub,
+        apple_sub=payload.apple_sub,
         default_review_name_display=payload.default_review_name_display,
     )
     if payload.kvkk_consent_accepted and user_needs_kvkk_consent(user):
@@ -2455,6 +2466,7 @@ def get_google_review_link(restaurant_id: UUID, db: Session = Depends(get_db)):
 
 
 router.include_router(auth_router)
+router.include_router(apple_auth_router)
 router.include_router(auth_refresh_router)
 router.include_router(dev_auth_router)
 

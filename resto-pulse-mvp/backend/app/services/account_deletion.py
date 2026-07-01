@@ -280,6 +280,7 @@ def delete_user_account(
     user.email = deleted_user_email(user.id)
     user.full_name = None
     user.google_sub = None
+    user.apple_sub = None
     user.avatar_url = None
     user.avatar_preset = None
     user.nickname = None

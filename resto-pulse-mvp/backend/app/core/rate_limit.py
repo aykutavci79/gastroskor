@@ -145,7 +145,7 @@ def rate_limit_key(*parts: str | None) -> str:
 
 def path_rate_limit_rule(path: str, method: str, client_ip: str) -> tuple[RateLimitRule, str] | None:
     """Path bazli limitler — IP anahtarinin parcasi."""
-    if path.startswith("/api/v1/auth/google/") or path in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}:
+    if path.startswith("/api/v1/auth/google/") or path.startswith("/api/v1/auth/apple/") or path in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}:
         return RateLimitRule(limit=20, window_sec=60), rate_limit_key("auth", client_ip)
     if path == "/api/v1/users/sync":
         return RateLimitRule(limit=30, window_sec=60), rate_limit_key("sync", client_ip)

@@ -25,6 +25,7 @@ def serialize_user(user: User, db: Session) -> UserProfile:
         gastro_score=round(float(avg_rating), 1) if avg_rating is not None else None,
         review_count=int(review_count),
         google_sub=user.google_sub,
+        apple_sub=user.apple_sub,
     )
 
 
@@ -45,12 +46,15 @@ def get_or_create_user(
     full_name: str | None = None,
     avatar_url: str | None = None,
     google_sub: str | None = None,
+    apple_sub: str | None = None,
     default_review_name_display: str | None = None,
 ) -> tuple[User, bool]:
     email = email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if not user and google_sub:
         user = db.scalar(select(User).where(User.google_sub == google_sub))
+    if not user and apple_sub:
+        user = db.scalar(select(User).where(User.apple_sub == apple_sub))
 
     if user:
         updated = False
@@ -65,6 +69,9 @@ def get_or_create_user(
                 updated = True
         if google_sub and user.google_sub != google_sub:
             user.google_sub = google_sub
+            updated = True
+        if apple_sub and user.apple_sub != apple_sub:
+            user.apple_sub = apple_sub
             updated = True
         if default_review_name_display is not None:
             normalized = normalize_author_name_display(default_review_name_display)
@@ -82,6 +89,7 @@ def get_or_create_user(
         full_name=full_name,
         avatar_url=avatar_url,
         google_sub=google_sub,
+        apple_sub=apple_sub,
         default_review_name_display=normalize_author_name_display(default_review_name_display),
     )
     db.add(user)

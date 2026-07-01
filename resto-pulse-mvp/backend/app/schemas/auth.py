@@ -4,6 +4,14 @@ from uuid import UUID
 from app.schemas.user import UserProfile
 
 
+class AppleMobileAuthPayload(BaseModel):
+    identity_token: str = Field(min_length=20)
+    full_name: str | None = Field(default=None, max_length=255)
+    kvkk_consent_accepted: bool = False
+    referrer_id: UUID | None = None
+    device_hash: str | None = Field(default=None, max_length=128)
+
+
 class GoogleMobileAuthPayload(BaseModel):
     id_token: str = Field(min_length=20)
     kvkk_consent_accepted: bool = False

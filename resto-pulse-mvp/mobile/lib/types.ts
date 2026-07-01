@@ -646,6 +646,7 @@ export type UserProfile = {
   gastro_score: number | null;
   review_count: number;
   google_sub?: string | null;
+  apple_sub?: string | null;
 };
 
 export type ReviewAnalyzeResult = {

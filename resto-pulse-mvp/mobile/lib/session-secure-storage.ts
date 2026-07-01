@@ -6,6 +6,8 @@ import { loadAccessToken, setAccessToken } from '@/lib/auth-token';
 const SESSION_KEY = 'gastroskor.session.v1';
 const LEGACY_ASYNC_KEY = 'gastroskor.session.v1';
 
+export type AuthMethod = 'google' | 'apple';
+
 export type StoredSessionUser = {
   id?: string | null;
   email: string;
@@ -15,7 +17,8 @@ export type StoredSessionUser = {
   nickname?: string | null;
   needsNicknameSetup?: boolean;
   googleSub?: string | null;
-  authMethod: 'google';
+  appleSub?: string | null;
+  authMethod: AuthMethod;
 };
 
 type LegacySessionPayload = StoredSessionUser & { accessToken?: string | null };
@@ -23,6 +26,13 @@ type LegacySessionPayload = StoredSessionUser & { accessToken?: string | null };
 function stripToken(payload: LegacySessionPayload): StoredSessionUser {
   const { accessToken: _token, ...user } = payload;
   return user;
+}
+
+function isValidStoredUser(user: StoredSessionUser | null | undefined): user is StoredSessionUser {
+  if (!user?.email || !user.authMethod) return false;
+  if (user.authMethod === 'google') return Boolean(user.googleSub);
+  if (user.authMethod === 'apple') return Boolean(user.appleSub);
+  return false;
 }
 
 async function resolveAccessToken(embedded: string | null | undefined): Promise<string | null> {
@@ -60,7 +70,7 @@ export async function readStoredSession(): Promise<{
   accessToken: string | null;
 } | null> {
   const migrated = await migrateFromAsyncStorage();
-  if (migrated?.email && migrated.authMethod === 'google' && migrated.googleSub) {
+  if (migrated?.email && isValidStoredUser(stripToken(migrated))) {
     const user = stripToken(migrated);
     const accessToken = await resolveAccessToken(migrated.accessToken);
     return { user, accessToken };
@@ -71,7 +81,7 @@ export async function readStoredSession(): Promise<{
 
   try {
     const parsed = JSON.parse(raw) as LegacySessionPayload;
-    if (!parsed?.email || parsed.authMethod !== 'google' || !parsed.googleSub) {
+    if (!isValidStoredUser(parsed)) {
       await SecureStore.deleteItemAsync(SESSION_KEY);
       return null;
     }
