@@ -1,0 +1,157 @@
+{
+  "common": {
+    "appName": "GastroSkor",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "back": "Back",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "search": "Search",
+    "seeAll": "See all",
+    "noResults": "No results found"
+  },
+  "nav": {
+    "home": "Home",
+    "restaurants": "Restaurants",
+    "yoreselLezzetler": "Regional Flavors",
+    "panel": "Panel",
+    "login": "Log In",
+    "logout": "Log Out"
+  },
+  "home": {
+    "title": "GastroSkor — Turkey restaurant ratings",
+    "description": "Discover restaurants in Turkey, read gastro scores, leave a GastroSkor review.",
+    "searchTitle": "Search & discover restaurants"
+  },
+  "sss": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you want to know about GastroSkor",
+    "backToHome": "← Home",
+    "intro": "The most asked topics about GastroSkor app, GS score, reviews, business panel and account management. If you can't find the answer you're looking for, write to",
+    "introContact": ".",
+    "relatedPages": "Related pages",
+    "businessApply": "Business application",
+    "deleteAccount": "Account and data deletion",
+    "privacy": "Privacy policy",
+    "kvkk": "KVKK",
+    "terms": "Terms of use",
+    "bursaRestaurants": "Bursa restaurants"
+  },
+  "gizlilik": {
+    "title": "Privacy Policy"
+  },
+  "kullanim": {
+    "title": "Terms of Use"
+  },
+  "kvkk": {
+    "title": "KVKK Disclosure Text"
+  },
+  "hesapSil": {
+    "title": "Delete Account",
+    "description": "Follow the steps below to delete your account."
+  },
+  "isletmeBasvuru": {
+    "title": "Business Application",
+    "subtitle": "Add your business to GastroSkor"
+  },
+  "yoreselLezzetler": {
+    "title": "Regional Flavors",
+    "subtitle": "Discover Turkey's geographically indicated products",
+    "searchPlaceholder": "Search product, city or region...",
+    "noResults": "No products found matching the search criteria.",
+    "badge": "Geographical Indication"
+  },
+  "restaurant": {
+    "score": "GastroSkor",
+    "reviews": "reviews",
+    "viewMenu": "View Menu",
+    "makeReservation": "Make Reservation",
+    "orderOnline": "Order Online"
+  },
+  "header": {
+    "slogan": "One Tap Gastro",
+    "taglineDiscover": "Discover",
+    "taglineRate": "Rate",
+    "taglineShare": "Share",
+    "locationLoading": "Location...",
+    "locationLoadingTitle": "Getting location",
+    "locationDeniedTitle": "Location off — default city",
+    "locationReadyTitle": "City based on your location",
+    "locationIcon": "📍",
+    "signOut": "Sign Out",
+    "userLogin": "Sign In",
+    "restaurantLogin": "Restaurant Login"
+  },
+  "footer": {
+    "copyright": "© {year} GastroSkor",
+    "bursaRestaurants": "Bursa restaurants",
+    "regionalFlavors": "Regional flavors",
+    "bursaIskender": "Bursa İskender",
+    "pideliKofte": "Pideli köfte",
+    "bursaCantik": "Bursa cantık",
+    "faq": "FAQ",
+    "privacy": "Privacy",
+    "deleteAccount": "Delete account",
+    "kvkk": "KVKK",
+    "terms": "Terms of Use"
+  },
+  "legal": {
+    "backToHome": "← Home",
+    "lastUpdated": "Last updated: {date}"
+  },
+  "regionalTeaser": {
+    "subtitle": "Certified products — name + visual",
+    "locationLoading": "Location...",
+    "seeAll": "All {city} flavors →",
+    "noResults": "No regional products found for {city}."
+  },
+  "newMembers": {
+    "kicker": "New members",
+    "title": "🏅 Joined GastroSkor This Week",
+    "subtitle": "Discover new member restaurants",
+    "badgeNew": "🏅 NEW MEMBER"
+  },
+  "welcome": {
+    "title": "Welcome to GastroSkor!",
+    "greetingWithName": "Hello {name}, you're ready to explore.",
+    "greetingNoName": "Login complete — you're ready to explore.",
+    "redirecting": "Redirecting to home page..."
+  },
+  "businessApply": {
+    "backToHome": "← Home",
+    "title": "Business panel application",
+    "subtitle": "Fill out the form to join the GastroSkor restaurant panel. By applying, you accept the agreement; you need to send the signed copy by mail within the trial period. For questions, contact",
+    "subtitleContact": ".",
+    "alreadyHaveAccount": "If you already have an account,",
+    "claimViaPhone": "venue linking (SMS)",
+    "alreadyHaveAccountSuffix": "option is also available."
+  },
+  "bursa": {
+    "titleWithTag": "Bursa — {tag} restaurants",
+    "titleDefault": "Bursa Restaurants",
+    "backToAllLink": "All Bursa restaurants",
+    "returnToList": "back to list",
+    "description": "Discover restaurants in Bursa with GastroSkor: see gastro scores, member reviews and Google ratings in one screen. Search venues for İskender, kebab, döner and regional flavors; leave a GS review or",
+    "descriptionYoreselLink": "explore Bursa regional products",
+    "descriptionSuffix": ".",
+    "liveSearchHeading": "Bursa restaurants — live search",
+    "registeredWithTag": "Registered {tag} venues",
+    "registeredDefault": "Registered Bursa restaurants",
+    "registeredSubtitle": "Venues in the GastroSkor database — click on the name to go to their score and review page.",
+    "gastroScore": "Gastro score: {rating}",
+    "noResultsWithTag": "No registered restaurants found for {tag}; try the live search above to find Bursa venues.",
+    "noResultsDefault": "No registered restaurants yet; use the live search above to find Bursa venues.",
+    "whatIsGastroTitle": "What is 'gastro' in Bursa?",
+    "whatIsGastroContent": "\"Gastro\" here is used in the sense of gastronomy and food culture. GastroSkor is an independent platform that rates restaurants across Bursa and Turkey — it has no connection to gastroenterology in the medical sense."
+  },
+  "yoreselWeb": {
+    "backToHome": "← Home",
+    "title": "{city} regional flavors",
+    "description": "Products certified by TÜRKPATENT in {city} — {count} flavors. Where to eat guide, GastroSkor-rated restaurant recommendations and FAQs for each product.",
+    "sectionTitle": "Certified regional flavors",
+    "loading": "Loading regional flavors..."
+  }
+}

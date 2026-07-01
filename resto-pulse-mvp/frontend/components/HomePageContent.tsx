@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
@@ -13,6 +14,7 @@ import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { citySearchHeading } from '@/lib/detect-city';
 
 export function HomePageContent() {
+  const t = useTranslations('home');
   const pathname = usePathname();
   const prevPathRef = useRef(pathname);
   const { city, setCity, status, coords, refreshFromLocation } = useDetectedCity();
@@ -26,7 +28,7 @@ export function HomePageContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-lg font-extrabold text-content sm:text-xl">Restoran ara, keşfet</h2>
+      <h2 className="text-lg font-extrabold text-content sm:text-xl">{t('searchTitle')}</h2>
       <div className="flex flex-col gap-2">
         <LivePlaceSearch
           city={city}

@@ -1,0 +1,157 @@
+{
+  "common": {
+    "appName": "GastroSkor",
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "search": "Rechercher",
+    "seeAll": "Tout voir",
+    "noResults": "Aucun résultat trouvé"
+  },
+  "nav": {
+    "home": "Accueil",
+    "restaurants": "Restaurants",
+    "yoreselLezzetler": "Saveurs Régionales",
+    "panel": "Panel",
+    "login": "Se connecter",
+    "logout": "Se déconnecter"
+  },
+  "home": {
+    "title": "GastroSkor — Notes de restaurants en Turquie",
+    "description": "Découvrez des restaurants en Turquie, lisez les gastro scores et laissez un avis GastroSkor.",
+    "searchTitle": "Rechercher et découvrir des restaurants"
+  },
+  "sss": {
+    "title": "Questions fréquemment posées",
+    "subtitle": "Tout ce que vous voulez savoir sur GastroSkor",
+    "backToHome": "← Accueil",
+    "intro": "Les sujets les plus demandés sur l'app GastroSkor, le GS score, les avis, le panel d'entreprise et la gestion de compte. Si vous ne trouvez pas la réponse, écrivez à",
+    "introContact": ".",
+    "relatedPages": "Pages associées",
+    "businessApply": "Inscription professionnelle",
+    "deleteAccount": "Suppression du compte et des données",
+    "privacy": "Politique de confidentialité",
+    "kvkk": "KVKK",
+    "terms": "Conditions d'utilisation",
+    "bursaRestaurants": "Restaurants de Bursa"
+  },
+  "gizlilik": {
+    "title": "Politique de confidentialité"
+  },
+  "kullanim": {
+    "title": "Conditions d'utilisation"
+  },
+  "kvkk": {
+    "title": "Déclaration KVKK de protection des données"
+  },
+  "hesapSil": {
+    "title": "Supprimer le compte",
+    "description": "Suivez les étapes ci-dessous pour supprimer votre compte."
+  },
+  "isletmeBasvuru": {
+    "title": "Inscription professionnelle",
+    "subtitle": "Ajoutez votre établissement à GastroSkor"
+  },
+  "yoreselLezzetler": {
+    "title": "Saveurs Régionales",
+    "subtitle": "Découvrez les produits à indication géographique de Turquie",
+    "searchPlaceholder": "Rechercher un produit, une ville ou une région...",
+    "noResults": "Aucun produit trouvé pour les critères de recherche.",
+    "badge": "Indication Géographique"
+  },
+  "restaurant": {
+    "score": "GastroSkor",
+    "reviews": "avis",
+    "viewMenu": "Voir le menu",
+    "makeReservation": "Faire une réservation",
+    "orderOnline": "Commander en ligne"
+  },
+  "header": {
+    "slogan": "Gastro en un clic",
+    "taglineDiscover": "Découvrir",
+    "taglineRate": "Noter",
+    "taglineShare": "Partager",
+    "locationLoading": "Localisation...",
+    "locationLoadingTitle": "Récupération de la localisation",
+    "locationDeniedTitle": "Localisation désactivée — ville par défaut",
+    "locationReadyTitle": "Ville selon votre localisation",
+    "locationIcon": "📍",
+    "signOut": "Se déconnecter",
+    "userLogin": "Se connecter",
+    "restaurantLogin": "Accès restaurant"
+  },
+  "footer": {
+    "copyright": "© {year} GastroSkor",
+    "bursaRestaurants": "Restaurants de Bursa",
+    "regionalFlavors": "Saveurs régionales",
+    "bursaIskender": "Bursa İskender",
+    "pideliKofte": "Pideli köfte",
+    "bursaCantik": "Bursa cantık",
+    "faq": "FAQ",
+    "privacy": "Confidentialité",
+    "deleteAccount": "Supprimer le compte",
+    "kvkk": "KVKK",
+    "terms": "Conditions d'utilisation"
+  },
+  "legal": {
+    "backToHome": "← Accueil",
+    "lastUpdated": "Dernière mise à jour : {date}"
+  },
+  "regionalTeaser": {
+    "subtitle": "Produits certifiés — nom + visuel",
+    "locationLoading": "Localisation...",
+    "seeAll": "Toutes les saveurs de {city} →",
+    "noResults": "Aucun produit régional trouvé pour {city}."
+  },
+  "newMembers": {
+    "kicker": "Nouveaux membres",
+    "title": "🏅 A rejoint GastroSkor cette semaine",
+    "subtitle": "Découvrir les nouveaux restaurants membres",
+    "badgeNew": "🏅 NOUVEAU MEMBRE"
+  },
+  "welcome": {
+    "title": "Bienvenue sur GastroSkor !",
+    "greetingWithName": "Bonjour {name}, vous êtes prêt à explorer.",
+    "greetingNoName": "Connexion réussie — vous êtes prêt à explorer.",
+    "redirecting": "Redirection vers la page d'accueil..."
+  },
+  "businessApply": {
+    "backToHome": "← Accueil",
+    "title": "Candidature au panel professionnel",
+    "subtitle": "Remplissez le formulaire pour rejoindre le panel de restaurants GastroSkor. En candidatant, vous acceptez l'accord ; vous devez envoyer la copie signée par courrier dans la période d'essai. Pour toute question, contactez",
+    "subtitleContact": ".",
+    "alreadyHaveAccount": "Si vous avez déjà un compte,",
+    "claimViaPhone": "liaison d'établissement (SMS)",
+    "alreadyHaveAccountSuffix": "est également disponible."
+  },
+  "bursa": {
+    "titleWithTag": "Bursa — restaurants {tag}",
+    "titleDefault": "Restaurants de Bursa",
+    "backToAllLink": "Tous les restaurants de Bursa",
+    "returnToList": "retour à la liste",
+    "description": "Découvrez des restaurants à Bursa avec GastroSkor : gastro scores, avis de membres et notes Google sur un seul écran. Recherchez des établissements d'İskender, kebab, döner et saveurs régionales ; laissez un avis GS ou",
+    "descriptionYoreselLink": "explorez les produits régionaux de Bursa",
+    "descriptionSuffix": ".",
+    "liveSearchHeading": "Restaurants de Bursa — recherche en direct",
+    "registeredWithTag": "Établissements {tag} enregistrés",
+    "registeredDefault": "Restaurants enregistrés à Bursa",
+    "registeredSubtitle": "Établissements dans la base de données GastroSkor — cliquez sur le nom pour accéder à la page de score et d'avis.",
+    "gastroScore": "Gastro score : {rating}",
+    "noResultsWithTag": "Aucun restaurant enregistré pour {tag} ; essayez la recherche en direct ci-dessus.",
+    "noResultsDefault": "Aucun restaurant enregistré pour l'instant ; utilisez la recherche en direct ci-dessus.",
+    "whatIsGastroTitle": "Que signifie « gastro » à Bursa ?",
+    "whatIsGastroContent": "« Gastro » est utilisé ici au sens de gastronomie et culture culinaire. GastroSkor est une plateforme indépendante de notation des restaurants à Bursa et en Turquie — sans lien avec la gastroentérologie médicale."
+  },
+  "yoreselWeb": {
+    "backToHome": "← Accueil",
+    "title": "Saveurs régionales de {city}",
+    "description": "Produits certifiés par TÜRKPATENT à {city} — {count} spécialités. Guide où manger, recommandations de restaurants notés par GastroSkor et questions fréquentes pour chaque produit.",
+    "sectionTitle": "Spécialités régionales certifiées",
+    "loading": "Chargement des saveurs régionales..."
+  }
+}

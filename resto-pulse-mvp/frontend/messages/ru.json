@@ -1,0 +1,157 @@
+{
+  "common": {
+    "appName": "GastroSkor",
+    "loading": "Загрузка...",
+    "error": "Произошла ошибка",
+    "retry": "Повторить",
+    "back": "Назад",
+    "close": "Закрыть",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "search": "Поиск",
+    "seeAll": "Показать все",
+    "noResults": "Результаты не найдены"
+  },
+  "nav": {
+    "home": "Главная",
+    "restaurants": "Рестораны",
+    "yoreselLezzetler": "Региональные вкусы",
+    "panel": "Панель",
+    "login": "Войти",
+    "logout": "Выйти"
+  },
+  "home": {
+    "title": "GastroSkor — рейтинги ресторанов Турции",
+    "description": "Открывайте рестораны в Турции, читайте гастро-оценки и оставляйте отзывы на GastroSkor.",
+    "searchTitle": "Ищите и открывайте рестораны"
+  },
+  "sss": {
+    "title": "Часто задаваемые вопросы",
+    "subtitle": "Всё, что вы хотите знать о GastroSkor",
+    "backToHome": "← Главная",
+    "intro": "Самые популярные вопросы о приложении GastroSkor, GS-оценке, отзывах, бизнес-панели и управлении аккаунтом. Если вы не нашли ответ, напишите на",
+    "introContact": ".",
+    "relatedPages": "Связанные страницы",
+    "businessApply": "Регистрация бизнеса",
+    "deleteAccount": "Удаление аккаунта и данных",
+    "privacy": "Политика конфиденциальности",
+    "kvkk": "KVKK",
+    "terms": "Условия использования",
+    "bursaRestaurants": "Рестораны в Бурсе"
+  },
+  "gizlilik": {
+    "title": "Политика конфиденциальности"
+  },
+  "kullanim": {
+    "title": "Условия использования"
+  },
+  "kvkk": {
+    "title": "Уведомление о защите персональных данных KVKK"
+  },
+  "hesapSil": {
+    "title": "Удалить аккаунт",
+    "description": "Следуйте инструкциям ниже для удаления аккаунта."
+  },
+  "isletmeBasvuru": {
+    "title": "Регистрация бизнеса",
+    "subtitle": "Добавьте своё заведение в GastroSkor"
+  },
+  "yoreselLezzetler": {
+    "title": "Региональные вкусы",
+    "subtitle": "Откройте для себя продукты с географическим указанием Турции",
+    "searchPlaceholder": "Поиск продукта, города или региона...",
+    "noResults": "Продукты по критериям поиска не найдены.",
+    "badge": "Географическое указание"
+  },
+  "restaurant": {
+    "score": "GastroSkor",
+    "reviews": "отзывов",
+    "viewMenu": "Посмотреть меню",
+    "makeReservation": "Забронировать стол",
+    "orderOnline": "Заказать онлайн"
+  },
+  "header": {
+    "slogan": "Гастро в одно касание",
+    "taglineDiscover": "Открывай",
+    "taglineRate": "Оценивай",
+    "taglineShare": "Делись",
+    "locationLoading": "Местоположение...",
+    "locationLoadingTitle": "Определение местоположения",
+    "locationDeniedTitle": "Геолокация отключена — город по умолчанию",
+    "locationReadyTitle": "Город по вашему местоположению",
+    "locationIcon": "📍",
+    "signOut": "Выйти",
+    "userLogin": "Войти",
+    "restaurantLogin": "Вход для ресторанов"
+  },
+  "footer": {
+    "copyright": "© {year} GastroSkor",
+    "bursaRestaurants": "Рестораны в Бурсе",
+    "regionalFlavors": "Региональные вкусы",
+    "bursaIskender": "Bursa İskender",
+    "pideliKofte": "Pideli köfte",
+    "bursaCantik": "Bursa cantık",
+    "faq": "FAQ",
+    "privacy": "Конфиденциальность",
+    "deleteAccount": "Удалить аккаунт",
+    "kvkk": "KVKK",
+    "terms": "Условия использования"
+  },
+  "legal": {
+    "backToHome": "← Главная",
+    "lastUpdated": "Последнее обновление: {date}"
+  },
+  "regionalTeaser": {
+    "subtitle": "Сертифицированные продукты — название + фото",
+    "locationLoading": "Местоположение...",
+    "seeAll": "Все вкусы {city} →",
+    "noResults": "Региональные продукты для {city} не найдены."
+  },
+  "newMembers": {
+    "kicker": "Новые участники",
+    "title": "🏅 Присоединился к GastroSkor на этой неделе",
+    "subtitle": "Откройте новые рестораны-участники",
+    "badgeNew": "🏅 НОВЫЙ УЧАСТНИК"
+  },
+  "welcome": {
+    "title": "Добро пожаловать в GastroSkor!",
+    "greetingWithName": "Привет, {name}, вы готовы к исследованию.",
+    "greetingNoName": "Вход выполнен — вы готовы к исследованию.",
+    "redirecting": "Переход на главную страницу..."
+  },
+  "businessApply": {
+    "backToHome": "← Главная",
+    "title": "Заявка на бизнес-панель",
+    "subtitle": "Заполните форму для вступления в панель ресторанов GastroSkor. Подавая заявку, вы принимаете соглашение; подписанную копию необходимо отправить по почте в течение пробного периода. По вопросам обращайтесь на",
+    "subtitleContact": ".",
+    "alreadyHaveAccount": "Если у вас уже есть аккаунт,",
+    "claimViaPhone": "привязка заведения (SMS)",
+    "alreadyHaveAccountSuffix": "также доступно."
+  },
+  "bursa": {
+    "titleWithTag": "Бурса — рестораны {tag}",
+    "titleDefault": "Рестораны в Бурсе",
+    "backToAllLink": "Все рестораны Бурсы",
+    "returnToList": "вернуться к списку",
+    "description": "Открывайте рестораны в Бурсе с GastroSkor: гастро-оценки, отзывы участников и рейтинги Google на одном экране. Ищите заведения İskender, кебаб, донер и региональные вкусы; оставьте отзыв GS или",
+    "descriptionYoreselLink": "изучите региональные продукты Бурсы",
+    "descriptionSuffix": ".",
+    "liveSearchHeading": "Рестораны в Бурсе — поиск в реальном времени",
+    "registeredWithTag": "Зарегистрированные заведения {tag}",
+    "registeredDefault": "Зарегистрированные рестораны Бурсы",
+    "registeredSubtitle": "Заведения в базе данных GastroSkor — нажмите на название для перехода на страницу оценки и отзывов.",
+    "gastroScore": "Гастро-оценка: {rating}",
+    "noResultsWithTag": "Зарегистрированные рестораны для {tag} не найдены; воспользуйтесь поиском выше.",
+    "noResultsDefault": "Зарегистрированных ресторанов пока нет; воспользуйтесь поиском выше.",
+    "whatIsGastroTitle": "Что означает «гастро» в Бурсе?",
+    "whatIsGastroContent": "«Гастро» используется здесь в значении гастрономии и кулинарной культуры. GastroSkor — независимая платформа для оценки ресторанов в Бурсе и Турции — не связана с медицинской гастроэнтерологией."
+  },
+  "yoreselWeb": {
+    "backToHome": "← Главная",
+    "title": "Региональные вкусы {city}",
+    "description": "Продукты, сертифицированные TÜRKPATENT в {city} — {count} специалитетов. Путеводитель «где поесть», рекомендации ресторанов с оценкой GastroSkor и часто задаваемые вопросы о каждом продукте.",
+    "sectionTitle": "Сертифицированные региональные специалитеты",
+    "loading": "Загрузка региональных вкусов..."
+  }
+}

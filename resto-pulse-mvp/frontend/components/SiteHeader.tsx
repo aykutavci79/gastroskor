@@ -2,15 +2,18 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 
 import { POST_AUTH_WELCOME_PATH } from '@/lib/post-auth-callback';
 
 import { GastroSkorLogo } from '@/components/GastroSkorLogo';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
 import { cityDisplayName } from '@/lib/detect-city';
 
 export function SiteHeader() {
+  const t = useTranslations('header');
   const { data: session, status } = useSession();
   const { city, status: cityStatus } = useDetectedCity();
   const isAuthenticated = status === 'authenticated';
@@ -29,52 +32,53 @@ export function SiteHeader() {
             <span className="block text-lg font-bold tracking-tight text-content">
               Gastro<span className="text-brand">Skor</span>
             </span>
-            <span className="hidden text-[11px] font-medium text-brand sm:block">Tek Tıkla Gastro</span>
+            <span className="hidden text-[11px] font-medium text-brand sm:block">{t('slogan')}</span>
           </div>
         </Link>
 
         <div
           className="flex min-w-0 flex-1 items-center justify-center px-2 sm:justify-start sm:pl-2 lg:flex-none lg:pl-4"
-          aria-label="GastroSkor sloganı">
+          aria-label="GastroSkor slogan">
           <p className="text-center text-xs font-semibold leading-snug text-content-muted sm:text-left sm:text-sm">
-            <span className="text-content">Keşfet</span>
+            <span className="text-content">{t('taglineDiscover')}</span>
             <span aria-hidden className="mx-1 text-content-muted/45">
               ·
             </span>
-            <span className="text-content">Puanla</span>
+            <span className="text-content">{t('taglineRate')}</span>
             <span aria-hidden className="mx-1 text-content-muted/45">
               ·
             </span>
-            <span className="text-brand-gold">Paylaş</span>
+            <span className="text-brand-gold">{t('taglineShare')}</span>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          <LocaleSwitcher />
           <ThemeToggle />
           <span
             className="rounded-full border border-border bg-surface-input px-3 py-1 text-xs font-medium text-content-muted"
             title={
               cityStatus === 'loading'
-                ? 'Konum aliniyor'
+                ? t('locationLoadingTitle')
                 : cityStatus === 'denied'
-                  ? 'Konum kapali — varsayilan sehir'
-                  : 'Konumuna gore sehir'
+                  ? t('locationDeniedTitle')
+                  : t('locationReadyTitle')
             }>
-            {cityStatus === 'loading' ? 'Konum…' : `📍 ${cityDisplayName(city)}`}
+            {cityStatus === 'loading' ? t('locationLoading') : `${t('locationIcon')} ${cityDisplayName(city)}`}
           </span>
 
           {isAuthenticated ? (
             <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="btn-secondary btn-sm">
-              Çıkış
+              {t('signOut')}
             </button>
           ) : (
             <Link href={`/auth/giris?callbackUrl=${encodeURIComponent(POST_AUTH_WELCOME_PATH)}`} className="btn-primary btn-sm whitespace-nowrap">
-              Kullanıcı girişi
+              {t('userLogin')}
             </Link>
           )}
 
           <Link href="/panel" className="btn-secondary btn-sm whitespace-nowrap">
-            Restoran girişi
+            {t('restaurantLogin')}
           </Link>
         </div>
       </div>

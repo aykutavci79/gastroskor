@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import { BusinessApplicationForm } from '@/components/BusinessApplicationForm';
@@ -9,27 +10,28 @@ export const metadata = {
 };
 
 export default function BusinessApplicationPage() {
+  const t = useTranslations('businessApply');
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       <div>
         <Link href="/" className="text-sm text-accent hover:underline">
-          ← Ana sayfa
+          {t('backToHome')}
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-content">İşletme paneli başvurusu</h1>
+        <h1 className="mt-4 text-3xl font-bold text-content">{t('title')}</h1>
         <p className="mt-2 text-sm text-content-muted">
-          GastroSkor restoran paneline katılmak için formu doldurun. Başvuru sırasında sözleşmeyi kabul edersiniz;
-          imzalı nüshayı deneme süresi içinde posta ile iletmeniz gerekir. Sorular için{' '}
+          {t('subtitle')}{' '}
           <a href="mailto:destek@gastroskor.com.tr" className="text-accent hover:underline">
             destek@gastroskor.com.tr
           </a>
-          .
+          {t('subtitleContact')}
         </p>
         <p className="mt-2 text-xs text-content-muted">
-          Zaten hesabınız varsa{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link href="/panel/claim" className="text-accent hover:underline">
-            mekan bağlama (SMS)
+            {t('claimViaPhone')}
           </Link>{' '}
-          yolunu da kullanabilirsiniz.
+          {t('alreadyHaveAccountSuffix')}
         </p>
       </div>
       <BusinessApplicationForm />

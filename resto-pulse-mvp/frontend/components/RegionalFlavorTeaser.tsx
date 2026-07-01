@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange }: Props) {
+  const t = useTranslations('regionalTeaser');
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [ready, setReady] = useState(false);
   const cityLabel = cityDisplayName(city);
@@ -45,10 +47,10 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <p className="text-sm text-content-muted">Tescilli ürünler — isim + görsel</p>
+        <p className="text-sm text-content-muted">{t('subtitle')}</p>
         <div className="w-full max-w-[240px] sm:w-auto">
           {cityStatus === 'loading' ? (
-            <span className="mb-1 block text-[11px] text-content-muted">Konum…</span>
+            <span className="mb-1 block text-[11px] text-content-muted">{t('locationLoading')}</span>
           ) : null}
           <ProvinceSelect
             id="regional-teaser-city"
@@ -68,13 +70,13 @@ export function RegionalFlavorTeaser({ city, cityStatus = 'ready', onCityChange 
           <Link
             href={`/yoresel-lezzetler?city=${encodeURIComponent(cityLabel)}`}
             className="inline-flex text-sm font-semibold text-brand-gold hover:underline">
-            Tüm {cityLabel} lezzetleri →
+            {t('seeAll', { city: cityLabel })}
           </Link>
         </>
       ) : null}
 
       {ready && items.length === 0 ? (
-        <p className="text-sm text-content-muted">{cityLabel} için yöresel ürün bulunamadı.</p>
+        <p className="text-sm text-content-muted">{t('noResults', { city: cityLabel })}</p>
       ) : null}
     </section>
   );

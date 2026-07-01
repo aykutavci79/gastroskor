@@ -1,0 +1,157 @@
+{
+  "common": {
+    "appName": "GastroSkor",
+    "loading": "جارٍ التحميل...",
+    "error": "حدث خطأ",
+    "retry": "حاول مجدداً",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "search": "بحث",
+    "seeAll": "عرض الكل",
+    "noResults": "لم يتم العثور على نتائج"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "restaurants": "المطاعم",
+    "yoreselLezzetler": "النكهات الإقليمية",
+    "panel": "لوحة التحكم",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج"
+  },
+  "home": {
+    "title": "GastroSkor — تقييمات المطاعم في تركيا",
+    "description": "اكتشف المطاعم في تركيا، اقرأ نقاط الغاسترو، واترك تقييمك على GastroSkor.",
+    "searchTitle": "ابحث واكتشف المطاعم"
+  },
+  "sss": {
+    "title": "الأسئلة الشائعة",
+    "subtitle": "كل ما تريد معرفته عن GastroSkor",
+    "backToHome": "الرئيسية →",
+    "intro": "أكثر الموضوعات تكراراً حول تطبيق GastroSkor ونقاط GS والمراجعات ولوحة الأعمال وإدارة الحساب. إذا لم تجد الإجابة، تواصل عبر",
+    "introContact": ".",
+    "relatedPages": "صفحات ذات صلة",
+    "businessApply": "تسجيل النشاط التجاري",
+    "deleteAccount": "حذف الحساب والبيانات",
+    "privacy": "سياسة الخصوصية",
+    "kvkk": "KVKK",
+    "terms": "شروط الاستخدام",
+    "bursaRestaurants": "مطاعم بورصة"
+  },
+  "gizlilik": {
+    "title": "سياسة الخصوصية"
+  },
+  "kullanim": {
+    "title": "شروط الاستخدام"
+  },
+  "kvkk": {
+    "title": "إشعار حماية البيانات KVKK"
+  },
+  "hesapSil": {
+    "title": "حذف الحساب",
+    "description": "اتبع الخطوات أدناه لحذف حسابك."
+  },
+  "isletmeBasvuru": {
+    "title": "تسجيل النشاط التجاري",
+    "subtitle": "أضف نشاطك التجاري إلى GastroSkor"
+  },
+  "yoreselLezzetler": {
+    "title": "النكهات الإقليمية",
+    "subtitle": "اكتشف منتجات المؤشرات الجغرافية في تركيا",
+    "searchPlaceholder": "ابحث عن منتج أو مدينة أو منطقة...",
+    "noResults": "لم يتم العثور على منتجات تطابق معايير البحث.",
+    "badge": "مؤشر جغرافي"
+  },
+  "restaurant": {
+    "score": "GastroSkor",
+    "reviews": "تقييمات",
+    "viewMenu": "عرض القائمة",
+    "makeReservation": "حجز طاولة",
+    "orderOnline": "الطلب أونلاين"
+  },
+  "header": {
+    "slogan": "غاسترو بلمسة واحدة",
+    "taglineDiscover": "اكتشف",
+    "taglineRate": "قيّم",
+    "taglineShare": "شارك",
+    "locationLoading": "الموقع...",
+    "locationLoadingTitle": "جارٍ تحديد الموقع",
+    "locationDeniedTitle": "الموقع معطّل — المدينة الافتراضية",
+    "locationReadyTitle": "المدينة بناءً على موقعك",
+    "locationIcon": "📍",
+    "signOut": "تسجيل الخروج",
+    "userLogin": "تسجيل الدخول",
+    "restaurantLogin": "دخول المطاعم"
+  },
+  "footer": {
+    "copyright": "© {year} GastroSkor",
+    "bursaRestaurants": "مطاعم بورصة",
+    "regionalFlavors": "النكهات الإقليمية",
+    "bursaIskender": "Bursa İskender",
+    "pideliKofte": "Pideli köfte",
+    "bursaCantik": "Bursa cantık",
+    "faq": "الأسئلة الشائعة",
+    "privacy": "الخصوصية",
+    "deleteAccount": "حذف الحساب",
+    "kvkk": "KVKK",
+    "terms": "شروط الاستخدام"
+  },
+  "legal": {
+    "backToHome": "الرئيسية →",
+    "lastUpdated": "آخر تحديث: {date}"
+  },
+  "regionalTeaser": {
+    "subtitle": "منتجات معتمدة — الاسم + الصورة",
+    "locationLoading": "الموقع...",
+    "seeAll": "← كل نكهات {city}",
+    "noResults": "لم يتم العثور على منتجات إقليمية لـ {city}."
+  },
+  "newMembers": {
+    "kicker": "أعضاء جدد",
+    "title": "🏅 انضم إلى GastroSkor هذا الأسبوع",
+    "subtitle": "اكتشف المطاعم الأعضاء الجديدة",
+    "badgeNew": "🏅 عضو جديد"
+  },
+  "welcome": {
+    "title": "!مرحباً بك في GastroSkor",
+    "greetingWithName": "مرحباً {name}، أنت جاهز للاستكشاف.",
+    "greetingNoName": "تم تسجيل الدخول بنجاح — أنت جاهز للاستكشاف.",
+    "redirecting": "جارٍ التوجيه إلى الصفحة الرئيسية..."
+  },
+  "businessApply": {
+    "backToHome": "الرئيسية →",
+    "title": "طلب الانضمام إلى لوحة الأعمال",
+    "subtitle": "املأ النموذج للانضمام إلى لوحة مطاعم GastroSkor. بالتقديم، تقبل الاتفاقية؛ يجب إرسال النسخة الموقعة بالبريد خلال فترة التجربة. للاستفسار تواصل عبر",
+    "subtitleContact": ".",
+    "alreadyHaveAccount": "إذا كان لديك حساب بالفعل،",
+    "claimViaPhone": "ربط المنشأة (SMS)",
+    "alreadyHaveAccountSuffix": "متاح أيضاً."
+  },
+  "bursa": {
+    "titleWithTag": "بورصة — مطاعم {tag}",
+    "titleDefault": "مطاعم بورصة",
+    "backToAllLink": "جميع مطاعم بورصة",
+    "returnToList": "العودة إلى القائمة",
+    "description": "اكتشف المطاعم في بورصة مع GastroSkor: نقاط الغاسترو ومراجعات الأعضاء وتقييمات Google في شاشة واحدة. ابحث عن منشآت İskender وكباب ودونر ونكهات إقليمية؛ اترك تقييم GS أو",
+    "descriptionYoreselLink": "استكشف المنتجات الإقليمية لبورصة",
+    "descriptionSuffix": ".",
+    "liveSearchHeading": "مطاعم بورصة — بحث مباشر",
+    "registeredWithTag": "منشآت {tag} المسجلة",
+    "registeredDefault": "مطاعم بورصة المسجلة",
+    "registeredSubtitle": "المنشآت في قاعدة بيانات GastroSkor — انقر على الاسم للانتقال إلى صفحة النقاط والمراجعات.",
+    "gastroScore": "نقطة الغاسترو: {rating}",
+    "noResultsWithTag": "لم يتم العثور على مطاعم مسجلة لـ {tag}؛ جرّب البحث المباشر أعلاه.",
+    "noResultsDefault": "لا توجد مطاعم مسجلة بعد؛ استخدم البحث المباشر أعلاه.",
+    "whatIsGastroTitle": "ما معنى «غاسترو» في بورصة؟",
+    "whatIsGastroContent": "تُستخدم كلمة «غاسترو» هنا بمعنى فن الطهو والثقافة الغذائية. GastroSkor منصة مستقلة لتقييم المطاعم في بورصة وتركيا — وليس لها أي صلة بطب الجهاز الهضمي."
+  },
+  "yoreselWeb": {
+    "backToHome": "الرئيسية →",
+    "title": "النكهات الإقليمية في {city}",
+    "description": "منتجات معتمدة من TÜRKPATENT في {city} — {count} تخصصات. دليل أين تأكل، توصيات المطاعم المقيّمة من GastroSkor والأسئلة الشائعة عن كل منتج.",
+    "sectionTitle": "التخصصات الإقليمية المعتمدة",
+    "loading": "جارٍ تحميل النكهات الإقليمية..."
+  }
+}

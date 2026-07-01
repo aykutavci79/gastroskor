@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -36,6 +37,7 @@ export const metadata: Metadata = {
 };
 
 export default async function YoreselLezzetlerPage({ searchParams }: Props) {
+  const t = useTranslations('yoreselWeb');
   const { city: rawCity } = await searchParams;
   const city = normalizeCityInput(rawCity?.trim() || 'Bursa');
 
@@ -52,17 +54,15 @@ export default async function YoreselLezzetlerPage({ searchParams }: Props) {
       />
       <main className="mx-auto max-w-5xl px-4 py-10">
         <Link href="/" className="text-sm text-content-muted hover:text-content">
-          ← Ana sayfa
+          {t('backToHome')}
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-content">{city} yöresel lezzetler</h1>
+        <h1 className="mt-4 text-3xl font-bold text-content">{t('title', { city })}</h1>
         <p className="mt-2 max-w-2xl text-sm text-content-muted">
-          TÜRKPATENT&apos;te tescilli {city} yemekleri — {regionalPages.length} lezzet. Her ürün için
-          nerede yenir rehberi, GastroSkor puanlı restoran önerileri ve sık sorulan sorular.
+          {t('description', { city, count: regionalPages.length })}
         </p>
-        <h2 className="mt-8 text-xl font-semibold text-content">Tescilli yöresel lezzetler</h2>
+        <h2 className="mt-8 text-xl font-semibold text-content">{t('sectionTitle')}</h2>
         <YoreselLezzetlerCityPicker city={city} />
-        <Suspense
-          fallback={<p className="mt-4 text-sm text-content-muted">Yöresel lezzetler yükleniyor…</p>}>
+        <Suspense fallback={<p className="mt-4 text-sm text-content-muted">{t('loading')}</p>}>
           <YoreselLezzetlerContent city={city} />
         </Suspense>
       </main>

@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const { product } = data;
   const titleText = regionalFlavorSeoTitle(product.name, product.city);
-  const description = `${product.name} (${product.city}): ${product.summary} GastroSkor ile mekan önerileri.`;
+  const description = `${product.name} (${product.city}) — GastroSkor ile mekan önerileri ve tescil bilgisi.`;
   return {
     title: buildSeoTitle(titleText),
     description,

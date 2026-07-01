@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function HosgeldinizClient({ displayName }: Props) {
+  const t = useTranslations('welcome');
   const router = useRouter();
 
   useEffect(() => {
@@ -33,15 +35,15 @@ export function HosgeldinizClient({ displayName }: Props) {
 
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
-      <h1 className="text-2xl font-bold text-content sm:text-3xl">GastroSkor&apos;a Hoş Geldiniz!</h1>
+      <h1 className="text-2xl font-bold text-content sm:text-3xl">{t('title')}</h1>
       {displayName ? (
         <p className="mt-3 text-base text-content-muted">
-          Merhaba {displayName.split(' ')[0]}, keşfetmeye hazırsın.
+          {t('greetingWithName', { name: displayName.split(' ')[0] })}
         </p>
       ) : (
-        <p className="mt-3 text-base text-content-muted">Girişin tamamlandı — keşfetmeye hazırsın.</p>
+        <p className="mt-3 text-base text-content-muted">{t('greetingNoName')}</p>
       )}
-      <p className="mt-6 text-sm text-content-muted">Ana sayfaya yönlendiriliyorsun…</p>
+      <p className="mt-6 text-sm text-content-muted">{t('redirecting')}</p>
     </main>
   );
 }

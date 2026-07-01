@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { getLocale, getMessages } from 'next-intl/server';
+import { NextIntlClientProvider } from 'next-intl';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from '@/components/Providers';
@@ -56,17 +58,22 @@ export const metadata: Metadata = {
     : {}),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body>
         <GoogleAnalytics />
         <JsonLd data={buildOrganizationJsonLd(siteUrl)} />
-        <Providers>
-          <SiteHeader />
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-          <SiteFooter />
-        </Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
+            <SiteHeader />
+            <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+            <SiteFooter />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

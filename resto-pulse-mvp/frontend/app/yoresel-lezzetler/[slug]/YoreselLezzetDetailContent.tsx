@@ -173,7 +173,6 @@ export function YoreselLezzetDetailContent({
               <p className="mt-2 text-sm text-content-muted">
                 {product.region} · {product.registration_year} · {product.indication_type}
               </p>
-              <p className="mt-3 text-sm text-content-muted">{product.summary}</p>
               <a
                 href={product.detail_url}
                 className="mt-3 inline-block text-xs text-brand-gold underline"

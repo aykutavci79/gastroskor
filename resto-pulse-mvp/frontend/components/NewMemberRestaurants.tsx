@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
@@ -7,6 +8,7 @@ import { listNewMemberRestaurants } from '@/lib/api';
 import type { RestaurantListItem } from '@/lib/types';
 
 export function NewMemberRestaurants() {
+  const t = useTranslations('newMembers');
   const [items, setItems] = useState<RestaurantListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,11 +36,9 @@ export function NewMemberRestaurants() {
   return (
     <section className="space-y-4">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wider text-accent">Yeni uyeler</p>
-        <h2 className="text-xl font-semibold text-content sm:text-2xl">
-          🆕 Bu Hafta GastroSkor&apos;a Katıldı
-        </h2>
-        <p className="mt-1 text-sm text-content-muted">Yeni üye restoranları keşfet</p>
+        <p className="text-sm font-medium uppercase tracking-wider text-accent">{t('kicker')}</p>
+        <h2 className="text-xl font-semibold text-content sm:text-2xl">{t('title')}</h2>
+        <p className="mt-1 text-sm text-content-muted">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
@@ -48,7 +48,7 @@ export function NewMemberRestaurants() {
             restaurant={restaurant}
             compact
             featuredBorder
-            cornerBadge="🆕 YENİ ÜYE"
+            cornerBadge={t('badgeNew')}
           />
         ))}
       </div>

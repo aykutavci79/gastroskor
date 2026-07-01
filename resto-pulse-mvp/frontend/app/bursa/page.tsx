@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import { JsonLd } from '@/components/JsonLd';
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Bursa Restoranları | GastroSkor',
     description:
-      'Bursa’da restoran ara, gastro skor oku ve yorum bırak. Nilüfer, Osmangazi ve çevre ilçeler.',
+      "Bursa'da restoran ara, gastro skor oku ve yorum bırak. Nilüfer, Osmangazi ve çevre ilçeler.",
     url: `${siteUrl}/bursa`,
     type: 'website',
   },
@@ -60,6 +61,7 @@ function resolveTagSearchTerm(tag: string): string {
 }
 
 export default async function BursaRestaurantsPage({ searchParams }: Props) {
+  const t = useTranslations('bursa');
   const { tag } = await searchParams;
   const allRestaurants = await fetchBursaRestaurants();
   const restaurants = tag
@@ -88,38 +90,35 @@ export default async function BursaRestaurantsPage({ searchParams }: Props) {
 
       <header className="space-y-3">
         <h1 className="text-3xl font-bold text-content">
-          {tagLabel ? `Bursa — ${tagLabel} restoranları` : 'Bursa Restoranları'}
+          {tagLabel ? t('titleWithTag', { tag: tagLabel }) : t('titleDefault')}
         </h1>
         {tag ? (
           <p className="text-sm text-content-muted">
             <Link href="/bursa" className="text-brand underline">
-              Tüm Bursa restoranları
+              {t('backToAllLink')}
             </Link>
             {' '}
-            listesine dön
+            {t('returnToList')}
           </p>
         ) : null}
         <p className="max-w-3xl text-base leading-relaxed text-content-muted">
-          <strong className="font-semibold text-content">GastroSkor</strong> ile Bursa&apos;da restoran
-          keşfet: gastro skor, üye yorumları ve Google puanlarını tek ekranda gör. İskender, kebap,
-          döner ve yöresel lezzetler için mekan ara; GS yorumu bırak veya{' '}
+          <strong className="font-semibold text-content">GastroSkor</strong>{' '}
+          {t('description')}{' '}
           <Link href="/yoresel-lezzetler" className="text-accent underline">
-            Bursa yöresel ürünleri
+            {t('descriptionYoreselLink')}
           </Link>{' '}
-          incele.
+          {t('descriptionSuffix')}
         </p>
       </header>
 
-      <LivePlaceSearch city={CITY} cityStatus="ready" embedded heading="Bursa restoranları — canlı arama" />
+      <LivePlaceSearch city={CITY} cityStatus="ready" embedded heading={t('liveSearchHeading')} />
 
       {restaurants.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-content">
-            {tagLabel ? `Kayıtlı ${tagLabel} mekanları` : 'Kayıtlı Bursa restoranları'}
+            {tagLabel ? t('registeredWithTag', { tag: tagLabel }) : t('registeredDefault')}
           </h2>
-          <p className="text-sm text-content-muted">
-            GastroSkor veritabanındaki mekanlar — puan ve yorum sayfalarına gitmek için isme tıkla.
-          </p>
+          <p className="text-sm text-content-muted">{t('registeredSubtitle')}</p>
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {restaurants.map((restaurant) => {
               const place = [restaurant.district, restaurant.city].filter(Boolean).join(', ');
@@ -132,7 +131,7 @@ export default async function BursaRestaurantsPage({ searchParams }: Props) {
                     {place ? <p className="mt-1 text-sm text-content-muted">{place}</p> : null}
                     {restaurant.avg_rating != null ? (
                       <p className="mt-2 text-sm text-brand-gold">
-                        Gastro skor: {restaurant.avg_rating.toFixed(1)}
+                        {t('gastroScore', { rating: restaurant.avg_rating.toFixed(1) })}
                       </p>
                     ) : null}
                   </Link>
@@ -144,18 +143,14 @@ export default async function BursaRestaurantsPage({ searchParams }: Props) {
       ) : (
         <p className="text-sm text-content-muted">
           {tag
-            ? `“${tagLabel}” için kayıtlı restoran bulunamadı; yukarıdan canlı arama ile Bursa mekanlarını deneyebilirsin.`
-            : 'Henüz kayıtlı restoran listesi boş; yukarıdan canlı arama ile Bursa mekanlarını bulabilirsin.'}
+            ? t('noResultsWithTag', { tag: tagLabel ?? '' })
+            : t('noResultsDefault')}
         </p>
       )}
 
       <section className="rounded-2xl border border-border/70 bg-surface-input p-5 text-sm text-content-muted">
-        <h2 className="text-base font-semibold text-content">Bursa&apos;da gastro nedir?</h2>
-        <p className="mt-2">
-          &quot;Gastro&quot; burada gastronomi ve yemek kültürü anlamında kullanılır. GastroSkor,
-          Bursa ve Türkiye genelinde restoranları puanlayan bağımsız bir platformdur — tıbbi anlamdaki
-          gastroenteroloji ile ilgisi yoktur.
-        </p>
+        <h2 className="text-base font-semibold text-content">{t('whatIsGastroTitle')}</h2>
+        <p className="mt-2">{t('whatIsGastroContent')}</p>
       </section>
     </div>
   );

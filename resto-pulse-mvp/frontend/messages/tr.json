@@ -1,0 +1,157 @@
+{
+  "common": {
+    "appName": "GastroSkor",
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "retry": "Tekrar dene",
+    "back": "Geri",
+    "close": "Kapat",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "search": "Ara",
+    "seeAll": "Tümünü gör",
+    "noResults": "Sonuç bulunamadı"
+  },
+  "nav": {
+    "home": "Ana Sayfa",
+    "restaurants": "Restoranlar",
+    "yoreselLezzetler": "Yöresel Lezzetler",
+    "panel": "Panel",
+    "login": "Giriş Yap",
+    "logout": "Çıkış Yap"
+  },
+  "home": {
+    "title": "GastroSkor — Türkiye restoran puanlama",
+    "description": "Türkiye restoranlarını keşfet, gastro skor oku, GastroSkor yorumu bırak.",
+    "searchTitle": "Restoran ara, keşfet"
+  },
+  "sss": {
+    "title": "Sık Sorulan Sorular",
+    "subtitle": "GastroSkor hakkında merak ettikleriniz",
+    "backToHome": "← Ana sayfa",
+    "intro": "GastroSkor uygulaması, GS puanı, yorumlar, işletme paneli ve hesap yönetimi hakkında en çok sorulan konular. Aradığınız cevabı bulamazsanız",
+    "introContact": "adresine yazın.",
+    "relatedPages": "İlgili sayfalar",
+    "businessApply": "İşletme başvurusu",
+    "deleteAccount": "Hesap ve veri silme",
+    "privacy": "Gizlilik politikası",
+    "kvkk": "KVKK",
+    "terms": "Kullanım koşulları",
+    "bursaRestaurants": "Bursa restoranları"
+  },
+  "gizlilik": {
+    "title": "Gizlilik Politikası"
+  },
+  "kullanim": {
+    "title": "Kullanım Koşulları"
+  },
+  "kvkk": {
+    "title": "KVKK Aydınlatma Metni"
+  },
+  "hesapSil": {
+    "title": "Hesap Silme",
+    "description": "Hesabınızı silmek için aşağıdaki adımları takip edin."
+  },
+  "isletmeBasvuru": {
+    "title": "İşletme Başvurusu",
+    "subtitle": "GastroSkor'a işletmenizi ekleyin"
+  },
+  "yoreselLezzetler": {
+    "title": "Yöresel Lezzetler",
+    "subtitle": "Türkiye'nin coğrafi işaretli ürünlerini keşfet",
+    "searchPlaceholder": "Ürün, şehir veya bölge ara...",
+    "noResults": "Arama kriterlerine uygun ürün bulunamadı.",
+    "badge": "Coğrafi İşaret"
+  },
+  "restaurant": {
+    "score": "GastroSkor",
+    "reviews": "yorum",
+    "viewMenu": "Menüyü Gör",
+    "makeReservation": "Rezervasyon Yap",
+    "orderOnline": "Online Sipariş"
+  },
+  "header": {
+    "slogan": "Tek Tıkla Gastro",
+    "taglineDiscover": "Keşfet",
+    "taglineRate": "Puanla",
+    "taglineShare": "Paylaş",
+    "locationLoading": "Konum...",
+    "locationLoadingTitle": "Konum alınıyor",
+    "locationDeniedTitle": "Konum kapalı — varsayılan şehir",
+    "locationReadyTitle": "Konumuna göre şehir",
+    "locationIcon": "📍",
+    "signOut": "Çıkış",
+    "userLogin": "Kullanıcı girişi",
+    "restaurantLogin": "Restoran girişi"
+  },
+  "footer": {
+    "copyright": "© {year} GastroSkor",
+    "bursaRestaurants": "Bursa restoranları",
+    "regionalFlavors": "Yöresel lezzetler",
+    "bursaIskender": "Bursa İskender",
+    "pideliKofte": "Pideli köfte",
+    "bursaCantik": "Bursa cantık",
+    "faq": "SSS",
+    "privacy": "Gizlilik",
+    "deleteAccount": "Hesap silme",
+    "kvkk": "KVKK",
+    "terms": "Kullanım Koşulları"
+  },
+  "legal": {
+    "backToHome": "← Ana sayfa",
+    "lastUpdated": "Son güncelleme: {date}"
+  },
+  "regionalTeaser": {
+    "subtitle": "Tescilli ürünler — isim + görsel",
+    "locationLoading": "Konum...",
+    "seeAll": "Tüm {city} lezzetleri →",
+    "noResults": "{city} için yöresel ürün bulunamadı."
+  },
+  "newMembers": {
+    "kicker": "Yeni üyeler",
+    "title": "🏅 Bu Hafta GastroSkor'a Katıldı",
+    "subtitle": "Yeni üye restoranları keşfet",
+    "badgeNew": "🏅 YENİ ÜYE"
+  },
+  "welcome": {
+    "title": "GastroSkor'a Hoş Geldiniz!",
+    "greetingWithName": "Merhaba {name}, keşfetmeye hazırsın.",
+    "greetingNoName": "Girişin tamamlandı — keşfetmeye hazırsın.",
+    "redirecting": "Ana sayfaya yönlendiriliyorsun..."
+  },
+  "businessApply": {
+    "backToHome": "← Ana sayfa",
+    "title": "İşletme paneli başvurusu",
+    "subtitle": "GastroSkor restoran paneline katılmak için formu doldurun. Başvuru sırasında sözleşmeyi kabul edersiniz; imzalı nüshayı deneme süresi içinde posta ile iletmeniz gerekir. Sorular için",
+    "subtitleContact": ".",
+    "alreadyHaveAccount": "Zaten hesabınız varsa",
+    "claimViaPhone": "mekan bağlama (SMS)",
+    "alreadyHaveAccountSuffix": "yolunu da kullanabilirsiniz."
+  },
+  "bursa": {
+    "titleWithTag": "Bursa — {tag} restoranları",
+    "titleDefault": "Bursa Restoranları",
+    "backToAllLink": "Tüm Bursa restoranları",
+    "returnToList": "listesine dön",
+    "description": "GastroSkor ile Bursa'da restoran keşfet: gastro skor, üye yorumları ve Google puanlarını tek ekranda gör. İskender, kebap, döner ve yöresel lezzetler için mekan ara; GS yorumu bırak veya",
+    "descriptionYoreselLink": "Bursa yöresel ürünleri",
+    "descriptionSuffix": "incele.",
+    "liveSearchHeading": "Bursa restoranları — canlı arama",
+    "registeredWithTag": "Kayıtlı {tag} mekanları",
+    "registeredDefault": "Kayıtlı Bursa restoranları",
+    "registeredSubtitle": "GastroSkor veritabanındaki mekanlar — puan ve yorum sayfalarına gitmek için isme tıkla.",
+    "gastroScore": "Gastro skor: {rating}",
+    "noResultsWithTag": "{tag} için kayıtlı restoran bulunamadı; yukarıdan canlı arama ile Bursa mekanlarını deneyebilirsin.",
+    "noResultsDefault": "Henüz kayıtlı restoran listesi boş; yukarıdan canlı arama ile Bursa mekanlarını bulabilirsin.",
+    "whatIsGastroTitle": "Bursa'da gastro nedir?",
+    "whatIsGastroContent": "\"Gastro\" burada gastronomi ve yemek kültürü anlamında kullanılır. GastroSkor, Bursa ve Türkiye genelinde restoranları puanlayan bağımsız bir platformdur — tıbbi anlamdaki gastroenteroloji ile ilgisi yoktur."
+  },
+  "yoreselWeb": {
+    "backToHome": "← Ana sayfa",
+    "title": "{city} yöresel lezzetler",
+    "description": "TÜRKPATENT'te tescilli {city} yemekleri — {count} lezzet. Her ürün için nerede yenir rehberi, GastroSkor puanlı restoran önerileri ve sık sorulan sorular.",
+    "sectionTitle": "Tescilli yöresel lezzetler",
+    "loading": "Yöresel lezzetler yükleniyor..."
+  }
+}

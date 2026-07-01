@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import { JsonLd } from '@/components/JsonLd';
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default function SssPage() {
+  const t = useTranslations('sss');
   const faqJsonLd = buildFaqJsonLd(GASTRO_FAQ_ITEMS);
 
   return (
@@ -31,52 +33,51 @@ export default function SssPage() {
       <article className="mx-auto max-w-3xl space-y-8">
         <div>
           <Link href="/" className="text-sm text-accent hover:underline">
-            ← Ana sayfa
+            {t('backToHome')}
           </Link>
-          <h1 className="mt-4 text-3xl font-bold text-content">Sık Sorulan Sorular</h1>
+          <h1 className="mt-4 text-3xl font-bold text-content">{t('title')}</h1>
           <p className="mt-3 text-sm leading-relaxed text-content-muted">
-            GastroSkor uygulaması, GS puanı, yorumlar, işletme paneli ve hesap yönetimi hakkında en çok
-            sorulan konular. Aradığınız cevabı bulamazsanız{' '}
+            {t('intro')}{' '}
             <a href="mailto:destek@gastroskor.com.tr" className="text-accent hover:underline">
               destek@gastroskor.com.tr
             </a>{' '}
-            adresine yazın.
+            {t('introContact')}
           </p>
         </div>
 
         <RegionalFlavorFaq items={GASTRO_FAQ_ITEMS} heading="Genel" />
 
         <section className="rounded-2xl border border-border/70 bg-surface-card px-4 py-5 text-sm text-content-muted">
-          <h2 className="text-base font-semibold text-content">İlgili sayfalar</h2>
+          <h2 className="text-base font-semibold text-content">{t('relatedPages')}</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>
               <Link href="/isletme-basvuru" className="text-accent hover:underline">
-                İşletme başvurusu
+                {t('businessApply')}
               </Link>
             </li>
             <li>
               <Link href="/hesap-sil" className="text-accent hover:underline">
-                Hesap ve veri silme
+                {t('deleteAccount')}
               </Link>
             </li>
             <li>
               <Link href="/gizlilik" className="text-accent hover:underline">
-                Gizlilik politikası
+                {t('privacy')}
               </Link>
             </li>
             <li>
               <Link href="/kvkk" className="text-accent hover:underline">
-                KVKK
+                {t('kvkk')}
               </Link>
             </li>
             <li>
               <Link href="/kullanim-kosullari" className="text-accent hover:underline">
-                Kullanım koşulları
+                {t('terms')}
               </Link>
             </li>
             <li>
               <Link href="/bursa" className="text-accent hover:underline">
-                Bursa restoranları
+                {t('bursaRestaurants')}
               </Link>
             </li>
           </ul>
