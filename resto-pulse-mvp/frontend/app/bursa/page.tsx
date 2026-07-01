@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
 import { JsonLd } from '@/components/JsonLd';
@@ -61,7 +61,7 @@ function resolveTagSearchTerm(tag: string): string {
 }
 
 export default async function BursaRestaurantsPage({ searchParams }: Props) {
-  const t = useTranslations('bursa');
+  const t = await getTranslations('bursa');
   const { tag } = await searchParams;
   const allRestaurants = await fetchBursaRestaurants();
   const restaurants = tag

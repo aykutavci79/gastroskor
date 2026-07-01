@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export default async function YoreselLezzetlerPage({ searchParams }: Props) {
-  const t = useTranslations('yoreselWeb');
+  const t = await getTranslations('yoreselWeb');
   const { city: rawCity } = await searchParams;
   const city = normalizeCityInput(rawCity?.trim() || 'Bursa');
 
