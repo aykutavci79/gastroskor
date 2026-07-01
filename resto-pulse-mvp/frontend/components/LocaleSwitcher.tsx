@@ -1,9 +1,10 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
+import { LOCALE_COOKIE } from '@/i18n/routing';
 import { routing } from '@/i18n/routing';
 
 const LOCALE_META: Record<string, { flag: string; name: string }> = {
@@ -21,14 +22,12 @@ const LOCALE_META: Record<string, { flag: string; name: string }> = {
 export function LocaleSwitcher() {
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const current = LOCALE_META[locale] ?? LOCALE_META['tr']!;
 
-  // Close on outside click or Escape key
   useEffect(() => {
     if (!isOpen) return;
 
@@ -52,13 +51,13 @@ export function LocaleSwitcher() {
   function switchLocale(next: string) {
     setIsOpen(false);
     startTransition(() => {
-      router.replace(pathname, { locale: next });
+      document.cookie = `${LOCALE_COOKIE}=${next};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+      router.refresh();
     });
   }
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Trigger button */}
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
@@ -87,13 +86,11 @@ export function LocaleSwitcher() {
         </svg>
       </button>
 
-      {/* Dropdown */}
       {isOpen && (
         <div
           className={[
             'absolute z-50 mt-1.5 w-44 overflow-hidden rounded-xl',
             'border border-border bg-surface shadow-xl shadow-black/10',
-            // Right-align on desktop, keep within viewport on mobile
             'right-0',
           ].join(' ')}
           role="listbox"

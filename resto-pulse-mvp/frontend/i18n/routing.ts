@@ -10,4 +10,6 @@ export const routing = defineRouting({
   localeDetection: false,
 });
 
+export const LOCALE_COOKIE = 'NEXT_LOCALE';
+
 export type Locale = (typeof routing.locales)[number];
