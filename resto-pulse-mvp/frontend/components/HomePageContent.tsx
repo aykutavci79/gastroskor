@@ -11,10 +11,11 @@ import { LivePlaceSearch } from '@/components/LivePlaceSearch';
 import { NewMemberRestaurants } from '@/components/NewMemberRestaurants';
 import { RegionalFlavorTeaser } from '@/components/RegionalFlavorTeaser';
 import { useDetectedCity } from '@/hooks/useDetectedCity';
-import { citySearchHeading } from '@/lib/detect-city';
+import { cityDisplayName } from '@/lib/turkiye-provinces';
 
 export function HomePageContent() {
   const t = useTranslations('home');
+  const tLive = useTranslations('liveSearch');
   const pathname = usePathname();
   const prevPathRef = useRef(pathname);
   const { city, setCity, status, coords, refreshFromLocation } = useDetectedCity();
@@ -35,7 +36,11 @@ export function HomePageContent() {
           cityStatus={status}
           userCoords={coords}
           embedded
-          heading={citySearchHeading(city, status)}
+          heading={
+            status !== 'ready'
+              ? tLive('headingNoCity')
+              : tLive('headingWithCity', { city: cityDisplayName(city) })
+          }
         />
         <CityAtmosphereStrip city={city} status={status} />
       </div>

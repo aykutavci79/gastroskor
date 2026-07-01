@@ -194,6 +194,8 @@
     "ratingFilter": "Yıldız filtresi",
     "socialFiltersNote": "Sosyal kanıt modunda mesafe/yıldız filtreleri kapalı — sıralama sosyal sinyale göre yapılır.",
     "headingDefault": "{city} — canlı restoran arama",
+    "headingNoCity": "Ne yesek?",
+    "headingWithCity": "{city} — ne yesek?",
     "locationLoading": "Konumun alınıyor — şehir buna göre ayarlanacak",
     "locationOff": "Konum kapalı — yöresel bölümden şehir seçebilirsin",
     "modelDescGastro": "Google + yüksek puan/yorum + mesafe + yerel favoriler",

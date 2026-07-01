@@ -194,6 +194,8 @@
     "ratingFilter": "Filtre d'étoiles",
     "socialFiltersNote": "Filtres distance/étoiles désactivés en mode preuve sociale.",
     "headingDefault": "{city} — recherche de restaurants en direct",
+    "headingNoCity": "Que manger ?",
+    "headingWithCity": "Que manger à {city} ?",
     "locationLoading": "Récupération de votre position — la ville sera ajustée",
     "locationOff": "Localisation désactivée — choisir une ville dans la section régionale",
     "modelDescGastro": "Google + score/avis élevé + distance + favoris locaux",

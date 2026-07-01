@@ -194,6 +194,8 @@
     "ratingFilter": "Bewertungsfilter",
     "socialFiltersNote": "Entfernungs-/Bewertungsfilter im Social-Proof-Modus deaktiviert.",
     "headingDefault": "{city} — Live-Restaurantsuche",
+    "headingNoCity": "Was essen?",
+    "headingWithCity": "Was essen in {city}?",
     "locationLoading": "Standort wird ermittelt — Stadt wird entsprechend angepasst",
     "locationOff": "Standort aus — Stadt im regionalen Bereich wählen",
     "modelDescGastro": "Google + hohe Bewertung/Rezensionen + Entfernung + lokale Favoriten",

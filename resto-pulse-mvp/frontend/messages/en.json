@@ -194,6 +194,8 @@
     "ratingFilter": "Rating filter",
     "socialFiltersNote": "Distance/rating filters disabled in social proof mode — ranking is based on social signals.",
     "headingDefault": "{city} — live restaurant search",
+    "headingNoCity": "What to eat?",
+    "headingWithCity": "What to eat in {city}?",
     "locationLoading": "Getting your location — city will be set accordingly",
     "locationOff": "Location off — you can pick a city from the regional section",
     "modelDescGastro": "Google + high score/reviews + distance + local favourites",

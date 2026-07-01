@@ -194,6 +194,8 @@
     "ratingFilter": "فلتر النجوم",
     "socialFiltersNote": "فلاتر المسافة/النجوم معطّلة في وضع الدليل الاجتماعي.",
     "headingDefault": "{city} — بحث المطاعم المباشر",
+    "headingNoCity": "ماذا نأكل؟",
+    "headingWithCity": "ماذا نأكل في {city}؟",
     "locationLoading": "جارٍ الحصول على موقعك — سيتم ضبط المدينة",
     "locationOff": "الموقع معطّل — اختر مدينة من القسم الإقليمي",
     "modelDescGastro": "Google + تقييم/مراجعات عالية + مسافة + المفضلة المحلية",
