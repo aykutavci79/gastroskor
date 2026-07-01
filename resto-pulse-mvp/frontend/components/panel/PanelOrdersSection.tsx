@@ -98,6 +98,13 @@ function OrderCard({
             <p className="text-xs text-content-muted">Karar: {formatOrderWhen(order.decided_at)}</p>
           ) : null}
           {order.note ? <p className="mt-2 text-sm text-content-muted">Not: {order.note}</p> : null}
+          {order.payment_method_label ? (
+            <p className="mt-2">
+              <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200">
+                Odeme: {order.payment_method_label}
+              </span>
+            </p>
+          ) : null}
           {order.status === 'rejected' && order.reject_message ? (
             <p className="mt-2 text-sm text-rose-200">Red sebebi: {order.reject_message}</p>
           ) : null}

@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import type { GastroColorScheme } from '@/constants/theme';
-import { GastroColorsLight } from '@/constants/theme';
+import { onlineOrderInk, type OnlineOrderUiTone } from '@/constants/online-order-theme';
 import { useGastroTheme } from '@/context/theme-context';
+import { isLanguageRTL, type SupportedLanguage } from '@/lib/i18n';
 
 type Props = {
   label: string;
@@ -13,7 +15,7 @@ type Props = {
   step: number;
   formatValue: (value: number) => string;
   onChange: (value: number) => void;
-  tone?: 'default' | 'light';
+  tone?: OnlineOrderUiTone;
 };
 
 function snapValue(raw: number, min: number, max: number, step: number): number {
@@ -33,6 +35,11 @@ export function FilterRangeBar({
   onChange,
   tone = 'default',
 }: Props) {
+  const { i18n } = useTranslation();
+  const isRTL = isLanguageRTL(i18n.language as SupportedLanguage);
+  const isRTLRef = useRef(isRTL);
+  isRTLRef.current = isRTL;
+
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
   const trackRef = useRef<View>(null);
@@ -44,7 +51,9 @@ export function FilterRangeBar({
       trackRef.current?.measureInWindow((x, _y, width) => {
         if (width <= 0) return;
         const rel = pageX - x;
-        const ratio = Math.max(0, Math.min(1, rel / width));
+        const rawRatio = Math.max(0, Math.min(1, rel / width));
+        // RTL: fiziksel sağ = minimum, fiziksel sol = maksimum
+        const ratio = isRTLRef.current ? 1 - rawRatio : rawRatio;
         const next = snapValue(min + ratio * (max - min), min, max, step);
         onChangeRef.current(next);
       });
@@ -74,11 +83,26 @@ export function FilterRangeBar({
       </View>
       <View style={styles.trackHit} ref={trackRef} {...panResponder.panHandlers}>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${thumbPct}%` }]} />
+          <View
+            style={[
+              styles.fill,
+              isRTL
+                ? { right: 0, width: `${thumbPct}%` as `${number}%` }
+                : { left: 0, width: `${thumbPct}%` as `${number}%` },
+            ]}
+          />
         </View>
-        <View style={[styles.thumb, { left: `${thumbPct}%` }]} />
+        <View
+          style={[
+            styles.thumb,
+            isRTL
+              ? { right: `${thumbPct}%` as `${number}%`, marginRight: -THUMB / 2 }
+              : { left: `${thumbPct}%` as `${number}%`, marginLeft: -THUMB / 2 },
+          ]}
+        />
       </View>
-      <View style={styles.edgeRow}>
+      {/* flexDirection native RTL auto-flip'e güvenmek yerine i18n isRTL ile açıkça kontrol et */}
+      <View style={[styles.edgeRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <Text style={styles.edge}>{formatValue(min)}</Text>
         <Text style={styles.edge}>{formatValue(max)}</Text>
       </View>
@@ -88,8 +112,9 @@ export function FilterRangeBar({
 
 const THUMB = 22;
 
-function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
-  const ink = tone === 'light' ? GastroColorsLight : colors;
+function createStyles(colors: GastroColorScheme, tone: OnlineOrderUiTone) {
+  const ink = onlineOrderInk(tone, colors);
+  const light = tone === 'light';
   return StyleSheet.create({
     wrap: { gap: 8 },
     labelRow: {
@@ -98,7 +123,7 @@ function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
       alignItems: 'center',
     },
     label: { color: ink.text, fontSize: 14, fontWeight: '700' },
-    value: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+    value: { color: light ? ink.accent : colors.accent, fontSize: 14, fontWeight: '800' },
     trackHit: {
       height: 36,
       justifyContent: 'center',
@@ -112,22 +137,20 @@ function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
     },
     fill: {
       position: 'absolute',
-      left: 0,
       top: 0,
       bottom: 0,
-      backgroundColor: colors.accent,
+      backgroundColor: light ? ink.accent : colors.accent,
       borderRadius: 4,
     },
     thumb: {
       position: 'absolute',
       width: THUMB,
       height: THUMB,
-      marginLeft: -THUMB / 2,
       top: (36 - THUMB) / 2,
       borderRadius: THUMB / 2,
-      backgroundColor: colors.accent,
+      backgroundColor: light ? ink.accent : colors.accent,
       borderWidth: 2,
-      borderColor: tone === 'light' ? '#FFFFFF' : colors.panel,
+      borderColor: light ? ink.panel : colors.panel,
     },
     edgeRow: {
       flexDirection: 'row',

@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
@@ -13,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function GunlukKelimeLobbyScreen() {
   const router = useRouter();
   const t = eglenceLobbyTheme('gunluk-kelime');
+  const { t: tr } = useTranslation();
   const puzzleId = activePuzzleId();
   const [inProgress, setInProgress] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -77,18 +79,18 @@ export default function GunlukKelimeLobbyScreen() {
         : 'yeni';
   const butonYazi =
     completed && EGLENCE_GUNLUK_TEK_OYUN
-      ? 'Sonuçları Gör'
+      ? tr('eglence.gunlukKelime.sonuclariGor')
       : inProgress && !completed
-        ? 'Devam Et'
+        ? tr('eglence.common.devamEt')
         : completed
-          ? 'Tekrar Oyna'
-          : 'Oyna';
+          ? tr('eglence.common.tekrarOyna')
+          : tr('eglence.common.oyna');
 
   return (
     <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <EglenceGameLobbyTitle gameId="gunluk-kelime" title="Günlük Kelime" />
-        <Text style={styles.alt}>Wordle tarzı · 5 harf · 6 deneme · her gün tek kelime</Text>
+        <EglenceGameLobbyTitle gameId="gunluk-kelime" title={tr('eglence.gunlukKelime.title')} />
+        <Text style={styles.alt}>{tr('eglence.gunlukKelime.subtitle')}</Text>
 
         <View style={styles.schedulePill}>
           <Text style={styles.scheduleTitle}>{formatPuzzlePeriodLabel(puzzleId)}</Text>
@@ -96,10 +98,10 @@ export default function GunlukKelimeLobbyScreen() {
         </View>
 
         <View style={styles.kutu}>
-          <Text style={styles.madde}>🟩 Doğru yer · 🟨 Yanlış yer · ⬛ Yok</Text>
-          <Text style={styles.madde}>TDK havuzundan 5 harfli Türkçe kelimeler.</Text>
+          <Text style={styles.madde}>{tr('eglence.gunlukKelime.legendColors')}</Text>
+          <Text style={styles.madde}>{tr('eglence.gunlukKelime.tdk5Harf')}</Text>
           {completed && bestScore != null ? (
-            <Text style={styles.madde}>Bugünkü skorun: {bestScore} puan</Text>
+            <Text style={styles.madde}>{tr('eglence.gunlukKelime.bugunScore', { score: bestScore })}</Text>
           ) : null}
         </View>
 

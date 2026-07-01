@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GastroCoinHeaderTitle, gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
@@ -14,6 +15,7 @@ import type { Restaurant } from '@/lib/types';
 const PAGE_BG = '#FFFFFF';
 
 export default function OnlineOrderDetailRoute() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
@@ -31,7 +33,7 @@ export default function OnlineOrderDetailRoute() {
 
   const load = useCallback(async () => {
     if (!id) {
-      setError('Restoran bulunamadı.');
+      setError(t('order.notFoundError'));
       setLoading(false);
       return;
     }
@@ -41,11 +43,11 @@ export default function OnlineOrderDetailRoute() {
       const data = await getRestaurant(id);
       setRestaurant(data);
     } catch (err) {
-      setError(formatApiError(err, 'Restoran yüklenemedi.'));
+      setError(formatApiError(err, t('order.loadError')));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -54,9 +56,13 @@ export default function OnlineOrderDetailRoute() {
   const headerTitle = useMemo(() => {
     const name = restaurant?.name?.trim();
     if (!name) {
-      return gastroCoinStackHeaderTitle('Sipariş', 'light');
+      return gastroCoinStackHeaderTitle(t('order.fallbackTitle'), 'light');
     }
-    return () => <GastroCoinHeaderTitle title={name} tone="light" numberOfLines={1} />;
+    function OnlineOrderDetailHeaderTitle() {
+      return <GastroCoinHeaderTitle title={name} tone="light" numberOfLines={1} />;
+    }
+    OnlineOrderDetailHeaderTitle.displayName = 'OnlineOrderDetailHeaderTitle';
+    return OnlineOrderDetailHeaderTitle;
   }, [restaurant?.name]);
 
   return (
@@ -64,7 +70,7 @@ export default function OnlineOrderDetailRoute() {
       <Stack.Screen
         options={{
           headerTitle,
-          headerBackTitle: 'Geri',
+          headerBackTitle: t('nav.back'),
           headerBackVisible: true,
           ...(Platform.OS === 'ios' ? { headerBackTitleVisible: true } : {}),
           headerStyle: { backgroundColor: PAGE_BG },
@@ -79,12 +85,12 @@ export default function OnlineOrderDetailRoute() {
         </View>
       ) : error || !restaurant ? (
         <View style={[styles.center, { paddingTop: insets.top }]}>
-          <Text style={styles.errorTitle}>{error ?? 'Restoran bulunamadı'}</Text>
+          <Text style={styles.errorTitle}>{error ?? t('order.notFoundTitle')}</Text>
           <Pressable style={styles.retryBtn} onPress={() => void load()}>
-            <Text style={styles.retryText}>Tekrar dene</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </Pressable>
           <Pressable onPress={() => router.back()}>
-            <Text style={styles.backLink}>Geri dön</Text>
+            <Text style={styles.backLink}>{t('order.goBack')}</Text>
           </Pressable>
         </View>
       ) : (

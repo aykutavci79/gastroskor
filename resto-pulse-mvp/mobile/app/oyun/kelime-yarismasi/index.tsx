@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
@@ -13,6 +14,7 @@ import {
 export default function KelimeYarismasiLobbyScreen() {
   const router = useRouter();
   const t = eglenceLobbyTheme('kelime-yarismasi');
+  const { t: tr } = useTranslation();
   const [bos, setBos] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -69,33 +71,32 @@ export default function KelimeYarismasiLobbyScreen() {
   return (
     <EglenceGameLobbyScreen gameId="kelime-yarismasi" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <EglenceGameLobbyTitle gameId="kelime-yarismasi" title="Kelime Yarışması" />
+        <EglenceGameLobbyTitle gameId="kelime-yarismasi" title={tr('eglence.kelimeYarismasi.title')} />
         <Text style={styles.alt}>
-          Günlük {TUR_SAYISI} tur · ipucu okurken süre işler · reklamsız
+          {tr('eglence.kelimeYarismasi.subtitle', { turSayisi: TUR_SAYISI })}
         </Text>
 
         <View style={styles.kutu}>
-          <Text style={styles.kutuBaslik}>Kurallar</Text>
+          <Text style={styles.kutuBaslik}>{tr('eglence.kelimeYarismasi.kurallar')}</Text>
           <Text style={styles.madde}>
-            İpucu okurken yarışma süresi işler; “Cevap ver” deyince durur.
+            {tr('eglence.kelimeYarismasi.kural1')}
           </Text>
           <Text style={styles.madde}>
-            Cevap modunda {CEVAP_SURE_MS / 1000} sn yazarsın; dolarsa veya yanlışsa puan yok.
+            {tr('eglence.kelimeYarismasi.kural2', { cevapSure: CEVAP_SURE_MS / 1000 })}
           </Text>
-          <Text style={styles.madde}>Sıralamada önce puan, eşitlikte daha kısa süre üstte.</Text>
+          <Text style={styles.madde}>{tr('eglence.kelimeYarismasi.kural3')}</Text>
           <Text style={styles.madde}>
-            Joker: rastgele harf açar; her basış +{JOKER_SURE_BONUS_MS / 1000} sn (soru başına max
-            +15 sn); puan = harf − joker.
+            {tr('eglence.kelimeYarismasi.kural4', { jokerSure: JOKER_SURE_BONUS_MS / 1000 })}
           </Text>
           <Text style={styles.madde}>
-            Günlük {TUR_SAYISI} tur. Pazar 13 harf; Salı/Cuma 12 harf; diğer günler 4–11 aralığı.
+            {tr('eglence.kelimeYarismasi.kural5', { turSayisi: TUR_SAYISI })}
           </Text>
         </View>
 
         {bos ? (
           <View style={styles.uyari}>
-            <Text style={styles.uyariBaslik}>Soru bankası yüklenemedi</Text>
-            <Text style={styles.uyariMetin}>Uygulamayı yenileyin veya daha sonra tekrar deneyin.</Text>
+            <Text style={styles.uyariBaslik}>{tr('eglence.kelimeYarismasi.bankaYuklenemedi')}</Text>
+            <Text style={styles.uyariMetin}>{tr('eglence.kelimeYarismasi.bankaHataMesaj')}</Text>
           </View>
         ) : null}
 
@@ -103,7 +104,7 @@ export default function KelimeYarismasiLobbyScreen() {
           style={[styles.buton, bos !== false && styles.butonPasif]}
           disabled={bos !== false}
           onPress={() => router.push('/oyun/kelime-yarismasi/oyun')}>
-          <Text style={styles.butonYazi}>{bos === null ? 'Hazırlanıyor…' : 'Oyuna Başla'}</Text>
+          <Text style={styles.butonYazi}>{bos === null ? tr('eglence.kelimeYarismasi.btnHazirlanıyor') : tr('eglence.kelimeYarismasi.btnOyunaBasla')}</Text>
         </Pressable>
       </ScrollView>
     </EglenceGameLobbyScreen>

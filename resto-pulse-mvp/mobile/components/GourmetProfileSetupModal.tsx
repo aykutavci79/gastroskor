@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { UserAvatar } from '@/components/UserAvatar';
 import { GOURMET_AVATAR_PRESETS, type AvatarPresetId } from '@/constants/gourmet-avatars';
@@ -30,6 +31,7 @@ export function GourmetProfileSetupModal({
   onDismiss,
   dismissible = false,
 }: Props) {
+  const { t } = useTranslation();
   const { user, applyProfile, refreshProfile } = useSession();
   const [nickname, setNickname] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<AvatarPresetId>('chef');
@@ -39,7 +41,8 @@ export function GourmetProfileSetupModal({
   const [localPhotoName, setLocalPhotoName] = useState('avatar.jpg');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nicknameHint, setNicknameHint] = useState<string | null>(null);
+  const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
+  const [nicknameHintMsg, setNicknameHintMsg] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -49,27 +52,35 @@ export function GourmetProfileSetupModal({
     setAvatarMode('preset');
     setLocalPhotoUri(null);
     setError(null);
-    setNicknameHint(null);
+    setNicknameAvailable(null);
+    setNicknameHintMsg(null);
   }, [visible]);
 
   const runNicknameCheck = useCallback(
     async (value: string) => {
       const trimmed = value.trim();
       if (trimmed.length < 3) {
-        setNicknameHint(null);
+        setNicknameAvailable(null);
+        setNicknameHintMsg(null);
         return;
       }
       setChecking(true);
       try {
         const result = await checkNickname(trimmed, user?.email);
-        setNicknameHint(result.available ? 'Uygun takma ad' : result.message ?? 'Uygun degil');
+        setNicknameAvailable(result.available);
+        setNicknameHintMsg(
+          result.available
+            ? t('gourmetProfile.nicknameOk')
+            : (result.message ?? t('gourmetProfile.nicknameUnavailable')),
+        );
       } catch {
-        setNicknameHint(null);
+        setNicknameAvailable(null);
+        setNicknameHintMsg(null);
       } finally {
         setChecking(false);
       }
     },
-    [user?.email],
+    [user?.email, t],
   );
 
   useEffect(() => {
@@ -81,7 +92,7 @@ export function GourmetProfileSetupModal({
   async function pickPhoto() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      setError('Galeri izni gerekli.');
+      setError(t('gourmetProfile.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -103,7 +114,7 @@ export function GourmetProfileSetupModal({
     if (!user?.email) return;
     const trimmed = nickname.trim();
     if (trimmed.length < 3) {
-      setError('Takma ad en az 3 karakter olmali.');
+      setError(t('gourmetProfile.nicknameTooShort'));
       return;
     }
     setBusy(true);
@@ -111,7 +122,7 @@ export function GourmetProfileSetupModal({
     try {
       const check = await checkNickname(trimmed, user.email);
       if (!check.available) {
-        setError(check.message ?? 'Takma ad uygun degil.');
+        setError(check.message ?? t('gourmetProfile.nicknameUnavailable'));
         return;
       }
 
@@ -134,7 +145,7 @@ export function GourmetProfileSetupModal({
       await refreshProfile();
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kayit basarisiz');
+      setError(err instanceof Error ? err.message : t('gourmetProfile.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -145,34 +156,32 @@ export function GourmetProfileSetupModal({
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            <Text style={styles.title}>Gurme profilin</Text>
-            <Text style={styles.sub}>
-              Gurme Sohbetler ve toplulukta seni taniyacak takma ad ve avatar sec.
-            </Text>
+            <Text style={styles.title}>{t('gourmetProfile.title')}</Text>
+            <Text style={styles.sub}>{t('gourmetProfile.sub')}</Text>
 
-            <Text style={styles.label}>Takma ad</Text>
+            <Text style={styles.label}>{t('gourmetProfile.nicknameLabel')}</Text>
             <TextInput
               value={nickname}
               onChangeText={setNickname}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={21}
-              placeholder="ornek: DonerciAyse"
+              placeholder={t('gourmetProfile.nicknamePlaceholder')}
               placeholderTextColor={GastroColors.placeholder}
               style={styles.input}
             />
-            {checking ? <Text style={styles.hint}>Kontrol ediliyor...</Text> : null}
-            {nicknameHint ? (
+            {checking ? <Text style={styles.hint}>{t('gourmetProfile.checking')}</Text> : null}
+            {nicknameHintMsg ? (
               <Text
                 style={[
                   styles.hint,
-                  nicknameHint === 'Uygun takma ad' ? styles.hintOk : styles.hintBad,
+                  nicknameAvailable === true ? styles.hintOk : styles.hintBad,
                 ]}>
-                {nicknameHint}
+                {nicknameHintMsg}
               </Text>
             ) : null}
 
-            <Text style={styles.label}>Avatar</Text>
+            <Text style={styles.label}>{t('gourmetProfile.avatarLabel')}</Text>
             <View style={styles.previewRow}>
               <UserAvatar
                 avatarUrl={avatarMode === 'photo' ? localPhotoUri : null}
@@ -181,7 +190,7 @@ export function GourmetProfileSetupModal({
                 fallbackLabel={nickname || user?.email || '?'}
               />
               <Pressable style={styles.photoBtn} onPress={() => void pickPhoto()}>
-                <Text style={styles.photoBtnText}>Kendi fotografim</Text>
+                <Text style={styles.photoBtnText}>{t('gourmetProfile.photoBtn')}</Text>
               </Pressable>
             </View>
 
@@ -209,21 +218,17 @@ export function GourmetProfileSetupModal({
             <Pressable
               style={styles.btn}
               onPress={() => void onSave()}
-              disabled={
-                busy ||
-                nickname.trim().length < 3 ||
-                nicknameHint !== 'Uygun takma ad'
-              }>
+              disabled={busy || nickname.trim().length < 3 || nicknameAvailable !== true}>
               {busy ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.btnText}>Kaydet ve devam et</Text>
+                <Text style={styles.btnText}>{t('gourmetProfile.saveBtn')}</Text>
               )}
             </Pressable>
 
             {dismissible && onDismiss ? (
               <Pressable style={styles.skipBtn} onPress={onDismiss}>
-                <Text style={styles.skipText}>Simdilik atla</Text>
+                <Text style={styles.skipText}>{t('gourmetProfile.skipBtn')}</Text>
               </Pressable>
             ) : null}
           </ScrollView>

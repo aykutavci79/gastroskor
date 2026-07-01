@@ -113,6 +113,7 @@ from app.services.restaurant_orders import (
     notify_new_restaurant_order,
     online_orders_available,
     customer_online_orders_available,
+    order_payment_options_for_ownership,
     order_to_dict,
     raise_order_http,
 )
@@ -392,6 +393,8 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         online_reservations_available=bool(partner.get("online_reservations_available")),
         reservation_vitrin_listed=bool(partner.get("reservation_vitrin_listed")),
         reservation_vitrin_status=str(partner.get("reservation_vitrin_status") or "disabled"),
+        online_order_categories=list(partner.get("online_order_categories") or []),
+        order_payment_options=list(partner.get("order_payment_options") or []),
         check_in_visitor_count=visitor_count(db, restaurant_id=restaurant.id) if db is not None else 0,
         avg_rating=avg_rating,
         order_ratings=order_ratings,
@@ -1609,13 +1612,13 @@ def get_active_restaurant_order(
     ownership = get_ownership_for_restaurant(db, restaurant_id)
     pending = get_pending_order_for_user(db, user_id=user.id, restaurant_id=restaurant_id)
     pending_payload = (
-        order_to_dict(pending, restaurant_name=restaurant.name) if pending else None
+        order_to_dict(pending, restaurant_name=restaurant.name, ownership=ownership) if pending else None
     )
     recent_rejected = get_recent_rejected_order_for_user(
         db, user_id=user.id, restaurant_id=restaurant_id
     )
     recent_rejected_payload = (
-        order_to_dict(recent_rejected, restaurant_name=restaurant.name)
+        order_to_dict(recent_rejected, restaurant_name=restaurant.name, ownership=ownership)
         if recent_rejected
         else None
     )
@@ -1625,6 +1628,7 @@ def get_active_restaurant_order(
         online_orders_open_now=bool(hours_status.get("open_now")),
         online_order_hours_label=hours_status.get("label"),
         online_order_hours_range_label=hours_status.get("hours_range_label"),
+        order_payment_options=order_payment_options_for_ownership(ownership),
         pending_order=pending_payload,
         recent_rejected_order=recent_rejected_payload,
         order_phone=OrderPhoneStatus.model_validate(order_phone_status_for_user(user)),
@@ -1672,6 +1676,7 @@ async def post_restaurant_order(
             customer_name=payload.customer_name,
             note=payload.note,
             lines=[line.model_dump() for line in payload.lines],
+            payment_method=payload.payment_method,
         )
     except OrderError as exc:
         raise_order_http(exc)
@@ -1680,7 +1685,7 @@ async def post_restaurant_order(
     if ownership:
         await notify_new_restaurant_order(db, ownership=ownership, order=order)
 
-    return order_to_dict(order, restaurant_name=restaurant.name)
+    return order_to_dict(order, restaurant_name=restaurant.name, ownership=ownership)
 
 
 @router.post("/restaurants", response_model=RestaurantRead, status_code=status.HTTP_201_CREATED)
@@ -2509,6 +2514,20 @@ async def cron_panel_notifications(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
     stats = await run_scheduled_notification_jobs(db)
     return {"ok": True, "stats": stats}
+
+
+@router.post("/internal/cron/reservation-expirations")
+def cron_reservation_expirations(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    db: Session = Depends(get_db),
+):
+    expected = settings.cron_secret
+    if not expected or x_cron_secret != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized cron")
+    from app.services.table_reservations import expire_stale_customer_confirm_reservations
+
+    expired = expire_stale_customer_confirm_reservations(db)
+    return {"ok": True, "expired": expired}
 
 
 @router.post("/internal/cron/gourmet-chat-assistant")

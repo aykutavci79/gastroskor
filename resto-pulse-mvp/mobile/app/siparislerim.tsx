@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { gastroCoinStackHeaderTitle } from '@/components/GastroCoinHeaderTitle';
 import { OrderRatingSheet } from '@/components/OrderRatingSheet';
@@ -34,12 +35,6 @@ function formatWhen(value?: string | null) {
   });
 }
 
-function statusLabel(status: RestaurantOrderRead['status']) {
-  if (status === 'pending') return 'Bekliyor';
-  if (status === 'accepted') return 'Onaylandi';
-  return 'Reddedildi';
-}
-
 function statusColor(status: RestaurantOrderRead['status'], colors: GastroColorScheme) {
   if (status === 'pending') return colors.accent;
   if (status === 'accepted') return '#3ecf8e';
@@ -52,25 +47,9 @@ function summarizeLines(order: RestaurantOrderRead) {
   return parts.join(' · ');
 }
 
-function friendlyOrdersError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err ?? '');
-  if (/Kullanici bulunamadi/i.test(raw)) {
-    return 'Hesap senkronize edilemedi. Cikis yapip tekrar Google ile giris yap.';
-  }
-  if (/401|Oturum|Unauthorized|yetkisiz/i.test(raw)) {
-    return 'Oturum suresi dolmus olabilir. Cikis yapip tekrar giris yap.';
-  }
-  if (/Not Found|404|bulunamadi|henuz aktif/i.test(raw)) {
-    return 'Siparis listesi sunucuda henuz acilmadi. Uygulama guncel; backend guncellemesi yakin.';
-  }
-  if (/network|baglanti|ulasilamadi/i.test(raw)) {
-    return 'Internet veya sunucu baglantisi kurulamadi. Biraz sonra tekrar dene.';
-  }
-  return 'Siparisler su an yuklenemedi. Asagi cekip yenile veya birkac dakika sonra dene.';
-}
-
 export default function SiparislerimScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user } = useSession();
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -85,6 +64,15 @@ export default function SiparislerimScreen() {
   const firstFocus = useRef(true);
   const loadSeq = useRef(0);
   const hasItemsRef = useRef(false);
+
+  function friendlyOrdersError(err: unknown): string {
+    const raw = err instanceof Error ? err.message : String(err ?? '');
+    if (/Kullanici bulunamadi/i.test(raw)) return t('orders.errorAccount');
+    if (/401|Oturum|Unauthorized|yetkisiz/i.test(raw)) return t('orders.errorSession');
+    if (/Not Found|404|bulunamadi|henuz aktif/i.test(raw)) return t('orders.errorNotFound');
+    if (/network|baglanti|ulasilamadi/i.test(raw)) return t('orders.errorNetwork');
+    return t('orders.errorGeneric');
+  }
 
   const load = useCallback(
     (opts?: { silent?: boolean }) => {
@@ -124,7 +112,8 @@ export default function SiparislerimScreen() {
           setRefreshing(false);
         });
     },
-    [user?.email],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.email, t],
   );
 
   useFocusEffect(
@@ -137,143 +126,139 @@ export default function SiparislerimScreen() {
   if (!user?.email) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Siparişlerim') }} />
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('orders.title')) }} />
         <Screen scroll edges={['left', 'right']}>
-        <View style={styles.hero}>
-          <Text style={styles.title}>Siparislerim</Text>
-          <Text style={styles.sub}>
-            Online siparis gecmisin ve bekleyen siparislerin burada listelenir.
-          </Text>
-        </View>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Giris gerekli</Text>
-          <Text style={styles.muted}>
-            Siparislerini gormek icin Google hesabinla giris yap.
-          </Text>
-          {isExpoGo ? (
-            <Text style={styles.expoNote}>
-              Expo Go&apos;da Google girisi calismaz. Play dahili test veya TestFlight build kullan.
-            </Text>
-          ) : (
-            <GoogleSignInButton consentAccepted={false} onError={() => undefined} />
-          )}
-          <Pressable style={styles.btnOutline} onPress={() => router.push('/(tabs)/profil' as never)}>
-            <Text style={styles.btnOutlineText}>Hesap ayarlari</Text>
-          </Pressable>
-        </View>
-      </Screen>
+          <View style={styles.hero}>
+            <Text style={styles.title}>{t('orders.title')}</Text>
+            <Text style={styles.sub}>{t('orders.sub')}</Text>
+          </View>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>{t('auth.loginRequired')}</Text>
+            <Text style={styles.muted}>{t('auth.loginToViewOrders')}</Text>
+            {isExpoGo ? (
+              <Text style={styles.expoNote}>{t('auth.loginExpoGoNote')}</Text>
+            ) : (
+              <GoogleSignInButton consentAccepted={false} onError={() => undefined} />
+            )}
+            <Pressable style={styles.btnOutline} onPress={() => router.push('/(tabs)/profil' as never)}>
+              <Text style={styles.btnOutlineText}>{t('orders.settings')}</Text>
+            </Pressable>
+          </View>
+        </Screen>
       </>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Siparişlerim') }} />
+      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('orders.title')) }} />
       <Screen
-      scroll
-      edges={['left', 'right']}
-      refreshing={refreshing}
-      onRefresh={() => {
-        setRefreshing(true);
-        load({ silent: true });
-      }}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Siparislerim</Text>
-        <Text style={styles.sub}>
-          {pendingCount > 0
-            ? `${pendingCount} bekleyen siparis · ${total} kayit`
-            : total > 0
-              ? `${total} siparis`
-              : 'Online siparis gecmisin burada gorunur.'}
-        </Text>
-      </View>
-
-      {loading && items.length === 0 ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
-      ) : error && items.length === 0 ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Liste su an acilamiyor</Text>
-          <Text style={styles.error}>{error}</Text>
-          <Pressable style={styles.btnOutline} onPress={() => load()}>
-            <Text style={styles.btnOutlineText}>Tekrar dene</Text>
-          </Pressable>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>Henuz siparis yok</Text>
-          <Text style={styles.muted}>
-            Online Siparis akisindan verdigin siparisler burada listelenir.
+        scroll
+        edges={['left', 'right']}
+        refreshing={refreshing}
+        onRefresh={() => {
+          setRefreshing(true);
+          load({ silent: true });
+        }}>
+        <View style={styles.hero}>
+          <Text style={styles.title}>{t('orders.title')}</Text>
+          <Text style={styles.sub}>
+            {pendingCount > 0
+              ? t('orders.pendingSummary', { count: pendingCount, total })
+              : total > 0
+                ? t('orders.totalSummary', { total })
+                : t('orders.empty')}
           </Text>
-          <Pressable style={styles.btnOutline} onPress={() => router.push('/siparis-acik' as never)}>
-            <Text style={styles.btnOutlineText}>Online Siparis</Text>
-          </Pressable>
         </View>
-      ) : (
-        <View style={styles.list}>
-          {items.map((order) => {
-            const restaurantHref = restaurantDetailHref({
-              id: order.restaurant_id,
-              restaurant_id: order.restaurant_id,
-            });
-            return (
-              <View key={order.id} style={styles.card}>
-                <Pressable
-                  style={({ pressed }) => [pressed && styles.cardPressed]}
-                  onPress={() => router.push(`/siparis/${order.id}` as never)}>
-                  <View style={styles.cardTop}>
-                    <Text style={styles.restaurantName} numberOfLines={1}>
-                      {order.restaurant_name ?? 'Restoran'}
-                    </Text>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { borderColor: statusColor(order.status, colors) },
-                      ]}>
-                      <Text style={[styles.statusText, { color: statusColor(order.status, colors) }]}>
-                        {statusLabel(order.status)}
+
+        {loading && items.length === 0 ? (
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
+        ) : error && items.length === 0 ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>{t('orders.errorTitle')}</Text>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable style={styles.btnOutline} onPress={() => load()}>
+              <Text style={styles.btnOutlineText}>{t('common.retry')}</Text>
+            </Pressable>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>{t('orders.emptyTitle')}</Text>
+            <Text style={styles.muted}>{t('orders.emptyHint')}</Text>
+            <Pressable style={styles.btnOutline} onPress={() => router.push('/siparis-acik' as never)}>
+              <Text style={styles.btnOutlineText}>{t('order.title')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {items.map((order) => {
+              const restaurantHref = restaurantDetailHref({
+                id: order.restaurant_id,
+                restaurant_id: order.restaurant_id,
+              });
+              return (
+                <View key={order.id} style={styles.card}>
+                  <Pressable
+                    style={({ pressed }) => [pressed && styles.cardPressed]}
+                    onPress={() => router.push(`/siparis/${order.id}` as never)}>
+                    <View style={styles.cardTop}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>
+                        {order.restaurant_name ?? t('orders.defaultRestaurant')}
                       </Text>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          { borderColor: statusColor(order.status, colors) },
+                        ]}>
+                        <Text style={[styles.statusText, { color: statusColor(order.status, colors) }]}>
+                          {order.status === 'pending'
+                            ? t('orders.statusPending')
+                            : order.status === 'accepted'
+                              ? t('orders.statusAccepted')
+                              : t('orders.statusRejected')}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={styles.meta}>
-                    {formatWhen(order.created_at)}
-                    {order.order_number ? ` · ${order.order_number}` : ''}
-                  </Text>
-                  <Text style={styles.lines} numberOfLines={2}>
-                    {summarizeLines(order)}
-                  </Text>
-                  <View style={styles.cardBottom}>
-                    <Text style={styles.total}>
-                      {formatPriceTl(order.total_tl, 0) ?? '—'} TL
+                    <Text style={styles.meta}>
+                      {formatWhen(order.created_at)}
+                      {order.order_number ? ` · ${order.order_number}` : ''}
                     </Text>
-                    <Text style={styles.link}>Detay</Text>
-                  </View>
-                  {order.status === 'rejected' && order.reject_message ? (
-                    <Text style={styles.rejectNote} numberOfLines={2}>
-                      {order.reject_message}
+                    <Text style={styles.lines} numberOfLines={2}>
+                      {summarizeLines(order)}
                     </Text>
-                  ) : null}
-                </Pressable>
-                <View style={styles.cardActions}>
-                  {restaurantHref ? (
-                    <Pressable
-                      style={styles.secondaryLink}
-                      onPress={() => router.push(restaurantHref as never)}>
-                      <Text style={styles.secondaryLinkText}>Restorani ac</Text>
-                    </Pressable>
-                  ) : null}
-                  {order.can_review ? (
-                    <Pressable style={styles.rateBtn} onPress={() => setRatingOrder(order)}>
-                      <Text style={styles.rateBtnText}>Puan ver</Text>
-                    </Pressable>
-                  ) : order.has_review ? (
-                    <Text style={styles.ratedHint}>Puanlandi</Text>
-                  ) : null}
+                    <View style={styles.cardBottom}>
+                      <Text style={styles.total}>
+                        {formatPriceTl(order.total_tl, 0) ?? '—'} TL
+                      </Text>
+                      <Text style={styles.link}>{t('orders.detail')}</Text>
+                    </View>
+                    {order.status === 'rejected' && order.reject_message ? (
+                      <Text style={styles.rejectNote} numberOfLines={2}>
+                        {order.reject_message}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                  <View style={styles.cardActions}>
+                    {restaurantHref ? (
+                      <Pressable
+                        style={styles.secondaryLink}
+                        onPress={() => router.push(restaurantHref as never)}>
+                        <Text style={styles.secondaryLinkText}>{t('orders.openRestaurant')}</Text>
+                      </Pressable>
+                    ) : null}
+                    {order.can_review ? (
+                      <Pressable style={styles.rateBtn} onPress={() => setRatingOrder(order)}>
+                        <Text style={styles.rateBtnText}>{t('orders.rate')}</Text>
+                      </Pressable>
+                    ) : order.has_review ? (
+                      <Text style={styles.ratedHint}>{t('orders.rated')}</Text>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
+              );
+            })}
+          </View>
+        )}
 
       {user?.email ? (
         <OrderRatingSheet

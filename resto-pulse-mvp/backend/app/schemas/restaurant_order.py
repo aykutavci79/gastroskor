@@ -10,12 +10,18 @@ class OrderLineInput(BaseModel):
     quantity: int = Field(ge=1, le=99)
 
 
+class OrderPaymentOption(BaseModel):
+    code: str
+    label: str
+
+
 class RestaurantOrderCreate(BaseModel):
     user_email: str = Field(min_length=3)
     customer_phone: str = Field(min_length=10, max_length=32)
     customer_address: str = Field(min_length=10, max_length=500)
     customer_name: str | None = Field(default=None, max_length=120)
     note: str | None = Field(default=None, max_length=500)
+    payment_method: str = Field(min_length=2, max_length=40)
     lines: list[OrderLineInput] = Field(min_length=1, max_length=40)
 
 
@@ -40,6 +46,8 @@ class RestaurantOrderRead(BaseModel):
     daily_no: int | None = None
     order_number: str | None = None
     note: str | None = None
+    payment_method: str | None = None
+    payment_method_label: str | None = None
     total_tl: float
     lines: list[RestaurantOrderLineRead] = Field(default_factory=list)
     created_at: str | None = None
@@ -85,6 +93,8 @@ class RestaurantOrderActiveResponse(BaseModel):
     online_orders_available: bool
     online_orders_open_now: bool = False
     online_order_hours_label: str | None = None
+    online_order_hours_range_label: str | None = None
+    order_payment_options: list[OrderPaymentOption] = Field(default_factory=list)
     pending_order: RestaurantOrderRead | None = None
     recent_rejected_order: RestaurantOrderRead | None = None
     order_phone: OrderPhoneStatus | None = None

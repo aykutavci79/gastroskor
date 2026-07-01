@@ -9,8 +9,8 @@
   },
   "appStore": {
     "version": "1.0.75",
-    "buildNumber": 55,
+    "buildNumber": 56,
     "lastUpdated": "2026-07-01",
-    "_note": "Sign in with Apple (Guideline 4.8) — build 54 red sonrasi"
+    "_note": "Build 56 — Apple Sign-In always visible (Guideline 4.8 resubmit)"
   }
 }

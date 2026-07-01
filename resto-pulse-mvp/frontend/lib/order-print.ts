@@ -114,7 +114,8 @@ export function buildOrderPrintHtml(order: RestaurantOrderRead, restaurantName: 
   </table>
   <div class="total">Toplam: ${order.total_tl.toFixed(0)} TL</div>
   ${order.note ? `<p style="margin-top:12px"><span class="label">Not</span> ${escapeHtml(order.note)}</p>` : ''}
-  <div class="footer">Odeme kapida · GastroSkor panelinden yazdirildi</div>
+  ${order.payment_method_label ? `<p style="margin-top:12px"><span class="label">Odeme</span> <strong>${escapeHtml(order.payment_method_label)}</strong></p>` : ''}
+  <div class="footer">Tahsilat restoran/kurye cihazinda · GastroSkor panelinden yazdirildi</div>
 </body>
 </html>`;
 }

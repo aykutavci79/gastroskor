@@ -42,6 +42,15 @@ def test_closed_after_closing_time():
     status = online_order_hours_status(ownership, now=late)
     assert status["open_now"] is False
     assert "Kapali" in status["label"]
+    assert status["hours_range_label"] == "Çalışma saati 11:00-23:00"
+
+
+def test_hours_range_label_before_open():
+    ownership = SimpleNamespace(online_order_hours=default_online_order_hours())
+    morning = datetime(2026, 6, 25, 9, 0, tzinfo=IST)
+    status = online_order_hours_status(ownership, now=morning)
+    assert status["open_now"] is False
+    assert status["hours_range_label"] == "Çalışma saati 11:00-23:00"
 
 
 def test_online_orders_within_hours_only():

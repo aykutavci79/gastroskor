@@ -1,4 +1,5 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { LEGAL_URLS } from '@/constants/legal';
 import { GastroColors } from '@/constants/theme';
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export function KvkkConsentCheckbox({ checked, onChange }: Props) {
+  const { t } = useTranslation();
+
   return (
     <Pressable style={styles.row} onPress={() => onChange(!checked)} accessibilityRole="checkbox" accessibilityState={{ checked }}>
       <View style={[styles.box, checked && styles.boxOn]}>
@@ -16,13 +19,13 @@ export function KvkkConsentCheckbox({ checked, onChange }: Props) {
       </View>
       <Text style={styles.text}>
         <Text style={styles.link} onPress={() => void Linking.openURL(LEGAL_URLS.kvkk)}>
-          KVKK aydınlatma metnini
+          {t('auth.kvkkLink')}
         </Text>{' '}
-        okudum; kişisel verilerimin işlenmesine{' '}
+        {t('auth.kvkkConsentMid')}{' '}
         <Text style={styles.link} onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}>
-          gizlilik politikası
+          {t('auth.kvkkPrivacyLink')}
         </Text>{' '}
-        kapsamında açık rıza veriyorum.
+        {t('auth.kvkkConsentEnd')}
       </Text>
     </Pressable>
   );

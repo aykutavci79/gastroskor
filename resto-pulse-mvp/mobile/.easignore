@@ -1,5 +1,37 @@
-# Mobil — build disi dosyalar
-docs/
+# EAS upload — gereksiz dosyalar (2 GB limit)
+# EAS sunucuda npm install / gradle build yapar
+
+node_modules/
+dist/
+web-build/
 .expo/
-node_modules/.cache/
+.android-build/
+.expo-export-test/
+.expo-export-test2/
+
+# Android build cache (kaynak kod kalir)
+android/app/build/
+android/build/
+android/.gradle/
+android/.cxx/
+
+# iOS build cache
+ios/build/
+ios/Pods/
+ios/DerivedData/
+
+# Yerel build / test ciktilari
+*.apk
+*.aab
+gastroskor-preview.apk
+
+# Gizli / yerel
+*.jks
+android-keystore.properties
+google-play-service-account.json
+.env
+.env.local
+
+# Dokuman
+docs/
 .eas-inspect-test/

@@ -5,6 +5,7 @@ import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import type { GastroColorScheme } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
 import { kitchenShortLabel } from '@/lib/kitchen-category-visual';
+import { useCategoryLabel } from '@/lib/use-category-label';
 
 type Props = {
   activeSlug?: string | null;
@@ -14,6 +15,7 @@ type Props = {
 export function KesfetKitchenChips({ activeSlug = null, onSelect }: Props) {
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const getCategoryLabel = useCategoryLabel();
 
   return (
     <ScrollView
@@ -32,7 +34,7 @@ export function KesfetKitchenChips({ activeSlug = null, onSelect }: Props) {
             accessibilityRole="button"
             accessibilityState={{ selected: on }}>
             <Text style={[styles.chipText, on && styles.chipTextOn]}>
-              {kitchenShortLabel(cat.label, 14)}
+              {kitchenShortLabel(getCategoryLabel(cat.slug), 14)}
             </Text>
           </Pressable>
         );

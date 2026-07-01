@@ -1,5 +1,6 @@
-import { useGastroPostHog } from '@/lib/gastro-posthog';
+﻿import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -64,6 +65,7 @@ export function VoiceOrderConfirmSheet({
   onClose,
   onSuccess,
 }: Props) {
+  const { t } = useTranslation();
   const posthog = useGastroPostHog();
   const insets = useSafeAreaInsets();
   const [address, setAddress] = useState('');
@@ -244,7 +246,7 @@ export function VoiceOrderConfirmSheet({
 
   async function onSendOtp() {
     if (!userEmail || !normalizedPhone) {
-      setError('Geçerli cep telefonu girin (05xx xxx xx xx).');
+      setError(t('voice.invalidPhone'));
       return;
     }
     setOtpSending(true);
@@ -261,7 +263,7 @@ export function VoiceOrderConfirmSheet({
         setOtpInfo,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'SMS gönderilemedi.');
+      setError(err instanceof Error ? err.message : t('voice.smsSendFailed'));
     } finally {
       setOtpSending(false);
     }
@@ -277,11 +279,11 @@ export function VoiceOrderConfirmSheet({
         setVerifiedPhoneE164(status.phone_e164);
         setPhone(formatTrMobileDisplay(status.phone_e164));
         setPhoneVerified(true);
-        setOtpInfo('Telefon doğrulandı.');
+        setOtpInfo(t('voice.phoneVerified'));
         await writeStoredOrderPhone(phone);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kod doğrulanamadı.');
+      setError(err instanceof Error ? err.message : t('phone.verifyFailed'));
     } finally {
       setOtpVerifying(false);
     }
@@ -290,25 +292,25 @@ export function VoiceOrderConfirmSheet({
   async function onConfirm() {
     if (submittingRef.current) return;
     if (!userEmail) {
-      Alert.alert('Giriş gerekli', 'Sipariş için önce hesabına giriş yap.');
+      Alert.alert(t('auth.loginRequired'), t('voice.loginRequiredBody'));
       return;
     }
     if (!restaurant || !command || !allLinesReady) {
-      setError(resolved.blockingIssue ?? 'Sipariş satırları seçilemedi.');
+      setError(resolved.blockingIssue ?? t('voice.lineSelectFailed'));
       return;
     }
     if (budgetExceeded) {
       setError(
-        `Toplam ${formatPriceTl(orderTotal, 0) ?? orderTotal} TL, ${command.priceMaxBudget} TL bütçeyi aşıyor.`,
+        t('voice.budgetExceeded', { total: formatPriceTl(orderTotal, 0) ?? orderTotal, budget: command.priceMaxBudget }),
       );
       return;
     }
     if (!phoneOk) {
-      setError('Sipariş için SMS ile telefon doğrulaması gerekli.');
+      setError(t('voice.phoneRequired'));
       return;
     }
     if (address.trim().length < 10) {
-      setError('Teslimat adresini yazın (en az 10 karakter).');
+      setError(t('voice.addressRequired'));
       return;
     }
 
@@ -318,8 +320,8 @@ export function VoiceOrderConfirmSheet({
     try {
       const note = [
         command.paymentNote,
-        'Gastro Sipariş komutu ile verildi.',
-        phoneVerified ? 'Telefon doğrulandı — arama gerekmez.' : null,
+        t('voice.orderNote'),
+        phoneVerified ? t('voice.phoneVerifiedNote') : null,
       ]
         .filter(Boolean)
         .join(' ');
@@ -345,11 +347,11 @@ export function VoiceOrderConfirmSheet({
       onSuccess();
       onClose();
       Alert.alert(
-        'Sipariş iletildi',
-        `${restaurant.name} siparişini panelden onaylayacak. Telefonun doğrulandığı için arama beklenmez.`,
+        t('voice.successTitle'),
+        t('voice.successBody', { name: restaurant.name }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sipariş gönderilemedi.');
+      setError(err instanceof Error ? err.message : t('voice.submitFailed'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -388,7 +390,7 @@ export function VoiceOrderConfirmSheet({
             <Pressable
               style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
               onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.kicker}>Sipariş onayı</Text>
+              <Text style={styles.kicker}>{t('voice.confirmTitle')}</Text>
               <Text style={styles.title}>{formatVoiceOrderCommandSummary(command)}</Text>
               <Text style={styles.sub}>{restaurant.name}</Text>
 
@@ -436,12 +438,12 @@ export function VoiceOrderConfirmSheet({
 
               {allLinesReady ? (
                 <View style={styles.lineCard}>
-                  <Text style={styles.lineName}>Toplam</Text>
+                  <Text style={styles.lineName}>{t('voice.totalLabel')}</Text>
                   <Text style={styles.linePrice}>{formatPriceTl(orderTotal, 0) ?? '—'} TL</Text>
                   <Text style={styles.linePay}>{command.paymentNote}</Text>
                   {command.priceMaxBudget != null ? (
                     <Text style={[styles.linePay, budgetExceeded && styles.error]}>
-                      Bütçe: ≤ {command.priceMaxBudget} TL
+                      {t('voice.budgetLabel', { n: command.priceMaxBudget })}
                     </Text>
                   ) : null}
                 </View>
@@ -450,7 +452,7 @@ export function VoiceOrderConfirmSheet({
               <TextInput
                 value={address}
                 onChangeText={setAddress}
-                placeholder="Teslimat adresi"
+                placeholder={t('voice.addressPlaceholder')}
                 placeholderTextColor={GastroColors.muted}
                 style={styles.input}
                 multiline
@@ -467,7 +469,7 @@ export function VoiceOrderConfirmSheet({
                     setOtpInfo(null);
                   }
                 }}
-                placeholder="05xx xxx xx xx"
+                placeholder={t('phone.phonePlaceholder')}
                 placeholderTextColor={GastroColors.muted}
                 keyboardType="phone-pad"
                 style={styles.input}
@@ -476,26 +478,26 @@ export function VoiceOrderConfirmSheet({
               {!phoneOk ? (
                 <View style={styles.otpRow}>
                   <Pressable style={styles.otpBtn} onPress={() => void onSendOtp()} disabled={otpSending}>
-                    <Text style={styles.otpBtnText}>{otpSending ? '...' : 'SMS kodu gönder'}</Text>
+                    <Text style={styles.otpBtnText}>{otpSending ? '...' : t('phone.sendSmsBtn')}</Text>
                   </Pressable>
                   {otpSent ? (
                     <>
                       <TextInput
                         value={otpCode}
                         onChangeText={setOtpCode}
-                        placeholder="SMS kodu"
+                        placeholder={t('phone.codePlaceholder')}
                         placeholderTextColor={GastroColors.muted}
                         keyboardType="number-pad"
                         style={[styles.input, styles.otpInput]}
                       />
                       <Pressable style={styles.otpBtn} onPress={() => void onVerifyOtp()} disabled={otpVerifying}>
-                        <Text style={styles.otpBtnText}>{otpVerifying ? '...' : 'Doğrula'}</Text>
+                        <Text style={styles.otpBtnText}>{otpVerifying ? '...' : t('phone.verifyBtn')}</Text>
                       </Pressable>
                     </>
                   ) : null}
                 </View>
               ) : (
-                <Text style={styles.verified}>✓ Telefon doğrulandı</Text>
+                <Text style={styles.verified}>{t('phone.verifiedTick')}</Text>
               )}
 
               {otpInfo ? <Text style={styles.info}>{otpInfo}</Text> : null}
@@ -503,7 +505,7 @@ export function VoiceOrderConfirmSheet({
 
               {Platform.OS === 'ios' && confirmMicActive && !submitting ? (
                 <View style={styles.voiceConfirmRow}>
-                  <Text style={styles.voiceConfirmHint}>Sesle: “Evet” veya “Onayla”</Text>
+                  <Text style={styles.voiceConfirmHint}>{t('voice.voiceConfirmHint')}</Text>
                   <SpeechMicErrorBoundary compact>
                     <GastroVoiceMicButton
                       compact
@@ -518,7 +520,7 @@ export function VoiceOrderConfirmSheet({
 
               <View style={styles.actions}>
                 <Pressable style={styles.cancelBtn} onPress={onClose} disabled={submitting}>
-                  <Text style={styles.cancelText}>Vazgeç</Text>
+                  <Text style={styles.cancelText}>{t('voice.cancelBtn')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.confirmBtn, (!allLinesReady || submitting || budgetExceeded) && styles.confirmBtnDisabled]}
@@ -527,7 +529,7 @@ export function VoiceOrderConfirmSheet({
                   {submitting ? (
                     <ActivityIndicator color="#141414" />
                   ) : (
-                    <Text style={styles.confirmText}>Onayla ve gönder</Text>
+                    <Text style={styles.confirmText}>{t('voice.confirmBtn')}</Text>
                   )}
                 </Pressable>
               </View>
@@ -648,3 +650,6 @@ const styles = StyleSheet.create({
   confirmBtnDisabled: { opacity: 0.45 },
   confirmText: { color: '#141414', fontSize: 15, fontWeight: '900' },
 });
+
+
+

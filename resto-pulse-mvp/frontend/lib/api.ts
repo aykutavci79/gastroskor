@@ -593,6 +593,8 @@ export function updatePanelPromo(payload: {
   } | null;
   online_reservations_enabled?: boolean;
   online_reservation_max_party_size?: number;
+  accepted_payment_methods?: string[];
+  custom_payment_label?: string | null;
 }) {
   return request<import('@/lib/types').RestaurantPromoSettings>('/panel/promo', {
     method: 'PATCH',

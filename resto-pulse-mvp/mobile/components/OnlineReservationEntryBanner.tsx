@@ -12,6 +12,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ONLINE_RESERVATION_BANNER_SLIDES } from '@/constants/online-reservation-banner-images';
 import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
@@ -30,6 +31,7 @@ type Props = {
 export function OnlineReservationEntryBanner({ style }: Props) {
   const { city } = useCity();
   const router = useRouter();
+  const { t } = useTranslation();
   const [openCount, setOpenCount] = useState<number | null>(null);
 
   const slides = useMemo(() => ONLINE_RESERVATION_BANNER_SLIDES, []);
@@ -38,7 +40,7 @@ export function OnlineReservationEntryBanner({ style }: Props) {
   const refresh = useCallback(() => {
     void listOnlineOrderRestaurants({ city, limit: 80, min_rating: ONLINE_ORDER_MIN_RATING })
       .then((res) => {
-        const count = res.items.filter((row) => row.online_reservations_available).length;
+        const count = res.items.filter((row) => row.reservation_vitrin_listed).length;
         setOpenCount(count);
       })
       .catch(() => setOpenCount(null));
@@ -52,10 +54,10 @@ export function OnlineReservationEntryBanner({ style }: Props) {
 
   const countLine =
     openCount == null
-      ? 'Masa seç · anında talep'
+      ? t('explore.reservationHint')
       : openCount === 0
-        ? 'Yakında pilot restoranlar'
-        : `${openCount} restoran rezervasyon alıyor`;
+        ? t('explore.reservationEmpty')
+        : t('explore.reservationCountN', { count: openCount });
 
   const slideA = slides[indexA];
   const slideB = slides[indexB];
@@ -68,7 +70,7 @@ export function OnlineReservationEntryBanner({ style }: Props) {
         router.push('/rezervasyon-acik' as never);
       }}
       accessibilityRole="button"
-      accessibilityLabel="Online rezervasyon acik restoranlar">
+      accessibilityLabel={t('explore.onlineReservationTitle')}>
       <View style={styles.mediaClip} pointerEvents="none">
         {slideA ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityA }]}>
@@ -104,10 +106,11 @@ export function OnlineReservationEntryBanner({ style }: Props) {
       <View style={styles.content} pointerEvents="none">
         <View style={styles.textBlock}>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>Online Rezervasyon</Text>
+            <Text style={styles.pillText}>{t('explore.onlineReservationTitle')}</Text>
           </View>
           <Text style={styles.title}>
-            Tek Tıkla <Text style={styles.accent}>Masa</Text>
+            {t('explore.oneClickPrefix')}{' '}
+            <Text style={styles.accent}>{t('explore.oneClickTable')}</Text>
           </Text>
           <Text style={styles.hint}>{countLine}</Text>
         </View>
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
   },
   sceneTag: {
     position: 'absolute',
-    right: 8,
+    end: 8,
     bottom: 8,
     maxWidth: '52%',
     borderRadius: 6,

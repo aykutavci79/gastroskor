@@ -33,7 +33,11 @@ export function GastroCoinHeaderTitle({
 
 /** Expo Router Stack.Screen `headerTitle` factory */
 export function gastroCoinStackHeaderTitle(title: string, tone: Tone = 'dark') {
-  return () => <GastroCoinHeaderTitle title={title} tone={tone} />;
+  function GastroCoinStackHeaderTitle() {
+    return <GastroCoinHeaderTitle title={title} tone={tone} />;
+  }
+  GastroCoinStackHeaderTitle.displayName = 'GastroCoinStackHeaderTitle';
+  return GastroCoinStackHeaderTitle;
 }
 
 const styles = StyleSheet.create({

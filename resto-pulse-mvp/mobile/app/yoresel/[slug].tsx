@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { Screen } from '@/components/ui/Screen';
@@ -20,6 +21,7 @@ import { restaurantDetailHref } from '@/lib/uuid';
 export default function YoreselProductScreen() {
   const { city, fallbackCoords } = useCity();
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ slug?: string | string[] }>();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [product, setProduct] = useState<RegionalProductItem | null>(null);
@@ -53,9 +55,9 @@ export default function YoreselProductScreen() {
       if (detail.places_error) {
         setSearchNote(detail.places_error);
       } else if (sorted.length > 0) {
-        setSearchNote(`${sorted.length} mekan · GastroSkor sıralaması`);
+        setSearchNote(t('yoresel.searchCount', { count: sorted.length }));
       } else {
-        setSearchNote(`"${detail.search_query}" için canlı arama sonucu bulunamadı.`);
+        setSearchNote(t('yoresel.searchEmpty', { query: detail.search_query }));
       }
     } catch (err) {
       setError(formatApiError(err));
@@ -63,7 +65,7 @@ export default function YoreselProductScreen() {
     } finally {
       setLoading(false);
     }
-  }, [slug, city, fallbackCoords]);
+  }, [slug, city, fallbackCoords, t]);
 
   useEffect(() => {
     void load();
@@ -73,7 +75,7 @@ export default function YoreselProductScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>← Yöresel lezzetler</Text>
+          <Text style={styles.back}>{t('yoresel.back')}</Text>
         </Pressable>
 
         {loading ? <ActivityIndicator color={GastroColors.accent} style={{ marginTop: 20 }} /> : null}
@@ -81,14 +83,14 @@ export default function YoreselProductScreen() {
           <View style={styles.errorBox}>
             <Text style={styles.error}>{error}</Text>
             <Pressable onPress={() => void load()} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Tekrar dene</Text>
+              <Text style={styles.retryText}>{t('yoresel.retry')}</Text>
             </Pressable>
           </View>
         ) : null}
 
         {product ? (
           <>
-            <Text style={styles.kicker}>TÜRKPATENT tescilli ürün</Text>
+            <Text style={styles.kicker}>{t('yoresel.detailKicker')}</Text>
             <Text style={styles.title}>{product.name}</Text>
             <Text style={styles.sub}>{product.summary}</Text>
             {discoveryNote ? <Text style={styles.note}>{discoveryNote}</Text> : null}
@@ -127,9 +129,9 @@ export default function YoreselProductScreen() {
 
         {!loading && liveItems.length === 0 && !error ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.empty}>Bu lezzet için canlı arama sonucu bulunamadı.</Text>
+            <Text style={styles.empty}>{t('yoresel.detailEmpty')}</Text>
             <Pressable onPress={() => void load()} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Yenile</Text>
+              <Text style={styles.retryText}>{t('yoresel.refresh')}</Text>
             </Pressable>
           </View>
         ) : null}

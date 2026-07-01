@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.constants.online_order_categories import ONLINE_ORDER_CATEGORIES, normalize_category_slugs
+from app.constants.order_payment_methods import build_order_payment_options
 from app.constants.online_orders import MIN_LIST_RATING
 from app.models import PlatformName, Restaurant, RestaurantOwnership, RestaurantPlatformProfile, Review
 from app.services.delivery_fee import resolve_delivery_fee_tl
@@ -22,6 +23,7 @@ from app.services.gastro_score_ranking import (
 from app.services.online_order_hours import online_order_hours_status
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
 from app.services.restaurant_orders import online_orders_configured
+from app.services.reservation_vitrin import reservation_vitrin_listed
 from app.services.table_reservations import online_reservations_configured
 from app.services.restaurant_promo import promo_from_ownership
 from app.services.voice_menu_offerings import voice_menu_matches_for_ownership
@@ -272,7 +274,13 @@ def list_online_order_restaurants(
                 "online_orders_available": bool(hours_status.get("open_now")),
                 "online_orders_open_now": bool(hours_status.get("open_now")),
                 "online_order_hours_label": hours_status.get("label"),
+                "online_order_hours_range_label": hours_status.get("hours_range_label"),
+                "order_payment_options": build_order_payment_options(
+                    ownership.accepted_payment_methods,
+                    custom_label=ownership.custom_payment_label,
+                ),
                 "online_reservations_available": online_reservations_configured(ownership),
+                "reservation_vitrin_listed": reservation_vitrin_listed(ownership),
                 "online_order_categories": tags,
                 "card_emoji": ownership.card_emoji,
                 "google_rating": google_rating,

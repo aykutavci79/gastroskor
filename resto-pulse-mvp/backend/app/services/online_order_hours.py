@@ -142,18 +142,39 @@ def online_orders_within_hours(ownership, *, now: datetime | None = None) -> boo
     return False
 
 
+def _today_hours_range_label(normalized: dict[str, Any], dt: datetime) -> str | None:
+    day_key = _day_key_for_dt(dt)
+    day = normalized["weekly"].get(day_key) or {"closed": True}
+    if day.get("closed"):
+        return "Bugün sipariş alınmıyor"
+    open_time = str(day.get("open") or "").strip()
+    close_time = str(day.get("close") or "").strip()
+    if not open_time or not close_time:
+        return None
+    return f"Çalışma saati {open_time}-{close_time}"
+
+
 def online_order_hours_status(ownership, *, now: datetime | None = None) -> dict[str, Any]:
     try:
         normalized = normalize_online_order_hours(getattr(ownership, "online_order_hours", None))
         dt = now.astimezone(ISTANBUL_TZ) if now else datetime.now(ISTANBUL_TZ)
         if not normalized:
-            return {"open_now": False, "label": "Calisma saati tanimli degil"}
+            return {
+                "open_now": False,
+                "label": "Calisma saati tanimli degil",
+                "hours_range_label": None,
+            }
+        hours_range_label = _today_hours_range_label(normalized, dt)
         if online_orders_within_hours(ownership, now=dt):
             close_label = _closing_label_today(normalized, dt)
-            return {"open_now": True, "label": close_label}
+            return {
+                "open_now": True,
+                "label": close_label,
+                "hours_range_label": hours_range_label,
+            }
         next_open = _find_next_open(normalized, dt)
         if not next_open:
-            return {"open_now": False, "label": "Kapali"}
+            return {"open_now": False, "label": "Kapali", "hours_range_label": hours_range_label}
         open_dt, day_key = next_open
         if open_dt.date() == dt.date():
             label = f"Kapali · bugun {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
@@ -161,9 +182,13 @@ def online_order_hours_status(ownership, *, now: datetime | None = None) -> dict
             label = f"Kapali · yarin {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
         else:
             label = f"Kapali · {DAY_LABELS_TR[day_key]} {_format_hhmm(open_dt.hour * 60 + open_dt.minute)}'de acar"
-        return {"open_now": False, "label": label}
+        return {"open_now": False, "label": label, "hours_range_label": hours_range_label}
     except (ValueError, TypeError, KeyError):
-        return {"open_now": False, "label": "Calisma saati gecersiz"}
+        return {
+            "open_now": False,
+            "label": "Calisma saati gecersiz",
+            "hours_range_label": None,
+        }
 
 
 def _closing_label_today(normalized: dict[str, Any], dt: datetime) -> str | None:

@@ -6,7 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import RestaurantOwnership, RestaurantSubscription
-from app.services.online_menu_discount import parse_menu_discount_percent
+from app.constants.order_payment_methods import (
+    build_order_payment_options,
+    normalize_order_payment_methods,
+)
 from app.constants.tester_restaurant_showcase import gallery_urls_for_place
 from app.services.promo_social import normalize_instagram
 
@@ -115,6 +118,12 @@ def ownership_promo_as_dict(ownership: RestaurantOwnership) -> dict:
         "instagram": ownership.promo_instagram,
         "card_emoji": ownership.card_emoji,
         "online_order_hours": ownership.online_order_hours,
+        "accepted_payment_methods": normalize_order_payment_methods(ownership.accepted_payment_methods),
+        "custom_payment_label": ownership.custom_payment_label,
+        "order_payment_options": build_order_payment_options(
+            ownership.accepted_payment_methods,
+            custom_label=ownership.custom_payment_label,
+        ),
         "online_reservations_enabled": bool(ownership.online_reservations_enabled),
         "online_reservation_max_party_size": int(
             ownership.online_reservation_max_party_size or 10

@@ -8,8 +8,13 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import RestaurantOwnership
 from app.constants.online_order_categories import normalize_category_slugs
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
+from app.constants.order_payment_methods import (
+    build_order_payment_options,
+    normalize_order_payment_methods,
+)
 from app.services.restaurant_orders import online_orders_available
 from app.services.table_reservations import online_reservations_configured
+from app.services.reservation_vitrin import reservation_vitrin_listed, vitrin_status_value
 from app.services.restaurant_promo import promo_from_ownership, subscription_allows_promo
 from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.tester_restaurant_visibility import is_tester_seed_ownership
@@ -31,6 +36,8 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
             "is_premium_partner": False,
             "online_orders_available": False,
             "online_reservations_available": False,
+            "reservation_vitrin_listed": False,
+            "reservation_vitrin_status": "disabled",
             "online_order_categories": [],
             "promo": None,
             "menu_preview": [],
@@ -40,12 +47,20 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
     menu_full = public_menu_for_ownership(ownership, preview=False)
     available = online_orders_available(ownership)
     reservations = online_reservations_configured(ownership)
+    vitrin_listed = reservation_vitrin_listed(ownership)
+    payment_options = build_order_payment_options(
+        ownership.accepted_payment_methods,
+        custom_label=ownership.custom_payment_label,
+    )
     return {
         **base,
         "is_premium_partner": False if tester_seed else True,
         "online_orders_available": available,
         "online_reservations_available": reservations,
+        "reservation_vitrin_listed": vitrin_listed,
+        "reservation_vitrin_status": vitrin_status_value(ownership),
         "online_order_categories": normalize_category_slugs(ownership.online_order_category_tags or []),
+        "order_payment_options": payment_options,
         "promo": promo_from_ownership(ownership),
         "menu_preview": menu_full[:MENU_PREVIEW_LIMIT],
         "menu_item_count": len(menu_full),
@@ -69,6 +84,8 @@ def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
             "is_premium_partner": False,
             "online_orders_available": False,
             "online_reservations_available": False,
+            "reservation_vitrin_listed": False,
+            "reservation_vitrin_status": "disabled",
             "online_order_categories": [],
             "promo": None,
             "menu_preview": [],
@@ -134,7 +151,10 @@ def merge_partner_into_row(row: dict, partner: dict | None) -> dict:
     row["is_premium_partner"] = partner["is_premium_partner"]
     row["online_orders_available"] = partner.get("online_orders_available", False)
     row["online_reservations_available"] = partner.get("online_reservations_available", False)
+    row["reservation_vitrin_listed"] = partner.get("reservation_vitrin_listed", False)
+    row["reservation_vitrin_status"] = partner.get("reservation_vitrin_status", "disabled")
     row["online_order_categories"] = partner.get("online_order_categories") or []
+    row["order_payment_options"] = partner.get("order_payment_options") or []
     row["promo"] = partner.get("promo")
     row["menu_preview"] = partner.get("menu_preview") or []
     row["menu_item_count"] = partner.get("menu_item_count") or 0

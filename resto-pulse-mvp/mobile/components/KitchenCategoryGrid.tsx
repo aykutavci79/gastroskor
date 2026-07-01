@@ -7,6 +7,7 @@ import {
   KITCHEN_TILE_GRADIENT,
   kitchenCategoryImage,
 } from '@/constants/kitchen-category-images';
+import { onlineOrderInk, type OnlineOrderUiTone } from '@/constants/online-order-theme';
 import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
 import { kitchenEmoji, type KitchenPickerItem } from '@/lib/kitchen-category-visual';
@@ -16,15 +17,22 @@ type Props = {
   selectedSlugs: string[];
   onToggle: (slug: string) => void;
   onClear: () => void;
+  tone?: OnlineOrderUiTone;
 };
 
 const COLS = 4;
 const GAP = 6;
 const TILE_RADIUS = 14;
 
-export function KitchenCategoryGrid({ categories, selectedSlugs, onToggle, onClear }: Props) {
+export function KitchenCategoryGrid({
+  categories,
+  selectedSlugs,
+  onToggle,
+  onClear,
+  tone = 'default',
+}: Props) {
   const { colors, shadow } = useGastroTheme();
-  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
+  const styles = useMemo(() => createStyles(colors, shadow, tone), [colors, shadow, tone]);
 
   return (
     <View style={styles.wrap}>
@@ -100,14 +108,16 @@ function KitchenTile({
 
       {selected ? (
         <View style={styles.check}>
-          <Ionicons name="checkmark" size={13} color="#141414" />
+          <Ionicons name="checkmark" size={13} color="#FFFFFF" />
         </View>
       ) : null}
     </View>
   );
 }
 
-function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
+function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme, tone: OnlineOrderUiTone) {
+  const ink = onlineOrderInk(tone, colors);
+  const light = tone === 'light';
   return StyleSheet.create({
     wrap: { gap: 10 },
     headerRow: {
@@ -116,8 +126,8 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       justifyContent: 'space-between',
       gap: 8,
     },
-    hint: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 16 },
-    clearBtn: { color: colors.accent, fontSize: 12, fontWeight: '800' },
+    hint: { flex: 1, color: ink.muted, fontSize: 12, lineHeight: 16 },
+    clearBtn: { color: ink.sky, fontSize: 12, fontWeight: '800' },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -134,26 +144,27 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       aspectRatio: 1,
       borderRadius: TILE_RADIUS,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.input,
-      ...shadow.card,
+      borderColor: ink.border,
+      backgroundColor: light ? ink.panel : colors.input,
+      ...(light ? {} : shadow.card),
     },
     tileShellOn: {
-      borderColor: colors.accent,
+      borderColor: ink.accent,
       borderWidth: 2,
-      ...shadow.featured,
+      backgroundColor: light ? ink.accentSoft : undefined,
+      ...(light ? {} : shadow.featured),
     },
     tileInner: {
       flex: 1,
       borderRadius: TILE_RADIUS - 1,
       overflow: 'hidden',
-      backgroundColor: colors.input,
+      backgroundColor: light ? ink.input : colors.input,
     },
     tileInnerOn: {
       borderRadius: TILE_RADIUS - 2,
     },
     labelBelow: {
-      color: colors.muted,
+      color: ink.muted,
       fontSize: 9,
       fontWeight: '700',
       textAlign: 'center',
@@ -161,7 +172,7 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       paddingHorizontal: 2,
     },
     labelBelowOn: {
-      color: colors.accent,
+      color: ink.accent,
       fontWeight: '800',
     },
     check: {
@@ -171,12 +182,12 @@ function createStyles(colors: GastroColorScheme, shadow: GastroShadowScheme) {
       width: 20,
       height: 20,
       borderRadius: 10,
-      backgroundColor: colors.gold,
+      backgroundColor: ink.accent,
       alignItems: 'center',
       justifyContent: 'center',
     },
     emojiWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     emoji: { fontSize: 28 },
-    selectionLine: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+    selectionLine: { color: ink.accent, fontSize: 12, fontWeight: '700' },
   });
 }

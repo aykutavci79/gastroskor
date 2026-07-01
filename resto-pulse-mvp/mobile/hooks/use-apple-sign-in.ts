@@ -10,15 +10,18 @@ import { useSession } from '@/context/session-context';
 
 export function useAppleSignIn(onError: (message: string) => void, kvkkConsentAccepted: boolean) {
   const { signInWithAuthProfile } = useSession();
-  const [ready, setReady] = useState(false);
+  const [available, setAvailable] = useState(false);
 
   useEffect(() => {
     void isAppleSignInSupported()
-      .then(setReady)
-      .catch(() => setReady(false));
+      .then(setAvailable)
+      .catch(() => setAvailable(false));
   }, []);
 
   const signIn = useCallback(async () => {
+    if (!kvkkConsentAccepted) {
+      return;
+    }
     try {
       const { identityToken, fullName } = await signInWithAppleNative();
       const { profile, access_token, refresh_token } = await verifyAppleMobileAuth(
@@ -41,5 +44,5 @@ export function useAppleSignIn(onError: (message: string) => void, kvkkConsentAc
     }
   }, [kvkkConsentAccepted, onError, signInWithAuthProfile]);
 
-  return { ready, signIn };
+  return { available, signIn };
 }

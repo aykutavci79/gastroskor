@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { KeyboardRoot } from '@/lib/KeyboardRoot';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -22,6 +23,7 @@ import { SessionProvider } from '@/context/session-context';
 import { createSentryBeforeSend } from '@/lib/sentry-scrub';
 import { GastroPostHogRoot } from '@/lib/GastroPostHogRoot';
 import { registerSslPinningErrorListener, setupSslPinning } from '@/lib/ssl-pinning';
+import { initI18n } from '@/lib/i18n';
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
 
@@ -39,6 +41,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function NavigationShell() {
   const { colors } = useGastroTheme();
+  const { t } = useTranslation();
 
   const navTheme = useMemo(
     () => ({
@@ -65,31 +68,31 @@ function NavigationShell() {
         }}>
         <Stack.Screen
           name="(tabs)"
-          options={{ headerShown: false, headerBackTitle: 'Geri', title: 'Keşfet' }}
+          options={{ headerShown: false, headerBackTitle: t('nav.back'), title: t('nav.explore') }}
         />
         <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="restaurants/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="place/[placeId]" options={{ headerShown: false }} />
         <Stack.Screen name="gurme" options={{ headerShown: false }} />
         <Stack.Screen name="dm" options={{ headerShown: false }} />
-        <Stack.Screen name="yoresel/index" options={{ title: 'Yöresel lezzetler' }} />
-        <Stack.Screen name="yoresel/[slug]" options={{ title: 'Lezzet detayı' }} />
+        <Stack.Screen name="yoresel/index" options={{ title: t('nav.localCuisines') }} />
+        <Stack.Screen name="yoresel/[slug]" options={{ title: t('nav.cuisineDetail') }} />
         <Stack.Screen name="foodcast/index" options={{ headerShown: false }} />
-        <Stack.Screen name="foodcast/paylas" options={{ title: 'Tabak paylaş' }} />
-        <Stack.Screen name="panel/claim" options={{ title: 'Mekan kaydi' }} />
+        <Stack.Screen name="foodcast/paylas" options={{ title: t('nav.shareADish') }} />
+        <Stack.Screen name="panel/claim" options={{ title: t('nav.venueClaim') }} />
         <Stack.Screen
           name="siparis-acik"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Online Sipariş', 'light'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('order.title'), 'light'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
           }}
         />
         <Stack.Screen
           name="siparis-acik-sonuclar"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Sonuçlar', 'light'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('order.results'), 'light'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
             headerStyle: { backgroundColor: '#FFFFFF' },
             headerTintColor: '#141414',
@@ -99,19 +102,20 @@ function NavigationShell() {
         <Stack.Screen
           name="rezervasyon-acik"
           options={{
-            title: 'Online Rezervasyon',
-            headerBackTitle: 'Geri',
+            title: t('reservation.title'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
-            headerStyle: { backgroundColor: '#FFFFFF' },
-            headerTintColor: '#141414',
+            headerStyle: { backgroundColor: '#14080f' },
+            headerTintColor: '#FFF8F0',
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen name="online-rezervasyon" options={{ headerShown: false }} />
         <Stack.Screen
           name="online-siparis/[id]"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Sipariş', 'light'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('order.label'), 'light'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
             headerStyle: { backgroundColor: '#FFFFFF' },
             headerTintColor: '#141414',
@@ -121,8 +125,8 @@ function NavigationShell() {
         <Stack.Screen
           name="hesap/siparis-bilgileri"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Telefon ve adres', 'light'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('order.phoneAndAddress'), 'light'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
             headerStyle: { backgroundColor: '#FFFFFF' },
             headerTintColor: '#141414',
@@ -132,24 +136,24 @@ function NavigationShell() {
         <Stack.Screen
           name="siparislerim"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Siparişlerim'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('nav.myOrders')),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
           }}
         />
         <Stack.Screen
           name="yorumlarim"
           options={{
-            title: 'Yorumlarım',
-            headerBackTitle: 'Geri',
+            title: t('nav.myReviews'),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
           }}
         />
         <Stack.Screen
           name="siparis/[id]"
           options={{
-            headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı'),
-            headerBackTitle: 'Geri',
+            headerTitle: gastroCoinStackHeaderTitle(t('order.detail')),
+            headerBackTitle: t('nav.back'),
             headerBackVisible: true,
           }}
         />
@@ -168,6 +172,7 @@ function RootLayout() {
     SofraMontserratBlack: require('../assets/fonts/Montserrat-Black.ttf'),
   });
   const [splashDone, setSplashDone] = useState(false);
+  const [i18nReady, setI18nReady] = useState(false);
 
   const handleSplashFinish = useCallback(() => {
     setSplashDone(true);
@@ -179,18 +184,22 @@ function RootLayout() {
   }, [splashDone]);
 
   useEffect(() => {
+    void initI18n().then(() => setI18nReady(true));
+  }, []);
+
+  useEffect(() => {
     const removePinningListener = registerSslPinningErrorListener();
     void setupSslPinning();
     return removePinningListener;
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if ((fontsLoaded || fontError) && i18nReady) {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, i18nReady]);
 
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || !i18nReady) {
     return null;
   }
 

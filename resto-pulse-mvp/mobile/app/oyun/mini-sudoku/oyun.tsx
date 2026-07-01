@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { MiniSudokuGrid } from '@/components/mini-sudoku/MiniSudokuGrid';
@@ -59,6 +60,7 @@ function applySnapshot(progress: MiniSudokuProgress, snap: SudokuSnapshot): Mini
 
 export default function MiniSudokuOyunScreen() {
   const t = MINI_SUDOKU_THEME;
+  const { t: tr } = useTranslation();
   const router = useRouter();
   const { user } = useSession();
   const { zorluk: zorlukParam, oturum: oturumParam } = useLocalSearchParams<{
@@ -337,7 +339,7 @@ export default function MiniSudokuOyunScreen() {
     if (!puzzle || !progress || locked) return;
     if (progress.hintsRemaining <= 0) return;
     if (selected == null) {
-      Alert.alert('İpucu', 'Önce bir boş hücre seç.');
+      Alert.alert(tr('eglence.miniSudoku.ipucuAlertTitle'), tr('eglence.miniSudoku.ipucuAlertBody'));
       return;
     }
     const { row, col } = selected;
@@ -379,7 +381,7 @@ export default function MiniSudokuOyunScreen() {
     <SudokuScreen scroll edges={['bottom', 'left', 'right']}>
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.meta}>9×9 · {eglenceZorlukEtiket(zorluk)}</Text>
+          <Text style={styles.meta}>{tr('eglence.miniSudoku.metaLabel', { zorluk: eglenceZorlukEtiket(zorluk) })}</Text>
           <View style={styles.livesWrap}>
             <Text style={styles.livesText}>{progress.lives} ❤️</Text>
           </View>
@@ -400,10 +402,10 @@ export default function MiniSudokuOyunScreen() {
             style={({ pressed }) => [styles.autoCompleteBtn, pressed && { opacity: 0.88 }]}
             onPress={onAutoComplete}
             accessibilityRole="button"
-            accessibilityLabel="Otomatik tamamla">
-            <Text style={styles.autoCompleteText}>Otomatik tamamla</Text>
+            accessibilityLabel={tr('eglence.miniSudoku.otomatikTamamla')}>
+            <Text style={styles.autoCompleteText}>{tr('eglence.miniSudoku.otomatikTamamla')}</Text>
             <Text style={styles.autoCompleteSub}>
-              {emptyCells} hücre kaldı — kalan rakamları yerleştir
+              {tr('eglence.miniSudoku.otomatikTamamlaSub', { n: emptyCells })}
             </Text>
           </Pressable>
         ) : null}
@@ -430,9 +432,9 @@ export default function MiniSudokuOyunScreen() {
 
         {progress.gameOver ? (
           <View style={styles.gameOverBanner}>
-            <Text style={styles.gameOverTitle}>Canların bitti</Text>
+            <Text style={styles.gameOverTitle}>{tr('eglence.miniSudoku.canlarBitti')}</Text>
             <Text style={styles.gameOverBody}>
-              Yarın yeni bulmaca gelince tekrar dene. İleride jetonla devam etme seçeneği eklenecek.
+              {tr('eglence.miniSudoku.canlarBittiBody')}
             </Text>
           </View>
         ) : null}

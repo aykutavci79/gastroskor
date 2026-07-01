@@ -7,6 +7,10 @@ import { VoiceProductCatalogPicker } from '@/components/panel/VoiceProductCatalo
 import { InstagramIcon } from '@/components/icons/InstagramIcon';
 import { CARD_EMOJI_PRESETS } from '@/lib/card-emoji-presets';
 import { ONLINE_ORDER_CATEGORIES } from '@/lib/online-order-categories';
+import {
+  DEFAULT_ORDER_PAYMENT_METHODS,
+  ORDER_PAYMENT_METHOD_OPTIONS,
+} from '@/lib/order-payment-methods';
 import { getPanelPromo, updatePanelPromo, uploadPanelCardCoverImage, uploadPanelMenuImage } from '@/lib/api';
 import type { RestaurantPromoSettings } from '@/lib/types';
 
@@ -23,6 +27,10 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
   const [onlineOrdersEnabled, setOnlineOrdersEnabled] = useState(false);
   const [onlineOrderHours, setOnlineOrderHours] = useState<OnlineOrderHours | null>(null);
   const [orderCategoryTags, setOrderCategoryTags] = useState<string[]>([]);
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<string[]>(
+    DEFAULT_ORDER_PAYMENT_METHODS,
+  );
+  const [customPaymentLabel, setCustomPaymentLabel] = useState('');
   const [directOrderText, setDirectOrderText] = useState('');
   const [directOrderPhone, setDirectOrderPhone] = useState('');
   const [directOrderWhatsapp, setDirectOrderWhatsapp] = useState('');
@@ -47,6 +55,12 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
         setOnlineOrdersEnabled(data.online_orders_enabled);
         setOnlineOrderHours(data.online_order_hours ?? defaultOnlineOrderHours());
         setOrderCategoryTags(data.online_order_category_tags ?? []);
+        setAcceptedPaymentMethods(
+          data.accepted_payment_methods?.length
+            ? data.accepted_payment_methods
+            : DEFAULT_ORDER_PAYMENT_METHODS,
+        );
+        setCustomPaymentLabel(data.custom_payment_label ?? '');
         setDirectOrderText(data.direct_order_text ?? '');
         setDirectOrderPhone(data.direct_order_phone ?? '');
         setDirectOrderWhatsapp(data.direct_order_whatsapp ?? '');
@@ -66,12 +80,18 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
     setError(null);
     setMessage(null);
     try {
+      if (hasOwnCourier && onlineOrdersEnabled && acceptedPaymentMethods.length === 0) {
+        throw new Error('Online siparis acikken en az bir odeme yontemi secmelisiniz.');
+      }
       const updated = await updatePanelPromo({
         user_email: userEmail,
         has_own_courier: hasOwnCourier,
         online_orders_enabled: hasOwnCourier ? onlineOrdersEnabled : false,
         online_order_hours: hasOwnCourier ? onlineOrderHours : null,
         online_order_category_tags: hasOwnCourier ? orderCategoryTags : [],
+        accepted_payment_methods: hasOwnCourier && onlineOrdersEnabled ? acceptedPaymentMethods : [],
+        custom_payment_label:
+          hasOwnCourier && onlineOrdersEnabled ? customPaymentLabel.trim() || null : null,
         direct_order_text: directOrderText.trim() || null,
         direct_order_phone: directOrderPhone.trim() || null,
         direct_order_whatsapp: directOrderWhatsapp.trim() || null,
@@ -306,6 +326,43 @@ export function RestaurantPromoSettings({ userEmail, subscriptionActive }: Props
                   subscriptionActive={subscriptionActive}
                   onlineOrdersEnabled={onlineOrdersEnabled}
                 />
+                <div>
+                  <p className="text-xs text-content-muted">
+                    Musterinin secebilecegi odeme yontemleri. Tahsilat restoran/kurye cihazinda yapilir.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {ORDER_PAYMENT_METHOD_OPTIONS.map((option) => {
+                      const on = acceptedPaymentMethods.includes(option.code);
+                      return (
+                        <button
+                          key={option.code}
+                          type="button"
+                          onClick={() =>
+                            setAcceptedPaymentMethods((prev) =>
+                              on ? prev.filter((code) => code !== option.code) : [...prev, option.code],
+                            )
+                          }
+                          className={`rounded-lg border px-3 py-2 text-xs ${
+                            on
+                              ? 'border-accent bg-accent/20 text-accent'
+                              : 'border-border text-content-muted hover:border-brand/50'
+                          }`}>
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="mt-3 block text-xs text-content-muted">
+                    Ozel yemek karti / kurum karti (opsiyonel)
+                  </label>
+                  <input
+                    value={customPaymentLabel}
+                    onChange={(e) => setCustomPaymentLabel(e.target.value)}
+                    placeholder="Or. Adana Kent Kart"
+                    maxLength={80}
+                    className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-content"
+                  />
+                </div>
               </div>
             ) : null}
           </>

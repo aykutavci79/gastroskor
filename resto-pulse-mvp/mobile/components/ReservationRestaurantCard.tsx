@@ -1,10 +1,16 @@
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { useMemo } from 'react';
+import type { ImageSourcePropType } from 'react-native';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { RestaurantMenuPreview } from '@/components/RestaurantMenuPreview';
 import { ReservationTheme } from '@/constants/reservation-theme';
+import {
+  isTesterReservationShowcasePlace,
+  testerShowcaseSourcesForPlace,
+} from '@/constants/tester-reservation-showcase';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import {
   resolveRestaurantHeroPhotos,
@@ -28,6 +34,8 @@ type Props = {
   googleRating?: number | null;
   googleReviewCount?: number | null;
   distanceLabel?: string | null;
+  /** Örnek vitrin kartı — tıklanınca yönlendirme yok. */
+  preview?: boolean;
 };
 
 export function ReservationRestaurantCard({
@@ -37,15 +45,37 @@ export function ReservationRestaurantCard({
   googleRating,
   googleReviewCount,
   distanceLabel,
+  preview = false,
 }: Props) {
   const router = useRouter();
-  const photos = useMemo(
-    () => resolveRestaurantHeroPhotos(restaurant, { floorBackgroundUrl }),
-    [floorBackgroundUrl, restaurant],
-  );
-  const { opacityA, opacityB, indexA, indexB } = useBannerCrossfade(photos.length);
-  const slideA = photos[indexA];
-  const slideB = photos[indexB];
+  const { t } = useTranslation();
+  const localSlides = useMemo((): ImageSourcePropType[] => {
+    if (preview || isTesterReservationShowcasePlace(restaurant.google_place_id)) {
+      return testerShowcaseSourcesForPlace(restaurant.google_place_id);
+    }
+    return [];
+  }, [preview, restaurant.google_place_id]);
+
+  const photoUrls = useMemo(() => {
+    if (localSlides.length > 0) return [] as string[];
+    return resolveRestaurantHeroPhotos(restaurant, { floorBackgroundUrl });
+  }, [floorBackgroundUrl, localSlides.length, restaurant]);
+
+  const slideCount = localSlides.length > 0 ? localSlides.length : photoUrls.length;
+  const { opacityA, opacityB, indexA, indexB } = useBannerCrossfade(slideCount);
+
+  const sourceA: ImageSourcePropType | null =
+    localSlides.length > 0
+      ? (localSlides[indexA] ?? null)
+      : photoUrls[indexA]
+        ? { uri: photoUrls[indexA] }
+        : null;
+  const sourceB: ImageSourcePropType | null =
+    localSlides.length > 1
+      ? (localSlides[indexB] ?? null)
+      : photoUrls[indexB]
+        ? { uri: photoUrls[indexB] }
+        : null;
 
   const visual = resolveCategoryVisual({
     category: restaurant.category,
@@ -66,28 +96,33 @@ export function ReservationRestaurantCard({
 
   return (
     <Pressable
-      style={styles.wrap}
-      onPress={() => router.push(href as Href)}
+      style={[styles.wrap, preview && styles.wrapPreview]}
+      onPress={() => {
+        if (preview) return;
+        router.push(href as Href);
+      }}
       accessibilityRole="button"
-      accessibilityLabel={`${restaurant.name}, masa seç`}>
+      accessibilityLabel={
+        preview ? `${restaurant.name}${t('rezervasyon.cardA11yPreview')}` : `${restaurant.name}${t('rezervasyon.cardA11ySelect')}`
+      }>
       <View style={styles.hero}>
-        {slideA ? (
+        {sourceA ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityA }]}>
-            <Image source={{ uri: slideA }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Image source={sourceA} style={StyleSheet.absoluteFill} contentFit="cover" />
           </Animated.View>
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.heroFallback]} />
         )}
-        {slideB && photos.length > 1 ? (
+        {sourceB && slideCount > 1 ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityB }]}>
-            <Image source={{ uri: slideB }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Image source={sourceB} style={StyleSheet.absoluteFill} contentFit="cover" />
           </Animated.View>
         ) : null}
         <View style={styles.heroShadeTop} />
         <View style={styles.heroShadeBottom} />
 
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>ÖNE ÇIKAN</Text>
+          <Text style={styles.badgeText}>{preview ? t('rezervasyon.badgePreview') : t('rezervasyon.badgeFeatured')}</Text>
         </View>
 
         <View style={styles.body}>
@@ -97,7 +132,7 @@ export function ReservationRestaurantCard({
                 {restaurant.name}
               </Text>
               <Text style={styles.city} numberOfLines={1}>
-                {restaurant.city ?? restaurant.district ?? 'Konum belirtilmedi'}
+                {restaurant.city ?? restaurant.district ?? t('rezervasyon.noLocation')}
               </Text>
             </View>
             {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
@@ -127,7 +162,7 @@ export function ReservationRestaurantCard({
           {showMenu && menuItems.length > 0 ? (
             <View style={styles.menuBlock}>
               <View style={styles.menuChip}>
-                <Text style={styles.menuChipText}>📋 Menü</Text>
+                <Text style={styles.menuChipText}>{t('rezervasyon.menuBtn')}</Text>
               </View>
               <RestaurantMenuPreview items={menuItems} totalCount={menuCount} />
             </View>
@@ -135,9 +170,20 @@ export function ReservationRestaurantCard({
 
           <View style={styles.footerRow}>
             <View style={styles.ctaPill}>
-              <Text style={styles.ctaText}>Giriş</Text>
+              <Text style={styles.ctaText}>{t('rezervasyon.selectTableBtn')}</Text>
             </View>
-            <Text style={styles.reviewsLink}>Yorumları Gör →</Text>
+            <Pressable
+              hitSlop={8}
+              disabled={preview}
+              onPress={(event) => {
+                if (preview) return;
+                event.stopPropagation();
+                router.push(`/restaurant/${restaurant.id}` as Href);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${restaurant.name}${t('rezervasyon.reviewsSuffix')}`}>
+              <Text style={styles.reviewsLink}>{t('rezervasyon.reviewsLink')}</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -153,6 +199,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: ReservationTheme.accentWarm,
     backgroundColor: ReservationTheme.bg,
+  },
+  wrapPreview: {
+    borderStyle: 'dashed',
+    opacity: 0.96,
   },
   hero: {
     minHeight: 220,

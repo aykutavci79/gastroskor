@@ -1,6 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { EglenceZorlukSecici } from '@/components/eglence/EglenceZorlukSecici';
@@ -13,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function MiniSudokuLobbyScreen() {
   const router = useRouter();
   const t = eglenceLobbyTheme('mini-sudoku');
+  const { t: tr } = useTranslation();
   const puzzleId = activePuzzleId();
   const [zorluk, setZorluk] = useState<EglenceZorluk>('orta');
   const [inProgress, setInProgress] = useState(false);
@@ -77,13 +79,13 @@ export default function MiniSudokuLobbyScreen() {
 
   const oturum = inProgress && !completed ? 'devam' : 'yeni';
   const butonYazi =
-    inProgress && !completed ? 'Devam Et' : completed ? 'Tekrar Oyna' : 'Bulmacayı Başlat';
+    inProgress && !completed ? tr('eglence.miniSudoku.devamEt') : completed ? tr('eglence.miniSudoku.tekrarOyna') : tr('eglence.miniSudoku.baslat');
 
   return (
     <EglenceGameLobbyScreen gameId="mini-sudoku" scroll={false} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <EglenceGameLobbyTitle gameId="mini-sudoku" title="Sudoku" />
-        <Text style={styles.alt}>Klasik 9×9 · günlük bulmaca · satır, sütun ve 3×3 kutu kuralı</Text>
+        <EglenceGameLobbyTitle gameId="mini-sudoku" title={tr('eglence.miniSudoku.title')} />
+        <Text style={styles.alt}>{tr('eglence.miniSudoku.subtitle')}</Text>
 
         <View style={styles.schedulePill}>
           <Text style={styles.scheduleTitle}>{formatPuzzlePeriodLabel(puzzleId)}</Text>
@@ -93,10 +95,10 @@ export default function MiniSudokuLobbyScreen() {
         <EglenceZorlukSecici mode="sudoku" value={zorluk} onChange={setZorluk} gameId="mini-sudoku" />
 
         <View style={styles.kutu}>
-          <Text style={styles.madde}>Kolay, orta ve zor: aynı 9×9 tablo — fark başlangıçtaki dolu hücre sayısı.</Text>
-          <Text style={styles.madde}>Not modu ile aday rakamları işaretleyebilirsin.</Text>
+          <Text style={styles.madde}>{tr('eglence.miniSudoku.kural1')}</Text>
+          <Text style={styles.madde}>{tr('eglence.miniSudoku.kural2')}</Text>
           {completed && bestScore != null ? (
-            <Text style={styles.madde}>Bugünkü skorun: {bestScore} puan</Text>
+            <Text style={styles.madde}>{tr('eglence.miniSudoku.bugunScore', { score: bestScore })}</Text>
           ) : null}
         </View>
 

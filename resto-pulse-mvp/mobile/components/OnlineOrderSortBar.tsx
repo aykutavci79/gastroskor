@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import type { GastroColorScheme } from '@/constants/theme';
-import { GastroColorsLight } from '@/constants/theme';
+import { onlineOrderInk, type OnlineOrderUiTone } from '@/constants/online-order-theme';
 import { useGastroTheme } from '@/context/theme-context';
 import { gastroStopSpeaking } from '@/lib/gastro-speak';
 import {
@@ -10,19 +11,28 @@ import {
   type OnlineOrderSortMode,
 } from '@/lib/online-order-sort';
 
+const SORT_LABEL_KEYS: Record<OnlineOrderSortMode, string> = {
+  gastro_score: 'order.sortGastroScore',
+  distance: 'order.sortDistance',
+  rating: 'order.sortRating',
+  popularity: 'order.sortPopularity',
+  discount: 'order.sortDiscount',
+};
+
 type Props = {
   value: OnlineOrderSortMode;
   onChange: (mode: OnlineOrderSortMode) => void;
-  tone?: 'default' | 'light';
+  tone?: OnlineOrderUiTone;
 };
 
 export function OnlineOrderSortBar({ value, onChange, tone = 'default' }: Props) {
+  const { t } = useTranslation();
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Sırala</Text>
+      <Text style={styles.label}>{t('order.sortLabel')}</Text>
       <ScrollView
         horizontal
         nestedScrollEnabled
@@ -38,7 +48,7 @@ export function OnlineOrderSortBar({ value, onChange, tone = 'default' }: Props)
                 gastroStopSpeaking();
                 onChange(opt.id);
               }}>
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>{opt.label}</Text>
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>{t(SORT_LABEL_KEYS[opt.id])}</Text>
             </Pressable>
           );
         })}
@@ -47,8 +57,8 @@ export function OnlineOrderSortBar({ value, onChange, tone = 'default' }: Props)
   );
 }
 
-function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
-  const ink = tone === 'light' ? GastroColorsLight : colors;
+function createStyles(colors: GastroColorScheme, tone: OnlineOrderUiTone) {
+  const ink = onlineOrderInk(tone, colors);
   const light = tone === 'light';
   return StyleSheet.create({
     wrap: { gap: 8 },
@@ -60,13 +70,13 @@ function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
       borderColor: ink.border,
       paddingHorizontal: 14,
       paddingVertical: 8,
-      backgroundColor: light ? '#FFFFFF' : colors.panel,
+      backgroundColor: light ? ink.panel : colors.panel,
     },
     chipOn: {
-      borderColor: colors.accent,
-      backgroundColor: light ? 'rgba(255, 107, 53, 0.12)' : colors.accentSoft,
+      borderColor: ink.accent,
+      backgroundColor: light ? ink.accentSoft : colors.accentSoft,
     },
     chipText: { color: ink.muted, fontSize: 13, fontWeight: '700' },
-    chipTextOn: { color: colors.accent, fontWeight: '800' },
+    chipTextOn: { color: ink.accent, fontWeight: '800' },
   });
 }

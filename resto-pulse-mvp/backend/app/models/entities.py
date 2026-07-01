@@ -623,6 +623,8 @@ class RestaurantOwnership(Base):
     reservation_vitrin_reject_reason: Mapped[str | None] = mapped_column(Text)
     online_reservation_max_party_size: Mapped[int] = mapped_column(Integer, default=10)
     online_order_hours: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    accepted_payment_methods: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    custom_payment_label: Mapped[str | None] = mapped_column(String(80))
     online_order_category_tags: Mapped[list] = mapped_column(JSON, default=list)
     promo_direct_order_text: Mapped[str | None] = mapped_column(String(120))
     promo_direct_order_phone: Mapped[str | None] = mapped_column(String(32))
@@ -780,6 +782,7 @@ class RestaurantOrder(Base):
     reject_reason_code: Mapped[str | None] = mapped_column(String(40))
     reject_reason_text: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
+    payment_method: Mapped[str | None] = mapped_column(String(40))
     status: Mapped[RestaurantOrderStatus] = mapped_column(
         Enum(RestaurantOrderStatus), default=RestaurantOrderStatus.pending, index=True
     )

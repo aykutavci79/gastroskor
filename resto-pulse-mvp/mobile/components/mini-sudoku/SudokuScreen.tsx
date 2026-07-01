@@ -15,7 +15,13 @@ type Props = {
 /** @deprecated Sudoku lobisi — `EglenceGameLobbyScreen gameId="mini-sudoku"` kullan. */
 export function SudokuScreen({ children, scroll = true, style, edges, scrollRef }: Props) {
   return (
-    <EglenceGameLobbyScreen gameId="mini-sudoku" scroll={scroll} style={style} edges={edges} scrollRef={scrollRef}>
+    <EglenceGameLobbyScreen
+      gameId="mini-sudoku"
+      scroll={scroll}
+      style={style}
+      edges={edges}
+      scrollRef={scrollRef}
+      showSfxToggle={false}>
       {children}
     </EglenceGameLobbyScreen>
   );

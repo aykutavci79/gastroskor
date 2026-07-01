@@ -178,6 +178,8 @@ export type RestaurantOrderRead = {
   daily_no?: number | null;
   order_number?: string | null;
   note: string | null;
+  payment_method?: string | null;
+  payment_method_label?: string | null;
   total_tl: number;
   lines: RestaurantOrderLineRead[];
   created_at: string | null;
@@ -207,6 +209,9 @@ export type RestaurantPromoSettings = {
   instagram: string | null;
   card_emoji: string | null;
   online_order_hours?: OnlineOrderHours | null;
+  accepted_payment_methods?: string[];
+  custom_payment_label?: string | null;
+  order_payment_options?: { code: string; label: string }[];
   online_reservations_enabled?: boolean;
   online_reservation_max_party_size?: number;
   public_preview: RestaurantPromoPublic | null;

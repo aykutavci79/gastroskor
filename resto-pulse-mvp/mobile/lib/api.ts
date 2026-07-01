@@ -371,6 +371,7 @@ export function submitRestaurantOrder(
     customer_phone: string;
     customer_address: string;
     note?: string;
+    payment_method: string;
     lines: Array<{ menu_item_id: string; quantity: number }>;
   },
 ) {

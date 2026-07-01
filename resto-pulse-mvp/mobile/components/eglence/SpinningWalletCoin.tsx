@@ -18,9 +18,9 @@ type Props = {
 /** GC logosu — kendi ekseni etrafında (Y) sürekli dönüş. */
 export function SpinningWalletCoin({ size }: Props) {
   const rotation = useSharedValue(0);
-  const renderSize = Math.round(size * 0.96);
-  const boxW = Math.round(size * 1.1);
-  const boxH = Math.round(size * 1.16);
+  const renderSize = Math.round(size * 0.92);
+  const boxW = Math.round(size * 1.14);
+  const boxH = Math.round(size * 1.22);
 
   useEffect(() => {
     rotation.value = withRepeat(

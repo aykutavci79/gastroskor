@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { ReservationTheme } from '@/constants/reservation-theme';
 import {
-  reservationOccasionLabel,
+  RESERVATION_OCCASION_I18N_KEYS,
   RESERVATION_OCCASION_OPTIONS,
   type ReservationOccasionType,
 } from '@/lib/reservation-occasion';
@@ -15,8 +16,14 @@ type Props = {
 };
 
 export function ReservationOccasionPicker({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const [sheetVisible, setSheetVisible] = useState(false);
-  const selectedLabel = useMemo(() => reservationOccasionLabel(value), [value]);
+
+  const selectedLabel = useMemo(() => {
+    if (!value) return null;
+    const key = RESERVATION_OCCASION_I18N_KEYS[value];
+    return key ? t(key) : value;
+  }, [value, t]);
 
   function select(next: ReservationOccasionType | null) {
     onChange(next);
@@ -25,10 +32,10 @@ export function ReservationOccasionPicker({ value, onChange }: Props) {
 
   return (
     <>
-      <Text style={styles.label}>Özel gün (isteğe bağlı)</Text>
+      <Text style={styles.label}>{t('rezervasyon.occasionLabel')}</Text>
       <Pressable style={styles.row} onPress={() => setSheetVisible(true)}>
         <Text style={[styles.rowText, !selectedLabel && styles.rowPlaceholder]}>
-          {selectedLabel ?? 'Seçin'}
+          {selectedLabel ?? t('rezervasyon.occasionPlaceholder')}
         </Text>
         <Ionicons name="chevron-down" size={18} color={ReservationTheme.textSoft} />
       </Pressable>
@@ -37,26 +44,27 @@ export function ReservationOccasionPicker({ value, onChange }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setSheetVisible(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Özel gün</Text>
+              <Text style={styles.sheetTitle}>{t('rezervasyon.occasionTitle')}</Text>
               <Pressable onPress={() => setSheetVisible(false)} hitSlop={8}>
                 <Ionicons name="close" size={22} color={ReservationTheme.textMuted} />
               </Pressable>
             </View>
-            <Text style={styles.sheetHint}>Tek seçim — restoran hazırlık yapabilsin.</Text>
+            <Text style={styles.sheetHint}>{t('rezervasyon.occasionHint')}</Text>
             <ScrollView contentContainerStyle={styles.chipsWrap}>
               <Pressable
                 style={[styles.chip, value === null && styles.chipActive]}
                 onPress={() => select(null)}>
-                <Text style={[styles.chipText, value === null && styles.chipTextActive]}>Yok</Text>
+                <Text style={[styles.chipText, value === null && styles.chipTextActive]}>{t('rezervasyon.occasionNone')}</Text>
               </Pressable>
               {RESERVATION_OCCASION_OPTIONS.map((option) => {
                 const active = value === option.type;
+                const chipLabel = t(option.i18nKey);
                 return (
                   <Pressable
                     key={option.type}
                     style={[styles.chip, active && styles.chipActive]}
                     onPress={() => select(option.type)}>
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{chipLabel}</Text>
                   </Pressable>
                 );
               })}

@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Keyboard,
@@ -51,7 +52,8 @@ import {
   liveSearchSourceHint,
   liveSearchSourceLabel,
 } from '@/lib/live-search-source';
-import { kitchenChipLabel, kitchenChipSearchQuery } from '@/lib/kesfet-kitchen-search';
+import { kitchenChipSearchQuery } from '@/lib/kesfet-kitchen-search';
+import { useCategoryLabel } from '@/lib/use-category-label';
 import {
   consumePendingKesfetVoiceSearch,
   registerKesfetVoiceSearchListener,
@@ -77,6 +79,8 @@ export default function ExploreScreen() {
   const { city, cityLabel } = useCity();
   const { user } = useSession();
   const { colors } = useGastroTheme();
+  const { t } = useTranslation();
+  const getCategoryLabel = useCategoryLabel();
   const styles = useMemo(() => createExploreStyles(colors), [colors]);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
@@ -328,7 +332,7 @@ export default function ExploreScreen() {
 
     if (isSocialMode && !canRunSocialMode) {
       setLoadingSearch(false);
-      setError('Sosyal kanıt modu için giriş yap.');
+      setError(t('explore.socialLoginRequired'));
       return;
     }
 
@@ -390,7 +394,7 @@ export default function ExploreScreen() {
         );
       }
     } catch (err) {
-      setError(formatApiError(err, 'Arama'));
+      setError(formatApiError(err, t('explore.searchLabel')));
       setSearchItems([]);
       setSearchCards([]);
       setSearchSource(null);
@@ -405,7 +409,7 @@ export default function ExploreScreen() {
     } finally {
       setLoadingSearch(false);
     }
-  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob, posthog, isSocialMode, canRunSocialMode, runSocialLayer]);
+  }, [refreshCoordsIfStale, ensureCoords, city, pollSocialJob, posthog, isSocialMode, canRunSocialMode, runSocialLayer, t]);
 
   const switchToClassicSearch = useCallback(() => {
     setSearchModel('gastroskor');
@@ -476,14 +480,14 @@ export default function ExploreScreen() {
           mode: 'best',
         });
       } catch (err) {
-        setError(formatApiError(err, 'Mutfak araması'));
+        setError(formatApiError(err, t('explore.kitchenSearchLabel')));
         setSearchItems([]);
         setSearchCards([]);
       } finally {
         setLoadingSearch(false);
       }
     },
-    [refreshCoordsIfStale, ensureCoords, city, posthog],
+    [refreshCoordsIfStale, ensureCoords, city, posthog, t],
   );
 
   const handleVoiceTranscript = useCallback(
@@ -621,8 +625,8 @@ export default function ExploreScreen() {
     <View style={styles.searchBody}>
       {kitchenBrowseMode && activeKitchenSlug ? (
         <View style={styles.kitchenHeader}>
-          <Text style={styles.kitchenTitle}>{kitchenChipLabel(activeKitchenSlug)}</Text>
-          <Text style={styles.kitchenSub}>GastroSkor sıralı · {cityLabel}</Text>
+          <Text style={styles.kitchenTitle}>{getCategoryLabel(activeKitchenSlug)}</Text>
+          <Text style={styles.kitchenSub}>{t('explore.kitchenSorted', { city: cityLabel })}</Text>
         </View>
       ) : null}
       {isSocialMode && searchMode ? (
@@ -653,21 +657,19 @@ export default function ExploreScreen() {
       ) : searchCards.length === 0 ? (
         socialFinishedEmpty ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>Sosyal aramada sonuç bulunamadı</Text>
-            <Text style={styles.empty}>
-              Dilersen normal GastroSkor aramasına geç — Google skoru ve mesafeye göre listeler.
-            </Text>
+            <Text style={styles.emptyTitle}>{t('explore.socialEmpty')}</Text>
+            <Text style={styles.empty}>{t('explore.socialEmptyHint')}</Text>
             <Pressable style={styles.fallbackBtn} onPress={switchToClassicSearch}>
-              <Text style={styles.fallbackBtnText}>Normal arama yap</Text>
+              <Text style={styles.fallbackBtnText}>{t('explore.switchToClassic')}</Text>
             </Pressable>
           </View>
         ) : (
           <Text style={styles.empty}>
             {kitchenBrowseMode && activeKitchenSlug
-              ? `${kitchenChipLabel(activeKitchenSlug)} için sonuç bulunamadı.`
+              ? t('explore.kitchenEmpty', { kitchen: getCategoryLabel(activeKitchenSlug) })
               : liveParsed?.min_rating != null
-                ? `${liveParsed.min_rating}+ yıldıza uyan sonuç yok.`
-                : 'Canlı aramada sonuç bulunamadı.'}
+                ? t('explore.ratingEmpty', { rating: liveParsed.min_rating })
+                : t('explore.liveEmpty')}
           </Text>
         )
       ) : (
@@ -774,7 +776,7 @@ export default function ExploreScreen() {
             style={styles.vitrinDismissOverlay}
             onPress={dismissKeyboard}
             accessibilityRole="button"
-            accessibilityLabel="Klavyeyi kapat"
+            accessibilityLabel={t('explore.dismissKeyboard')}
           />
         ) : null}
       </View>

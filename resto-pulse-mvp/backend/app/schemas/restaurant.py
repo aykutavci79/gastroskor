@@ -33,6 +33,11 @@ class VoiceMenuMatchPublic(BaseModel):
     menu_item_id: str
 
 
+class OrderPaymentOption(BaseModel):
+    code: str
+    label: str
+
+
 class RestaurantPromoPublic(BaseModel):
     has_own_courier: bool = False
     online_menu_discount_percent: int | None = None
@@ -65,7 +70,10 @@ class RestaurantRead(RestaurantCreate):
     menu_item_count: int = 0
     online_orders_available: bool = False
     online_reservations_available: bool = False
+    reservation_vitrin_listed: bool = False
+    reservation_vitrin_status: str = "disabled"
     online_order_categories: list[str] = Field(default_factory=list)
+    order_payment_options: list[OrderPaymentOption] = Field(default_factory=list)
     avg_rating: float | None = None
     order_ratings: OrderRatingSummary | None = None
     check_in_visitor_count: int = Field(ge=0, default=0)
@@ -106,9 +114,13 @@ class RestaurantListItem(BaseModel):
     menu_item_count: int = 0
     online_orders_available: bool = False
     online_reservations_available: bool = False
+    reservation_vitrin_listed: bool = False
+    reservation_vitrin_status: str = "disabled"
     online_orders_open_now: bool = False
     online_order_hours_label: str | None = None
+    online_order_hours_range_label: str | None = None
     online_order_categories: list[str] = Field(default_factory=list)
+    order_payment_options: list[OrderPaymentOption] = Field(default_factory=list)
     card_emoji: str | None = None
     google_rating: float | None = None
     google_review_count: int | None = None

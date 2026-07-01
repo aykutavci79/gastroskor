@@ -74,6 +74,7 @@ import {
 import { clampSofraGunId } from '@/lib/kelime-sofrasi/sofra-archive';
 import type { SofraProgress, SofraPuzzle } from '@/lib/kelime-sofrasi/types';
 import { mulberry32, seedFromString } from '@/lib/mini-sudoku/rng';
+import { useTranslation } from 'react-i18next';
 
 const STACK_HEADER = 48;
 const WHEEL_TOOLBAR_H = 0;
@@ -168,6 +169,7 @@ function useSofraLayout(puzzle: SofraPuzzle | null) {
 export default function KelimeSofrasiOyunScreen() {
   const posthog = useGastroPostHog();
   const { colors } = useGastroTheme();
+  const { t: tr } = useTranslation();
   const { user } = useSession();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -428,8 +430,8 @@ export default function KelimeSofrasiOyunScreen() {
           setLoading(false);
           setLoadError(
             err instanceof Error && err.message.includes('Sofra bulmacasi yuklenemedi')
-              ? 'Sofra bulmacasi hazirlanamadi. Interneti kontrol edip tekrar dene.'
-              : 'Sofra yuklenemedi. Tekrar dene.',
+              ? tr('eglence.kelimeSofrasi.loadErrorHint')
+              : tr('eglence.kelimeSofrasi.btnTekrarDene'),
           );
           posthog.capture('game_error', {
             screen: 'kelime_sofrasi',
@@ -495,7 +497,7 @@ export default function KelimeSofrasiOyunScreen() {
         screen: 'kelime_sofrasi',
         error_message: err instanceof Error ? err.message : 'next_round_failed',
       });
-      setMessage('Sonraki tur yüklenemedi');
+      setMessage(tr('eglence.kelimeSofrasi.msgSonrakiTurYuklenemedi'));
       setRoundComplete(true);
     } finally {
       setNextRoundLoading(false);
@@ -554,8 +556,8 @@ export default function KelimeSofrasiOyunScreen() {
         };
         const limitMsg =
           nextTamamlama >= SOFRA_GUNLUK_TAMAMLAMA_LIMIT
-            ? 'Sofra tamam! Bugünlük hakkın doldu.'
-            : `Sofra tamam! (${Math.min(nextTamamlama, SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD)}/${SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD})`;
+            ? tr('eglence.kelimeSofrasi.sofraLimitTamam')
+            : tr('eglence.kelimeSofrasi.sofraTamamSay', { current: Math.min(nextTamamlama, SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD), max: SOFRA_GUNLUK_TAMAMLAMA_LIMIT_PROD });
         setMessage(successMessage ?? limitMsg);
         setTimerRunning(false);
         const scoreResult = scoreKelimeSofrasi({
@@ -601,7 +603,7 @@ export default function KelimeSofrasiOyunScreen() {
       }
       if (path.length < SOFRA_MIN_KELIME_UZUNLUGU) {
         if (path.length === 2) {
-          setMessage('2 harf ayrı kelime değil — 3+ harfli ızgara kelimesi yaz');
+          setMessage(tr('eglence.kelimeSofrasi.msg2HarfMin'));
         }
         setSelectedPath([]);
         return;
@@ -610,7 +612,7 @@ export default function KelimeSofrasiOyunScreen() {
       const word = path.map((i) => puzzle.wheel[i]).join('');
       const norm = normalizeKelime(word);
       if (!kelimeCarktanOlusur(word, puzzle.wheel, path)) {
-        setMessage('Harfleri sırayla seç');
+        setMessage(tr('eglence.kelimeSofrasi.msgHarfleriSiralaSec'));
         setSelectedPath([]);
         return;
       }
@@ -630,7 +632,7 @@ export default function KelimeSofrasiOyunScreen() {
       if (!target) {
         if (bonusKelimeMi(puzzle, word)) {
           if (progress.bonusFound.some((b) => normalizeKelime(b) === norm)) {
-            setMessage('Bonus zaten bulundu');
+            setMessage(tr('eglence.kelimeSofrasi.msgBonusZatenBulundu'));
             setSelectedPath([]);
             return;
           }
@@ -646,29 +648,29 @@ export default function KelimeSofrasiOyunScreen() {
           });
           setSelectedPath([]);
           if (nextTier > prevTier) {
-            setMessage(`Bonus: ${norm} — 10/10! B rozetinin üstündeki ödüle dokun`);
+            setMessage(tr('eglence.kelimeSofrasi.msgBonus1010', { word: norm }));
           } else {
             const { cycle, hedef } = bonusIpucuIlerleme(nextBonus.length);
-            setMessage(`Bonus: ${norm} — ${cycle}/${hedef} (+1 ipucu yolunda)`);
+            setMessage(tr('eglence.kelimeSofrasi.msgBonusSay', { word: norm, cycle, hedef }));
           }
           return;
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setMessage(
           norm.length <= 3
-            ? 'Bonus değil — çarktaki harflerle başka kelime dene'
-            : 'Geçerli bonus değil — TDK’da yok veya ızgarada',
+            ? tr('eglence.kelimeSofrasi.msgBonusDegil')
+            : tr('eglence.kelimeSofrasi.msgGecersizBonus'),
         );
         setSelectedPath([]);
         return;
       }
       if (roundComplete) {
-        setMessage('Izgara tamam — bonus kelime arayabilirsin');
+        setMessage(tr('eglence.kelimeSofrasi.msgIzgaraTamam'));
         setSelectedPath([]);
         return;
       }
       if (progress.foundWordIds.includes(target.id)) {
-        setMessage('Zaten bulundu');
+        setMessage(tr('eglence.kelimeSofrasi.msgZatenBulundu'));
         setSelectedPath([]);
         return;
       }
@@ -712,7 +714,7 @@ export default function KelimeSofrasiOyunScreen() {
       bonusHintTiersClaimed: claimed,
       elapsedMs: elapsedRef.current,
     });
-    setMessage('+1 ipucu kazandın! Ampüle dokun.');
+    setMessage(tr('eglence.kelimeSofrasi.msgIpucuKazandin'));
   }, [progress]);
 
   const onHint = useCallback(async () => {
@@ -720,7 +722,7 @@ export default function KelimeSofrasiOyunScreen() {
     const dailyUsed = sofraDailyHintsUsed(progress);
     const claimedTiers = sofraBonusHintTiersClaimed(progress);
     if (!ipucuHakkiKaldi(dailyUsed, claimedTiers)) {
-      setMessage('İpucu hakkın bitti');
+      setMessage(tr('eglence.kelimeSofrasi.msgIpucuBitti'));
       return;
     }
     const hintIndex = dailyUsed;
@@ -733,12 +735,12 @@ export default function KelimeSofrasiOyunScreen() {
           hintIndex,
         });
         if (!spend.ok) {
-          setMessage('Yeterli GC yok');
+          setMessage(tr('eglence.kelimeSofrasi.msgYetersizGC'));
           return;
         }
         posthog.capture('jeton_spent', { amount: spend.charged, spent_on: 'game' });
       } catch {
-        setMessage('GastroCoin harcanamadı, tekrar dene');
+        setMessage(tr('eglence.kelimeSofrasi.msgGCHarcanaemadi'));
         return;
       }
     }
@@ -749,7 +751,7 @@ export default function KelimeSofrasiOyunScreen() {
       Math.random,
     );
     if (!cell) {
-      setMessage('Açılacak kutu kalmadı');
+      setMessage(tr('eglence.kelimeSofrasi.msgKutuKalmadi'));
       return;
     }
     const key = hucreAnahtar(cell.row, cell.col);
@@ -767,7 +769,7 @@ export default function KelimeSofrasiOyunScreen() {
       dailyHintsUsed: dailyUsed + 1,
       elapsedMs: elapsedRef.current,
     };
-    setMessage(`İpucu: ${cell.letter}`);
+    setMessage(tr('eglence.kelimeSofrasi.msgIpucu', { letter: cell.letter }));
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     if (autoIds.length) {
@@ -792,7 +794,7 @@ export default function KelimeSofrasiOyunScreen() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
         <Text style={{ color: colors.text, fontWeight: '800', fontSize: 17, textAlign: 'center' }}>
-          Sofra acilamadi
+          {tr('eglence.kelimeSofrasi.sofraAcilaemadi')}
         </Text>
         <Text style={{ color: colors.muted, fontWeight: '600', fontSize: 14, textAlign: 'center' }}>
           {loadError}
@@ -805,10 +807,10 @@ export default function KelimeSofrasiOyunScreen() {
             paddingHorizontal: 20,
             paddingVertical: 12,
           }}>
-          <Text style={{ color: '#fff', fontWeight: '800' }}>Tekrar dene</Text>
+          <Text style={{ color: '#fff', fontWeight: '800' }}>{tr('eglence.kelimeSofrasi.btnTekrarDene')}</Text>
         </Pressable>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.muted, fontWeight: '700' }}>Lobiye dön</Text>
+          <Text style={{ color: colors.muted, fontWeight: '700' }}>{tr('eglence.common.lobiyeDon')}</Text>
         </Pressable>
       </View>
     );
@@ -825,7 +827,7 @@ export default function KelimeSofrasiOyunScreen() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={{ color: colors.muted, fontWeight: '700' }}>Sofra hazırlanıyor…</Text>
+        <Text style={{ color: colors.muted, fontWeight: '700' }}>{tr('eglence.kelimeSofrasi.sofraHazırlaniyor')}</Text>
       </View>
     );
   }
@@ -905,12 +907,12 @@ export default function KelimeSofrasiOyunScreen() {
           <View style={styles.completeBar} pointerEvents="auto">
             <Text style={styles.completeTitle}>
               {resultScore
-                ? `${resultScore.score} puan · ${formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs)}`
-                : 'Sofra tamam!'}
+                ? tr('eglence.kelimeSofrasi.puanVeSure', { puan: resultScore.score, sure: formatChallengeElapsed(resultElapsedRef.current || progress.elapsedMs) })
+                : tr('eglence.kelimeSofrasi.sofraTamamGeneric')}
             </Text>
             {hintsLeft > 0 && claimedBonusTiers > 0 ? (
               <Text style={styles.completeSub}>
-                Kalan ipucu: {hintsLeft} — ızgara bittikten sonra kullanılamaz
+                {tr('eglence.kelimeSofrasi.kalanIpucu', { n: hintsLeft })}
               </Text>
             ) : null}
             {resultScore?.detail ? (
@@ -925,9 +927,9 @@ export default function KelimeSofrasiOyunScreen() {
                   onPress={() => void handleNextRound()}
                   disabled={nextRoundLoading}
                   accessibilityRole="button"
-                  accessibilityLabel="Yeni bulmaca">
+                  accessibilityLabel={tr('eglence.kelimeSofrasi.yeniBulmaca')}>
                   <Text style={styles.completeBtnText}>
-                    {nextRoundLoading ? 'Hazırlanıyor…' : 'Yeni bulmaca'}
+                    {nextRoundLoading ? tr('eglence.common.hazirlaniyorDots') : tr('eglence.kelimeSofrasi.yeniBulmaca')}
                   </Text>
                 </Pressable>
               ) : null}
@@ -940,8 +942,8 @@ export default function KelimeSofrasiOyunScreen() {
                 ]}
                 onPress={handleExitToLobby}
                 accessibilityRole="button"
-                accessibilityLabel="Çıkış">
-                <Text style={styles.completeBtnText}>Çıkış</Text>
+                accessibilityLabel={tr('eglence.kelimeSofrasi.cikis')}>
+                <Text style={styles.completeBtnText}>{tr('eglence.kelimeSofrasi.cikis')}</Text>
               </Pressable>
             </View>
           </View>

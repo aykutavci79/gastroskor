@@ -10,11 +10,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { GastroColors, GastroStyles } from '@/constants/theme';
 import {
   ACCOUNT_DELETION_CONFIRMATION,
-  accountDeletionErrorMessage,
   isAccountDeletionConfirmed,
   normalizeDeletionConfirmation,
 } from '@/lib/account-deletion';
@@ -27,20 +27,21 @@ type Props = {
   onDeleted: () => Promise<void>;
 };
 
-const LOSS_ITEMS = [
-  'Hesap bilgilerin (e-posta, ad, profil fotografi) kalici olarak silinir veya anonimlestirilir.',
-  'GastroSkor yorumlarin anonimlesir; metin restoran istatistikleri icin kalabilir.',
-  'GastroCoin bakiyen ve cüzdan kaydın silinir.',
-  'Arkadasliklarin ve ozel mesajlarin tamamen silinir.',
-  'Gurme sohbet mesajlarin "[silindi]" olarak isaretlenir.',
-  'Tamamlanmis siparis kayitlarindaki kisisel bilgiler anonimlestirilir (tutar/tarih yasal saklama icin kalir).',
-];
-
 export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<1 | 2>(1);
   const [confirmationText, setConfirmationText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const lossItems = [
+    t('deletion.loss1'),
+    t('deletion.loss2'),
+    t('deletion.loss3'),
+    t('deletion.loss4'),
+    t('deletion.loss5'),
+    t('deletion.loss6'),
+  ];
 
   const reset = useCallback(() => {
     setStep(1);
@@ -63,7 +64,7 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
   const handleSubmit = useCallback(async () => {
     const confirmation = normalizeDeletionConfirmation(confirmationText);
     if (!isAccountDeletionConfirmed(confirmation)) {
-      setError(`Onay icin tam olarak "${ACCOUNT_DELETION_CONFIRMATION}" yazin.`);
+      setError(t('deletion.confirmError', { phrase: ACCOUNT_DELETION_CONFIRMATION }));
       return;
     }
 
@@ -78,27 +79,24 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
       await onDeleted();
       reset();
       onClose();
-      Alert.alert(
-        'Hesabiniz silindi',
-        'Kisisel verileriniz isleme alindi. Ayni Google hesabiyla istediginiz zaman yeniden kayit olabilirsiniz.',
-      );
+      Alert.alert(t('deletion.deletedTitle'), t('deletion.deletedMsg'));
     } catch (err) {
       if (err instanceof AccountDeletionApiError && err.status === 409) {
         const detail = err.message.toLowerCase();
         if (detail.includes('bekleyen')) {
-          setError('Once bekleyen siparisini tamamla veya iptal et, sonra tekrar dene.');
+          setError(t('deletion.pendingOrderError'));
         } else if (detail.includes('panel') || detail.includes('restoran')) {
-          setError('Panel/restoran sahibi hesabi buradan silinemez. Destek ile iletisime gec.');
+          setError(t('deletion.panelOwnerError'));
         } else {
           setError(err.message);
         }
       } else {
-        setError(accountDeletionErrorMessage(err));
+        setError(err instanceof Error ? err.message : t('deletion.genericError'));
       }
     } finally {
       setBusy(false);
     }
-  }, [confirmationText, onClose, onDeleted, reset]);
+  }, [confirmationText, onClose, onDeleted, reset, t]);
 
   const canSubmit = isAccountDeletionConfirmed(confirmationText) && !busy;
 
@@ -108,13 +106,11 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           {step === 1 ? (
             <>
-              <Text style={styles.title}>Hesabini silmek istedigine emin misin?</Text>
-              <Text style={styles.warningBadge}>GERI ALINAMAZ</Text>
+              <Text style={styles.title}>{t('deletion.title')}</Text>
+              <Text style={styles.warningBadge}>{t('deletion.irreversible')}</Text>
               <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-                <Text style={styles.sub}>
-                  Bu islem kalicidir. Asagidakiler olur; devam etmeden once oku:
-                </Text>
-                {LOSS_ITEMS.map((item) => (
+                <Text style={styles.sub}>{t('deletion.intro')}</Text>
+                {lossItems.map((item) => (
                   <View key={item} style={styles.bulletRow}>
                     <Text style={styles.bullet}>•</Text>
                     <Text style={styles.bulletText}>{item}</Text>
@@ -123,19 +119,20 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
               </ScrollView>
               <View style={styles.actions}>
                 <Pressable style={styles.cancelBtn} onPress={handleClose}>
-                  <Text style={styles.cancelText}>Vazgec</Text>
+                  <Text style={styles.cancelText}>{t('deletion.cancel')}</Text>
                 </Pressable>
                 <Pressable style={styles.continueBtn} onPress={handleContinue}>
-                  <Text style={styles.continueText}>Devam et</Text>
+                  <Text style={styles.continueText}>{t('deletion.continue')}</Text>
                 </Pressable>
               </View>
             </>
           ) : (
             <>
-              <Text style={styles.title}>Son onay</Text>
+              <Text style={styles.title}>{t('deletion.step2Title')}</Text>
               <Text style={styles.sub}>
-                Hesabini kalici olarak silmek icin asagiya{' '}
-                <Text style={styles.confirmPhrase}>{ACCOUNT_DELETION_CONFIRMATION}</Text> yaz.
+                {t('deletion.step2SubBefore')}{' '}
+                <Text style={styles.confirmPhrase}>{ACCOUNT_DELETION_CONFIRMATION}</Text>{' '}
+                {t('deletion.step2SubAfter')}
               </Text>
               <TextInput
                 style={styles.input}
@@ -149,7 +146,7 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 editable={!busy}
-                accessibilityLabel="Hesap silme onay metni"
+                accessibilityLabel={t('deletion.confirmLabel')}
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <View style={styles.actions}>
@@ -161,7 +158,7 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
                     setConfirmationText('');
                     setError(null);
                   }}>
-                  <Text style={styles.cancelText}>Geri</Text>
+                  <Text style={styles.cancelText}>{t('deletion.back')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.deleteBtn, !canSubmit && styles.deleteBtnDisabled]}
@@ -170,7 +167,7 @@ export function AccountDeletionFlow({ visible, onClose, onDeleted }: Props) {
                   {busy ? (
                     <ActivityIndicator color={GastroColors.text} />
                   ) : (
-                    <Text style={styles.deleteText}>Hesabimi kalici olarak sil</Text>
+                    <Text style={styles.deleteText}>{t('deletion.deleteBtn')}</Text>
                   )}
                 </Pressable>
               </View>

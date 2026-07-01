@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  I18nManager,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -13,6 +14,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+
+import { useTranslation } from 'react-i18next';
 
 import { LOCAL_KITCHEN_IMAGES } from '@/constants/kitchen-category-images';
 import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
@@ -42,6 +45,7 @@ type Props = {
 export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
   const { city } = useCity();
   const router = useRouter();
+  const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const vitrin = variant === 'vitrin';
   const bannerWidth = vitrin ? ('100%' as const) : screenWidth - SCREEN_H_PAD * 2;
@@ -138,10 +142,10 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
 
   const countLine =
     openCount == null
-      ? 'Şimdi sipariş alan restoranları gör'
+      ? t('explore.orderCountLoading')
       : openCount === 0
-        ? 'Yakında pilot restoranlar burada'
-        : `${openCount} restoran şimdi sipariş alıyor`;
+        ? t('explore.orderCountEmpty')
+        : t('explore.orderCountN', { count: openCount });
 
   const slideA = slides[indexA];
   const slideB = slides[indexB];
@@ -160,7 +164,7 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
         router.push('/siparis-acik' as never);
       }}
       accessibilityRole="button"
-      accessibilityLabel="Online siparis acik restoranlar">
+      accessibilityLabel={t('explore.onlineOrderTitle')}>
       <View style={styles.mediaClip} pointerEvents="none">
         {slideA ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityA }]}>
@@ -189,18 +193,11 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
       <View style={[styles.content, vitrin && styles.contentVitrin]} pointerEvents="none">
         <View style={[styles.textBlock, vitrin && styles.textBlockVitrin]}>
           <View style={[styles.titlePill, vitrin && styles.titlePillVitrin]}>
-            <Text style={[styles.main, vitrin && styles.mainVitrin]}>Online Sipariş</Text>
+            <Text style={[styles.main, vitrin && styles.mainVitrin]}>{t('explore.onlineOrderTitle')}</Text>
           </View>
           <Text style={[styles.sub, vitrin && styles.subVitrin]}>
-            {vitrin ? (
-              <>
-                Tek Tıkla <Text style={styles.accent}>Liste</Text>
-              </>
-            ) : (
-              <>
-                Tek Tıkla <Text style={styles.accent}>Liste</Text>
-              </>
-            )}
+            {t('explore.oneClickPrefix')}{' '}
+            <Text style={styles.accent}>{t('explore.onlineOrderAccent')}</Text>
           </Text>
           {!vitrin ? <Text style={styles.hint}>{countLine}</Text> : null}
         </View>
@@ -213,7 +210,7 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
               color={GastroColors.gold}
             />
           </View>
-          {!vitrin ? <Ionicons name="chevron-forward" size={20} color="#fff" style={styles.chevron} /> : null}
+          {!vitrin ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={20} color="#fff" style={styles.chevron} /> : null}
         </View>
       </View>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,7 +26,6 @@ import {
   type VoiceOrderQuery,
 } from '@/lib/parse-voice-order-query';
 import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
-import { voiceMicSheetSubcopy } from '@/lib/voice-mic-copy';
 
 type Props = {
   visible: boolean;
@@ -35,11 +35,6 @@ type Props = {
   onSearch: (query: VoiceOrderQuery) => void;
 };
 
-const EXAMPLES = [
-  '1 km mesafede 150 TL lahmacun',
-  'Yakınımda 120 liraya kadar cantık',
-  '200 TL adana kebap',
-];
 
 export function VoiceOrderSheet({
   visible,
@@ -48,6 +43,7 @@ export function VoiceOrderSheet({
   onClose,
   onSearch,
 }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardBottomInset();
   const scrollRef = useRef<ScrollView>(null);
@@ -82,6 +78,12 @@ export function VoiceOrderSheet({
       setMicHint(null);
     }
   }, [micUiState.listening]);
+
+  const EXAMPLES = [
+    t('voice.example1'),
+    t('voice.example2'),
+    t('voice.example3'),
+  ];
 
   function applyExample(text: string) {
     setDraft(text);
@@ -140,9 +142,9 @@ export function VoiceOrderSheet({
               ]}
               onPress={(e) => e.stopPropagation()}>
               <View style={styles.handle} />
-              <Text style={styles.kicker}>Gastro Sipariş</Text>
-              <Text style={styles.title}>Ne arıyorsun?</Text>
-              <Text style={styles.sub}>{voiceMicSheetSubcopy()}</Text>
+              <Text style={styles.kicker}>{t('voice.orderTitle')}</Text>
+              <Text style={styles.title}>{t('voice.whatAreYouLooking')}</Text>
+              <Text style={styles.sub}>{t('voice.micSubcopy')}</Text>
 
               <View
                 style={styles.inputRow}
@@ -152,7 +154,7 @@ export function VoiceOrderSheet({
                 <TextInput
                   value={draft}
                   onChangeText={setDraft}
-                  placeholder="Örn: 1 km mesafede 150 TL lahmacun"
+                  placeholder={t('voice.sheetPlaceholder')}
                   placeholderTextColor={GastroColors.muted}
                   multiline
                   style={[styles.input, styles.inputFlex]}
@@ -166,7 +168,6 @@ export function VoiceOrderSheet({
                       active={sheetShown && !searching}
                       autoStart={false}
                       disabled={searching || micUiState.transcribing}
-                      disabled={searching}
                       onTranscript={handleVoiceTranscript}
                       onUiStateChange={setMicUiState}
                       onHintChange={setMicHint}
@@ -177,7 +178,7 @@ export function VoiceOrderSheet({
               {micHint ? <Text style={styles.micHint}>{micHint}</Text> : null}
 
               <View style={styles.preview}>
-                <Text style={styles.previewLabel}>Anladığım</Text>
+                <Text style={styles.previewLabel}>{t('voice.heard')}</Text>
                 <Text style={styles.previewText}>{formatVoiceOrderSummary(parsed)}</Text>
                 {parsed.issues.length > 0 && parsed.confidence !== 'high' ? (
                   <Text style={styles.previewIssues}>{parsed.issues.join(' ')}</Text>
@@ -194,7 +195,7 @@ export function VoiceOrderSheet({
 
               <View style={styles.actions}>
                 <Pressable style={styles.cancelBtn} onPress={onClose} disabled={searching}>
-                  <Text style={styles.cancelText}>Kapat</Text>
+                  <Text style={styles.cancelText}>{t('voice.closeBtn')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.searchBtn, !canSearch && styles.searchBtnDisabled]}
@@ -203,7 +204,7 @@ export function VoiceOrderSheet({
                   {searching ? (
                     <ActivityIndicator color="#141414" />
                   ) : (
-                    <Text style={styles.searchText}>Ara</Text>
+                    <Text style={styles.searchText}>{t('voice.searchBtn')}</Text>
                   )}
                 </Pressable>
               </View>

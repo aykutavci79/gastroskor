@@ -27,7 +27,11 @@ import {
   writeStoredOrderPhone,
 } from '@/lib/order-contact-secure-storage';
 import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
-import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
+import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead, OrderPaymentOption } from '@/lib/types';
+import {
+  DEFAULT_ORDER_PAYMENT_OPTIONS,
+  OrderPaymentMethodPicker,
+} from '@/components/OrderPaymentMethodPicker';
 
 type LineState = {
   selected: boolean;
@@ -67,6 +71,12 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentOptions, setPaymentOptions] = useState<OrderPaymentOption[]>(
+    restaurant.order_payment_options?.length
+      ? restaurant.order_payment_options
+      : DEFAULT_ORDER_PAYMENT_OPTIONS,
+  );
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const phoneOffsetY = useRef(0);
   const addressOffsetY = useRef(0);
   const noteOffsetY = useRef(0);
@@ -78,6 +88,20 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     [onFieldFocus],
   );
 
+  const resolvedPaymentOptions = useMemo(
+    () => (paymentOptions.length > 0 ? paymentOptions : DEFAULT_ORDER_PAYMENT_OPTIONS),
+    [paymentOptions],
+  );
+
+  useEffect(() => {
+    setPaymentMethod((current) => {
+      if (current && resolvedPaymentOptions.some((row) => row.code === current)) {
+        return current;
+      }
+      return resolvedPaymentOptions[0]?.code ?? null;
+    });
+  }, [resolvedPaymentOptions]);
+
   const refreshActive = useCallback(async () => {
     if (!userEmail || !restaurant.id) {
       setLoading(false);
@@ -87,6 +111,9 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     try {
       const active = await getActiveRestaurantOrder(restaurant.id, userEmail);
       setAvailable(active.online_orders_available);
+      if (active.order_payment_options?.length) {
+        setPaymentOptions(active.order_payment_options);
+      }
       setPendingOrder(active.pending_order);
       setRejectedOrder(active.pending_order ? null : active.recent_rejected_order ?? null);
       const orderPhone = active.order_phone;
@@ -274,6 +301,10 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       setError('Teslimat adresinizi yazin (mahalle, sokak, bina).');
       return;
     }
+    if (!paymentMethod) {
+      setError('Odeme yontemi secin.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -289,12 +320,13 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
         customer_phone: phone.trim(),
         customer_address: address.trim(),
         note: note.trim() || undefined,
+        payment_method: paymentMethod,
         lines: payloadLines,
       });
       posthog.capture('order_completed', {
         restaurant_id: restaurant.id,
         order_total: order.total_tl,
-        payment_method: 'online',
+        payment_method: paymentMethod,
       });
       await refreshActive();
       onOrderSent?.();
@@ -466,6 +498,14 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
           multiline
         />
       </View>
+
+      <OrderPaymentMethodPicker
+        options={resolvedPaymentOptions}
+        value={paymentMethod}
+        onChange={setPaymentMethod}
+        title="Odeme yontemi"
+        hint="Odeme teslimatta restoran veya kurye cihazinda alinir."
+      />
 
       <View style={styles.footer}>
         <Text style={styles.totalLabel}>Toplam</Text>

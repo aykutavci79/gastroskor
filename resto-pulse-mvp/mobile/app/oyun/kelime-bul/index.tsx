@@ -2,6 +2,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceGameLobbyTitle } from '@/components/eglence/EglenceGameLobbyTitle';
 import { eglenceLobbyTheme, EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
@@ -30,6 +31,7 @@ export default function KelimeBulLobbyScreen() {
   const router = useRouter();
   const { user } = useSession();
   const t = eglenceLobbyTheme('kelime-bul');
+  const { t: tr } = useTranslation();
   const periodId = activePuzzleId();
   const [inProgress, setInProgress] = useState(false);
   const [guestPlays, setGuestPlays] = useState(0);
@@ -107,15 +109,15 @@ export default function KelimeBulLobbyScreen() {
   );
 
   const guestFree = guestFreeRemaining(guestPlays);
-  const butonYazi = inProgress ? 'Devam Et' : 'Oyna';
+  const butonYazi = inProgress ? tr('eglence.common.devamEt') : tr('eglence.common.oyna');
 
   const hakMetni = KELIME_BUL_LIMIT_DISABLED
-    ? 'Dev modu — sınırsız oyna'
+    ? tr('eglence.kelimeBul.devMod')
     : user?.email
       ? freeRemaining != null
-        ? `Bugün ${freeRemaining} ücretsiz hakkın kaldı`
-        : `Günde ${KELIME_BUL_GUNLUK_UCRETSIZ} ücretsiz · sonrası ${KELIME_BUL_GC_MALIYET} ${GASTROCOIN_SHORT}`
-      : `Misafir: ${guestFree} ücretsiz hak · sonrası giriş + ${KELIME_BUL_GC_MALIYET} ${GASTROCOIN_SHORT}`;
+        ? tr('eglence.kelimeBul.freeRemaining', { n: freeRemaining })
+        : tr('eglence.kelimeBul.dailyFree', { n: KELIME_BUL_GUNLUK_UCRETSIZ, cost: KELIME_BUL_GC_MALIYET, gc: GASTROCOIN_SHORT })
+      : tr('eglence.kelimeBul.guestFree', { n: guestFree, cost: KELIME_BUL_GC_MALIYET, gc: GASTROCOIN_SHORT });
 
   async function onPlayPress() {
     if (starting) return;
@@ -143,7 +145,7 @@ export default function KelimeBulLobbyScreen() {
           setGcModal(true);
           return;
         }
-        Alert.alert('Bağlantı', 'Oyun başlatılamadı. Biraz sonra tekrar dene.');
+        Alert.alert('', tr('eglence.kelimeBul.baglantıHatasi'));
         return;
       }
       router.push(`/oyun/kelime-bul/oyun?puzzleId=${result.puzzleId}` as Href);
@@ -160,8 +162,8 @@ export default function KelimeBulLobbyScreen() {
     <>
       <EglenceGameLobbyScreen gameId="kelime-bul" scroll={false} edges={['left', 'right', 'bottom']}>
         <ScrollView contentContainerStyle={styles.content}>
-          <EglenceGameLobbyTitle gameId="kelime-bul" title="Kelime Bul" />
-          <Text style={styles.alt}>Kelime avı · 10×10 · yatay · dikey · çapraz</Text>
+          <EglenceGameLobbyTitle gameId="kelime-bul" title={tr('eglence.kelimeBul.title')} />
+          <Text style={styles.alt}>{tr('eglence.kelimeBul.subtitle')}</Text>
 
           <View style={styles.schedulePill}>
             <Text style={styles.scheduleTitle}>{formatPuzzlePeriodLabel(periodId)}</Text>
@@ -169,8 +171,8 @@ export default function KelimeBulLobbyScreen() {
           </View>
 
           <View style={styles.kutu}>
-            <Text style={styles.madde}>👆 Parmağınla harfleri sürükleyerek kelime seç</Text>
-            <Text style={styles.madde}>🍽️ Yemek & restoran temalı Türkçe kelimeler</Text>
+            <Text style={styles.madde}>{tr('eglence.kelimeBul.rule1')}</Text>
+            <Text style={styles.madde}>{tr('eglence.kelimeBul.rule2')}</Text>
             <Text style={styles.madde}>{hakMetni}</Text>
           </View>
 

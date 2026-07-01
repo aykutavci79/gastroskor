@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
@@ -48,6 +49,7 @@ function safeHaptic(fn: () => Promise<unknown>): void {
 
 export default function GunlukKelimeOyunScreen() {
   const t = eglenceLobbyTheme('gunluk-kelime');
+  const { t: tr } = useTranslation();
   const router = useRouter();
   const { oturum: oturumParam } = useLocalSearchParams<{ oturum?: string }>();
   const oturumYeni = oturumParam === 'yeni';
@@ -166,7 +168,7 @@ export default function GunlukKelimeOyunScreen() {
       }
     })().catch(() => {
       if (!alive) return;
-      setMessage('Oyun yüklenemedi — lobiden tekrar dene');
+      setMessage(tr('eglence.gunlukKelime.oyunYuklenemedi'));
       setLoading(false);
     });
     return () => {
@@ -197,21 +199,21 @@ export default function GunlukKelimeOyunScreen() {
     try {
       const harfSayisi = gunlukKelimeHarfSayisi(current);
       if (harfSayisi !== GUNLUK_KELIME_LENGTH) {
-        showMessage('5 harf gir', 'warn');
+        showMessage(tr('eglence.gunlukKelime.harf5Gir'), 'warn');
         rejectGuess();
         return;
       }
 
       const canonical = gunlukKelimeKanonik(current);
       if (!canonical) {
-        showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
+        showMessage(tr('eglence.gunlukKelime.sozluktYok'), 'warn');
         rejectGuess();
         return;
       }
 
       const answerChars = gunlukKelimeGraphemes(progress.answer);
       if (answerChars.length !== GUNLUK_KELIME_LENGTH) {
-        showMessage('Günlük kelime yüklenemedi — lobiden tekrar gir', 'bad');
+        showMessage(tr('eglence.gunlukKelime.kelimeYuklenemedi'), 'bad');
         return;
       }
       const answer = answerChars.join('');
@@ -219,7 +221,7 @@ export default function GunlukKelimeOyunScreen() {
       clearMessage();
       const states = tryScoreGunlukKelimeGuess(answer, canonical);
       if (!states) {
-        showMessage('Sözlükte yok — geçerli 5 harfli kelime dene', 'warn');
+        showMessage(tr('eglence.gunlukKelime.sozluktYok'), 'warn');
         rejectGuess();
         return;
       }
@@ -265,10 +267,10 @@ export default function GunlukKelimeOyunScreen() {
       }
     } catch (err) {
       if (__DEV__) console.warn('gunluk-kelime submit', err);
-      showMessage('Tahmin işlenemedi — tekrar dene', 'bad');
+      showMessage(tr('eglence.gunlukKelime.tahminIslenemedi'), 'bad');
       rejectGuess();
     }
-  }, [clearMessage, current, locked, persist, progress, puzzleId, rejectGuess, showMessage]);
+  }, [clearMessage, current, locked, persist, progress, puzzleId, rejectGuess, showMessage, tr]);
 
   const onKey = useCallback(
     (key: string) => {
@@ -280,14 +282,14 @@ export default function GunlukKelimeOyunScreen() {
       }
       if (key === 'ENTER') {
         void submitGuess().catch(() => {
-          showMessage('Tahmin işlenemedi — tekrar dene', 'bad');
+          showMessage(tr('eglence.gunlukKelime.tahminIslenemedi'), 'bad');
         });
         return;
       }
       setCurrent((c) => gunlukKelimeAppendHarf(c, key));
       clearMessage();
     },
-    [clearMessage, locked, progress, showMessage, submitGuess],
+    [clearMessage, locked, progress, showMessage, submitGuess, tr],
   );
 
   const shareResult = useCallback(async () => {
@@ -306,7 +308,7 @@ export default function GunlukKelimeOyunScreen() {
 
   if (loading || !progress) {
     return (
-      <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']}>
+      <EglenceGameLobbyScreen gameId="gunluk-kelime" scroll={false} edges={['left', 'right', 'bottom']} showSfxToggle={false}>
         <View style={styles.center}>
           <ActivityIndicator color={t.accent} size="large" />
         </View>
@@ -322,11 +324,12 @@ export default function GunlukKelimeOyunScreen() {
         gameId="gunluk-kelime"
         scroll
         style={styles.playContent}
-        edges={['left', 'right', 'bottom']}>
+        edges={['left', 'right', 'bottom']}
+        showSfxToggle={false}>
       <Text style={styles.meta}>
         {progress.guesses.length}/{GUNLUK_KELIME_MAX_GUESSES} · {puzzleId}
       </Text>
-      <Text style={styles.legend}>🟩 Harf doğru kutu · 🟨 Harf var, başka yerde · ⬛ Yok</Text>
+      <Text style={styles.legend}>{tr('eglence.gunlukKelime.oyunLegend')}</Text>
 
       <GunlukKelimeBoard guesses={progress.guesses} current={current} shakeRow={shakeRow} />
 
@@ -344,7 +347,7 @@ export default function GunlukKelimeOyunScreen() {
       {showResult ? (
         <View style={styles.resultBox}>
           <Pressable style={styles.shareBtn} onPress={() => void shareResult()}>
-            <Text style={styles.shareText}>Sonucu paylaş</Text>
+            <Text style={styles.shareText}>{tr('eglence.gunlukKelime.sonucPaylas')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -354,7 +357,7 @@ export default function GunlukKelimeOyunScreen() {
         visible={resultOpen}
         onClose={() => setResultOpen(false)}
         onDone={handleResultDone}
-        gameLabel="Günlük Kelime"
+        gameLabel={tr('eglence.gunlukKelime.title')}
         periodKey={puzzleId}
         score={resultScore?.score}
         scoreDetail={resultScore?.detail}

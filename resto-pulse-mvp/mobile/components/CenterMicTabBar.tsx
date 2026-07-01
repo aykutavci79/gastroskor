@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import type { GastroColorScheme } from '@/constants/theme';
 import { useGastroTheme } from '@/context/theme-context';
@@ -82,6 +83,7 @@ function TabButton({
 export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useGastroTheme();
+  const { t } = useTranslation();
   const shellStyles = useMemo(() => createShellStyles(colors), [colors]);
 
   const tabs: TabEntry[] = state.routes
@@ -124,15 +126,15 @@ export function CenterMicTabBar({ state, descriptors, navigation }: BottomTabBar
         </View>
       </View>
 
-      <View style={[styles.micSlot, { top: -MIC_LIFT }]}>
+      <View style={[styles.micSlot, { top: -MIC_LIFT }]} pointerEvents="box-none">
         <Pressable
           style={({ pressed }) => [shellStyles.micBtn, pressed && styles.micBtnPressed]}
           onPress={openKesfetVoiceOverlay}
           accessibilityRole="button"
-          accessibilityLabel="Sesli arama">
+          accessibilityLabel={t('nav.voiceSearch')}>
           <Ionicons name="mic" size={22} color="#fff" />
-        </Pressable>
-        <Text style={[styles.micLabel, { color: colors.accent }]}>Ses</Text>
+          </Pressable>
+        <Text style={[styles.micLabel, { color: colors.accent }]}>{t('nav.voice')}</Text>
       </View>
     </View>
   );
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: -2,
-    right: 8,
+    end: 8,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -195,10 +197,9 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
   micSlot: {
     position: 'absolute',
-    left: '50%',
-    transform: [{ translateX: -MIC_SIZE / 2 }],
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    width: MIC_SIZE,
   },
   micBtnPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   micLabel: {

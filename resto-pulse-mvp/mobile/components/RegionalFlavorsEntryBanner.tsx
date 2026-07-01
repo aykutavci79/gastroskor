@@ -13,6 +13,7 @@ import {
   type ImageSourcePropType,
   type ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kesfet-vitrin-banner';
 import { GastroColors } from '@/constants/theme';
@@ -45,6 +46,7 @@ function buildSlides(items: RegionalProductItem[]): Slide[] {
 export function RegionalFlavorsEntryBanner({ style }: Props) {
   const { city, cityLabel } = useCity();
   const router = useRouter();
+  const { t } = useTranslation();
   const [count, setCount] = useState<number | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
 
@@ -71,10 +73,10 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
 
   const countLine =
     count == null
-      ? `${cityLabel} · yükleniyor…`
+      ? t('explore.regionalLoading', { city: cityLabel })
       : count === 0
-        ? `${cityLabel} · tescilli ürün listesi yakında`
-        : `${cityLabel} · ${count} tescilli ürün`;
+        ? t('explore.regionalEmpty', { city: cityLabel })
+        : t('explore.regionalCountN', { city: cityLabel, count });
 
   const slideA = safeSlides[indexA];
   const slideB = safeSlides[indexB];
@@ -87,7 +89,7 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
         router.push('/yoresel' as never);
       }}
       accessibilityRole="button"
-      accessibilityLabel="Yöresel lezzetler">
+      accessibilityLabel={t('explore.regionalTitle')}>
       <View style={styles.mediaClip} pointerEvents="none">
         {slideA ? (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: opacityA }]}>
@@ -127,10 +129,11 @@ export function RegionalFlavorsEntryBanner({ style }: Props) {
       <View style={styles.content} pointerEvents="none">
         <View style={styles.textBlock}>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>Yöresel Lezzetler</Text>
+            <Text style={styles.pillText}>{t('explore.regionalTitle')}</Text>
           </View>
           <Text style={styles.title}>
-            Tek Tıkla <Text style={styles.accent}>Keşfet</Text>
+            {t('explore.oneClickPrefix')}{' '}
+            <Text style={styles.accent}>{t('explore.oneClickDiscover')}</Text>
           </Text>
           <Text style={styles.hint}>{countLine}</Text>
         </View>
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   },
   productTag: {
     position: 'absolute',
-    right: 8,
+    end: 8,
     bottom: 8,
     maxWidth: '52%',
     borderRadius: 6,

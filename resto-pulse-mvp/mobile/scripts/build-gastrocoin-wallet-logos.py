@@ -1,4 +1,4 @@
-"""GastroCoin cüzdan logosu — beyaz fonu şeffaf yap (kart turuncusu alttan görünsün)."""
+"""GastroCoin marka logolari — tek kaynak: assets/gastro-hub/gastrocoin-logo-master.png"""
 from __future__ import annotations
 
 from collections import deque
@@ -11,13 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "assets" / "gastro-hub" / "gastrocoin-logo-master.png"
 OUT_DIR = ROOT / "assets" / "gastro-hub"
 OUT_TRANSPARENT = OUT_DIR / "gastrocoin-wallet-transparent.png"
+OUT_LOGO = OUT_DIR / "gastrocoin-logo.png"
+OUT_ICON_GC = OUT_DIR / "gastrocoin-icon-gc.png"
 OUT_COIN = OUT_DIR / "designs" / "gastrocoin-wallet-coin-transparent.png"
-
-PREVIEW_TRANSPARENT_TARGETS = (
-    OUT_DIR / "designs" / "gastrocoin-preview-fork-coin.png",
-    OUT_DIR / "designs" / "gastrocoin-preview-gc-serif-coin.png",
-    OUT_DIR / "designs" / "gastrocoin-preview-wallet-logo.png",
-)
 
 NAVY_RGB = np.array([27, 58, 87], dtype=np.float32)
 NAVY_HI_RGB = np.array([118, 178, 228], dtype=np.float32)
@@ -151,14 +147,51 @@ def trim_transparent(img: Image.Image, alpha_min: int = 16) -> Image.Image:
     return Image.fromarray(rgba[top:bottom, left:right], mode="RGBA")
 
 
-def crop_coin_only(img: Image.Image) -> Image.Image:
-    rgba = np.array(img)
+def pad_rgba(img: Image.Image, px: int = 5) -> Image.Image:
+    rgba = np.array(img.convert("RGBA"))
     h, w = rgba.shape[:2]
-    top = int(h * 0.01)
-    bottom = int(h * 0.64)
-    left = int(w * 0.14)
-    right = int(w * 0.86)
-    return Image.fromarray(rgba[top:bottom, left:right], mode="RGBA")
+    out = np.zeros((h + px * 2, w + px * 2, 4), dtype=np.uint8)
+    out[px : px + h, px : px + w] = rgba
+    return Image.fromarray(out, mode="RGBA")
+
+
+def crop_coin_only(img: Image.Image) -> Image.Image:
+    """Tam logodan yalnizca ustteki coin bolgesini kes (alt yazi haric)."""
+    rgba = np.array(img.convert("RGBA"))
+    alpha = rgba[:, :, 3]
+    h, w = rgba.shape[:2]
+    ys, xs = np.where(alpha > 16)
+    if ys.size == 0:
+        top = int(h * 0.01)
+        bottom = int(h * 0.64)
+        left = int(w * 0.14)
+        right = int(w * 0.86)
+        return Image.fromarray(rgba[top:bottom, left:right], mode="RGBA")
+
+    left = int(xs.min())
+    right = int(xs.max())
+    top = int(ys.min())
+
+    coin_bottom = top
+    in_coin = False
+    for y in range(top, h):
+        row_w = int((alpha[y, :] > 16).sum())
+        if row_w >= 36:
+            in_coin = True
+            coin_bottom = y
+            continue
+        if in_coin and row_w <= 18:
+            break
+
+    if coin_bottom <= top:
+        coin_bottom = top + int((h - top) * 0.82)
+
+    pad = 3
+    crop_top = max(0, top - pad)
+    crop_bottom = min(h - 1, coin_bottom + pad)
+    crop_left = max(0, left - pad)
+    crop_right = min(w - 1, right + pad)
+    return Image.fromarray(rgba[crop_top : crop_bottom + 1, crop_left : crop_right + 1], mode="RGBA")
 
 
 def main() -> None:
@@ -166,34 +199,19 @@ def main() -> None:
     (OUT_DIR / "designs").mkdir(parents=True, exist_ok=True)
 
     transparent = make_transparent_logo(SRC)
-    transparent.save(OUT_TRANSPARENT, optimize=True)
+    trimmed = trim_transparent(transparent)
+    trimmed.save(OUT_TRANSPARENT, optimize=True)
+    trimmed.save(OUT_LOGO, optimize=True)
 
-    for target in PREVIEW_TRANSPARENT_TARGETS:
-        if not target.is_file():
-            print("Skip (missing):", target.relative_to(ROOT))
-            continue
-        if target.name == "gastrocoin-preview-fork-coin.png":
-            src_path = OUT_DIR / "designs" / "gastrocoin-preview-fork-coin-source.png"
-            if src_path.is_file():
-                base = remap_fork_blue_to_navy(Image.open(src_path).convert("RGBA"))
-                img = make_transparent_image(base)
-            else:
-                img = make_transparent_logo(target)
-        else:
-            img = make_transparent_logo(target)
-            if target.name == "gastrocoin-preview-wallet-logo.png":
-                img = trim_transparent(img)
-        img.save(target, optimize=True)
-        print(" ", target.relative_to(ROOT))
-
-    fork_coin = OUT_DIR / "designs" / "gastrocoin-preview-fork-coin.png"
-    if fork_coin.is_file():
-        Image.open(fork_coin).save(OUT_COIN, optimize=True)
-    else:
-        crop_coin_only(transparent).save(OUT_COIN, optimize=True)
+    coin = trim_transparent(crop_coin_only(trimmed))
+    coin = pad_rgba(coin, px=6)
+    coin.save(OUT_COIN, optimize=True)
+    coin.save(OUT_ICON_GC, optimize=True)
 
     print("Wrote:")
     print(" ", OUT_TRANSPARENT.relative_to(ROOT))
+    print(" ", OUT_LOGO.relative_to(ROOT))
+    print(" ", OUT_ICON_GC.relative_to(ROOT))
     print(" ", OUT_COIN.relative_to(ROOT))
 
 

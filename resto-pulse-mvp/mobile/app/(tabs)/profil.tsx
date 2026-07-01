@@ -219,6 +219,7 @@ export default function ProfilScreen() {
       ) : (
         <View style={styles.card}>
           <Text style={styles.muted}>{t('profile.signInHint')}</Text>
+          <Text style={styles.signInSteps}>{t('profile.signInSteps')}</Text>
           <KvkkConsentCheckbox checked={kvkkAccepted} onChange={setKvkkAccepted} />
           <AppleSignInButton
             consentAccepted={kvkkAccepted}
@@ -345,6 +346,12 @@ const styles = StyleSheet.create({
   label: { color: GastroColors.muted, fontSize: 12 },
   email: { color: GastroColors.text, fontSize: 16, fontWeight: '700' },
   muted: { color: GastroColors.muted, fontSize: 13 },
+  signInSteps: {
+    color: GastroColors.accent,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
   dividerLabel: {
     color: GastroColors.muted,
     fontSize: 11,

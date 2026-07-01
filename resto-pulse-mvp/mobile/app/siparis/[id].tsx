@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
@@ -33,10 +34,10 @@ function formatWhen(value?: string | null) {
   });
 }
 
-function statusLabel(status: RestaurantOrderRead['status']) {
-  if (status === 'pending') return 'Bekliyor';
-  if (status === 'accepted') return 'Onaylandi';
-  return 'Reddedildi';
+function statusLabel(status: RestaurantOrderRead['status'], t: (key: string) => string) {
+  if (status === 'pending') return t('orders.statusPending');
+  if (status === 'accepted') return t('orders.statusAccepted');
+  return t('orders.statusRejected');
 }
 
 function statusColor(status: RestaurantOrderRead['status'], colors: GastroColorScheme) {
@@ -45,14 +46,15 @@ function statusColor(status: RestaurantOrderRead['status'], colors: GastroColorS
   return colors.muted;
 }
 
-function friendlyOrderError(err: unknown): string {
+function friendlyOrderError(err: unknown, t: (key: string) => string): string {
   const raw = err instanceof Error ? err.message : String(err ?? '');
-  if (/404|bulunamadi/i.test(raw)) return 'Siparis bulunamadi.';
-  if (/401|Oturum|Unauthorized/i.test(raw)) return 'Oturum suresi dolmus olabilir. Tekrar giris yap.';
-  return 'Siparis detayi yuklenemedi. Biraz sonra tekrar dene.';
+  if (/404|bulunamadi/i.test(raw)) return t('siparis.notFound');
+  if (/401|Oturum|Unauthorized/i.test(raw)) return t('siparis.sessionExpired');
+  return t('siparis.loadFailed');
 }
 
 export default function SiparisDetayScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const orderId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -79,7 +81,7 @@ export default function SiparisDetayScreen() {
       })
       .catch((err) => {
         setOrder(null);
-        setError(friendlyOrderError(err));
+        setError(friendlyOrderError(err, t));
       })
       .finally(() => setLoading(false));
   }, [orderId, user?.email]);
@@ -95,11 +97,11 @@ export default function SiparisDetayScreen() {
   if (!user?.email) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('order.detail')) }} />
         <Screen scroll edges={['left', 'right']}>
-        <Text style={styles.muted}>Siparis detayi icin giris yap.</Text>
+        <Text style={styles.muted}>{t('siparis.loginPrompt')}</Text>
         <Pressable style={styles.btnOutline} onPress={() => router.push('/(tabs)/profil' as never)}>
-          <Text style={styles.btnOutlineText}>Hesaba git</Text>
+          <Text style={styles.btnOutlineText}>{t('siparis.goToAccount')}</Text>
         </Pressable>
       </Screen>
       </>
@@ -109,7 +111,7 @@ export default function SiparisDetayScreen() {
   if (loading) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('order.detail')) }} />
         <Screen edges={['left', 'right']}>
           <ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} />
         </Screen>
@@ -120,13 +122,13 @@ export default function SiparisDetayScreen() {
   if (error || !order) {
     return (
       <>
-        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+        <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('order.detail')) }} />
         <Screen scroll edges={['left', 'right']}>
         <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Detay acilamadi</Text>
-          <Text style={styles.error}>{error ?? 'Siparis bulunamadi.'}</Text>
+          <Text style={styles.errorTitle}>{t('siparis.errorTitle')}</Text>
+          <Text style={styles.error}>{error ?? t('siparis.notFound')}</Text>
           <Pressable style={styles.btnOutline} onPress={load}>
-            <Text style={styles.btnOutlineText}>Tekrar dene</Text>
+            <Text style={styles.btnOutlineText}>{t('common.retry')}</Text>
           </Pressable>
         </View>
       </Screen>
@@ -136,7 +138,7 @@ export default function SiparisDetayScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle('Sipariş detayı') }} />
+      <Stack.Screen options={{ headerTitle: gastroCoinStackHeaderTitle(t('order.detail')) }} />
       <Screen scroll edges={['left', 'right']}>
       <View style={styles.hero}>
         <View
@@ -145,7 +147,7 @@ export default function SiparisDetayScreen() {
             { borderColor: statusColor(order.status, colors), backgroundColor: `${statusColor(order.status, colors)}18` },
           ]}>
           <Text style={[styles.statusText, { color: statusColor(order.status, colors) }]}>
-            {statusLabel(order.status)}
+            {statusLabel(order.status, t)}
           </Text>
         </View>
         <Text style={styles.when}>{formatWhen(order.created_at)}</Text>
@@ -153,20 +155,20 @@ export default function SiparisDetayScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>Restoran</Text>
+        <Text style={styles.sectionLabel}>{t('orders.defaultRestaurant')}</Text>
         <Pressable
           disabled={!restaurantHref}
           onPress={() => {
             if (restaurantHref) router.push(restaurantHref as never);
           }}>
           <Text style={[styles.restaurantName, restaurantHref && styles.link]}>
-            {order.restaurant_name ?? 'Restoran'}
+            {order.restaurant_name ?? t('orders.defaultRestaurant')}
           </Text>
         </Pressable>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>Kalemler</Text>
+        <Text style={styles.sectionLabel}>{t('siparis.sectionItems')}</Text>
         {order.lines.map((line) => (
           <View key={line.id} style={styles.lineRow}>
             <Text style={styles.lineName} numberOfLines={2}>
@@ -178,33 +180,33 @@ export default function SiparisDetayScreen() {
           </View>
         ))}
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Toplam</Text>
+          <Text style={styles.totalLabel}>{t('siparis.sectionTotal')}</Text>
           <Text style={styles.totalValue}>{formatPriceTl(order.total_tl, 0) ?? '—'} TL</Text>
         </View>
       </View>
 
       {order.note?.trim() ? (
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Not</Text>
+          <Text style={styles.sectionLabel}>{t('siparis.sectionNote')}</Text>
           <Text style={styles.noteText}>{order.note.trim()}</Text>
         </View>
       ) : null}
 
       {order.customer_address?.trim() ? (
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Adres</Text>
+          <Text style={styles.sectionLabel}>{t('siparis.sectionAddress')}</Text>
           <Text style={styles.noteText}>{order.customer_address.trim()}</Text>
         </View>
       ) : null}
 
       {order.status === 'rejected' ? (
         <View style={styles.rejectCard}>
-          <Text style={styles.rejectTitle}>Red mesaji</Text>
+          <Text style={styles.rejectTitle}>{t('siparis.sectionRejection')}</Text>
           {order.reject_reason_label ? (
             <Text style={styles.rejectReason}>{order.reject_reason_label}</Text>
           ) : null}
           <Text style={styles.rejectMessage}>
-            {order.reject_message?.trim() || 'Restoran siparisi reddetti.'}
+            {order.reject_message?.trim() || t('siparis.restaurantRejected')}
           </Text>
         </View>
       ) : null}
@@ -219,15 +221,15 @@ export default function SiparisDetayScreen() {
                 params: { id: order.restaurant_id, focus: 'menu' },
               } as never)
             }>
-            <Text style={styles.btnPrimaryText}>Tekrarla</Text>
+            <Text style={styles.btnPrimaryText}>{t('siparis.reorderBtn')}</Text>
           </Pressable>
         ) : null}
         {order.can_review ? (
           <Pressable style={styles.btnOutline} onPress={() => setRatingOpen(true)}>
-            <Text style={styles.btnOutlineText}>Puan ver</Text>
+            <Text style={styles.btnOutlineText}>{t('orders.rate')}</Text>
           </Pressable>
         ) : order.has_review ? (
-          <Text style={styles.ratedHint}>Bu siparis puanlandi.</Text>
+          <Text style={styles.ratedHint}>{t('siparis.ratedHint')}</Text>
         ) : null}
       </View>
 

@@ -28,6 +28,11 @@ from app.services.online_order_hours import (
     online_order_hours_status,
     online_orders_within_hours,
 )
+from app.constants.order_payment_methods import (
+    build_order_payment_options,
+    payment_method_label,
+    validate_order_payment_method,
+)
 from app.constants.order_reject_reasons import (
     build_reject_customer_message,
     reject_reason_label,
@@ -160,12 +165,28 @@ def order_line_to_dict(line: RestaurantOrderLine) -> dict:
     }
 
 
-def order_to_dict(order: RestaurantOrder, *, restaurant_name: str | None = None) -> dict:
+def order_payment_options_for_ownership(ownership: RestaurantOwnership | None) -> list[dict[str, str]]:
+    if not ownership or not online_orders_configured(ownership):
+        return []
+    return build_order_payment_options(
+        ownership.accepted_payment_methods,
+        custom_label=ownership.custom_payment_label,
+    )
+
+
+def order_to_dict(
+    order: RestaurantOrder,
+    *,
+    restaurant_name: str | None = None,
+    ownership: RestaurantOwnership | None = None,
+) -> dict:
     total = order.total_tl
     if isinstance(total, Decimal):
         total = float(total)
     reject_code = order.reject_reason_code
     reject_text = order.reject_reason_text
+    pm = (order.payment_method or "").strip() or None
+    custom_label = ownership.custom_payment_label if ownership else None
     return {
         "id": str(order.id),
         "restaurant_id": str(order.restaurant_id),
@@ -178,6 +199,8 @@ def order_to_dict(order: RestaurantOrder, *, restaurant_name: str | None = None)
         "daily_no": order.daily_no,
         "order_number": format_order_number(order.order_day, order.daily_no),
         "note": order.note,
+        "payment_method": pm,
+        "payment_method_label": payment_method_label(pm, custom_label=custom_label) if pm else None,
         "total_tl": round(float(total), 2),
         "lines": [order_line_to_dict(line) for line in order.lines],
         "created_at": order.created_at.isoformat() if order.created_at else None,
@@ -239,6 +262,7 @@ def create_restaurant_order(
     customer_name: str | None,
     note: str | None,
     lines: list[dict],
+    payment_method: str,
 ) -> RestaurantOrder:
     ownership = get_ownership_for_restaurant(db, restaurant_id)
     if not online_orders_available(ownership):
@@ -286,6 +310,14 @@ def create_restaurant_order(
         raise OrderError("Adres en fazla 500 karakter olabilir.")
     display_name = (customer_name or user.nickname or user.full_name or "").strip() or None
     clean_note = (note or "").strip() or None
+    try:
+        validated_payment = validate_order_payment_method(
+            payment_method,
+            methods=ownership.accepted_payment_methods,
+            custom_label=ownership.custom_payment_label,
+        )
+    except ValueError as exc:
+        raise OrderError(str(exc)) from exc
 
     order_day, daily_no = allocate_daily_order_number(db, restaurant_id=restaurant_id)
 
@@ -299,6 +331,7 @@ def create_restaurant_order(
         order_day=order_day,
         daily_no=daily_no,
         note=clean_note,
+        payment_method=validated_payment,
         status=RestaurantOrderStatus.pending,
         total_tl=0,
     )
@@ -400,6 +433,17 @@ def count_pending_orders_for_user(db: Session, *, user_id: UUID) -> int:
     )
 
 
+def _ownerships_by_restaurant_ids(
+    db: Session, restaurant_ids: list[UUID]
+) -> dict[UUID, RestaurantOwnership]:
+    if not restaurant_ids:
+        return {}
+    rows = db.scalars(
+        select(RestaurantOwnership).where(RestaurantOwnership.restaurant_id.in_(restaurant_ids))
+    ).all()
+    return {row.restaurant_id: row for row in rows}
+
+
 def list_user_orders(
     db: Session,
     *,
@@ -430,10 +474,19 @@ def list_user_orders(
             if review.restaurant_order_id:
                 review_by_order[review.restaurant_order_id] = review
 
+    ownership_by_restaurant = _ownerships_by_restaurant_ids(
+        db, list({row.restaurant_id for row in rows})
+    )
+
     items = []
     for row in rows:
         linked = review_by_order.get(row.id)
-        payload = order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None)
+        ownership = ownership_by_restaurant.get(row.restaurant_id)
+        payload = order_to_dict(
+            row,
+            restaurant_name=row.restaurant.name if row.restaurant else None,
+            ownership=ownership,
+        )
         payload["has_review"] = linked is not None
         payload["can_review"] = order_can_be_reviewed(row) and linked is None
         payload["review_id"] = str(linked.id) if linked else None
@@ -457,7 +510,12 @@ def get_user_order(
         return None
 
     linked = db.scalar(select(Review).where(Review.restaurant_order_id == row.id).limit(1))
-    payload = order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None)
+    ownership = get_ownership_for_restaurant(db, row.restaurant_id)
+    payload = order_to_dict(
+        row,
+        restaurant_name=row.restaurant.name if row.restaurant else None,
+        ownership=ownership,
+    )
     payload["has_review"] = linked is not None
     payload["can_review"] = order_can_be_reviewed(row) and linked is None
     payload["review_id"] = str(linked.id) if linked else None
@@ -482,8 +540,14 @@ def list_panel_orders(
         cutoff = _utcnow() - timedelta(days=since_days)
         stmt = stmt.where(RestaurantOrder.created_at >= cutoff)
     rows = db.scalars(stmt).all()
+    ownership = get_ownership_for_restaurant(db, restaurant_id)
     return [
-        order_to_dict(row, restaurant_name=row.restaurant.name if row.restaurant else None) for row in rows
+        order_to_dict(
+            row,
+            restaurant_name=row.restaurant.name if row.restaurant else None,
+            ownership=ownership,
+        )
+        for row in rows
     ]
 
 

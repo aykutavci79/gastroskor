@@ -2,11 +2,13 @@
 param(
   [switch]$Apk,
   [switch]$SkipPrebuild,
-  [switch]$SkipPreflight
+  [switch]$SkipPreflight,
+  [switch]$TrOnly
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
+if (-not $env:NODE_OPTIONS) { $env:NODE_OPTIONS = "--use-system-ca" }
 
 function Assert-ShortProjectPath {
   $root = (Get-Location).Path
@@ -85,6 +87,10 @@ if ($script:TrustStore -and (Test-Path $script:TrustStore)) {
 
 Write-Host ""
 Write-Host "=== GastroSkor lokal Android build (ucretsiz) ===" -ForegroundColor Cyan
+if ($TrOnly) {
+  $env:EXPO_PUBLIC_I18N_TR_ONLY = "1"
+  Write-Host "Mod: TR-only (yabanci dil bundle yok, resConfigs tr)" -ForegroundColor DarkYellow
+}
 
 if (-not $SkipPreflight) {
   & "$PSScriptRoot\release-preflight-local.ps1" -AndroidOnly -Apply
@@ -131,6 +137,9 @@ if (-not $SkipPrebuild) {
 }
 
 & "$PSScriptRoot\apply-android-release-signing.ps1"
+if ($TrOnly) {
+  & "$PSScriptRoot\apply-android-tr-only.ps1"
+}
 
 # Build JVM'i de ozel trust store kullansin (dependency indirmeleri).
 $gradleProps = Join-Path "android" "gradle.properties"

@@ -63,6 +63,7 @@ $pngTargets = @{
   "assets/gastro-hub/games/kelime-sofrasi-icon.png"           = 384
   "assets/gastro-hub/games/gunluk-kelime-icon.png"           = 384
   "assets/gastro-hub/games/kelime-yarismasi-icon.png"         = 384
+  "assets/gastro-hub/games/kelime-bul-icon.png"               = 384
   "assets/gastro-hub/games/soru-cevap-icon.png"               = 384
   "assets/gastro-hub/games/sudoku-icon.png"                   = 384
   "assets/gastro-hub/tasks/daily-login.png"                   = 192

@@ -49,6 +49,7 @@ import { useGastroTheme } from '@/context/theme-context';
 
 import { claimDailyLogin, getJetonWallet } from '@/lib/api';
 import { playHubSfx } from '@/lib/gastro-hub-sfx';
+import { warmHubSfxPreference } from '@/lib/hub-sfx-preference';
 
 import { prefetchSofraPuzzlesForToday } from '@/lib/kelime-sofrasi/puzzle-cache';
 
@@ -227,6 +228,7 @@ export default function EglenceHubFullScreen({ bisectStep = 5 }: Props) {
 
   useFocusEffect(
     useCallback(() => {
+      void warmHubSfxPreference();
       if (showTasks) setTasksExpanded(true);
 
       let jetonTask: { cancel?: () => void } | null = null;

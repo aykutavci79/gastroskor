@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useGastroPostHog } from '@/lib/gastro-posthog';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -38,7 +39,11 @@ import {
   readStoredOrderPhone,
 } from '@/lib/order-contact-secure-storage';
 import { estimateTravelMinutes, formatDistanceLabel } from '@/lib/travel-estimate';
-import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead } from '@/lib/types';
+import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead, OrderPaymentOption } from '@/lib/types';
+import {
+  DEFAULT_ORDER_PAYMENT_OPTIONS,
+  OrderPaymentMethodPicker,
+} from '@/components/OrderPaymentMethodPicker';
 
 const PAGE_BG = '#FFFFFF';
 const ACCENT = '#FF6B35';
@@ -58,6 +63,7 @@ export function OnlineOrderDetailScreen({
   distanceMeters: distanceMetersProp,
   googleRating: googleRatingProp,
 }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const posthog = useGastroPostHog();
   const insets = useSafeAreaInsets();
@@ -79,8 +85,32 @@ export function OnlineOrderDetailScreen({
   const [pendingOrder, setPendingOrder] = useState<RestaurantOrderRead | null>(null);
   const [rejectedOrder, setRejectedOrder] = useState<RestaurantOrderRead | null>(null);
   const [available, setAvailable] = useState(restaurant.online_orders_available ?? false);
-  const [orderOpenNow, setOrderOpenNow] = useState(restaurant.online_orders_available ?? false);
-  const [hoursLabel, setHoursLabel] = useState<string | null>(null);
+  const [orderOpenNow, setOrderOpenNow] = useState(
+    restaurant.online_orders_open_now ?? restaurant.online_orders_available ?? true,
+  );
+  const [hoursRangeLabel, setHoursRangeLabel] = useState(
+    restaurant.online_order_hours_range_label?.trim() ?? null,
+  );
+  const [paymentOptions, setPaymentOptions] = useState<OrderPaymentOption[]>(
+    restaurant.order_payment_options?.length
+      ? restaurant.order_payment_options
+      : DEFAULT_ORDER_PAYMENT_OPTIONS,
+  );
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+
+  const resolvedPaymentOptions = useMemo(
+    () => (paymentOptions.length > 0 ? paymentOptions : DEFAULT_ORDER_PAYMENT_OPTIONS),
+    [paymentOptions],
+  );
+
+  useEffect(() => {
+    setPaymentMethod((current) => {
+      if (current && resolvedPaymentOptions.some((row) => row.code === current)) {
+        return current;
+      }
+      return resolvedPaymentOptions[0]?.code ?? null;
+    });
+  }, [resolvedPaymentOptions]);
 
   const distanceMeters = distanceMetersProp ?? restaurant.distance_meters ?? null;
   const distanceLabel = formatDistanceLabel({ distance_meters: distanceMeters });
@@ -135,7 +165,10 @@ export function OnlineOrderDetailScreen({
       const active = await getActiveRestaurantOrder(restaurant.id, userEmail);
       setAvailable(active.online_orders_available);
       setOrderOpenNow(active.online_orders_open_now ?? active.online_orders_available);
-      setHoursLabel(active.online_order_hours_label ?? null);
+      setHoursRangeLabel(active.online_order_hours_range_label?.trim() ?? null);
+      if (active.order_payment_options?.length) {
+        setPaymentOptions(active.order_payment_options);
+      }
       setPendingOrder(active.pending_order);
       setRejectedOrder(active.pending_order ? null : active.recent_rejected_order ?? null);
       if (!active.pending_order) setLines({});
@@ -171,11 +204,15 @@ export function OnlineOrderDetailScreen({
 
   async function onSubmit() {
     if (!userEmail) {
-      Alert.alert('Giriş gerekli', 'Sipariş vermek için hesabına giriş yap.');
+      Alert.alert(t('auth.loginRequired'), t('order.loginRequiredBody'));
       return;
     }
     if (selectedCount === 0) {
-      setError('Sepete en az bir ürün ekle.');
+      setError(t('order.emptyCart'));
+      return;
+    }
+    if (!paymentMethod) {
+      setError(t('order.paymentMethodRequired'));
       return;
     }
 
@@ -217,16 +254,17 @@ export function OnlineOrderDetailScreen({
         customer_phone: phone,
         customer_address: address,
         note: note.trim() || undefined,
+        payment_method: paymentMethod,
         lines: payloadLines,
       });
       posthog.capture('order_completed', {
         restaurant_id: restaurant.id,
         order_total: order.total_tl,
-        payment_method: 'online',
+        payment_method: paymentMethod,
       });
       await refreshActive();
     } catch (err) {
-      setError(formatApiError(err, 'Sipariş gönderilemedi.'));
+      setError(formatApiError(err, t('order.submitFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -243,10 +281,10 @@ export function OnlineOrderDetailScreen({
   if (!available && !pendingOrder) {
     return (
       <View style={[styles.center, styles.page, { paddingTop: insets.top }]}>
-        <Text style={styles.emptyTitle}>Online sipariş kapalı</Text>
-        <Text style={styles.emptySub}>Bu restoran şu an sipariş almıyor.</Text>
+        <Text style={styles.emptyTitle}>{t('order.closedTitle')}</Text>
+        <Text style={styles.emptySub}>{t('order.closedBody')}</Text>
         <Pressable style={styles.profileLink} onPress={() => router.back()}>
-          <Text style={styles.profileLinkText}>Geri dön</Text>
+          <Text style={styles.profileLinkText}>{t('order.goBack')}</Text>
         </Pressable>
       </View>
     );
@@ -303,7 +341,7 @@ export function OnlineOrderDetailScreen({
                 {formatDiscountBadgeLabel(discountPercent)}
               </Text>
               <Text style={[styles.promoSub, { color: discountVisual.text }]}>
-                {formatDiscountBadgeSubline(discountPercent) ?? 'tüm menüde'}
+                {formatDiscountBadgeSubline(discountPercent) ?? t('order.allMenu')}
               </Text>
             </View>
           ) : promoText ? (
@@ -312,10 +350,10 @@ export function OnlineOrderDetailScreen({
             </View>
           ) : null}
 
-          {hoursLabel ? (
-            <View style={[styles.hoursBanner, !orderOpenNow && styles.hoursBannerClosed]}>
-              <Text style={styles.hoursBannerText}>{hoursLabel}</Text>
-            </View>
+          {!orderOpenNow && hoursRangeLabel ? (
+            <Text style={styles.hoursLine} numberOfLines={2}>
+              {hoursRangeLabel}
+            </Text>
           ) : null}
 
           <View style={styles.deliveryStrip}>
@@ -326,7 +364,6 @@ export function OnlineOrderDetailScreen({
             {deliveryFeeTl != null ? (
               <DeliveryChip icon="bicycle-outline" label={formatDeliveryFeeLabel(deliveryFeeTl)} />
             ) : null}
-            <DeliveryChip icon="card-outline" label="Kapıda ödeme" />
           </View>
 
           <Pressable
@@ -336,15 +373,15 @@ export function OnlineOrderDetailScreen({
                 `/restaurant/${restaurant.id}?focus=reviews&source=online-order` as never,
               )
             }>
-            <Text style={styles.profileLinkText}>GastroSkor yorumları</Text>
+            <Text style={styles.profileLinkText}>{t('order.reviewsLink')}</Text>
             <Ionicons name="chevron-forward" size={16} color={ACCENT} />
           </Pressable>
 
           {pendingOrder ? (
             <View style={styles.pendingCard}>
-              <Text style={styles.pendingTitle}>Onay bekleniyor</Text>
+              <Text style={styles.pendingTitle}>{t('order.pendingTitle')}</Text>
               <Text style={styles.pendingBody}>
-                Siparişin restorana iletildi. Onay gelene kadar yeni sipariş veremezsin.
+                {t('order.pendingBody')}
               </Text>
               <Text style={styles.pendingMeta}>
                 {pendingOrder.order_number ? `${pendingOrder.order_number} · ` : ''}
@@ -353,19 +390,19 @@ export function OnlineOrderDetailScreen({
             </View>
           ) : rejectedOrder ? (
             <View style={styles.rejectedCard}>
-              <Text style={styles.rejectedTitle}>Sipariş iptal edildi</Text>
+              <Text style={styles.rejectedTitle}>{t('order.cancelledTitle')}</Text>
               <Text style={styles.rejectedBody}>
                 {rejectedOrder.reject_message
                   ? `${restaurant.name}: ${rejectedOrder.reject_message}`
-                  : `${restaurant.name} siparişini iptal etti.`}
+                  : t('order.cancelledBy', { name: restaurant.name })}
               </Text>
               <Pressable style={styles.dismissBtn} onPress={() => setRejectedOrder(null)}>
-                <Text style={styles.dismissBtnText}>Tamam, yeniden sipariş ver</Text>
+                <Text style={styles.dismissBtnText}>{t('order.reorderBtn')}</Text>
               </Pressable>
             </View>
           ) : (
             <>
-              <Text style={styles.menuTitle}>Menü</Text>
+              <Text style={styles.menuTitle}>{t('order.menuTitle')}</Text>
               <View style={styles.menuList}>
                 {menuItems.map((item) => {
                   const qty = lines[item.id]?.quantity ?? 0;
@@ -403,7 +440,7 @@ export function OnlineOrderDetailScreen({
 
               <Pressable style={styles.noteToggle} onPress={() => setNoteOpen((v) => !v)}>
                 <Text style={styles.noteToggleText}>
-                  {noteOpen ? 'Notu gizle' : 'Sipariş notu ekle (opsiyonel)'}
+                  {noteOpen ? t('order.noteHide') : t('order.noteAdd')}
                 </Text>
               </Pressable>
               {noteOpen ? (
@@ -411,15 +448,25 @@ export function OnlineOrderDetailScreen({
                   style={styles.noteInput}
                   value={note}
                   onChangeText={setNote}
-                  placeholder="Kapı kodu, zil, alerji…"
+                  placeholder={t('order.notePlaceholder')}
                   placeholderTextColor={GastroColorsLight.placeholder}
                   multiline
                 />
               ) : null}
 
+              {!pendingOrder && orderOpenNow ? (
+                <OrderPaymentMethodPicker
+                  options={resolvedPaymentOptions}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  title={t('order.paymentMethodTitle')}
+                  hint={t('order.paymentMethodHint')}
+                />
+              ) : null}
+
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Text style={styles.legal}>
-                Telefon ve adresin yalnızca bu restorana iletilir. Ödeme kapıda.
+                {t('order.privacyNote')}
               </Text>
             </>
           )}
@@ -429,7 +476,7 @@ export function OnlineOrderDetailScreen({
       {selectedCount > 0 && !pendingOrder && orderOpenNow ? (
         <View style={[styles.stickyBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.stickyMeta}>
-            <Text style={styles.stickyCount}>{selectedCount} ürün</Text>
+            <Text style={styles.stickyCount}>{t('order.itemCount', { count: selectedCount })}</Text>
             <Text style={styles.stickyTotal}>{formatPriceTl(selectedTotal, 0) ?? '0'} ₺</Text>
           </View>
           <Pressable
@@ -439,7 +486,7 @@ export function OnlineOrderDetailScreen({
             {submitting ? (
               <ActivityIndicator color="#141414" />
             ) : (
-              <Text style={styles.submitText}>Siparişi gönder</Text>
+              <Text style={styles.submitText}>{t('order.submitBtn')}</Text>
             )}
           </Pressable>
         </View>
@@ -485,19 +532,12 @@ const styles = StyleSheet.create({
   },
   promoTitle: { fontSize: 16, fontWeight: '900' },
   promoSub: { fontSize: 13, fontWeight: '600' },
-  hoursBanner: {
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
+  hoursLine: {
+    color: GastroColorsLight.bad,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
   },
-  hoursBannerClosed: {
-    backgroundColor: '#FFF7ED',
-    borderColor: '#FDBA74',
-  },
-  hoursBannerText: { color: GastroColorsLight.text, fontSize: 13, fontWeight: '700' },
   offerChip: {
     alignSelf: 'flex-start',
     backgroundColor: '#FFF7ED',

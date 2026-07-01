@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 
 import { applySpeakerPlaybackMode } from '@/lib/gastro-audio-session';
+import { isHubSfxEnabled, warmHubSfxPreference } from '@/lib/hub-sfx-preference';
 
 export type HubSfxKey = 'click' | 'coin' | 'bonus' | 'finish' | 'waterdrop' | 'buzzer' | 'applause';
 
@@ -36,6 +37,8 @@ async function ensurePlaybackSession(): Promise<void> {
 export function playHubSfx(key: HubSfxKey): void {
   void (async () => {
     try {
+      await warmHubSfxPreference();
+      if (!isHubSfxEnabled()) return;
       await ensurePlaybackSession();
       const { sound } = await Audio.Sound.createAsync(HUB_SFX_FILES[key], {
         volume: VOLUMES[key],

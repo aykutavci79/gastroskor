@@ -11,23 +11,26 @@ export const RESERVATION_OCCASION_TYPES = [
 
 export type ReservationOccasionType = (typeof RESERVATION_OCCASION_TYPES)[number];
 
-export const RESERVATION_OCCASION_LABELS: Record<ReservationOccasionType, string> = {
-  birthday: 'Doğum günü',
-  anniversary: 'Yıldönümü',
-  business_dinner: 'İş yemeği',
-  proposal: 'Evlilik teklifi',
-  celebration: 'Kutlama',
-  graduation: 'Mezuniyet',
-  baby_shower: 'Baby shower',
-  other: 'Diğer',
+/** i18next keys under `rezervasyon.*` */
+export const RESERVATION_OCCASION_I18N_KEYS: Record<ReservationOccasionType, string> = {
+  birthday: 'rezervasyon.occasionBirthday',
+  anniversary: 'rezervasyon.occasionAnniversary',
+  business_dinner: 'rezervasyon.occasionBusiness',
+  proposal: 'rezervasyon.occasionProposal',
+  celebration: 'rezervasyon.occasionCelebration',
+  graduation: 'rezervasyon.occasionGraduation',
+  baby_shower: 'rezervasyon.occasionBabyShower',
+  other: 'rezervasyon.occasionOther',
 };
 
-export function reservationOccasionLabel(value: ReservationOccasionType | null | undefined): string | null {
+export function reservationOccasionI18nKey(
+  value: ReservationOccasionType | string | null | undefined,
+): string | null {
   if (!value) return null;
-  return RESERVATION_OCCASION_LABELS[value] ?? null;
+  return RESERVATION_OCCASION_I18N_KEYS[value as ReservationOccasionType] ?? null;
 }
 
 export const RESERVATION_OCCASION_OPTIONS = RESERVATION_OCCASION_TYPES.map((type) => ({
   type,
-  label: RESERVATION_OCCASION_LABELS[type],
+  i18nKey: RESERVATION_OCCASION_I18N_KEYS[type],
 }));

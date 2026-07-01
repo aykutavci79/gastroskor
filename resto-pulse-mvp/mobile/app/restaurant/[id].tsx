@@ -112,6 +112,7 @@ export default function RestaurantDetailScreen() {
   const keyboardOffset = useScreenKeyboardOffset();
   const reviewFormOffsetY = useRef(0);
   const reviewFormBottomY = useRef(0);
+  const reviewTextInputOffsetY = useRef(0);
   const menuOffsetY = useRef(0);
   const reviewsSectionY = useRef(0);
   const reviewCardY = useRef<Record<string, number>>({});
@@ -121,7 +122,7 @@ export default function RestaurantDetailScreen() {
 
   const scrollToY = useCallback(
     (targetY: number, capBottomY?: number) => {
-      onFieldFocus(targetY, { extraGap: 48, capBottomY });
+      onFieldFocus(targetY, { extraGap: 120, capBottomY });
     },
     [onFieldFocus],
   );
@@ -591,7 +592,8 @@ export default function RestaurantDetailScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive">
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets>
         <View style={styles.section}>
           <Text style={styles.title}>{restaurant.name}</Text>
           {locationLine ? <Text style={styles.location}>{locationLine}</Text> : null}
@@ -853,28 +855,36 @@ export default function RestaurantDetailScreen() {
                     Argo/küfür içeren yorumlar yayınlanmaz; ban yok, metni düzeltmen yeterli.
                   </Text>
                   <StarRatingPicker value={rating} onChange={setRating} />
-                  <TextInput
-                    value={text}
-                    onFocus={() => {
-                      const formTop = reviewsSectionY.current + reviewFormOffsetY.current;
-                      const formBottom = reviewsSectionY.current + reviewFormBottomY.current;
-                      scrollToY(formTop + 80, formBottom);
-                    }}
-                    onChangeText={(value) => {
-                      setText(value);
-                      if (moderationHighlights.length) setModerationHighlights([]);
-                      if (submitError) setSubmitError(null);
-                    }}
-                    placeholder="Bu restoran hakkında ne düşünüyorsun?"
-                    placeholderTextColor={GastroColors.placeholder}
-                    style={[
-                      styles.textArea,
-                      moderationHighlights.length > 0 && styles.textAreaFlagged,
-                    ]}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
+                  <View
+                    onLayout={(event) => {
+                      reviewTextInputOffsetY.current = event.nativeEvent.layout.y;
+                    }}>
+                    <TextInput
+                      value={text}
+                      onFocus={() => {
+                        const inputY =
+                          reviewsSectionY.current +
+                          reviewFormOffsetY.current +
+                          reviewTextInputOffsetY.current;
+                        const formBottom = reviewsSectionY.current + reviewFormBottomY.current;
+                        scrollToY(inputY, formBottom);
+                      }}
+                      onChangeText={(value) => {
+                        setText(value);
+                        if (moderationHighlights.length) setModerationHighlights([]);
+                        if (submitError) setSubmitError(null);
+                      }}
+                      placeholder="Bu restoran hakkında ne düşünüyorsun?"
+                      placeholderTextColor={GastroColors.placeholder}
+                      style={[
+                        styles.textArea,
+                        moderationHighlights.length > 0 && styles.textAreaFlagged,
+                      ]}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
                   {moderationHighlights.length > 0 ? (
                     <View style={styles.moderationBox}>
                       <Text style={styles.moderationTitle}>

@@ -26,9 +26,10 @@ from app.models import (
     RestaurantSubscription,
 )
 from app.services.online_order_hours import default_online_order_hours
+from app.services.reservation_vitrin import approve_tester_showcase_vitrin
+from app.services.table_reservations import get_or_create_floor_plan
 from app.services.turkish_text_fold import fold_tr_ascii
 from app.services.user_accounts import get_or_create_user
-from app.services.table_reservations import get_or_create_floor_plan
 
 
 def _sync_tester_showcase(
@@ -56,6 +57,7 @@ def _sync_tester_showcase(
         plan = get_or_create_floor_plan(db, restaurant_id=ownership.restaurant_id)
         plan.background_url = seed.floor_plan_background_url
         db.add(plan)
+    approve_tester_showcase_vitrin(ownership)
 
 
 def _menu_item_label_match(item_name: str, label: str) -> bool:

@@ -1,6 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
@@ -12,6 +13,7 @@ const PREVIEW_COUNT = 4;
 export function RegionalFlavorsHomeSection() {
   const { city, cityLabel } = useCity();
   const router = useRouter();
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,9 @@ export function RegionalFlavorsHomeSection() {
   }, [expanded, city]);
 
   const moreLabel =
-    items.length > 0 ? `Tüm ${cityLabel} lezzetleri` : `${cityLabel} listesine git`;
+    items.length > 0
+      ? t('yoresel.allFlavors', { city: cityLabel })
+      : t('yoresel.goToList', { city: cityLabel });
 
   return (
     <View style={styles.section}>
@@ -51,15 +55,15 @@ export function RegionalFlavorsHomeSection() {
         accessibilityRole="button"
         accessibilityState={{ expanded }}>
         <View style={styles.teaserHead}>
-          <Text style={styles.title}>🏺 Yöresel Lezzetler</Text>
+          <Text style={styles.title}>{t('yoresel.sectionTitle')}</Text>
           <View style={styles.cityPill}>
             <Text style={styles.cityPillText}>{cityLabel}</Text>
           </View>
         </View>
-        <Text style={styles.sub}>
-          Seçtiğiniz ilin coğrafi işaretli ürünleri hemen yanınızda
+        <Text style={styles.sub}>{t('yoresel.sectionSub')}</Text>
+        <Text style={styles.toggle}>
+          {expanded ? t('yoresel.hideList') : t('yoresel.showList')}
         </Text>
-        <Text style={styles.toggle}>{expanded ? '▲ Listeyi gizle' : '▼ Listeyi göster'}</Text>
       </Pressable>
 
       {expanded ? (
@@ -67,7 +71,7 @@ export function RegionalFlavorsHomeSection() {
           {loading ? <ActivityIndicator color={GastroColors.gold} style={{ marginVertical: 8 }} /> : null}
 
           {!loading && loaded && items.length === 0 ? (
-            <Text style={styles.empty}>Bu il için yöresel ürün bulunamadı.</Text>
+            <Text style={styles.empty}>{t('yoresel.sectionEmpty')}</Text>
           ) : null}
 
           {items.map((item) => (
@@ -75,7 +79,7 @@ export function RegionalFlavorsHomeSection() {
               key={item.slug}
               style={styles.card}
               onPress={() => router.push(`/yoresel/${item.slug}` as Href)}>
-              <Text style={styles.badge}>Tescilli ürün</Text>
+              <Text style={styles.badge}>{t('yoresel.certifiedBadge')}</Text>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.region}>
                 {item.region} · {item.registration_year}
@@ -83,7 +87,7 @@ export function RegionalFlavorsHomeSection() {
               <Text style={styles.summary} numberOfLines={2}>
                 {item.summary}
               </Text>
-              <Text style={styles.cta}>Bu lezzeti sunan restoranlar →</Text>
+              <Text style={styles.cta}>{t('yoresel.flavorsCta')}</Text>
             </Pressable>
           ))}
 

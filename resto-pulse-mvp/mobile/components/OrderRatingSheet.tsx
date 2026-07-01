@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { StarRatingPicker } from '@/components/StarRatingPicker';
 import type { GastroColorScheme } from '@/constants/theme';
@@ -60,6 +61,7 @@ function rowStyles(colors: GastroColorScheme) {
 export function OrderRatingSheet({ visible, order, userEmail, onClose, onSubmitted }: Props) {
   const { colors } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useTranslation();
 
   const [lezzet, setLezzet] = useState(0);
   const [servis, setServis] = useState(0);
@@ -100,7 +102,7 @@ export function OrderRatingSheet({ visible, order, userEmail, onClose, onSubmitt
       onSubmitted();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Puan gonderilemedi.');
+      setError(err instanceof Error ? err.message : t('rating.submitFailed'));
       setSubmitting(false);
     }
   }
@@ -109,23 +111,21 @@ export function OrderRatingSheet({ visible, order, userEmail, onClose, onSubmitt
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <Pressable style={styles.backdrop} onPress={handleClose}>
         <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
-          <Text style={styles.title}>Puan ver</Text>
+          <Text style={styles.title}>{t('rating.title')}</Text>
           <Text style={styles.sub} numberOfLines={1}>
-            {order?.restaurant_name ?? 'Siparis'}
+            {order?.restaurant_name ?? t('rating.fallbackOrder')}
             {order?.order_number ? ` · ${order.order_number}` : ''}
           </Text>
-          <Text style={styles.hint}>
-            Lezzet, servis ve kurye ayri puanlanir. Baslik skor yalnizca lezzettir.
-          </Text>
+          <Text style={styles.hint}>{t('rating.description')}</Text>
 
-          <RatingRow label="Lezzet" value={lezzet} onChange={setLezzet} colors={colors} />
-          <RatingRow label="Servis" value={servis} onChange={setServis} colors={colors} />
-          <RatingRow label="Kurye" value={kurye} onChange={setKurye} colors={colors} />
+          <RatingRow label={t('rating.taste')} value={lezzet} onChange={setLezzet} colors={colors} />
+          <RatingRow label={t('rating.service')} value={servis} onChange={setServis} colors={colors} />
+          <RatingRow label={t('rating.courier')} value={kurye} onChange={setKurye} colors={colors} />
 
           <TextInput
             value={text}
             onChangeText={setText}
-            placeholder="Kisa yorum (istege bagli)"
+            placeholder={t('rating.commentPlaceholder')}
             placeholderTextColor={colors.placeholder}
             style={styles.input}
             multiline
@@ -137,7 +137,7 @@ export function OrderRatingSheet({ visible, order, userEmail, onClose, onSubmitt
 
           <View style={styles.actions}>
             <Pressable style={styles.btnOutline} onPress={handleClose} disabled={submitting}>
-              <Text style={styles.btnOutlineText}>Vazgec</Text>
+              <Text style={styles.btnOutlineText}>{t('rating.cancelBtn')}</Text>
             </Pressable>
             <Pressable
               style={[styles.btnPrimary, !canSubmit && styles.btnDisabled]}
@@ -146,7 +146,7 @@ export function OrderRatingSheet({ visible, order, userEmail, onClose, onSubmitt
               {submitting ? (
                 <ActivityIndicator color={colors.accentDark} />
               ) : (
-                <Text style={styles.btnPrimaryText}>Gonder</Text>
+                <Text style={styles.btnPrimaryText}>{t('rating.submitBtn')}</Text>
               )}
             </Pressable>
           </View>

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { CityAtmosphereStrip } from '@/components/CityAtmosphereStrip';
 import { CityPickerModal } from '@/components/CityPickerModal';
@@ -44,10 +45,11 @@ export function KesfetHomeChrome({
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const { city, cityLabel, manual, setCity, refreshFromLocation } = useCity();
+  const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
   const showClear = query.trim().length > 0;
 
-  const statusLine = manual ? 'Elle seçili' : 'Konumuna göre';
+  const statusLine = manual ? t('explore.manualCity') : t('explore.autoCity');
 
   function handleCityPress() {
     setPickerOpen(true);
@@ -70,7 +72,7 @@ export function KesfetHomeChrome({
       />
       <View style={[styles.searchCard, searchFocused && styles.searchCardFocused]}>
         <View style={styles.searchHeadingRow}>
-          <Text style={styles.searchHeading}>{cityLabel}&apos;da ne yesek?</Text>
+          <Text style={styles.searchHeading}>{t('explore.citySearchHeading', { city: cityLabel })}</Text>
           <View style={styles.searchHeadingActions}>
             <OrdersHeaderButton />
             <DmAvatarButton />
@@ -92,7 +94,7 @@ export function KesfetHomeChrome({
               onChangeText={onQueryChange}
               onFocus={onSearchFocus}
               onBlur={onSearchBlur}
-              placeholder="İskender, cantık, pideli köfte…"
+              placeholder={t('explore.searchPlaceholder')}
               placeholderTextColor={colors.placeholder}
               style={styles.searchInput}
               returnKeyType="search"
@@ -105,7 +107,7 @@ export function KesfetHomeChrome({
                 onPress={onClear}
                 hitSlop={10}
                 accessibilityRole="button"
-                accessibilityLabel="Aramayı temizle">
+                accessibilityLabel={t('explore.searchLabel')}>
                 <Ionicons name="close-circle" size={18} color={colors.muted} />
               </Pressable>
             ) : searchFocused && onDismiss ? (
@@ -113,8 +115,8 @@ export function KesfetHomeChrome({
                 onPress={onDismiss}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="Aramadan vazgeç">
-                <Text style={styles.cancel}>Vazgeç</Text>
+                accessibilityLabel={t('common.cancel')}>
+                <Text style={styles.cancel}>{t('common.cancel')}</Text>
               </Pressable>
             ) : (
               <View style={styles.clearSlot} />

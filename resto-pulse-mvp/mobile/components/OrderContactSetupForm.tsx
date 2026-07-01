@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { GastroColorsLight } from '@/constants/theme';
 import { sendOrderPhoneOtp, verifyOrderPhoneOtp } from '@/lib/api';
@@ -25,6 +26,7 @@ type Props = {
 };
 
 export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [verifiedPhoneE164, setVerifiedPhoneE164] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
   const onSendOtp = useCallback(async () => {
     if (!userEmail) return;
     if (!normalizedPhone) {
-      setError('Geçerli bir cep telefonu girin (05xx xxx xx xx).');
+      setError(t('phone.invalidPhone'));
       return;
     }
     setOtpSending(true);
@@ -89,7 +91,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
         setOtpInfo,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'SMS kodu gönderilemedi.');
+      setError(err instanceof Error ? err.message : t('phone.smsSendFailed'));
     } finally {
       setOtpSending(false);
     }
@@ -98,7 +100,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
   const onVerifyOtp = useCallback(async () => {
     if (!userEmail) return;
     if (otpCode.trim().length < 4) {
-      setError('SMS kodunu girin.');
+      setError(t('phone.enterCode'));
       return;
     }
     setOtpVerifying(true);
@@ -114,7 +116,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
         await writeStoredOrderPhone(phone);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Doğrulama başarısız.');
+      setError(err instanceof Error ? err.message : t('phone.verifyFailed'));
     } finally {
       setOtpVerifying(false);
     }
@@ -126,22 +128,19 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.lead}>
-        Sipariş verebilmek için doğrulanmış telefon ve teslimat adresi gerekli. Restoran sizi bu
-        numaradan arayacak.
-      </Text>
+      <Text style={styles.lead}>{t("phone.description")}</Text>
 
-      <Text style={styles.label}>Cep telefonu</Text>
+      <Text style={styles.label}>{t("phone.phoneLabel")}</Text>
       <TextInput
         style={styles.input}
         value={phone}
         onChangeText={onPhoneChange}
-        placeholder="05xx xxx xx xx"
+        placeholder={t("phone.phonePlaceholder")}
         placeholderTextColor={GastroColorsLight.placeholder}
         keyboardType="phone-pad"
       />
       {phoneMatchesVerified ? (
-        <Text style={styles.okHint}>Telefon doğrulandı</Text>
+        <Text style={styles.okHint}>{t("phone.verified")}</Text>
       ) : normalizedPhone ? (
         <View style={styles.otpBlock}>
           {otpInfo ? <Text style={styles.otpInfo}>{otpInfo}</Text> : null}
@@ -153,7 +152,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
               {otpSending ? (
                 <ActivityIndicator color={GastroColorsLight.text} />
               ) : (
-                <Text style={styles.ghostBtnText}>SMS kodu gönder</Text>
+                <Text style={styles.ghostBtnText}>{t("phone.sendSmsBtn")}</Text>
               )}
             </Pressable>
           ) : (
@@ -162,7 +161,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
                 style={[styles.input, styles.otpInput]}
                 value={otpCode}
                 onChangeText={setOtpCode}
-                placeholder="6 haneli kod"
+                placeholder={t("phone.codePlaceholder")}
                 placeholderTextColor={GastroColorsLight.placeholder}
                 keyboardType="number-pad"
                 maxLength={6}
@@ -174,7 +173,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
                 {otpVerifying ? (
                   <ActivityIndicator color="#141414" />
                 ) : (
-                  <Text style={styles.accentBtnText}>Doğrula</Text>
+                  <Text style={styles.accentBtnText}>{t("phone.verifyBtn")}</Text>
                 )}
               </Pressable>
             </View>
@@ -182,20 +181,20 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
         </View>
       ) : null}
 
-      <Text style={styles.label}>Teslimat adresi</Text>
+      <Text style={styles.label}>{t("phone.addressLabel")}</Text>
       <TextInput
         style={[styles.input, styles.addressInput]}
         value={address}
         onChangeText={setAddress}
         onBlur={() => void persistAddress()}
-        placeholder="Mahalle, sokak, bina, daire"
+        placeholder={t("phone.addressPlaceholder")}
         placeholderTextColor={GastroColorsLight.placeholder}
         multiline
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {ready ? (
-        <Text style={styles.okHint}>Bilgiler tamam — sipariş ekranına dönebilirsin.</Text>
+        <Text style={styles.okHint}>{t("phone.setupDone")}</Text>
       ) : null}
     </View>
   );

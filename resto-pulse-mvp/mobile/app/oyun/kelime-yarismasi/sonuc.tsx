@@ -1,6 +1,7 @@
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { EglenceResultModal } from '@/components/eglence/EglenceResultModal';
 import { Screen } from '@/components/ui/Screen';
@@ -13,6 +14,7 @@ import { sureMetni } from '@/lib/kelime-yarismasi/sure-yardimci';
 export default function KelimeYarismasiSonucScreen() {
   const router = useRouter();
   const { colors } = useGastroTheme();
+  const { t } = useTranslation();
   const { puan, sure, maksimum } = useLocalSearchParams<{
     puan?: string;
     sure?: string;
@@ -57,16 +59,16 @@ export default function KelimeYarismasiSonucScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.content}>
-        <Text style={styles.baslik}>Oyun bitti</Text>
+        <Text style={styles.baslik}>{t('eglence.kelimeYarismasi.sonucOyunBitti')}</Text>
         <Text style={styles.puan}>{toplam}</Text>
-        <Text style={styles.alt}>puan · en fazla {maksimumPuan}</Text>
-        <Text style={styles.sure}>Süre: {sureMetni(sureMs)}</Text>
+        <Text style={styles.alt}>{t('eglence.kelimeYarismasi.sonucPuanAlt', { maksimum: maksimumPuan })}</Text>
+        <Text style={styles.sure}>{t('eglence.kelimeYarismasi.sonucSure', { sure: sureMetni(sureMs) })}</Text>
 
         <Pressable style={styles.buton} onPress={() => router.replace('/oyun/kelime-yarismasi/oyun')}>
-          <Text style={styles.butonYazi}>Tekrar oyna</Text>
+          <Text style={styles.butonYazi}>{t('eglence.kelimeYarismasi.sonucTekrar')}</Text>
         </Pressable>
         <Pressable style={styles.butonIkincil} onPress={() => router.replace('/(tabs)/eglence')}>
-          <Text style={styles.butonIkincilYazi}>Eğlenceye dön</Text>
+          <Text style={styles.butonIkincilYazi}>{t('eglence.kelimeYarismasi.sonucDon')}</Text>
         </Pressable>
       </View>
 

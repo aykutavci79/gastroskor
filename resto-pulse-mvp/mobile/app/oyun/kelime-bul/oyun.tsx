@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EglenceGameLobbyScreen } from '@/components/eglence/EglenceGameLobbyScreen';
@@ -35,6 +36,7 @@ function pathToCellKeys(path: { row: number; col: number }[]): Set<string> {
 
 export default function KelimeBulOyunScreen() {
   const t = eglenceLobbyTheme('kelime-bul');
+  const { t: tr } = useTranslation();
   const router = useRouter();
   const { puzzleId: puzzleIdParam } = useLocalSearchParams<{ puzzleId?: string }>();
   const [loading, setLoading] = useState(true);
@@ -125,13 +127,13 @@ export default function KelimeBulOyunScreen() {
 
       if (!match) {
         safeHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
-        setMessage('Bu kelime listede yok');
+        setMessage(tr('eglence.kelimeBul.buKelimeListedeYok'));
         return;
       }
 
       const canonical = sofraKelimeBuyuk(match);
       if (found.has(canonical)) {
-        setMessage('Zaten bulundu');
+        setMessage(tr('eglence.kelimeBul.zamanBulundu'));
         return;
       }
 
@@ -206,7 +208,7 @@ export default function KelimeBulOyunScreen() {
 
   return (
     <>
-      <EglenceGameLobbyScreen gameId="kelime-bul" scroll={false} edges={['left', 'right', 'bottom']}>
+      <EglenceGameLobbyScreen gameId="kelime-bul" scroll={false} edges={['left', 'right', 'bottom']} showSfxToggle={false}>
         <ScrollView
           contentContainerStyle={styles.content}
           scrollEnabled={!gridSelecting}
@@ -224,7 +226,7 @@ export default function KelimeBulOyunScreen() {
           <Text style={styles.message}>{message ?? ' '}</Text>
           <KelimeBulWordList words={progress.words} foundWords={progress.foundWords} theme={listTheme} />
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>Lobiye dön</Text>
+            <Text style={styles.backText}>{tr('eglence.common.lobiyeDon')}</Text>
           </Pressable>
         </ScrollView>
       </EglenceGameLobbyScreen>
@@ -238,7 +240,7 @@ export default function KelimeBulOyunScreen() {
         }}
         gameLabel="Kelime Bul"
         periodKey={progress.periodId}
-        scoreDetail="Tüm kelimeleri buldun!"
+        scoreDetail={tr('eglence.kelimeBul.tumKelimelerBulundu')}
         showLeaderboard={false}
       />
     </>

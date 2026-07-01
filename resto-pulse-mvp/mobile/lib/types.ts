@@ -86,6 +86,8 @@ export type RestaurantOrderRead = {
   daily_no?: number | null;
   order_number?: string | null;
   note?: string | null;
+  payment_method?: string | null;
+  payment_method_label?: string | null;
   total_tl: number;
   lines: RestaurantOrderLineRead[];
   created_at?: string | null;
@@ -116,11 +118,17 @@ export type OrderPhoneSendOtpResponse = {
   order_phone?: OrderPhoneStatus | null;
 };
 
+export type OrderPaymentOption = {
+  code: string;
+  label: string;
+};
+
 export type RestaurantOrderActiveResponse = {
   online_orders_available: boolean;
   online_orders_open_now?: boolean;
   online_order_hours_label?: string | null;
   online_order_hours_range_label?: string | null;
+  order_payment_options?: OrderPaymentOption[];
   pending_order: RestaurantOrderRead | null;
   recent_rejected_order?: RestaurantOrderRead | null;
   order_phone?: OrderPhoneStatus | null;
@@ -242,6 +250,7 @@ export type RestaurantListItem = {
   online_orders_open_now?: boolean;
   online_order_hours_label?: string | null;
   online_order_hours_range_label?: string | null;
+  order_payment_options?: OrderPaymentOption[];
   online_order_categories?: string[];
   gastro_score?: number | null;
   distance_score?: number | null;
@@ -250,9 +259,6 @@ export type RestaurantListItem = {
   voice_menu_matches?: VoiceMenuMatch[];
   voice_search_token?: string | null;
   order_ratings?: OrderRatingSummary | null;
-  online_orders_open_now?: boolean;
-  online_order_hours_label?: string | null;
-  online_order_hours_range_label?: string | null;
 };
 
 export type OnlineOrderCategoryOption = {

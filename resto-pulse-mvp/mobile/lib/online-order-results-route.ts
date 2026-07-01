@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 
+import { buildOnlineOrderScreenHref } from '@/lib/online-order-screen-route';
 import type { OnlineOrderSortMode } from '@/lib/online-order-sort';
 import type { VoiceOrderQuery } from '@/lib/parse-voice-order-query';
 
@@ -47,13 +48,7 @@ function parseSort(value: string | null): OnlineOrderSortMode | undefined {
 export function buildOnlineOrderFilterResultsHref(
   params: Omit<OnlineOrderFilterResultsParams, 'mode'>,
 ): Href {
-  const q = new URLSearchParams();
-  q.set('mode', 'filter');
-  if (params.slugs.length) q.set('slugs', params.slugs.join(','));
-  q.set('maxKm', String(params.maxDistanceKm));
-  q.set('minRating', String(params.minRating));
-  if (params.sort) q.set('sort', params.sort);
-  return `/siparis-acik-sonuclar?${q.toString()}` as Href;
+  return buildOnlineOrderScreenHref({ mode: 'filter', ...params });
 }
 
 export function buildOnlineOrderVoiceResultsHref(
@@ -63,16 +58,16 @@ export function buildOnlineOrderVoiceResultsHref(
   if (!query.voiceProduct && !query.isCartOrder) {
     throw new Error('voiceProduct or cart order required');
   }
-  const q = new URLSearchParams();
-  q.set('mode', 'voice');
-  if (query.voiceProduct) q.set('voiceProduct', query.voiceProduct);
-  if (query.priceMax != null && !query.isCartOrder) q.set('priceMax', String(query.priceMax));
-  if (query.priceMaxBudget != null) q.set('priceMaxBudget', String(query.priceMaxBudget));
-  if (query.maxDistanceKm != null) q.set('maxDistanceKm', String(query.maxDistanceKm));
-  q.set('minRating', String(query.minRating ?? extras?.minRating ?? 3));
-  if (extras?.sort) q.set('sort', extras.sort);
-  if (query.rawText.trim()) q.set('voiceText', query.rawText.trim());
-  return `/siparis-acik-sonuclar?${q.toString()}` as Href;
+  return buildOnlineOrderScreenHref({
+    mode: 'voice',
+    voiceProduct: query.voiceProduct ?? query.cartLines[0]?.productSearchGroup ?? 'sepet',
+    priceMax: query.isCartOrder ? null : query.priceMax,
+    priceMaxBudget: query.priceMaxBudget,
+    maxDistanceKm: query.maxDistanceKm,
+    minRating: query.minRating ?? extras?.minRating ?? 3,
+    sort: extras?.sort,
+    voiceText: query.rawText.trim() || undefined,
+  });
 }
 
 export function parseOnlineOrderResultsRouteParams(

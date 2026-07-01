@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ReservationTheme } from '@/constants/reservation-theme';
+
 const ITEM_HEIGHT = 40;
 const VISIBLE = 3;
 const PAD = Math.floor(VISIBLE / 2);
@@ -62,7 +64,7 @@ const styles = StyleSheet.create({
   colLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.45)',
+    color: ReservationTheme.textSoft,
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -71,9 +73,9 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(15,23,42,0.9)',
+    backgroundColor: ReservationTheme.bg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: ReservationTheme.borderSoft,
   },
   highlight: {
     position: 'absolute',
@@ -82,9 +84,9 @@ const styles = StyleSheet.create({
     top: ITEM_HEIGHT * PAD,
     height: ITEM_HEIGHT,
     borderRadius: 8,
-    backgroundColor: 'rgba(251,191,36,0.12)',
+    backgroundColor: ReservationTheme.accentGlow,
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.35)',
+    borderColor: ReservationTheme.border,
     zIndex: 1,
   },
   item: {
@@ -93,12 +95,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemText: {
-    color: 'rgba(255,255,255,0.45)',
+    color: ReservationTheme.textSoft,
     fontSize: 15,
     fontWeight: '600',
   },
   itemTextActive: {
-    color: '#fbbf24',
+    color: ReservationTheme.accent,
     fontSize: 16,
     fontWeight: '800',
   },

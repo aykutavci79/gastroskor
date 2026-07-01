@@ -2,9 +2,10 @@ import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
-import { GastroColorsLight } from '@/constants/theme';
+import { onlineOrderInk, type OnlineOrderUiTone } from '@/constants/online-order-theme';
 import { categoryLabel } from '@/constants/online-order-categories';
 import { useGastroTheme } from '@/context/theme-context';
 import { resolveCardCoverUrl } from '@/lib/card-cover';
@@ -30,7 +31,7 @@ type Props = {
   voiceMatches?: VoiceMenuMatch[];
   voiceLetter?: string | null;
   showProductPrice?: boolean;
-  tone?: 'default' | 'light';
+  tone?: OnlineOrderUiTone;
 };
 
 const THUMB = 48;
@@ -52,6 +53,7 @@ export function OnlineOrderRestaurantCard({
   showProductPrice = false,
   tone = 'default',
 }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow, tone), [colors, shadow, tone]);
@@ -74,14 +76,14 @@ export function OnlineOrderRestaurantCard({
   const deliverySubline =
     orderRatings && orderRatings.review_count > 0
       ? [
-          orderRatings.servis_avg != null ? `Servis ${orderRatings.servis_avg.toFixed(1)}` : null,
-          orderRatings.kurye_avg != null ? `Kurye ${orderRatings.kurye_avg.toFixed(1)}` : null,
+          orderRatings.servis_avg != null ? t('order.serviceAvg', { avg: orderRatings.servis_avg.toFixed(1) }) : null,
+          orderRatings.kurye_avg != null ? t('order.courierAvg', { avg: orderRatings.kurye_avg.toFixed(1) }) : null,
         ]
           .filter(Boolean)
           .join(' · ')
       : null;
 
-  const hoursLabel = restaurant.online_order_hours_label?.trim() ?? null;
+  const hoursRangeLabel = restaurant.online_order_hours_range_label?.trim() ?? null;
   const orderOpenNow = restaurant.online_orders_open_now ?? restaurant.online_orders_available ?? true;
 
   const promo = restaurant.promo;
@@ -110,13 +112,16 @@ export function OnlineOrderRestaurantCard({
     router.push(href as Href);
   }
 
+  const leftStripeColor =
+    ratingVisual && rating != null && rating > 0 ? ratingVisual.stripe : null;
+
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        discountVisual != null && {
+        leftStripeColor != null && {
           borderLeftWidth: 3,
-          borderLeftColor: discountVisual.stripe,
+          borderLeftColor: leftStripeColor,
         },
         pressed && styles.cardPressed,
       ]}
@@ -146,15 +151,15 @@ export function OnlineOrderRestaurantCard({
           </Text>
         ) : null}
 
-        {!orderOpenNow && hoursLabel ? (
-          <Text style={styles.closedLine} numberOfLines={2}>
-            {hoursLabel}
+        {!orderOpenNow && hoursRangeLabel ? (
+          <Text style={styles.hoursLine} numberOfLines={1}>
+            {hoursRangeLabel}
           </Text>
         ) : null}
 
         {ratingUsesLezzet ? (
           <Text style={styles.lezzetHint} numberOfLines={1}>
-            Sipariş lezzet puanı
+            {t('order.orderScorePill')}
           </Text>
         ) : null}
 
@@ -217,19 +222,16 @@ export function OnlineOrderRestaurantCard({
                 borderColor: ratingVisual.accent,
               },
             ]}>
-            <Text style={[styles.ratingPillText, { color: ratingVisual.accent }]}>
-              <Text style={[styles.ratingStar, { color: ratingVisual.accent }]}>★ </Text>
-              {rating.toFixed(1)}
-              {ratingReviewCount != null && ratingReviewCount > 0 ? (
-                <Text style={styles.ratingCount}>
-                  {' '}
-                  ({ratingReviewCount >= 500 ? '500+' : ratingReviewCount.toLocaleString('tr-TR')})
-                </Text>
-              ) : null}
-            </Text>
+            <Text style={[styles.ratingStar, { color: ratingVisual.accent }]}>★</Text>
+            <Text style={styles.ratingScore}>{rating.toFixed(1)}</Text>
+            {ratingReviewCount != null && ratingReviewCount > 0 ? (
+              <Text style={styles.ratingCount}>
+                ({ratingReviewCount >= 500 ? '500+' : ratingReviewCount.toLocaleString('tr-TR')})
+              </Text>
+            ) : null}
           </View>
         ) : null}
-        <Text style={styles.cta}>Sipariş →</Text>
+        <Text style={styles.cta}>{t('order.orderCta')}</Text>
       </View>
     </Pressable>
   );
@@ -238,9 +240,9 @@ export function OnlineOrderRestaurantCard({
 function createStyles(
   colors: GastroColorScheme,
   shadow: GastroShadowScheme,
-  tone: 'default' | 'light',
+  tone: OnlineOrderUiTone,
 ) {
-  const ink = tone === 'light' ? GastroColorsLight : colors;
+  const ink = onlineOrderInk(tone, colors);
   const light = tone === 'light';
   return StyleSheet.create({
     card: {
@@ -250,7 +252,7 @@ function createStyles(
       paddingVertical: 10,
       paddingHorizontal: 10,
       borderRadius: 12,
-      backgroundColor: light ? '#FFFFFF' : colors.panel,
+      backgroundColor: light ? ink.panel : colors.panel,
       borderWidth: 1,
       borderColor: ink.border,
       ...(light ? {} : shadow.card),
@@ -301,8 +303,8 @@ function createStyles(
       fontSize: 11,
       fontWeight: '600',
     },
-    closedLine: {
-      color: '#B45309',
+    hoursLine: {
+      color: ink.bad,
       fontSize: 11,
       fontWeight: '700',
     },
@@ -338,7 +340,7 @@ function createStyles(
       maxWidth: '100%',
     },
     chipOfferText: {
-      color: light ? GastroColorsLight.amber : colors.gold,
+      color: light ? ink.amber : colors.gold,
       fontSize: 10,
       fontWeight: '800',
     },
@@ -367,22 +369,32 @@ function createStyles(
       paddingTop: 2,
     },
     ratingPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
       borderWidth: 1,
       borderRadius: 8,
       paddingHorizontal: 7,
       paddingVertical: 4,
     },
-    ratingPillText: {
-      fontSize: 12,
-      fontWeight: '800',
-    },
     ratingStar: {
-      fontWeight: '900',
+      fontSize: 11,
+      fontWeight: '700',
+      lineHeight: 13,
+    },
+    ratingScore: {
+      color: ink.text,
+      fontSize: 12,
+      fontWeight: '600',
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.2,
+      lineHeight: 14,
     },
     ratingCount: {
       color: ink.muted,
-      fontWeight: '600',
+      fontWeight: '500',
       fontSize: 10,
+      lineHeight: 13,
     },
     cta: {
       color: colors.accent,

@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useAppleSignIn } from '@/hooks/use-apple-sign-in';
@@ -16,25 +22,23 @@ type Props = {
 
 export function AppleSignInButton({ busy, consentAccepted, onError }: Props) {
   const { t } = useTranslation();
-  const { ready, signIn } = useAppleSignIn(onError, consentAccepted);
+  const { available, signIn } = useAppleSignIn(onError, consentAccepted);
   const [pending, setPending] = useState(false);
-  const [visible, setVisible] = useState(Platform.OS === 'ios');
 
-  useEffect(() => {
-    if (Platform.OS !== 'ios') {
-      setVisible(false);
-      return;
-    }
-    void AppleAuthentication.isAvailableAsync()
-      .then(setVisible)
-      .catch(() => setVisible(false));
-  }, []);
-
-  if (isExpoGo || !visible) {
+  if (Platform.OS !== 'ios' || isExpoGo) {
     return null;
   }
 
+  function promptConsentRequired() {
+    Alert.alert(t('auth.consentRequiredTitle'), t('auth.consentRequiredForSignIn'));
+  }
+
   async function onPress() {
+    if (!consentAccepted) {
+      promptConsentRequired();
+      return;
+    }
+    if (busy || pending) return;
     setPending(true);
     try {
       await signIn();
@@ -43,31 +47,31 @@ export function AppleSignInButton({ busy, consentAccepted, onError }: Props) {
     }
   }
 
-  const disabled = busy || pending || !ready || !consentAccepted;
+  if (!available) {
+    return (
+      <Pressable style={styles.fallbackBtn} onPress={() => void onPress()} accessibilityRole="button">
+        <Text style={styles.fallbackText}>{t('auth.appleSignIn')}</Text>
+      </Pressable>
+    );
+  }
 
-  if (!consentAccepted || !ready) {
+  if (pending) {
     return (
       <Pressable style={[styles.fallbackBtn, styles.btnDisabled]} disabled>
-        <Text style={styles.fallbackText}>{t('auth.appleSignIn')}</Text>
+        <ActivityIndicator color="#141414" />
       </Pressable>
     );
   }
 
   return (
     <View style={styles.wrap}>
-      {pending ? (
-        <Pressable style={[styles.fallbackBtn, styles.btnDisabled]} disabled>
-          <ActivityIndicator color="#141414" />
-        </Pressable>
-      ) : (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-          cornerRadius={12}
-          style={styles.appleBtn}
-          onPress={() => void onPress()}
-        />
-      )}
+      <AppleAuthentication.AppleAuthenticationButton
+        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+        cornerRadius={12}
+        style={styles.appleBtn}
+        onPress={() => void onPress()}
+      />
     </View>
   );
 }

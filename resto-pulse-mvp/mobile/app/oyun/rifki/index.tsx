@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { RifkiArenaScene } from '@/components/rifki/RifkiArenaScene';
 import { RifkiGrid } from '@/components/rifki/RifkiGrid';
@@ -84,6 +85,7 @@ export default function RifkiGameScreen() {
   const router = useRouter();
   const { user } = useSession();
   const t = RIFKI_THEME;
+  const { t: tr } = useTranslation();
 
   const [currentLevel, setCurrentLevel] = useState(1);
   const [grid, setGrid] = useState<Grid>(() => createGrid());
@@ -367,7 +369,7 @@ export default function RifkiGameScreen() {
           setMaterialDrainToken((token) => token + 1);
         }
         if (isFlood) {
-          setBanner('Taşlar akıyor — Rıfkı rahlıyor!');
+          setBanner(tr('eglence.rifki.taslarAkiyor'));
         }
         const nextMatched = { ...matchedColors };
 
@@ -406,7 +408,7 @@ export default function RifkiGameScreen() {
         if (gameStatusRef.current === 'playing' && !hasAnyValidMove(finalGrid)) {
           const shuffled = shuffleGridWithValidMoves(finalGrid);
           setGrid(shuffled);
-          setBanner('Hamle kalmadı — taşlar karıldı');
+          setBanner(tr('eglence.rifki.hamleKalmadi'));
         }
 
         evaluateOutcome(nextScore, nextMoves, nextMatched);
@@ -414,7 +416,7 @@ export default function RifkiGameScreen() {
         setIsAnimating(false);
       }
     },
-    [applyEnemyFromCascades, evaluateOutcome, grid, matchedColors, movesLeft, playResolvedTurn, score],
+    [applyEnemyFromCascades, evaluateOutcome, grid, matchedColors, movesLeft, playResolvedTurn, score, tr],
   );
 
   const activateGcTek = useCallback(
@@ -440,7 +442,7 @@ export default function RifkiGameScreen() {
         if (materialTransferred > 0) {
           setMaterialDrainToken((token) => token + 1);
         }
-        if (isFlood) setBanner('Taşlar akıyor!');
+        if (isFlood) setBanner(tr('eglence.rifki.taslarAkiyor2'));
         const blastIds = tilesAtPositions(grid, uniqueBlastCells([{ row, col, radius: 1 }])).map((t) => t.id);
 
         setTileAnimMap(buildMatchAnimMap(blastIds));
@@ -498,7 +500,7 @@ export default function RifkiGameScreen() {
 
         if (gameStatusRef.current === 'playing' && !hasAnyValidMove(working)) {
           setGrid(shuffleGridWithValidMoves(working));
-          setBanner('Hamle kalmadı — taşlar karıldı');
+          setBanner(tr('eglence.rifki.hamleKalmadi'));
         }
 
         evaluateOutcome(nextScore, nextMoves, nextMatched);
@@ -506,7 +508,7 @@ export default function RifkiGameScreen() {
         setIsAnimating(false);
       }
     },
-    [applyEnemyFromCascades, evaluateOutcome, grid, matchedColors, movesLeft, score],
+    [applyEnemyFromCascades, evaluateOutcome, grid, matchedColors, movesLeft, score, tr],
   );
 
   const playInvalidSwap = useCallback(
@@ -587,17 +589,17 @@ export default function RifkiGameScreen() {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: t.bg }]} edges={['top', 'bottom']}>
         <View style={styles.loginGate}>
-          <Text style={[styles.loginTitle, { color: '#FFF7ED' }]}>Rıfkı&apos;yı Kurtar</Text>
+          <Text style={[styles.loginTitle, { color: '#FFF7ED' }]}>{tr('eglence.rifki.loginTitle')}</Text>
           <Text style={[styles.loginBody, { color: '#A8A29E' }]}>
-            Bu oyun giriş gerektirir. Play / EAS build ile Google girişi yapabilirsin.
+            {tr('eglence.rifki.loginBody')}
           </Text>
           <Pressable
             style={[styles.modalBtn, { backgroundColor: t.accent }]}
             onPress={() => router.push('/(tabs)/profil' as Href)}>
-            <Text style={styles.modalBtnText}>Hesap sekmesine git</Text>
+            <Text style={styles.modalBtnText}>{tr('eglence.rifki.hesapGit')}</Text>
           </Pressable>
           <Pressable style={styles.modalGhostBtn} onPress={() => router.replace('/(tabs)/eglence' as Href)}>
-            <Text style={[styles.modalGhostText, { color: '#A8A29E' }]}>Eğlence hub&apos;a dön</Text>
+            <Text style={[styles.modalGhostText, { color: '#A8A29E' }]}>{tr('eglence.rifki.eglenceHubaDon')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -661,7 +663,7 @@ export default function RifkiGameScreen() {
           ) : null}
 
           <Pressable style={[styles.exitBtn, { borderColor: t.border }]} onPress={() => router.back()}>
-            <Text style={[styles.exitText, { color: t.muted }]}>Çıkış</Text>
+            <Text style={[styles.exitText, { color: t.muted }]}>{tr('eglence.rifki.cikis')}</Text>
           </Pressable>
       </ScrollView>
 
@@ -670,49 +672,49 @@ export default function RifkiGameScreen() {
           <View style={[styles.modalCard, { backgroundColor: t.panel, borderColor: t.border }]}>
             {gameStatus === 'level_complete' ? (
               <>
-                <Text style={[styles.modalTitle, { color: t.success }]}>Level tamam!</Text>
+                <Text style={[styles.modalTitle, { color: t.success }]}>{tr('eglence.rifki.levelTamam')}</Text>
                 <Text style={[styles.modalBody, { color: t.text }]}>
-                  Skor: {score} · Kalan hamle: {movesLeft}
+                  {tr('eglence.rifki.levelTamamBody', { skor: score, hamle: movesLeft })}
                 </Text>
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: t.accent }]}
                   onPress={() => resetLevel(currentLevel + 1)}>
-                  <Text style={styles.modalBtnText}>Sonraki level</Text>
+                  <Text style={styles.modalBtnText}>{tr('eglence.rifki.sonrakiLevel')}</Text>
                 </Pressable>
                 <Pressable style={styles.modalGhostBtn} onPress={() => router.back()}>
-                  <Text style={[styles.modalGhostText, { color: t.muted }]}>Hub&apos;a dön</Text>
+                  <Text style={[styles.modalGhostText, { color: t.muted }]}>{tr('eglence.rifki.hubaDon')}</Text>
                 </Pressable>
               </>
             ) : null}
 
             {gameStatus === 'game_over_moves' ? (
               <>
-                <Text style={[styles.modalTitle, { color: t.accent }]}>Hamle bitti</Text>
+                <Text style={[styles.modalTitle, { color: t.accent }]}>{tr('eglence.rifki.hamleBitti')}</Text>
                 <Text style={[styles.modalBody, { color: t.text }]}>
-                  Hedef skor: {levelConfig.targetScore} · Skorun: {score}
+                  {tr('eglence.rifki.hamleBittiBody', { hedef: levelConfig.targetScore, skor: score })}
                 </Text>
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: t.accent }]}
                   onPress={() => resetLevel(currentLevel)}>
-                  <Text style={styles.modalBtnText}>Tekrar dene</Text>
+                  <Text style={styles.modalBtnText}>{tr('eglence.rifki.tekrarDene')}</Text>
                 </Pressable>
                 <Pressable style={styles.modalGhostBtn} onPress={() => router.back()}>
-                  <Text style={[styles.modalGhostText, { color: t.muted }]}>Çıkış</Text>
+                  <Text style={[styles.modalGhostText, { color: t.muted }]}>{tr('eglence.rifki.cikis')}</Text>
                 </Pressable>
               </>
             ) : null}
 
             {gameStatus === 'game_over_enemy' ? (
               <>
-                <Text style={[styles.modalTitle, { color: t.danger }]}>Rıfkı yakalandı!</Text>
-                <Text style={[styles.modalBody, { color: t.text }]}>Düşman çok yaklaştı. Bir daha dene!</Text>
+                <Text style={[styles.modalTitle, { color: t.danger }]}>{tr('eglence.rifki.rifkiYakalandi')}</Text>
+                <Text style={[styles.modalBody, { color: t.text }]}>{tr('eglence.rifki.dusmanYaklasti')}</Text>
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: t.accent }]}
                   onPress={() => resetLevel(currentLevel)}>
-                  <Text style={styles.modalBtnText}>Tekrar dene</Text>
+                  <Text style={styles.modalBtnText}>{tr('eglence.rifki.tekrarDene')}</Text>
                 </Pressable>
                 <Pressable style={styles.modalGhostBtn} onPress={() => router.back()}>
-                  <Text style={[styles.modalGhostText, { color: t.muted }]}>Çıkış</Text>
+                  <Text style={[styles.modalGhostText, { color: t.muted }]}>{tr('eglence.rifki.cikis')}</Text>
                 </Pressable>
               </>
             ) : null}

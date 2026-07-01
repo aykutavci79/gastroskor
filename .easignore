@@ -14,9 +14,22 @@ resto-pulse-mvp/frontend/
 !resto-pulse-mvp/mobile/app/**
 !resto-pulse-mvp/mobile/components/**
 .cursor/
+.claude/
 *.docx
 **/.git
-**/node_modules/.cache
+# EAS sunucuda npm install / gradle build yapar — yerel agir klasorler
+**/node_modules/
+**/node_modules/**
+resto-pulse-mvp/mobile/node_modules/
+resto-pulse-mvp/mobile/dist/
+resto-pulse-mvp/mobile/android/app/build/
+resto-pulse-mvp/mobile/android/build/
+resto-pulse-mvp/mobile/android/.gradle/
+resto-pulse-mvp/mobile/android/.cxx/
+resto-pulse-mvp/mobile/.android-build/
 **/.expo
 **/dist-web-test
-resto-pulse-mvp/mobile/docs/
+resto-pulse-mvp/mobile/.env
+resto-pulse-mvp/mobile/.env.local
+*.apk
+*.aab

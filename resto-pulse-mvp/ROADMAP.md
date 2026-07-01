@@ -4,7 +4,7 @@
 > **"kral selam"** → asagidaki **Siradaki 1-2** bolumune bak.
 > **"yapilacaklar listesi"** → **Tamamlanan** vs **Backlog** ozetle; 1-2 oncelik hatirlat.
 
-**Son guncelleme:** 25 Haziran 2026
+**Son guncelleme:** 2 Temmuz 2026 (iOS 1.0.75 build 56 — App Review; Play kapali test 101)
 
 ---
 
@@ -12,9 +12,75 @@
 
 | # | Ne | Not |
 |---|-----|-----|
-| 1 | **MacBook → iOS TestFlight** | Ayni kod (`git pull`); 1.0.52+ lexicon hazir |
-| 2 | **Gorev UI gercek durum** | `invite` / `review` su an demo state — backend baglantisi + yorum jetonu |
-| 3 | **Rehberden arkadas bul (F1)** | ~1-2 gun dev (asagida detay); Mac gelince iOS izin testi kolay |
+| 1 | **iOS App Review (build 56)** | 4.8 Apple Sign-In fix — **Waiting for Review**; sonuc gelene kadar bekleniyor |
+| 2 | **Play kapali test 101** | Lokal AAB yuklendi; Google incelemesi (genelde saatler–1-2 gun) |
+| 3 | **Online siparis detay saat banner** | Liste karti bitti; kirmizi `Calisma saati HH:MM` |
+| 4 | **Rezervasyon prod smoke** | Tester restoran + Railway; uctan uca panel → push → confirm |
+
+**iOS onayi sonrasi:** [Online siparis odeme tercihi (yemek kartlari)](#online-siparis--odeme-tercihi-yemek-kartlari--backlog-1-temmuz-2026)
+
+---
+
+## Online siparis — calisma saati UI (Haziran 2026)
+
+> **Ne istedik:** Kapali restoranda belirsiz *"Kapali · bugun 11:00'de acar"* yerine net **calisma araligi** — kirmizi, ince satir.
+
+| Parca | Durum | Detay |
+|-------|--------|--------|
+| Backend | [x] kodda | `online_order_hours_range_label` — or. `Calisma saati 11:00-23:00`; bugun kapali gun → `Bugun siparis alinmiyor` |
+| Liste karti | [x] kodda | `OnlineOrderRestaurantCard` — kapali iken kirmizi `hoursLine`; sol serit **puan bandi** rengi (indirim degil) |
+| API deploy | [ ] | Railway — yeni alan canliya cikmadan kartta saat gorunmeyebilir |
+| **Detay ekrani** | [ ] | `OnlineOrderDetailScreen` banner hâlâ eski `online_order_hours_label` — ayni kirmizi aralik formatina gecirilecek |
+| Acik restoran | opsiyonel | Istenirse acikken de ince `11:00-23:00` gosterilebilir (simdi sadece kapali) |
+
+**Dosyalar:** `online_order_hours.py`, `OnlineOrderRestaurantCard.tsx`, `OnlineOrderDetailScreen.tsx`
+
+---
+
+## Online siparis — odeme tercihi (yemek kartlari) — backlog 1 Temmuz 2026
+
+> **Ne zaman:** iOS onayindan bagimsiz sprint (Temmuz 2026) — **kod hazir**, Railway migrate + deploy gerekir.
+> **Sure tahmini:** **~1 is gunu** (backend enum + panel checkbox + mobil chip secici).
+
+**Karar (Aykut):**
+
+- GastroSkor **odeme almaz** — tahsilat restoran/kurye cihazinda (POS, temassiz telefon).
+- Musteri siparis gondermeden **odeme yontemi secer**; restoran panelde badge + mutfak notu gorur.
+- Restoran panelden **kabul ettigi yontemleri acar**; musteri sadece o listeyi gorur.
+
+**Master liste (panelde tumu tanimli):**
+
+| Kod | Etiket |
+|-----|--------|
+| `cash` | Kapida nakit |
+| `card_at_door` | Kapida kredi / banka karti |
+| `multinet` | Multinet |
+| `pluxee` | Pluxee (eski Sodexo) |
+| `ticket` | Ticket Restaurant (Edenred) |
+| `setcard` | Setcard |
+| `metropol` | MetropolCard |
+| `paye` | Paye Kart |
+| `tokenflex` | Token Flex |
+| `yemekmatik` | Yemekmatik |
+| `edenred` | Edenred |
+| `winwin` | Winwin |
+| `custom` | Restoranin yazdigi ozel metin (or. Adana Kent Kart) |
+
+**MVP kapsam:**
+
+| Parca | Is |
+|-------|-----|
+| DB | `restaurant_orders.payment_method` + ownership `accepted_payment_methods[]` + `custom_payment_label` |
+| API | Siparis create/read; restoran promo/ownership okuma |
+| Panel | Checkbox list + opsiyonel ozel yemek karti metin kutusu |
+| Mobil | `OnlineOrderSection` + `OnlineOrderDetailScreen` — zorunlu chip/radio; restoran listesine gore filtre |
+| Panel siparis | Odeme yontemi badge (Multinet vb.) |
+
+**Bilerek yapilmayacak:** iyzico, kart/token saklama, yemek karti API / bakiye dogrulama.
+
+**Simdiki durum:** Backend + panel + mobil chip secici tamam. Deploy sonrasi restoran panelden yontem acar; musteri zorunlu secer.
+
+**Dosyalar (plan):** `restaurant_order.py`, `entities.py`, `RestaurantPromoSettings.tsx`, `OnlineOrderSection.tsx`, `OnlineOrderDetailScreen.tsx`
 
 ---
 
@@ -61,6 +127,7 @@
 | Restoran takip + kupon (D3) | Kodda |
 | Gurme Sohbetler (E2) | Mobil odalar |
 | Gurme profil nickname (E1) | Kodda |
+| **Online rezervasyon MVP** | Cift onay, masa plani, panel, mobil, occasion, vitrin — commit `6ecf2cc`…`550e536` |
 
 ---
 
@@ -98,45 +165,152 @@
 
 **F2 davet linki** — [x] kodda. **F4 arkadaslarin bugun widget** — [ ] bekliyor.
 
-### Online rezervasyon (cift onay) — planlandi 25 Haz 2026
+### Online rezervasyon (cift onay) — MVP [x] kodda (Haziran–Temmuz 2026)
 
-> **Ne zaman:** Aykut onayladi; online siparis/calisma saatleri sonrasi veya paralel MVP.
-> **Sure tahmini:** **3-5 is gunu** MVP (oturma plani haric).
+> **Durum:** Aykut onayli spec uygulandi. Selamda hatirlatma yok — detay icin bu bolum veya `yapilacaklar listesi`.
 
 **Akis (telefon aramasi yok):**
 
-1. Musteri: tarih, saat, kisi sayisi, not (cam kenari / orta / bebek sandalyesi…) → talep
+1. Musteri: tarih, saat, kisi, not, opsiyonel ozel gun → talep
 2. Restoran panel: Onayla / Reddet
 3. Musteri push: "Restoran onayladi — siz de onaylayin"
 4. Musteri uygulamada onaylar → **kesinlesti**
-5. Sure asimi: musteri 24s onaylamazsa `expired`
+5. Sure asimi: musteri 24s onaylamazsa `expired` (`customer_confirm_expires_at`)
 
 **Durumlar:** `pending_restaurant` → `approved_by_restaurant` → `confirmed` | `rejected` | `cancelled` | `expired`
+
+**Tamamlanan (MVP + v1.5):**
+
+| Parca | Durum | Not |
+|-------|--------|-----|
+| DB | [x] | `restaurant_table_reservations`, `online_reservations_enabled`, `max_party`, `occasion_type` |
+| API | [x] | Talep, panel list/decide, musteri confirm, floor plan active |
+| Panel | [x] | Rezervasyon sekmesi, toggle, `new_reservation` bildirim, occasion rozeti, vitrin basvurusu |
+| Mobil | [x] | Masa plani, form, onay modal, durum ekrani, push deep link (`/online-rezervasyon/[id]`) |
+| Ozel gun | [x] | 8 tip sheet + backend enum + panel/bildirim label — `550e536` |
+| Masa plani | [x] | Canvas secim, kapali masa, max kisi limiti, salon fotosu / gece temasi |
+| E2E script | [x] | `backend/scripts/reservation_e2e.py` + `run-reservation-e2e.ps1` (lokal Postgres) |
+
+**Dosyalar:** `reservation_routes.py`, `table_reservations.py`, `PanelReservationsSection.tsx`, `mobile/app/online-rezervasyon/`, `ReservationOccasionPicker.tsx`
+
+**Backlog — rezervasyon (siradaki teknik):**
+
+| Oncelik | Is | Not |
+|---------|-----|-----|
+| 1 | **Prod smoke** | Tester restoran + Railway migration; uctan uca panel → push → confirm |
+| 2 | **i18n** | Mobil occasion 9 dil + onay/durum ekrani `t()` — tamam (2026-07) |
+| 3 | **v2 occasion** | Panel checklist / otomatik arama listesi (opsiyonel) |
+| 4 | **v2 plan** | Surukle-birak editor, cakisma, bekleme listesi |
+
+**Expire sweep:** [x] Saatlik cron — `expire_stale_customer_confirm_reservations` + Vercel `/api/cron/reservation-expirations`
+
+### Online kurye — KVKK uyumlu arama (planlandi 1 Tem 2026)
+
+> **Ne zaman:** Kendi kuryeli restoranlar canliya cikinca; panelde `tel:` ile ham numara **KVKK riski**.
+> **Sure tahmini:** **2-4 is gunu** MVP (saglayici secimi + entegrasyon).
+
+**Problem:**
+
+- Restoran/kurye musterinin **gercek cep numarasini** gorup dogrudan arayamaz (KVKK — ucuncu tarafa acik numara + amac sinirlama).
+- **Simdiki durum:** Panel siparis kartinda `customer_phone` + `tel:` linki (`PanelOrdersSection`) — kuryeye yazdirilan formda da ayni numara.
+- Musteri tarafinda da kurye/restoran numarasi **maskelenmeli** veya uygulama uzerinden **kopru arama** olmali.
+
+**Hedef akis:**
+
+1. Siparis `on_way` / `preparing` → panel + mobil takipte **Ara** butonu
+2. Arama **platform uzerinden** (sanal numara veya VoIP) — taraflar birbirinin ham numarasini gormez
+3. Arama yalnizca **aktif siparis penceresinde** (or. onay → teslim + 30 dk); log tutulur
+4. Panel yazdirma: **gunluk siparis no** (`daily_no`) + adres; ham telefon opsiyonel / maskeli
+
+**Secenek karsilastirma (ucuz olan MVP):**
+
+| Yontem | Nasil | Arti | Eksi | Maliyet (kabaca) |
+|--------|--------|------|------|------------------|
+| **A — Sanal / maskeli numara** | Netgsm, Mutlucell, Twilio Proxy vb.; siparis basina gecici kopru (0850 / sanal hat) | Kurye normal telefonundan arar; entegrasyon orta | Hat/kanal basina aylik + dk basi | Dusuk hacimde genelde **en ucuz** |
+| **B — In-app VoIP** | Twilio/Vonage Voice SDK; uygulama icinden arama | Numara hic acilmaz | Kurye uygulama acmali; daha fazla gelistirme | DK basi; dusuk hacimde A'ya yakin |
+| **C — Ham `tel:` link** | Mevcut panel | Sifir is | **KVKK uyumsuz** — yapma | — |
+
+**Karar:** Oncelik **A** icin 2 saglayici fiyat teklifi al; pilot hacim (<100 arama/ay) icin A vs B toplam maliyeti karsilastir. “Numara mask / sanal santral” tipi TR saglayicilar yeterli.
+
+**Mevcut altyapi (yeniden kullan):**
+
+- Musteri `order_phone_e164` + OTP dogrulama (`order_phone_verification`)
+- `phone_masked` API’de; `daily_no` gunluk siparis referansi
+- Panel `has_own_courier` rozeti — arama butonu bu modda acilir
 
 **MVP kapsam:**
 
 | Parca | Is |
 |-------|-----|
-| DB | `restaurant_reservations` + `online_reservations_enabled` (ownership) |
-| API | POST talep, panel list/decide, musteri confirm |
-| Panel | Rezervasyon sekmesi + `new_reservation` bildirim (siparis zili kalibi) |
-| Mobil | Form + "onay bekliyor" / "siz onaylayin" ekrani + push deep link |
-| Not | Serbest metin + hazir etiketler (cam kenari, sigara icilmez alan istiyorum vb.) |
+| Arastirma | Netgsm / Mutlucell / Twilio Proxy fiyat + API dokumani |
+| Backend | Siparis → kopru numara provision; suresi dolunca release; arama logu |
+| Panel | `tel:` kaldir → **Ara** (kopru veya callback); yazdirma formunda maskeli no |
+| Mobil | Siparis takip: **Ara kurye** / **Ara restoran** (aktif siparis) |
+| KVKK | Aydinlatma metni + siparis sirasinda arama amaci; veri isleme kaydi |
 
-**v1.5 — alan / masa tercihi:**
+**v2:** Musteri ↔ kurye cift yonlu mask; ses kaydi yok; restoran sabit sanal hat.
 
-- Musteri ilk kez de gelebilir, mudur mekani de — ikisi icin ayni harita:
-  - **Bilmeyen:** Bolge secimi (Salon / Bahce / Teras / Cam kenari…) — acik alan adlari yeterli
-  - **Bilen:** Plandan **masa sec** (or. "Bahce 7")
-- **Sigara metni yok:** "Sigara serbest/yasak" UI'da yazilmaz; TR'de bahce/teras = ortak anlasilan kod, salon = kapali. Sadece alan adi.
-- Panel: bolge + masa; opsiyonel `area_type: indoor | outdoor | semi_outdoor` (sadece filtre/ikon icin, musteriye sigara etiketi yok).
-- Mobil: tarih/saat/kisi → plan veya bolge listesi → secim → cift onay.
+- [ ] Saglayici secimi (maliyet karsilastirmasi)
+- [ ] Backend kopru numara servisi
+- [ ] Panel: ham telefonu kurye gorunumunden kaldir / maskele
+- [ ] Mobil: aktif siparis **Ara** butonu
+- [ ] KVKK metinleri (web + uygulama)
 
-**v2 (sonra):** Gorsel plan editor (surukle birak), cakisma, bekleme listesi.
+### Yabanci dil entegrasyonu
 
-**Mevcut altyapi:** Panel bildirim (`panel_notification_jobs`), musteri push token, telefon/ad profili, calisma saatleri tablosu.
+> Kademeli rollout; TR varsayilan.
 
-### Urun / topluluk
+- [x] Mobil i18n altyapisi — 9 dil (`locales/*/common.json`, `LanguageSwitcher`)
+- [ ] Ekran bazli tamamlama (rezervasyon, panel kritik metinler hâlâ karisik)
+- [ ] **Siparis notu ceviri** — musteri notu kendi dilinde; panelde **TR ozet** + orijinal (DeepL/Google; siparis basina ~$0)
+- [ ] Siparis **hazir etiketleri** (mayonez yok, acik ayran…) — mutfak icin dil bagimsiz chip’ler
+- [ ] Sesli siparis: parser + TTS dil secimi
+- [ ] Web + panel: siparis, rezervasyon, menu kritik akislar
+- [ ] Restoran menu cok dilli alanlar (panelden opsiyonel)
+
+### Yoresel lezzetler — i18n (1 Tem 2026)
+
+**Tamamlandi — indication_type etiketi**
+
+- **Sorun:** API `item.indication_type` Turkce geliyordu (`Mahreç İşareti`, `Menşe adı`) — frontend oldugu gibi basiyordu; IT/EN/AR ekranda Turkce kaliyordu.
+- **Cozum:** `mobile/app/yoresel/index.tsx` — `indicationTypeKey()`:
+  - `mahreç işareti` → `yoresel.indicationType_mahrecIsareti` (or. IT: *Indicazione Geografica Protetta*)
+  - `menşe adı` → `yoresel.indicationType_menseAdi`
+  - diger → `yoresel.indicationType_other`
+- **Dosyalar:** `yoresel/index.tsx`, `locales/*/common.json` (`yoresel.indicationType_*`)
+
+**Backlog — DB icerigi (frontend cozemez)**
+
+- [ ] **`item.name`, `item.summary`, `item.region`** — veritabani / geo urun kaynagi; cok dilli alan yok → yabanci dilde ekran Turkce metin gosterir.
+- [ ] Backend: urun basligi + ozet + bolge icin **TR + EN** (min.) veya JSON `translations`; API locale query param veya `Accept-Language`.
+- [ ] v2: 9 dil tam matris (TURKPATENT resmi adlari ayri is paketi).
+
+> **Not:** SS ve App Store icin yoresel kart goruntusu TR kalabilir; turist kitlesi icin EN ozet backlog.
+
+### Web — ziyaretci asistani (planlandi 1 Tem 2026)
+
+> **Ne zaman:** App Store review sonrasi veya isletme basvurusu arttiginda. **Acil degil.**
+> **Sure tahmini:** **0.5 gun** (SSS widget) — **1-2 gun** (FAQ-locked LLM bot).
+
+**Ihtiyac:** Web’e giren ziyaretci “GastroSkor nedir, ne yapar?” sorar. **Mevcut:** `/sss` + `faq-content.ts` (JSON-LD) — chatbot yok.
+
+**Secenekler (pahali → ucuz):**
+
+| Katman | Ne | Maliyet | Not |
+|--------|-----|---------|-----|
+| **0 — Simdi** | Footer / ana sayfa **SSS** linki belirgin; “Isletme basvurusu” CTA | **0 ₺** | Cogu soruyu karsilar |
+| **1 — SSS arama widget** | `GASTRO_FAQ_ITEMS` uzerinde client-side filtre + “Sorunu yaz” | **0 ₺** | Halüsinasyon yok |
+| **2 — FAQ-locked bot** | Groq/OpenAI; yalnizca `faq-content` + ROADMAP ozeti context; web API route | **~$5-20/ay** dusuk trafik | Yanlis cevap riski dusuk |
+| **3 — Canli destek** | Crisp / TidyChat ucretsiz katman | **0-30 €/ay** | Insan + basit bot |
+| **4 — Intercom vb.** | Tam urun | **$$$** | Erken asama icin gereksiz |
+
+**Karar:** Once **katman 0-1**; gercek destek maili artarsa **katman 2**. Restoran B2B sorulari icin panel onboarding PDF zaten var.
+
+- [ ] Ana sayfa / footer “Yardim · SSS” one cikar
+- [ ] Opsiyonel: floating SSS arama widget (`faq-content.ts`)
+- [ ] v2: FAQ-locked Groq asistan (`/api/site-assistant` veya Railway)
+
+### Web / analitik
 - [ ] Yorum klavyesi fix (restoran detay)
 - [ ] Bildirim: yorum begenildi / cevap geldi (Faz A)
 - [ ] Isletme resmi yanit
@@ -178,12 +352,12 @@
 
 ---
 
-## Magaza durumu (21 Haziran 2026)
+## Magaza durumu (1 Temmuz 2026)
 
-| Platform | Surum | Track |
+| Platform | Surum | Track / durum |
 |----------|--------|--------|
-| **Android** | 1.0.52 (63) | Kapali test — Gastroskor-test2 |
-| **iOS** | 1.0.50 (52) not | TestFlight — Mac ile guncellenecek |
+| **Android** | 1.0.75 (101) | Kapali test — Gastroskor-test2; Google incelemesinde |
+| **iOS** | 1.0.75 (56) | App Store Review — 4.8 Apple Sign-In fix |
 | **API** | Railway | `api.gastroskor.com.tr` — ok |
 | **Web** | Vercel | www.gastroskor.com.tr |
 

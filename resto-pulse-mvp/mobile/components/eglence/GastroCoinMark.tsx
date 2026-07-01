@@ -31,17 +31,22 @@ export function GastroCoinMark({ variant = 'icon', size = 20, style, imageStyle 
   const source = resolveSource(variant);
   const isWalletFull = variant === 'wallet' || variant === 'logo';
   const isCoinOnly = variant === 'wallet-coin';
-  const height = isCoinOnly ? size * 1.2 : isWalletFull ? size * 1.38 : size;
-  const width = isCoinOnly ? size * 1.2 : isWalletFull ? size * 2.35 : size;
+  const height = isCoinOnly ? size * 1.08 : isWalletFull ? size * 1.38 : size;
+  const width = isCoinOnly ? size * 1.08 : isWalletFull ? size * 2.35 : size;
 
   return (
     <View style={[styles.wrap, { width, height }, style]}>
-      <Image source={source} style={[styles.image, { width, height }, imageStyle]} resizeMode="contain" />
+      <Image
+        source={source}
+        style={[styles.image, { width, height }, isCoinOnly && styles.coinImage, imageStyle]}
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
+  wrap: { alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   image: {},
+  coinImage: { marginBottom: 2 },
 });

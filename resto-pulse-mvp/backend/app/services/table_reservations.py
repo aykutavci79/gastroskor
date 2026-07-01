@@ -371,6 +371,24 @@ def confirm_reservation_by_customer(
     return row
 
 
+def expire_stale_customer_confirm_reservations(db: Session, *, now: datetime | None = None) -> int:
+    """Restoran onayladi ama musteri 24s icinde onaylamadi — approved → expired."""
+    cutoff = now or _utcnow()
+    rows = db.scalars(
+        select(RestaurantTableReservation).where(
+            RestaurantTableReservation.status == RestaurantTableReservationStatus.approved_by_restaurant,
+            RestaurantTableReservation.customer_confirm_expires_at.is_not(None),
+            RestaurantTableReservation.customer_confirm_expires_at < cutoff,
+        )
+    ).all()
+    if not rows:
+        return 0
+    for row in rows:
+        row.status = RestaurantTableReservationStatus.expired
+    db.commit()
+    return len(rows)
+
+
 def list_panel_reservations(
     db: Session,
     *,

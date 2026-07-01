@@ -1,9 +1,10 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ReservationTheme } from '@/constants/reservation-theme';
 import { formatSlotDateTimeTr, type ReservationSlot } from '@/lib/reservation-datetime';
 import { formatTableCodeLong } from '@/lib/reservation-table-code';
-import { reservationOccasionLabel, type ReservationOccasionType } from '@/lib/reservation-occasion';
+import { reservationOccasionI18nKey, type ReservationOccasionType } from '@/lib/reservation-occasion';
 import type { FloorPlanTable } from '@/lib/types';
 
 type Props = {
@@ -35,65 +36,67 @@ export function ReservationConfirmModal({
   onCancel,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
   const tableCode = formatTableCodeLong(table.zone, table.label);
-  const occasionLabel = reservationOccasionLabel(occasionType);
+  const occasionKey = reservationOccasionI18nKey(occasionType);
+  const occasionLabel = occasionKey ? t(occasionKey) : null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>Rezervasyonu onaylıyor musunuz?</Text>
+          <Text style={styles.title}>{t('rezervasyon.confirmModalTitle')}</Text>
           <Text style={styles.restaurant}>{restaurantName}</Text>
 
           <View style={styles.block}>
             <Text style={styles.line}>
-              <Text style={styles.key}>Tarih / saat: </Text>
+              <Text style={styles.key}>{t('rezervasyon.confirmDateLabel')}</Text>
               {formatSlotDateTimeTr(slot)}
             </Text>
             <Text style={styles.line}>
-              <Text style={styles.key}>Masa: </Text>
+              <Text style={styles.key}>{t('rezervasyon.confirmTableLabel')}</Text>
               {tableCode}
             </Text>
             <Text style={styles.line}>
-              <Text style={styles.key}>Kişi: </Text>
+              <Text style={styles.key}>{t('rezervasyon.confirmPersonLabel')}</Text>
               {partySize}
             </Text>
             <Text style={styles.line}>
-              <Text style={styles.key}>Ad soyad: </Text>
+              <Text style={styles.key}>{t('rezervasyon.confirmNameLabel')}</Text>
               {customerName}
             </Text>
             <Text style={styles.line}>
-              <Text style={styles.key}>Telefon: </Text>
+              <Text style={styles.key}>{t('rezervasyon.confirmPhoneLabel')}</Text>
               {customerPhone}
             </Text>
             {occasionLabel ? (
               <Text style={styles.line}>
-                <Text style={styles.key}>Özel gün: </Text>
+                <Text style={styles.key}>{t('rezervasyon.confirmOccasionLabel')}</Text>
                 {occasionLabel}
               </Text>
             ) : null}
             {note.trim() ? (
               <Text style={styles.line}>
-                <Text style={styles.key}>Ek not: </Text>
+                <Text style={styles.key}>{t('rezervasyon.confirmNoteLabel')}</Text>
                 {note.trim()}
               </Text>
             ) : null}
           </View>
 
           <Text style={styles.hint}>
-            Onayladığınızda talep restoran paneline düşer ve bildirim gider.
+            {t('rezervasyon.confirmHint')}
           </Text>
 
           <View style={styles.actions}>
             <Pressable style={styles.cancelBtn} disabled={submitting} onPress={onCancel}>
-              <Text style={styles.cancelText}>Vazgeç</Text>
+              <Text style={styles.cancelText}>{t('rezervasyon.confirmCancelBtn')}</Text>
             </Pressable>
             <Pressable
               style={[styles.confirmBtn, submitting && styles.confirmDisabled]}
               disabled={submitting}
               onPress={onConfirm}>
               <Text style={styles.confirmText}>
-                {submitting ? 'Gönderiliyor…' : 'Onayla ve gönder'}
+                {submitting ? t('rezervasyon.confirmSending') : t('rezervasyon.confirmSendBtn')}
               </Text>
             </Pressable>
           </View>

@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants.online_order_categories import normalize_category_slugs
+from app.constants.order_payment_methods import normalize_order_payment_methods
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.google_places_live import GooglePlacesLiveClient
@@ -555,6 +555,12 @@ def update_panel_promo(payload: RestaurantPromoSettingsUpdate, db: Session = Dep
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Online siparis acikken calisma saati tablosu zorunlu (or. 11:00–23:00).",
                 )
+        if "accepted_payment_methods" in fields:
+            ownership.accepted_payment_methods = normalize_order_payment_methods(
+                payload.accepted_payment_methods
+            )
+        if "custom_payment_label" in fields:
+            ownership.custom_payment_label = (payload.custom_payment_label or "").strip()[:80] or None
         if payload.online_reservations_enabled is not None:
             ownership.online_reservations_enabled = payload.online_reservations_enabled
         if "online_reservation_max_party_size" in fields and payload.online_reservation_max_party_size is not None:

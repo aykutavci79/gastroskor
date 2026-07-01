@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 import { RESERVATION_TABLE_COLORS, ReservationTheme } from '@/constants/reservation-theme';
 import type { FloorPlanLayout, FloorPlanTable } from '@/lib/types';
@@ -53,9 +54,196 @@ function tableVisualState(
 }
 
 const TABLE_COLORS = RESERVATION_TABLE_COLORS;
+const DOOR_LABEL_COLOR = RESERVATION_TABLE_COLORS.available.label;
 
 function displaySeatCount(table: FloorPlanTable): number {
   return Math.min(8, Math.max(2, table.seats_max));
+}
+
+function normalizeMarkerLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\s/_-]+/g, '');
+}
+
+/** Kapı/giriş işaretçisi olarak konmuş masa veya POI etiketlerini gizle. */
+function isDoorMarkerLabel(label: string): boolean {
+  const norm = normalizeMarkerLabel(label);
+  if (!norm) return false;
+  return (
+    /^(giris|kapi|giriskapi|entrance|door|cikis|exit)/.test(norm) ||
+    /giris.*kapi|kapi.*giris/.test(norm)
+  );
+}
+
+function shortPoiLabel(poi: FloorPlanLayout['pois'][number]): string {
+  const kind = poi.kind?.toLowerCase() ?? 'other';
+  if (kind === 'bar') return 'Bar';
+  if (kind === 'live_music') return 'Muzik';
+  if (kind === 'exit') return 'Cikis';
+  if (kind === 'entrance') return 'Giris';
+  const clean = poi.label.trim();
+  return clean.length > 12 ? `${clean.slice(0, 11)}…` : clean;
+}
+
+function DoorLabelOverlay({
+  x,
+  y,
+  label,
+  mapWidth,
+  mapHeight,
+}: {
+  x: number;
+  y: number;
+  label: string;
+  mapWidth: number;
+  mapHeight: number;
+}) {
+  if (mapWidth <= 0 || mapHeight <= 0) return null;
+  const chars = Array.from(label);
+  const lineHeight = 13;
+  const blockHeight = chars.length * lineHeight;
+  const centerX = x * mapWidth;
+  const centerY = y * mapHeight;
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.doorLabelStack, { left: centerX - 8, top: centerY - blockHeight / 2 }]}>
+      {chars.map((char, index) => (
+        <Text key={`${index}-${char}`} style={styles.doorLabelChar}>
+          {char}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+function FloorPlanDoorMark({ x, y, variant }: { x: number; y: number; variant: 'entrance' | 'exit' }) {
+  const wallHalf = 0.05;
+  const gapHalf = 0.019;
+  const doorLen = 0.03;
+  const labelBlockHalf = 0.05;
+  const wallColor = '#e2e8f0';
+  const doorColor = '#94a3b8';
+  const doorEndY = variant === 'exit' ? y - doorLen : y + doorLen;
+
+  return (
+    <>
+      <Line
+        x1={x - wallHalf}
+        y1={y}
+        x2={x - gapHalf}
+        y2={y}
+        stroke={wallColor}
+        strokeWidth={0.01}
+        strokeLinecap="round"
+      />
+      <Line
+        x1={x + gapHalf}
+        y1={y}
+        x2={x + wallHalf}
+        y2={y}
+        stroke={wallColor}
+        strokeWidth={0.01}
+        strokeLinecap="round"
+      />
+      <Rect
+        x={x - gapHalf}
+        y={y - labelBlockHalf}
+        width={gapHalf * 2}
+        height={labelBlockHalf * 2}
+        fill="rgba(15, 23, 42, 0.55)"
+        rx={0.003}
+      />
+      <Line x1={x + gapHalf} y1={y} x2={x + gapHalf} y2={doorEndY} stroke={doorColor} strokeWidth={0.007} />
+      <Path
+        d={`M ${x + gapHalf} ${y} A ${doorLen} ${doorLen} 0 0 ${variant === 'exit' ? 0 : 1} ${x + gapHalf + doorLen} ${doorEndY}`}
+        fill="none"
+        stroke={doorColor}
+        strokeWidth={0.004}
+        strokeDasharray="0.006 0.004"
+      />
+      <Circle cx={x + gapHalf} cy={y} r={0.004} fill={doorColor} />
+    </>
+  );
+}
+
+function FloorPlanDoorOverlay({
+  poi,
+  mapWidth,
+  mapHeight,
+}: {
+  poi: FloorPlanLayout['pois'][number];
+  mapWidth: number;
+  mapHeight: number;
+}) {
+  const kind = poi.kind?.toLowerCase() ?? 'other';
+  if (kind !== 'entrance' && kind !== 'exit') return null;
+  return (
+    <DoorLabelOverlay
+      x={poi.x}
+      y={poi.y}
+      label={kind === 'exit' ? 'Çıkış' : 'Giriş'}
+      mapWidth={mapWidth}
+      mapHeight={mapHeight}
+    />
+  );
+}
+
+function FloorPlanPoiMarker({ poi }: { poi: FloorPlanLayout['pois'][number] }) {
+  const kind = poi.kind?.toLowerCase() ?? 'other';
+
+  if (kind === 'entrance') {
+    return <FloorPlanDoorMark x={poi.x} y={poi.y} variant="entrance" />;
+  }
+  if (kind === 'exit') {
+    return <FloorPlanDoorMark x={poi.x} y={poi.y} variant="exit" />;
+  }
+
+  return (
+    <>
+      <Circle
+        cx={poi.x}
+        cy={poi.y}
+        r={0.012}
+        fill={ReservationTheme.accentGlow}
+        stroke={ReservationTheme.accent}
+        strokeWidth={0.003}
+      />
+    </>
+  );
+}
+
+function PoiLabelOverlay({
+  poi,
+  mapWidth,
+  mapHeight,
+}: {
+  poi: FloorPlanLayout['pois'][number];
+  mapWidth: number;
+  mapHeight: number;
+}) {
+  const kind = poi.kind?.toLowerCase() ?? 'other';
+  if (kind === 'entrance' || kind === 'exit') return null;
+  if (mapWidth <= 0 || mapHeight <= 0) return null;
+
+  return (
+    <Text
+      pointerEvents="none"
+      style={[
+        styles.poiLabel,
+        {
+          left: poi.x * mapWidth - 36,
+          top: poi.y * mapHeight + 8,
+        },
+      ]}>
+      {shortPoiLabel(poi)}
+    </Text>
+  );
 }
 
 function tableDimensions(table: FloorPlanTable): { w: number; h: number } {
@@ -142,7 +330,6 @@ function FloorPlanTableShape({
   const seats = displaySeatCount(table);
   const chairs = chairPositions(cx, cy, w, h, seats);
   const chairR = seats <= 2 ? 0.011 : 0.01;
-  const surfaceLabel = tableSurfaceLabel(table.label);
 
   return (
     <>
@@ -180,16 +367,44 @@ function FloorPlanTableShape({
           />
         </>
       ) : null}
-      <SvgText
-        x={cx}
-        y={cy + 0.006}
-        fill={colors.label}
-        fontSize={seats <= 2 ? 0.032 : 0.028}
-        fontWeight="900"
-        textAnchor="middle">
-        {surfaceLabel}
-      </SvgText>
     </>
+  );
+}
+
+function FloorPlanTableLabel({
+  table,
+  state,
+  mapWidth,
+  mapHeight,
+}: {
+  table: FloorPlanTable;
+  state: TableVisualState;
+  mapWidth: number;
+  mapHeight: number;
+}) {
+  const label = isDoorMarkerLabel(table.label) ? null : tableSurfaceLabel(table.label);
+  if (!label || mapWidth <= 0 || mapHeight <= 0) return null;
+
+  const colors = TABLE_COLORS[state];
+  const seats = displaySeatCount(table);
+  const fontSize = seats <= 2 ? 13 : 12;
+  const labelWidth = 44;
+
+  return (
+    <Text
+      pointerEvents="none"
+      style={[
+        styles.tableLabel,
+        {
+          left: table.x * mapWidth - labelWidth / 2,
+          top: table.y * mapHeight - fontSize / 2,
+          width: labelWidth,
+          color: colors.label,
+          fontSize,
+        },
+      ]}>
+      {label}
+    </Text>
   );
 }
 
@@ -205,7 +420,8 @@ export function ReservationFloorPlanPicker({
 }: Props) {
   const zones = useMemo(() => zonesWithTables(layout), [layout]);
   const [activeZone, setActiveZone] = useState<FloorPlanZone>(zones[0] ?? 'salon');
-  const [mapSize, setMapSize] = useState(0);
+  const [mapLayout, setMapLayout] = useState({ width: 0, height: 0 });
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!zones.includes(activeZone)) {
@@ -224,10 +440,19 @@ export function ReservationFloorPlanPicker({
 
   const reserved = useMemo(() => new Set(reservedTableIds), [reservedTableIds]);
   const closed = useMemo(() => new Set(closedTableIds), [closedTableIds]);
-  const activeZoneLabel = ZONE_LABEL[activeZone] ?? activeZone;
+
+  function getZoneLabel(zone: string): string {
+    if (zone === 'salon') return t('rezervasyon.zoneSalon');
+    if (zone === 'bahce') return t('rezervasyon.zoneBahce');
+    if (zone === 'teras') return t('rezervasyon.zoneTeras');
+    return ZONE_LABEL[zone as FloorPlanZone] ?? zone;
+  }
+
+  const activeZoneLabel = getZoneLabel(activeZone);
 
   function onMapLayout(event: LayoutChangeEvent) {
-    setMapSize(event.nativeEvent.layout.width);
+    const { width, height } = event.nativeEvent.layout;
+    setMapLayout({ width, height });
   }
 
   function switchZone(zone: FloorPlanZone) {
@@ -261,7 +486,7 @@ export function ReservationFloorPlanPicker({
               style={[styles.zoneChip, active && styles.zoneChipActive]}
               onPress={() => switchZone(zone)}>
               <Text style={[styles.zoneChipText, active && styles.zoneChipTextActive]}>
-                {ZONE_LABEL[zone] ?? zone}
+                {getZoneLabel(zone)}
               </Text>
               <Text style={[styles.zoneChipCount, active && styles.zoneChipCountActive]}>{count}</Text>
             </Pressable>
@@ -270,7 +495,7 @@ export function ReservationFloorPlanPicker({
       </ScrollView>
 
       <Text style={styles.zoneHint}>
-        {activeZoneLabel} · {zoneTables.length} masa · masaya dokun
+        {t('rezervasyon.zoneHint', { zone: activeZoneLabel, count: zoneTables.length })}
       </Text>
 
       <View style={styles.mapWrap} onLayout={onMapLayout}>
@@ -285,12 +510,7 @@ export function ReservationFloorPlanPicker({
         <View style={styles.mapPhotoDim} pointerEvents="none" />
         <Svg width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none" pointerEvents="none">
           {zonePois.map((poi) => (
-            <Fragment key={poi.id}>
-              <Circle cx={poi.x} cy={poi.y} r={0.014} fill="#7c3aed" />
-              <SvgText x={poi.x + 0.018} y={poi.y + 0.008} fill="#ddd6fe" fontSize={0.022}>
-                {poi.label}
-              </SvgText>
-            </Fragment>
+            <FloorPlanPoiMarker key={poi.id} poi={poi} />
           ))}
           {zoneTables.map((table) => (
             <FloorPlanTableShape
@@ -301,13 +521,13 @@ export function ReservationFloorPlanPicker({
           ))}
         </Svg>
 
-        {mapSize > 0
+        {mapLayout.width > 0
           ? zoneTables.map((table) => {
               const box = hitBoxNorm(table);
-              let left = box.x * mapSize;
-              let top = box.y * mapSize;
-              let width = box.w * mapSize;
-              let height = box.h * mapSize;
+              let left = box.x * mapLayout.width;
+              let top = box.y * mapLayout.height;
+              let width = box.w * mapLayout.width;
+              let height = box.h * mapLayout.height;
               if (width < MIN_HIT_PX) {
                 const extra = (MIN_HIT_PX - width) / 2;
                 left -= extra;
@@ -323,7 +543,7 @@ export function ReservationFloorPlanPicker({
                 <Pressable
                   key={`hit-${table.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`${formatTableCode(table.zone, table.label)}, ${table.seats_max} kisilik masa`}
+                  accessibilityLabel={`${formatTableCode(table.zone, table.label)}${t('rezervasyon.tableA11y', { seats: table.seats_max })}`}
                   style={[
                     styles.tableHit,
                     {
@@ -339,10 +559,42 @@ export function ReservationFloorPlanPicker({
               );
             })
           : null}
+
+        {mapLayout.width > 0
+          ? zonePois.map((poi) => (
+              <FloorPlanDoorOverlay
+                key={`door-label-${poi.id}`}
+                poi={poi}
+                mapWidth={mapLayout.width}
+                mapHeight={mapLayout.height}
+              />
+            ))
+          : null}
+        {mapLayout.width > 0
+          ? zonePois.map((poi) => (
+              <PoiLabelOverlay
+                key={`poi-label-${poi.id}`}
+                poi={poi}
+                mapWidth={mapLayout.width}
+                mapHeight={mapLayout.height}
+              />
+            ))
+          : null}
+        {mapLayout.width > 0
+          ? zoneTables.map((table) => (
+              <FloorPlanTableLabel
+                key={`label-${table.id}`}
+                table={table}
+                state={tableVisualState(table, partySize, reserved, closed, selectedTableId)}
+                mapWidth={mapLayout.width}
+                mapHeight={mapLayout.height}
+              />
+            ))
+          : null}
       </View>
 
       <Text style={styles.legend}>
-        Masa numarası masanın üzerinde · Altın: seçili · Yeşil: uygun · Gri: dolu
+        {t('rezervasyon.floorLegend')}
       </Text>
     </View>
   );
@@ -425,6 +677,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: ReservationTheme.accentGlow,
     backgroundColor: 'rgba(255,183,3,0.08)',
+  },
+  tableLabel: {
+    position: 'absolute',
+    zIndex: 3,
+    fontWeight: '900',
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  doorLabelStack: {
+    position: 'absolute',
+    zIndex: 3,
+    alignItems: 'center',
+  },
+  doorLabelChar: {
+    color: DOOR_LABEL_COLOR,
+    fontSize: 11,
+    fontWeight: '900',
+    lineHeight: 13,
+    includeFontPadding: false,
+  },
+  poiLabel: {
+    position: 'absolute',
+    zIndex: 3,
+    width: 72,
+    textAlign: 'center',
+    color: ReservationTheme.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    includeFontPadding: false,
   },
   legend: {
     paddingHorizontal: 12,

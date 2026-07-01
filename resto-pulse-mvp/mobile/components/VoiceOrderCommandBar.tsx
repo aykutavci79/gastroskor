@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
@@ -21,13 +22,10 @@ type Props = {
   onSubmit: (command: VoiceOrderCommand) => void;
 };
 
-const EXAMPLES = [
-  '3 lahmacun 1 ayran 400 TL geçmesin',
-  "B'den 3 lahmacun, kapıda kredi kartı",
-];
-
 export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, onSubmit }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const EXAMPLES = [t('voice.commandBarExample1'), t('voice.commandBarExample2')];
   const [draft, setDraft] = useState('');
   const [micHint, setMicHint] = useState<string | null>(null);
   const [micUiState, setMicUiState] = useState<VoiceMicUiState>({
@@ -93,17 +91,17 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <Text style={styles.label}>Gastro Sipariş komutu</Text>
+      <Text style={styles.label}>{t('voice.commandBarTitle')}</Text>
       <Text style={styles.hint}>
-        Restoran seçmeden: “3 lahmacun 1 ayran, 400 TL geçmesin” — en uygun restoranı bulur.
+        {t('voice.commandBarHint')}
         {'\n'}
-        Ya da harfle: “B&apos;den 3 lahmacun, kapıda kredi kartı”.
+        {t('voice.commandBarHintOr')}
       </Text>
       <View style={styles.inputRow}>
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder="3 lahmacun 1 ayran 400 TL geçmesin"
+          placeholder={t('voice.commandBarPlaceholder')}
           placeholderTextColor={GastroColors.muted}
           style={[styles.input, styles.inputFlex]}
           multiline
@@ -137,7 +135,7 @@ export function VoiceOrderCommandBar({ restaurants, defaultProductSearchGroup, o
         style={[styles.btn, !canSubmit && styles.btnDisabled]}
         disabled={!canSubmit}
         onPress={() => trySubmit(parsed)}>
-        <Text style={styles.btnText}>Siparişi hazırla</Text>
+        <Text style={styles.btnText}>{t('voice.prepareOrderBtn')}</Text>
       </Pressable>
     </View>
   );

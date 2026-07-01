@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { GastroVoiceMicButton, type VoiceMicUiState } from '@/components/GastroVoiceMicButton';
 import { SpeechMicErrorBoundary } from '@/components/SpeechMicErrorBoundary';
 import type { GastroColorScheme } from '@/constants/theme';
-import { GastroColorsLight } from '@/constants/theme';
+import { onlineOrderInk, type OnlineOrderUiTone } from '@/constants/online-order-theme';
 import { useGastroTheme } from '@/context/theme-context';
 import { parseVoiceOrderQuery, type VoiceOrderQuery } from '@/lib/parse-voice-order-query';
 import { polishVoiceOrderQueryTranscript } from '@/lib/voice-order-stt-fix';
@@ -14,7 +15,7 @@ type Props = {
   initialDraft?: string;
   searching?: boolean;
   onSearch: (query: VoiceOrderQuery) => void;
-  tone?: 'default' | 'light';
+  tone?: OnlineOrderUiTone;
   children?: ReactNode;
 };
 
@@ -25,8 +26,9 @@ export function OnlineOrderVoiceSearchBar({
   tone = 'default',
   children,
 }: Props) {
+  const { t } = useTranslation();
   const { colors } = useGastroTheme();
-  const ink = tone === 'light' ? GastroColorsLight : colors;
+  const ink = onlineOrderInk(tone, colors);
   const styles = useMemo(() => createStyles(colors, tone), [colors, tone]);
   const [draft, setDraft] = useState('');
   const [micHint, setMicHint] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function OnlineOrderVoiceSearchBar({
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="150 TL lahmacun, cantık…"
+            placeholder={t('order.voiceSearchPlaceholder')}
             placeholderTextColor={ink.placeholder}
             style={styles.input}
             returnKeyType="search"
@@ -101,14 +103,14 @@ export function OnlineOrderVoiceSearchBar({
           </SpeechMicErrorBoundary>
         </View>
         {micHint ? <Text style={styles.micHint}>{micHint}</Text> : null}
-        <Text style={styles.hint}>Örn: 150 TL lahmacun yaz yada dikte et</Text>
+        <Text style={styles.hint}>{t('order.voiceSearchHint')}</Text>
         {canSearch ? (
           <Pressable
             style={({ pressed }) => [styles.searchBtn, pressed && styles.searchBtnPressed]}
             onPress={handleSearch}
             accessibilityRole="button"
-            accessibilityLabel="Gastro Sipariş ara">
-            <Text style={styles.searchBtnText}>Ara</Text>
+            accessibilityLabel={t('order.voiceSearchAccessibility')}>
+            <Text style={styles.searchBtnText}>{t('order.voiceSearchBtn')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -122,21 +124,12 @@ export function OnlineOrderVoiceSearchBar({
   );
 }
 
-function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
+function createStyles(colors: GastroColorScheme, tone: OnlineOrderUiTone) {
   const light = tone === 'light';
-  const ink = light ? GastroColorsLight : colors;
+  const ink = onlineOrderInk(tone, colors);
   return StyleSheet.create({
     wrap: {
-      gap: light ? 16 : 6,
-      ...(light
-        ? {
-            backgroundColor: '#FFFFFF',
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: GastroColorsLight.border,
-            padding: 16,
-          }
-        : {}),
+      gap: light ? 8 : 6,
     },
     searchGroup: { gap: 6 },
     searchBox: {
@@ -147,7 +140,7 @@ function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
       borderWidth: 1,
       borderColor: ink.border,
       backgroundColor: ink.input,
-      paddingHorizontal: 10,
+      paddingHorizontal: 12,
       paddingVertical: 8,
       minHeight: 48,
     },
@@ -168,14 +161,14 @@ function createStyles(colors: GastroColorScheme, tone: 'default' | 'light') {
     },
     searchBtn: {
       alignSelf: 'flex-start',
-      borderRadius: 10,
-      backgroundColor: colors.accent,
+      borderRadius: 12,
+      backgroundColor: ink.accent,
       paddingHorizontal: 16,
       paddingVertical: 10,
     },
     searchBtnPressed: { opacity: 0.92 },
     searchBtnText: {
-      color: light ? GastroColorsLight.text : colors.accentDark,
+      color: light ? ink.accentDark : colors.accentDark,
       fontSize: 14,
       fontWeight: '800',
     },

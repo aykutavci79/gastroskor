@@ -154,6 +154,8 @@ class RestaurantPromoSettingsUpdate(BaseModel):
     instagram: str | None = Field(default=None, max_length=120)
     card_emoji: str | None = Field(default=None, max_length=16)
     online_order_hours: dict | None = None
+    accepted_payment_methods: list[str] | None = None
+    custom_payment_label: str | None = Field(default=None, max_length=80)
     online_reservations_enabled: bool | None = None
     online_reservation_max_party_size: int | None = Field(default=None, ge=1, le=100)
 

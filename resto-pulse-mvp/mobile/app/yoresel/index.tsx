@@ -2,6 +2,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Screen } from '@/components/ui/Screen';
 import type { GastroColorScheme, GastroShadowScheme } from '@/constants/theme';
@@ -11,11 +12,19 @@ import { listRegionalProducts } from '@/lib/api';
 import { regionalProductImageSource } from '@/lib/regional-product-image';
 import type { RegionalProductItem } from '@/lib/types';
 
+function indicationTypeKey(raw: string): string {
+  const norm = raw.trim().toLowerCase();
+  if (norm === 'mahreç işareti') return 'yoresel.indicationType_mahrecIsareti';
+  if (norm === 'menşe adı') return 'yoresel.indicationType_menseAdi';
+  return 'yoresel.indicationType_other';
+}
+
 export default function YoreselLezzetlerScreen() {
   const { city, cityLabel } = useCity();
   const { colors, shadow } = useGastroTheme();
   const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const router = useRouter();
+  const { t } = useTranslation();
   const [items, setItems] = useState<RegionalProductItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,22 +48,16 @@ export default function YoreselLezzetlerScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.kicker}>İç turizm · {cityLabel}</Text>
-        <Text style={styles.title}>Yöresel lezzetler</Text>
-        <Text style={styles.sub}>
-          TÜRKPATENT’te tescilli ürünler. Tıklayınca Google canlı araması açılır — GastroSkor restoran onayı
-          vermez.
-        </Text>
+        <Text style={styles.kicker}>{t('yoresel.indexKicker', { city: cityLabel })}</Text>
+        <Text style={styles.title}>{t('yoresel.title')}</Text>
+        <Text style={styles.sub}>{t('yoresel.subtitle')}</Text>
 
         {loading ? <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} /> : null}
 
         {!loading && items.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>{cityLabel} için henüz ürün yok</Text>
-            <Text style={styles.emptySub}>
-              Bu il için henüz vitrine alınmış coğrafi işaretli ürün bulunmuyor. Üstteki il seçicisinden başka
-              bir il deneyebilirsin.
-            </Text>
+            <Text style={styles.emptyTitle}>{t('yoresel.emptyTitle', { city: cityLabel })}</Text>
+            <Text style={styles.emptySub}>{t('yoresel.emptySub')}</Text>
           </View>
         ) : null}
 
@@ -66,14 +69,14 @@ export default function YoreselLezzetlerScreen() {
               onPress={() => router.push(`/yoresel/${item.slug}` as Href)}>
               <View style={styles.cardRow}>
                 <View style={styles.cardBody}>
-                  <Text style={styles.badge}>MAHREÇ</Text>
+                  <Text style={styles.badge}>{t('yoresel.badge')}</Text>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.region}>{item.region}</Text>
                   <Text style={styles.summary} numberOfLines={3}>
                     {item.summary}
                   </Text>
                   <Text style={styles.meta}>
-                    {item.registration_year} · {item.indication_type} · Canlı arama
+                    {item.registration_year} · {t(indicationTypeKey(item.indication_type))}{t('yoresel.liveSuffix')}
                   </Text>
                 </View>
                 {(() => {

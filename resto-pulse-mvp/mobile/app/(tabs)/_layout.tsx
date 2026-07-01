@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { CenterMicTabBar } from '@/components/CenterMicTabBar';
 import { EglenceTabIcon } from '@/components/eglence/EglenceTabIcon';
@@ -20,6 +21,7 @@ function badgeLabel(count: number): string | undefined {
 function TabsWithBadges() {
   const { colors } = useGastroTheme();
   const { notificationUnread, takipPending, refresh } = useAppBadges();
+  const { t } = useTranslation();
 
   useFocusEffect(
     useCallback(() => {
@@ -40,7 +42,7 @@ function TabsWithBadges() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Keşfet',
+          title: t('nav.explore'),
           tabBarActiveTintColor: '#4DA3FF',
           tabBarIcon: ({ focused, size }) => <KesfetTabIcon focused={focused} size={size} />,
         }}
@@ -48,7 +50,7 @@ function TabsWithBadges() {
       <Tabs.Screen
         name="eglence"
         options={{
-          title: 'Eğlence',
+          title: t('nav.entertainment'),
           tabBarActiveTintColor: '#FFAA3C',
           tabBarIcon: ({ focused, size }) => <EglenceTabIcon focused={focused} size={size} />,
         }}
@@ -56,7 +58,7 @@ function TabsWithBadges() {
       <Tabs.Screen
         name="takip"
         options={{
-          title: 'Takip',
+          title: t('nav.follow'),
           tabBarActiveTintColor: '#EF4444',
           tabBarBadge: badgeLabel(takipPending),
           tabBarIcon: ({ focused, size }) => <TakipTabIcon focused={focused} size={size} />,
@@ -65,7 +67,7 @@ function TabsWithBadges() {
       <Tabs.Screen
         name="panel"
         options={{
-          title: 'İşletme',
+          title: t('nav.business'),
           href: null,
           tabBarIcon: ({ color, size }) => <Ionicons name="storefront" size={size} color={color} />,
         }}
@@ -73,7 +75,7 @@ function TabsWithBadges() {
       <Tabs.Screen
         name="profil"
         options={{
-          title: 'Hesap',
+          title: t('nav.account'),
           tabBarBadge: badgeLabel(notificationUnread),
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}

@@ -22,4 +22,10 @@ Dosyalar yoksa uygulama TTS yedegine duser.
 | `buzzer.mp3` | Mini Sudoku hatali rakam girisi |
 | `applause.mp3` | Kelime Sofrasi dogru kelime ızgaraya yerlesince |
 
-Ses yoksa efekt sessizce atlanir.
+## Rezervasyon salon muzigi
+
+| Dosya | Kullanim |
+|-------|----------|
+| `rezervasyon.mp3` … `rezervasyon4.mp3` | Online rezervasyon — parca bitince rastgele sonraki (5 parca, tekrar etmez) |
+
+Ses yoksa muzik sessizce atlanir.
