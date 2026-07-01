@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@swc/helpers": "^0.5.23",
     "next": "^15.5.18",
     "next-auth": "^4.24.11",
     "next-intl": "^4.13.1",
