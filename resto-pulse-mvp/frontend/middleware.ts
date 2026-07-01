@@ -7,19 +7,16 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip i18n for panel, API routes, and static assets
-  const skipPaths = [
-    '/panel',
-    '/api',
-    '/_next',
-    '/favicon',
-    '/logo',
-    '/manifest',
-    '/robots',
-    '/sitemap',
-    '/.well-known',
-  ];
-  if (skipPaths.some((p) => pathname.startsWith(p))) {
+  // Skip i18n middleware entirely for panel, API, and static assets.
+  // With localePrefix:'never', the intl middleware only sets a locale
+  // cookie and never redirects — but we still skip panel/api to avoid
+  // any unexpected interference.
+  if (
+    pathname.startsWith('/panel') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/.well-known')
+  ) {
     return;
   }
 
@@ -27,7 +24,6 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match all public paths, skip Next.js internals and static files
   matcher: [
     '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)).*)',
   ],
