@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { RestaurantCard } from '@/components/RestaurantCard';
 import { SocialProofScanBanner } from '@/components/SocialProofScanBanner';
@@ -19,7 +20,7 @@ import {
   type SocialResultsIndex,
 } from '@/lib/discover-social';
 import { livePlaceDetailHref, livePlaceDistanceLabel, livePlaceToRestaurantCard } from '@/lib/live-place-card';
-import { DISTANCE_BAND_OPTIONS, RATING_BAND_OPTIONS, type DistanceBand, type RatingBand } from '@/lib/search-filters';
+import { type DistanceBand, type RatingBand } from '@/lib/search-filters';
 import { cityDisplayName } from '@/lib/detect-city';
 import type { LivePlaceSearchItem, ParsedSearchIntent, SocialProofStatus } from '@/lib/types';
 
@@ -46,6 +47,7 @@ export function LivePlaceSearch({
   heading,
   onSearchPerformed,
 }: Props) {
+  const t = useTranslations('liveSearch');
   const { status: authStatus, data: session } = useSession();
   const pollTokenRef = useRef(0);
   const lastQueryRef = useRef('');
@@ -255,7 +257,7 @@ export function LivePlaceSearch({
     }
 
     if (isSocialMode && !canRunSocialMode) {
-      setError('Sosyal kanıt modu için giriş yap ve API oturumunun açık olduğundan emin ol.');
+      setError(t('loginRequired'));
       return;
     }
 
@@ -309,16 +311,32 @@ export function LivePlaceSearch({
   const searchPlaceholder =
     cityStatus === 'ready'
       ? isSocialMode
-        ? `Örn: en iyi iskender ${cityLabel}`
-        : `Örn: İskender 4.5+ yıldız ${cityLabel}`
+        ? t('placeholderSocialCity', { city: cityLabel })
+        : t('placeholderGastroCity', { city: cityLabel })
       : isSocialMode
-        ? 'Örn: en iyi iskender'
-        : 'Örn: İskender 4.5+ yıldız';
+        ? t('placeholderSocial')
+        : t('placeholderGastro');
 
   const modelDescription =
     searchModel === 'gastroskor'
-      ? 'Google + yüksek puan/yorum + mesafe + yerel favoriler'
-      : 'Reddit, X, YouTube — Wilson skoru (giriş gerekir)';
+      ? t('modelDescGastro')
+      : t('modelDescSocial');
+
+  const distanceBandOptions = [
+    { value: '' as DistanceBand, label: t('distanceAll') },
+    { value: '0-250' as DistanceBand, label: '0–250 m' },
+    { value: '251-500' as DistanceBand, label: '251–500 m' },
+    { value: '501-1000' as DistanceBand, label: '501 m – 1 km' },
+    { value: '1100-2000' as DistanceBand, label: '1,1 – 2 km' },
+    { value: '2100+' as DistanceBand, label: '2,1 km+' },
+  ];
+
+  const ratingBandOptions = [
+    { value: '' as RatingBand, label: t('ratingAll') },
+    { value: '3.0-3.9' as RatingBand, label: '3,0 – 3,9' },
+    { value: '4.0-4.4' as RatingBand, label: '4,0 – 4,4' },
+    { value: '4.5-5.0' as RatingBand, label: '4,5 – 5,0' },
+  ];
 
   return (
     <section
@@ -327,15 +345,15 @@ export function LivePlaceSearch({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-content">
-            {heading ?? `${city} — canlı restoran arama`}
+            {heading ?? t('headingDefault', { city })}
           </h2>
           <p className="text-xs text-content-muted">
             {embedded
               ? cityStatus === 'loading'
-                ? 'Konumun alınıyor — şehir buna göre ayarlanacak'
+                ? t('locationLoading')
                 : cityStatus === 'ready'
                   ? `${cityLabel} · ${modelDescription}`
-                  : 'Konum kapalı — yöresel bölümden şehir seçebilirsin'
+                  : t('locationOff')
               : modelDescription}
             {locationStatus === 'loading' ? ' · Konum aliniyor…' : null}
             {locationStatus === 'denied' && !embedded
@@ -353,7 +371,7 @@ export function LivePlaceSearch({
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-content">Arama modeli</legend>
+        <legend className="text-xs font-medium text-content">{t('searchModel')}</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <label
             className={`cursor-pointer rounded-xl border p-3 text-sm transition ${
@@ -369,9 +387,9 @@ export function LivePlaceSearch({
               onChange={() => setSearchModel('gastroskor')}
               className="sr-only"
             />
-            <span className="font-semibold text-content">GastroSkor</span>
+            <span className="font-semibold text-content">{t('gastroskorLabel')}</span>
             <span className="mt-1 block text-xs text-content-muted">
-              Varsayılan liste — Google skoru, mesafe ve yorum kalitesi
+              {t('gastroskorDesc')}
             </span>
           </label>
           <label
@@ -388,9 +406,9 @@ export function LivePlaceSearch({
               onChange={() => setSearchModel('sosyal')}
               className="sr-only"
             />
-            <span className="font-semibold text-content">Sosyal kanıt</span>
+            <span className="font-semibold text-content">{t('socialLabel')}</span>
             <span className="mt-1 block text-xs text-content-muted">
-              Reddit / X / YouTube sinyali — farklı sıralama, giriş gerekir
+              {t('socialDesc')}
             </span>
           </label>
         </div>
@@ -400,22 +418,17 @@ export function LivePlaceSearch({
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
           {isLoggedIn && !backendTokenReady ? (
             <>
-              Google ile giriş yapıldı ama <strong>API oturumu</strong> oluşmadı.{' '}
-              <Link href="/auth/giris" className="underline">
-                Çıkış yap → tekrar giriş
-              </Link>{' '}
-              (KVKK kutusu işaretli olsun).
+              {t('apiSessionError')}
               {backendExchangeError ? (
-                <span className="mt-2 block text-xs text-amber-200/90">Hata: {backendExchangeError}</span>
+                <span className="mt-2 block text-xs text-amber-200/90">{t('sessionErrorDetail', { error: backendExchangeError })}</span>
               ) : null}
             </>
           ) : (
             <>
-              Sosyal kanıt modu için{' '}
+              {t('loginRequired')}{' '}
               <Link href="/auth/giris" className="underline">
-                giriş yap
+                {t('socialLabel')}
               </Link>
-              .
             </>
           )}
         </div>
@@ -432,37 +445,37 @@ export function LivePlaceSearch({
           type="submit"
           disabled={loading || (isSocialMode && !canRunSocialMode)}
           className="btn-primary shrink-0 disabled:opacity-60">
-          {loading ? 'Aranıyor...' : 'Ara'}
+          {loading ? t('searching') : t('search')}
         </button>
       </form>
 
       {!isSocialMode ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <label htmlFor="live-search-distance" className="sr-only">
-            Mesafe filtresi
+            {t('distanceFilter')}
           </label>
           <select
             id="live-search-distance"
             value={distanceBand}
             onChange={(e) => setDistanceBand(e.target.value as DistanceBand)}
             className="input-field text-sm"
-            aria-label="Mesafe filtresi">
-            {DISTANCE_BAND_OPTIONS.map((option) => (
+            aria-label={t('distanceFilter')}>
+            {distanceBandOptions.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
           <label htmlFor="live-search-rating" className="sr-only">
-            Yıldız filtresi
+            {t('ratingFilter')}
           </label>
           <select
             id="live-search-rating"
             value={ratingBand}
             onChange={(e) => setRatingBand(e.target.value as RatingBand)}
             className="input-field text-sm"
-            aria-label="Yıldız filtresi">
-            {RATING_BAND_OPTIONS.map((option) => (
+            aria-label={t('ratingFilter')}>
+            {ratingBandOptions.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
                 {option.label}
               </option>
@@ -471,7 +484,7 @@ export function LivePlaceSearch({
         </div>
       ) : (
         <p className="text-[10px] text-content-muted">
-          Sosyal kanıt modunda mesafe/yıldız filtreleri kapalı — sıralama sosyal sinyale göre yapılır.
+          {t('socialFiltersNote')}
         </p>
       )}
 

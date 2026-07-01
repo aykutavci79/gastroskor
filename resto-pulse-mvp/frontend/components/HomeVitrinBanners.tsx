@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { useBannerCrossfade } from '@/hooks/useBannerCrossfade';
 import { listRegionalProducts } from '@/lib/api';
@@ -20,7 +21,6 @@ import { regionalProductImageSrc } from '@/lib/regional-product-image';
 import { cityDisplayName } from '@/lib/turkiye-provinces';
 import type { RegionalProductItem } from '@/lib/types';
 
-const MOBILE_ONLY_HINT = 'Sadece mobilde';
 
 type BannerShellProps = {
   href?: string;
@@ -186,6 +186,7 @@ type Props = {
 };
 
 export function HomeVitrinBanners({ city }: Props) {
+  const t = useTranslations('vitrinBanners');
   const cityLabel = cityDisplayName(city);
   const [count, setCount] = useState<number | null>(null);
   const [regionalSlides, setRegionalSlides] = useState<{ src: string; alt: string; name: string }[]>([]);
@@ -219,10 +220,10 @@ export function HomeVitrinBanners({ city }: Props) {
 
   const regionalHint =
     count == null
-      ? `${cityLabel} · yükleniyor…`
+      ? t('regionalLoading', { city: cityLabel })
       : count === 0
-        ? `${cityLabel} · tescilli ürün listesi yakında`
-        : `${cityLabel} · ${count} tescilli ürün`;
+        ? t('regionalNone', { city: cityLabel })
+        : t('regionalCount', { city: cityLabel, count });
 
   const yoreselSlides = useMemo(
     () => regionalSlides.map((row) => ({ src: row.src, alt: row.alt })),
@@ -236,13 +237,13 @@ export function HomeVitrinBanners({ city }: Props) {
       <KesfetVitrinBannerShell
         borderClassName="border border-[rgba(255,107,53,0.5)]"
         pillClassName="bg-[rgba(255,107,53,0.94)]"
-        pillLabel="Online Sipariş"
+        pillLabel={t('onlineSiparis')}
         title={
           <>
-            Tek Tıkla <GoldAccent>Liste</GoldAccent>
+            {t('titlePre')} <GoldAccent>{t('orderAccent')}</GoldAccent>
           </>
         }
-        hint={MOBILE_ONLY_HINT}
+        hint={t('mobileOnly')}
         icon={
           <BannerIconCircle>
             <BagIcon />
@@ -253,13 +254,13 @@ export function HomeVitrinBanners({ city }: Props) {
       <KesfetVitrinBannerShell
         borderClassName="border border-violet-400/50"
         pillClassName="bg-violet-900/90"
-        pillLabel="Online Rezervasyon"
+        pillLabel={t('onlineRezarvasyon')}
         title={
           <>
-            Tek Tıkla <GoldAccent>Masa</GoldAccent>
+            {t('titlePre')} <GoldAccent>{t('reservationAccent')}</GoldAccent>
           </>
         }
-        hint={MOBILE_ONLY_HINT}
+        hint={t('mobileOnly')}
         icon={
           <BannerIconCircle>
             <CalendarIcon />
@@ -273,10 +274,10 @@ export function HomeVitrinBanners({ city }: Props) {
         href={yoreselHref}
         borderClassName="border border-amber-500/45"
         pillClassName="bg-[rgba(180,83,9,0.92)]"
-        pillLabel="Yöresel Lezzetler"
+        pillLabel={t('yoreselLezzetler')}
         title={
           <>
-            Tek Tıkla <GoldAccent>Keşfet</GoldAccent>
+            {t('titlePre')} <GoldAccent>{t('yoreselAccent')}</GoldAccent>
           </>
         }
         hint={regionalHint}
