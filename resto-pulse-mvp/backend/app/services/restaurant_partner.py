@@ -17,7 +17,7 @@ from app.services.table_reservations import online_reservations_configured
 from app.services.reservation_vitrin import reservation_vitrin_listed, vitrin_status_value
 from app.services.restaurant_promo import promo_from_ownership, subscription_allows_promo
 from app.services.restaurant_trust_rating import meets_online_order_trust_rating
-from app.services.tester_restaurant_visibility import is_tester_seed_ownership
+from app.services.tester_restaurant_visibility import is_tester_seed_ownership, mask_partner_dict_for_viewer
 
 
 def _apply_trust_rating_gate(db: Session, restaurant_id: UUID, partner: dict) -> dict:
@@ -68,7 +68,12 @@ def partner_listing_for_ownership(ownership: RestaurantOwnership) -> dict:
     }
 
 
-def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
+def partner_listing_for_restaurant(
+    db: Session,
+    restaurant_id: UUID,
+    *,
+    viewer_email: str | None = None,
+) -> dict:
     ownership = db.scalar(
         select(RestaurantOwnership)
         .where(RestaurantOwnership.restaurant_id == restaurant_id)
@@ -91,7 +96,9 @@ def partner_listing_for_restaurant(db: Session, restaurant_id: UUID) -> dict:
             "menu_preview": [],
             "menu_item_count": 0,
         }
-    return _apply_trust_rating_gate(db, restaurant_id, partner_listing_for_ownership(ownership))
+    partner = partner_listing_for_ownership(ownership)
+    partner = mask_partner_dict_for_viewer(partner, ownership, viewer_email=viewer_email)
+    return _apply_trust_rating_gate(db, restaurant_id, partner)
 
 
 def partner_listings_for_restaurant_ids(db: Session, restaurant_ids: list[UUID]) -> dict[str, dict]:

@@ -124,7 +124,11 @@ from app.services.restaurant_partner import (
     partner_listings_for_restaurant_ids,
 )
 from app.services.tester_live_place import build_tester_live_place_details
-from app.services.tester_restaurant_visibility import is_tester_seed_place_id, restaurant_should_seo_noindex
+from app.services.tester_restaurant_visibility import (
+    is_tester_seed_place_id,
+    restaurant_should_seo_noindex,
+    should_hide_tester_ownership,
+)
 from app.services.restaurant_menu import public_menu_for_ownership
 from app.services.city_resolver import normalize_city_key, resolve_city_from_coords, resolve_city_name
 from app.services.city_top_cache import read_city_top_cache
@@ -306,7 +310,12 @@ def get_google_place_id(db: Session, restaurant_id: UUID) -> str | None:
     return db.scalar(stmt)
 
 
-def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -> RestaurantRead:
+def serialize_restaurant(
+    restaurant: Restaurant,
+    *,
+    db: Session | None = None,
+    viewer_email: str | None = None,
+) -> RestaurantRead:
     place_id: str | None = None
     if db is not None:
         place_id = get_google_place_id(db, restaurant.id)
@@ -323,7 +332,11 @@ def serialize_restaurant(restaurant: Restaurant, *, db: Session | None = None) -
         query=destination_query or restaurant.name,
     )
 
-    partner = partner_listing_for_restaurant(db, restaurant.id) if db is not None else {}
+    partner = (
+        partner_listing_for_restaurant(db, restaurant.id, viewer_email=viewer_email)
+        if db is not None
+        else {}
+    )
     menu: list[dict] = []
     if db is not None and (partner.get("is_premium_partner") or partner.get("seo_noindex")):
         ownership_row = db.scalar(
@@ -1293,8 +1306,10 @@ def list_online_orders_open(
     ),
     price_max: float | None = Query(default=None, ge=0, le=99999, description="Butce tavanı TL"),
     max_distance_km: float | None = Query(default=None, ge=0, le=50, description="Maksimum mesafe km"),
+    user_email: str | None = Query(default=None, min_length=3),
     db: Session = Depends(get_db),
 ):
+    verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
     voice_token, voice_slugs = resolve_voice_search_token(voice_product)
     try:
         items = list_online_order_restaurants(
@@ -1310,6 +1325,7 @@ def list_online_orders_open(
             voice_products=voice_products,
             price_max=price_max,
             max_distance_km=max_distance_km,
+            viewer_email=verified,
         )
         merge_check_in_counts_into_rows(db, items)
     except ProgrammingError as exc:
@@ -1463,11 +1479,16 @@ def _require_restaurant_exists(db: Session, restaurant_id: UUID) -> Restaurant:
 
 
 @router.get("/restaurants/{restaurant_id}", response_model=RestaurantRead)
-def get_restaurant(restaurant_id: UUID, db: Session = Depends(get_db)):
+def get_restaurant(
+    restaurant_id: UUID,
+    user_email: str | None = Query(default=None, min_length=3),
+    db: Session = Depends(get_db),
+):
     restaurant = db.get(Restaurant, restaurant_id)
     if not restaurant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
-    return serialize_restaurant(restaurant, db=db)
+    verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
+    return serialize_restaurant(restaurant, db=db, viewer_email=verified)
 
 
 @router.get("/restaurants/{restaurant_id}/check-in/status", response_model=CheckInStatus)
@@ -1666,6 +1687,9 @@ async def post_restaurant_order(
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     user = load_authenticated_user_by_email(db, payload.user_email)
+    ownership = get_ownership_for_restaurant(db, restaurant_id)
+    if should_hide_tester_ownership(ownership, viewer_email=user.email):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     try:
         order = create_restaurant_order(
             db,
@@ -1681,7 +1705,8 @@ async def post_restaurant_order(
     except OrderError as exc:
         raise_order_http(exc)
 
-    ownership = get_ownership_for_restaurant(db, restaurant_id)
+    if not ownership:
+        ownership = get_ownership_for_restaurant(db, restaurant_id)
     if ownership:
         await notify_new_restaurant_order(db, ownership=ownership, order=order)
 

@@ -275,12 +275,22 @@ export default function OnlineOrdersOpenScreen() {
                     emptyTitle={
             screen.listMode === 'voice' && screen.voiceQuery
               ? t('order.voiceNoMatch')
-              : undefined
+              : screen.listMode === 'browse' &&
+                  screen.slugs.length === 0 &&
+                  screen.maxDistanceKm === 5 &&
+                  screen.minRating === ONLINE_ORDER_MIN_RATING
+                ? t('order.emptyBrowseTitle')
+                : undefined
           }
           emptySub={
             screen.listMode === 'voice' && screen.voiceQuery
               ? t('order.voiceNoMatchHint', { summary: formatVoiceOrderSummary(screen.voiceQuery) })
-              : undefined
+              : screen.listMode === 'browse' &&
+                  screen.slugs.length === 0 &&
+                  screen.maxDistanceKm === 5 &&
+                  screen.minRating === ONLINE_ORDER_MIN_RATING
+                ? t('order.emptyBrowseHint')
+                : undefined
           }
           voiceEmptyActions={voiceEmptyActions}
         />

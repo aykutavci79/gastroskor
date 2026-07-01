@@ -23,6 +23,7 @@ from app.services.gastro_score_ranking import (
 from app.services.online_order_hours import online_order_hours_status
 from app.services.restaurant_menu import MENU_PREVIEW_LIMIT, public_menu_for_ownership
 from app.services.restaurant_orders import online_orders_configured
+from app.services.tester_restaurant_visibility import should_hide_tester_ownership
 from app.services.reservation_vitrin import reservation_vitrin_listed
 from app.services.table_reservations import online_reservations_configured
 from app.services.restaurant_promo import promo_from_ownership
@@ -130,6 +131,7 @@ def list_online_order_restaurants(
     voice_products: str | None = None,
     price_max: float | None = None,
     max_distance_km: float | None = None,
+    viewer_email: str | None = None,
 ) -> list[dict]:
     category_slug = (category or "").strip().lower() or None
     limit = max(1, min(limit, 100))
@@ -191,6 +193,8 @@ def list_online_order_restaurants(
     items: list[dict] = []
     for ownership in rows:
         if not _include_in_open_list(ownership):
+            continue
+        if should_hide_tester_ownership(ownership, viewer_email=viewer_email):
             continue
         hours_status = online_order_hours_status(ownership)
         restaurant = ownership.restaurant

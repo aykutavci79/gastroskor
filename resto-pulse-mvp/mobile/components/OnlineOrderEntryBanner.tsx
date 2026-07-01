@@ -23,6 +23,7 @@ import { ONLINE_ORDER_CATEGORIES } from '@/constants/online-order-categories';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useSession } from '@/context/session-context';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 
 const BANNER_HEIGHT_FULL = 148;
@@ -44,6 +45,8 @@ type Props = {
 
 export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
   const { city } = useCity();
+  const { user } = useSession();
+  const viewerEmail = user?.email?.trim().toLowerCase() || undefined;
   const router = useRouter();
   const { t } = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
@@ -63,10 +66,15 @@ export function OnlineOrderEntryBanner({ variant = 'full', style }: Props) {
 
   const refresh = useCallback(() => {
     if (variant === 'vitrin') return;
-    void listOnlineOrderRestaurants({ city, limit: 50, min_rating: ONLINE_ORDER_MIN_RATING })
+    void listOnlineOrderRestaurants({
+      city,
+      limit: 50,
+      min_rating: ONLINE_ORDER_MIN_RATING,
+      user_email: viewerEmail,
+    })
       .then((res) => setOpenCount(res.items.length))
       .catch(() => setOpenCount(null));
-  }, [variant, city]);
+  }, [variant, city, viewerEmail]);
 
   useFocusEffect(
     useCallback(() => {

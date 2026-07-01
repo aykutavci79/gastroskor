@@ -17,7 +17,9 @@ from app.schemas.table_reservation import (
     TableReservationRead,
 )
 from app.services.reservation_floor_plan import closed_table_ids_from_layout
+from app.services.request_identity import resolve_soft_optional_viewer_email
 from app.services.restaurant_orders import get_ownership_for_restaurant
+from app.services.tester_restaurant_visibility import should_hide_tester_ownership
 from app.services.table_reservations import (
     ReservationError,
     confirm_reservation_by_customer,
@@ -70,7 +72,11 @@ def get_restaurant_reservation_active(
     if not restaurant or not restaurant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     ownership = get_ownership_for_restaurant(db, restaurant_id)
-    available = online_reservations_configured(ownership)
+    verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
+    if should_hide_tester_ownership(ownership, viewer_email=verified):
+        available = False
+    else:
+        available = online_reservations_configured(ownership)
     plan_row = get_published_plan(db, restaurant_id=restaurant_id) if available else None
     floor_plan = floor_plan_to_dict(plan_row, published=True) if plan_row else None
     reserved_ids: list[str] = []
@@ -121,6 +127,8 @@ async def post_restaurant_reservation(
     if not ownership:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restoran paneli yok.")
     user = _load_user(db, payload.user_email)
+    if should_hide_tester_ownership(ownership, viewer_email=user.email):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
     try:
         reservation = create_table_reservation(
             db,

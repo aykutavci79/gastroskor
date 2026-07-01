@@ -16,9 +16,9 @@ import { ReservationListAmbienceHost } from '@/components/reservation/Reservatio
 import { ReservationListHero } from '@/components/reservation/ReservationListHero';
 import { Screen } from '@/components/ui/Screen';
 import { ReservationTheme } from '@/constants/reservation-theme';
-import { RESERVATION_VITRIN_PREVIEW_RESTAURANT } from '@/constants/reservation-vitrin-preview';
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { useCity } from '@/context/city-context';
+import { useSession } from '@/context/session-context';
 import { getRestaurantReservationActive, listOnlineOrderRestaurants } from '@/lib/api';
 import { formatApiError } from '@/lib/format-api-error';
 import { formatDistanceLabel } from '@/lib/travel-estimate';
@@ -31,6 +31,8 @@ type ReservationListRow = {
 
 export default function OnlineReservationOpenScreen() {
   const { city, cityLabel } = useCity();
+  const { user } = useSession();
+  const viewerEmail = user?.email?.trim().toLowerCase() || undefined;
   const styles = useMemo(() => createStyles(), []);
   const { t } = useTranslation();
 
@@ -46,12 +48,15 @@ export default function OnlineReservationOpenScreen() {
         city,
         limit: 80,
         min_rating: ONLINE_ORDER_MIN_RATING,
+        user_email: viewerEmail,
       });
       const open = res.items.filter((row) => row.reservation_vitrin_listed);
       const enriched = await Promise.all(
         open.map(async (restaurant) => {
           try {
-            const active = await getRestaurantReservationActive(restaurant.id);
+            const active = await getRestaurantReservationActive(restaurant.id, {
+              userEmail: viewerEmail,
+            });
             return {
               restaurant,
               floorBackgroundUrl: active.floor_plan?.background_url ?? null,
@@ -68,7 +73,7 @@ export default function OnlineReservationOpenScreen() {
     } finally {
       setLoading(false);
     }
-  }, [city]);
+  }, [city, t, viewerEmail]);
 
   useEffect(() => {
     void load();
@@ -101,34 +106,10 @@ export default function OnlineReservationOpenScreen() {
             </Pressable>
           </View>
         ) : items.length === 0 ? (
-          <>
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>{t('rezervasyon.emptyTitle')}</Text>
-              <Text style={styles.emptyBody}>
-                {t('rezervasyon.emptyBody')}
-              </Text>
-              <View style={styles.steps}>
-                <Text style={styles.step}>{t('rezervasyon.pilotStep1')}</Text>
-                <Text style={styles.step}>{t('rezervasyon.pilotStep2')}</Text>
-                <Text style={styles.step}>{t('rezervasyon.pilotStep3')}</Text>
-              </View>
-            </View>
-
-            <View style={styles.previewSection}>
-              <Text style={styles.previewTitle}>{t('rezervasyon.vitrinPreview')}</Text>
-              <Text style={styles.previewHint}>
-                {t('rezervasyon.vitrinPreviewHint')}
-              </Text>
-              <ReservationRestaurantCard
-                restaurant={RESERVATION_VITRIN_PREVIEW_RESTAURANT}
-                preview
-                href="/online-rezervasyon/masa/vitrin-preview-atlas-sofra"
-                googleRating={RESERVATION_VITRIN_PREVIEW_RESTAURANT.google_rating}
-                googleReviewCount={RESERVATION_VITRIN_PREVIEW_RESTAURANT.google_review_count}
-                distanceLabel="1,2 km"
-              />
-            </View>
-          </>
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>{t('rezervasyon.emptyTitle')}</Text>
+            <Text style={styles.emptyBody}>{t('rezervasyon.emptyBody')}</Text>
+          </View>
         ) : (
           items.map(({ restaurant, floorBackgroundUrl }) => (
             <ReservationRestaurantCard
@@ -164,11 +145,6 @@ function createStyles() {
     },
     emptyTitle: { color: ReservationTheme.text, fontSize: 16, fontWeight: '800' },
     emptyBody: { color: ReservationTheme.textMuted, fontSize: 13, lineHeight: 19 },
-    steps: { gap: 6, marginTop: 4 },
-    step: { color: ReservationTheme.textSoft, fontSize: 12, lineHeight: 18 },
-    previewSection: { gap: 8, marginTop: 4 },
-    previewTitle: { color: ReservationTheme.text, fontSize: 15, fontWeight: '800' },
-    previewHint: { color: ReservationTheme.textMuted, fontSize: 12, lineHeight: 17 },
     errorBox: {
       marginTop: 12,
       borderRadius: 12,

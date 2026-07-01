@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { useCity } from '@/context/city-context';
+import { useSession } from '@/context/session-context';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 import { resolveDeviceCoords } from '@/lib/device-location';
 import {
@@ -64,6 +65,8 @@ function voiceQueryFromParams(
 
 export function useOnlineOrderListScreen() {
   const { city, fallbackCoords } = useCity();
+  const { user } = useSession();
+  const viewerEmail = user?.email?.trim().toLowerCase() || undefined;
 
   const [listMode, setListMode] = useState<OnlineOrderListMode>('browse');
   const [slugs, setSlugsState] = useState<string[]>([]);
@@ -182,6 +185,7 @@ export function useOnlineOrderListScreen() {
           voice_products: query.isCartOrder && cartGroups.length ? cartGroups.join(',') : undefined,
           price_max: query.isCartOrder ? undefined : (query.priceMax ?? undefined),
           max_distance_km: query.maxDistanceKm ?? undefined,
+          user_email: viewerEmail,
         });
         if (gen !== voiceFetchGenRef.current) return;
         setVoiceSearchExpanded(expandedSearch);
@@ -255,7 +259,7 @@ export function useOnlineOrderListScreen() {
         }
       }
     },
-    [coords, city],
+    [coords, city, viewerEmail],
   );
 
   useEffect(() => {
@@ -275,6 +279,7 @@ export function useOnlineOrderListScreen() {
             sort: 'gastro_score',
             limit: 50,
             min_rating: minRating,
+            user_email: viewerEmail,
           });
           if (gen !== browseFetchGenRef.current) return;
           setAllItems(Array.isArray(res.items) ? res.items : []);
@@ -289,7 +294,7 @@ export function useOnlineOrderListScreen() {
     }, FILTER_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [listMode, slugs, maxDistanceKm, minRating, coords?.lat, coords?.lng, city, browseRetryToken]);
+  }, [listMode, slugs, maxDistanceKm, minRating, coords?.lat, coords?.lng, city, browseRetryToken, viewerEmail]);
 
   useEffect(() => {
     if (listMode !== 'voice' || !voiceQuery || coords == null) return;
@@ -318,6 +323,7 @@ export function useOnlineOrderListScreen() {
           voice_product: voiceQuery.voiceProduct!,
           price_max: voiceQuery.priceMax ?? undefined,
           max_distance_km: voiceQuery.maxDistanceKm ?? undefined,
+          user_email: viewerEmail,
         });
         if (cancelled) return;
         setVoiceSearchExpanded(expandedSearch);
@@ -429,6 +435,7 @@ export function useOnlineOrderListScreen() {
           limit: 50,
           min_rating: minRating,
           voice_products: groups.join(','),
+          user_email: viewerEmail,
         });
         setVoiceSearchExpanded(expandedSearch);
         const cartItems = Array.isArray(res.items) ? res.items : [];

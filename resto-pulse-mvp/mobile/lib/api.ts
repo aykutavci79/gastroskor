@@ -191,6 +191,7 @@ export async function listOnlineOrderRestaurants(params: {
   voice_products?: string;
   price_max?: number;
   max_distance_km?: number;
+  user_email?: string;
 }): Promise<OnlineOrderOpenListResponse> {
   const minRating = Math.max(ONLINE_ORDER_MIN_RATING, params.min_rating ?? ONLINE_ORDER_MIN_RATING);
   const search = new URLSearchParams();
@@ -205,6 +206,7 @@ export async function listOnlineOrderRestaurants(params: {
   if (params.voice_products) search.set('voice_products', params.voice_products);
   if (params.price_max != null) search.set('price_max', String(params.price_max));
   if (params.max_distance_km != null) search.set('max_distance_km', String(params.max_distance_km));
+  if (params.user_email) search.set('user_email', params.user_email.trim().toLowerCase());
   const query = search.toString();
   try {
     return await request<OnlineOrderOpenListResponse>(

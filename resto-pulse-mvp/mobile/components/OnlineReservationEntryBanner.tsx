@@ -19,6 +19,7 @@ import { KESFET_VITRIN_BANNER, KESFET_VITRIN_TEXT_SHADOW } from '@/constants/kes
 import { ONLINE_ORDER_MIN_RATING } from '@/constants/online-orders';
 import { GastroColors } from '@/constants/theme';
 import { useCity } from '@/context/city-context';
+import { useSession } from '@/context/session-context';
 import { useBannerCrossfade } from '@/hooks/use-banner-crossfade';
 import { listOnlineOrderRestaurants } from '@/lib/api';
 
@@ -30,6 +31,8 @@ type Props = {
 
 export function OnlineReservationEntryBanner({ style }: Props) {
   const { city } = useCity();
+  const { user } = useSession();
+  const viewerEmail = user?.email?.trim().toLowerCase() || undefined;
   const router = useRouter();
   const { t } = useTranslation();
   const [openCount, setOpenCount] = useState<number | null>(null);
@@ -38,13 +41,18 @@ export function OnlineReservationEntryBanner({ style }: Props) {
   const { opacityA, opacityB, indexA, indexB } = useBannerCrossfade(slides.length);
 
   const refresh = useCallback(() => {
-    void listOnlineOrderRestaurants({ city, limit: 80, min_rating: ONLINE_ORDER_MIN_RATING })
+    void listOnlineOrderRestaurants({
+      city,
+      limit: 80,
+      min_rating: ONLINE_ORDER_MIN_RATING,
+      user_email: viewerEmail,
+    })
       .then((res) => {
         const count = res.items.filter((row) => row.reservation_vitrin_listed).length;
         setOpenCount(count);
       })
       .catch(() => setOpenCount(null));
-  }, [city]);
+  }, [city, viewerEmail]);
 
   useFocusEffect(
     useCallback(() => {

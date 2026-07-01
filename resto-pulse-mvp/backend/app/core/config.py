@@ -174,6 +174,11 @@ class Settings(BaseSettings):
     # Kart/liste Google foto — her img yuklemesi Places Photo ucreti. Varsayilan kapali.
     google_card_photos_enabled: bool = False
 
+    # Canli listeden tester/deneme restoranlari gizle (lokal: EXCLUDE_TESTER_SEEDS_PUBLIC=false)
+    exclude_tester_seeds_public: bool = True
+    # Virgulle: bu e-postalar prod'da bile tester restoranlari gorur (E2E / ekip)
+    internal_preview_emails: str = "tester-restoranlar@gastroskor.local"
+
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
 
