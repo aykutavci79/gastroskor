@@ -38,6 +38,13 @@ export default function BusinessApplicationPage() {
         </p>
       </div>
 
+      <a
+        href="/GastroSkor-Restoran-Is-Ortagi-Sunumu.pdf"
+        download="GastroSkor-Restoran-Is-Ortagi-Sunumu.pdf"
+        className="inline-flex w-full items-center justify-center rounded-xl bg-[#FF6B35] px-5 py-3 text-base font-bold text-[#141414] shadow-sm transition hover:bg-[#e55a25] sm:w-auto">
+        {t('downloadPresentation')}
+      </a>
+
       <BusinessApplicationForm />
     </div>
   );
