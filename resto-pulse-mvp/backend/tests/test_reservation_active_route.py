@@ -38,7 +38,7 @@ def test_reservation_active_without_ownership_phone(db: Session) -> None:
         id=uuid4(),
         user_id=user.id,
         restaurant_id=restaurant.id,
-        google_place_id="gastro-tester-deneme-x",
+        google_place_id="ChIJReservationActivePhoneFallback",
         verification_status="verified_sms",
         online_reservations_enabled=True,
     )
