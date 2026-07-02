@@ -13,7 +13,7 @@ export function BusinessApplicationForm() {
   const [contactName, setContactName] = useState('');
   const [panelEmail, setPanelEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('Bursa');
+  const [city, setCity] = useState('');
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeResults, setPlaceResults] = useState<LivePlaceSearchItem[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<LivePlaceSearchItem | null>(null);
@@ -65,7 +65,7 @@ export function BusinessApplicationForm() {
       form.append('panel_email', panelEmail.trim().toLowerCase());
       form.append('phone', phone.trim());
       form.append('address', selectedPlace.address?.trim() || selectedPlace.name);
-      form.append('city', city.trim() || 'Bursa');
+      form.append('city', city.trim());
       form.append('google_place_id', selectedPlace.place_id);
       form.append('google_place_name', selectedPlace.name);
       if (applicantNotes.trim()) form.append('applicant_notes', applicantNotes.trim());
@@ -144,8 +144,10 @@ export function BusinessApplicationForm() {
           <label className="block text-sm">
             <span className="text-neutral-600">{t('city')}</span>
             <input
+              required
               value={city}
               onChange={(e) => setCity(e.target.value)}
+              placeholder={t('cityPlaceholder')}
               className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900"
             />
           </label>
