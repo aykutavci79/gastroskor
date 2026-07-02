@@ -9,7 +9,8 @@ export type OrderContactSnapshot = {
   phoneVerified: boolean;
   verifiedPhoneE164: string | null;
   address: string | null;
-  deliveryBuildingNodeId: number | null;
+  deliveryStreetNodeId: number | null;
+  deliveryDoorNumber: string | null;
   deliveryLatitude: number | null;
   deliveryLongitude: number | null;
 };
@@ -32,12 +33,13 @@ export async function loadOrderContactSnapshot(userEmail: string | null): Promis
     normalizeTrMobileInput(phone) === verifiedPhoneE164;
 
   return {
-    ready: Boolean(phoneMatches && storedAddress?.buildingNodeId),
+    ready: Boolean(phoneMatches && storedAddress?.streetNodeId && storedAddress?.doorNumber?.trim()),
     phone,
     phoneVerified: Boolean(phoneMatches),
     verifiedPhoneE164,
     address,
-    deliveryBuildingNodeId: storedAddress?.buildingNodeId ?? null,
+    deliveryStreetNodeId: storedAddress?.streetNodeId ?? null,
+    deliveryDoorNumber: storedAddress?.doorNumber ?? null,
     deliveryLatitude: storedAddress?.latitude ?? null,
     deliveryLongitude: storedAddress?.longitude ?? null,
   };

@@ -794,6 +794,7 @@ class RestaurantOrder(Base):
     customer_name: Mapped[str | None] = mapped_column(String(120))
     customer_address: Mapped[str | None] = mapped_column(Text)
     delivery_building_node_id: Mapped[int | None] = mapped_column(BigInteger)
+    delivery_door_number: Mapped[str | None] = mapped_column(String(32))
     delivery_latitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
     delivery_longitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
     delivery_address_note: Mapped[str | None] = mapped_column(String(120))

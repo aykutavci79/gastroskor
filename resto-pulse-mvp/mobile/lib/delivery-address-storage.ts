@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import type { StoredDeliveryAddress } from '@/lib/delivery-address-types';
 
-const KEY = 'gastroskor.order.delivery_address.v2';
+const KEY = 'gastroskor.order.delivery_address.v3';
 
 export async function readStoredDeliveryAddress(): Promise<StoredDeliveryAddress | null> {
   try {
@@ -10,7 +10,8 @@ export async function readStoredDeliveryAddress(): Promise<StoredDeliveryAddress
     if (!raw?.trim()) return null;
     const parsed = JSON.parse(raw) as StoredDeliveryAddress;
     if (
-      !parsed?.buildingNodeId ||
+      !parsed?.streetNodeId ||
+      !parsed?.doorNumber?.trim() ||
       typeof parsed.latitude !== 'number' ||
       typeof parsed.longitude !== 'number' ||
       !parsed.formatted?.trim()

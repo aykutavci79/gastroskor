@@ -68,6 +68,14 @@ def log_rate_limit_backend() -> None:
     logger.info("Rate limit backend: %s", status)
     if status.get("redis_configured") and not status.get("redis_ok"):
         logger.warning("REDIS_URL tanimli ama Redis ping basarisiz — in-memory fallback kullanilacak")
+    try:
+        from app.db.session import SessionLocal
+        from app.services.delivery_address import ensure_bursa_address_seed
+
+        with SessionLocal() as db:
+            ensure_bursa_address_seed(db)
+    except Exception:
+        logger.exception("Bursa address seed startup yuklemesi basarisiz")
 
 try:
     menu_dir = menu_images_dir()

@@ -26,7 +26,8 @@ def get_bursa_address_children(
     try:
         items = list_address_children(db, parent_id=effective_parent, level_filter=level_filter)
     except DeliveryAddressError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
     return AddressNodeListResponse(
         parent_id=effective_parent,
         items=[AddressNodeRead(**row) for row in items],
@@ -41,7 +42,8 @@ def post_validate_delivery_address(
     try:
         formatted, lat, lng = resolve_delivery_address(
             db,
-            building_node_id=payload.building_node_id,
+            street_node_id=payload.street_node_id,
+            door_number=payload.door_number,
             address_note=payload.address_note,
             device_lat=payload.device_lat,
             device_lng=payload.device_lng,
@@ -49,12 +51,13 @@ def post_validate_delivery_address(
     except DeliveryAddressError as exc:
         code = exc.code
         status_code = status.HTTP_400_BAD_REQUEST
-        if code == "address_provider_unavailable":
+        if code in {"address_provider_unavailable", "address_data_missing"}:
             status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         raise HTTPException(status_code=status_code, detail=str(exc)) from exc
     return DeliveryAddressValidateResponse(
         formatted_address=formatted,
         latitude=lat,
         longitude=lng,
-        building_node_id=payload.building_node_id,
+        street_node_id=payload.street_node_id,
+        door_number=payload.door_number.strip(),
     )

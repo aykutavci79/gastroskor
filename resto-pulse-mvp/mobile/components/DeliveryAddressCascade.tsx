@@ -26,7 +26,7 @@ type Props = {
   onReadyChange?: (ready: boolean) => void;
 };
 
-type PickerKey = 'district' | 'neighborhood' | 'street' | 'building';
+type PickerKey = 'district' | 'neighborhood' | 'street';
 
 const BURSA_PROVINCE_ID = 16;
 
@@ -35,7 +35,7 @@ function emptySelection(): DeliveryAddressSelection {
     district: null,
     neighborhood: null,
     street: null,
-    building: null,
+    doorNumber: '',
     note: '',
   };
 }
@@ -47,7 +47,6 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
     district: [],
     neighborhood: [],
     street: [],
-    building: [],
   });
   const [loadingKey, setLoadingKey] = useState<PickerKey | 'validate' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,15 +63,10 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
     if (value) {
       setValidated(value);
       setSelection({
-        district: { id: 0, name: value.district, level: 'District', parent_id: BURSA_PROVINCE_ID },
-        neighborhood: { id: 0, name: value.neighborhood, level: 'Neighborhood', parent_id: null },
-        street: { id: 0, name: value.street, level: 'Street', parent_id: null },
-        building: {
-          id: value.buildingNodeId,
-          name: value.building,
-          level: 'Building',
-          parent_id: null,
-        },
+        district: { id: 0, name: value.district, level: 'district', parent_id: BURSA_PROVINCE_ID },
+        neighborhood: { id: 0, name: value.neighborhood, level: 'neighborhood', parent_id: null },
+        street: { id: value.streetNodeId, name: value.street, level: 'street', parent_id: null },
+        doorNumber: value.doorNumber,
         note: value.note ?? '',
       });
     }
@@ -96,11 +90,11 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
   }, [loadDistricts]);
 
   const loadChildren = useCallback(
-    async (key: PickerKey, parentId: number, level?: 'admin' | 'building') => {
+    async (key: PickerKey, parentId: number) => {
       setLoadingKey(key);
       setError(null);
       try {
-        const res = await listDeliveryAddressChildren({ parent_id: parentId, level });
+        const res = await listDeliveryAddressChildren({ parent_id: parentId, level: 'admin' });
         setOptions((prev) => ({ ...prev, [key]: res.items }));
       } catch (err) {
         setError(err instanceof Error ? err.message : t('deliveryAddress.loadError'));
@@ -111,22 +105,22 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
     [t],
   );
 
-  const resetFrom = useCallback((key: PickerKey) => {
-    setValidated(null);
-    onChange(null);
-    setSelection((prev) => {
-      if (key === 'district') {
-        return { ...emptySelection(), note: prev.note };
-      }
-      if (key === 'neighborhood') {
-        return { ...prev, neighborhood: null, street: null, building: null };
-      }
-      if (key === 'street') {
-        return { ...prev, street: null, building: null };
-      }
-      return { ...prev, building: null };
-    });
-  }, [onChange]);
+  const resetFrom = useCallback(
+    (key: PickerKey) => {
+      setValidated(null);
+      onChange(null);
+      setSelection((prev) => {
+        if (key === 'district') {
+          return { ...emptySelection(), note: prev.note, doorNumber: prev.doorNumber };
+        }
+        if (key === 'neighborhood') {
+          return { ...prev, neighborhood: null, street: null };
+        }
+        return { ...prev, street: null };
+      });
+    },
+    [onChange],
+  );
 
   const onPick = useCallback(
     async (key: PickerKey, item: AddressNodeItem) => {
@@ -137,29 +131,24 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
         if (key === 'district') {
           next.neighborhood = null;
           next.street = null;
-          next.building = null;
         } else if (key === 'neighborhood') {
           next.street = null;
-          next.building = null;
-        } else if (key === 'street') {
-          next.building = null;
         }
         return next;
       });
       if (key === 'district') {
-        await loadChildren('neighborhood', item.id, 'admin');
+        await loadChildren('neighborhood', item.id);
       } else if (key === 'neighborhood') {
-        await loadChildren('street', item.id, 'admin');
-      } else if (key === 'street') {
-        await loadChildren('building', item.id, 'building');
+        await loadChildren('street', item.id);
       }
     },
     [loadChildren, resetFrom],
   );
 
   const runValidate = useCallback(async () => {
-    const building = selection.building;
-    if (!building || !selection.district || !selection.neighborhood || !selection.street) {
+    const street = selection.street;
+    const door = selection.doorNumber.trim();
+    if (!street || !selection.district || !selection.neighborhood || !door) {
       setError(t('deliveryAddress.incomplete'));
       return;
     }
@@ -172,21 +161,22 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
         return;
       }
       const res = await validateDeliveryAddress({
-        building_node_id: building.id,
+        street_node_id: street.id,
+        door_number: door,
         address_note: selection.note.trim() || undefined,
         device_lat: coords.lat,
         device_lng: coords.lng,
       });
       const stored: StoredDeliveryAddress = {
-        buildingNodeId: res.building_node_id,
+        streetNodeId: res.street_node_id,
+        doorNumber: res.door_number,
         formatted: res.formatted_address,
         latitude: res.latitude,
         longitude: res.longitude,
         note: selection.note.trim() || undefined,
         district: selection.district.name,
         neighborhood: selection.neighborhood.name,
-        street: selection.street.name,
-        building: building.name,
+        street: street.name,
       };
       setValidated(stored);
       onChange(stored);
@@ -200,11 +190,11 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
   }, [onChange, selection, t]);
 
   useEffect(() => {
-    if (selection.building) {
+    if (selection.street && selection.doorNumber.trim().length >= 1) {
       void runValidate();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- validate when building picked
-  }, [selection.building?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validate when street + door ready
+  }, [selection.street?.id, selection.doorNumber]);
 
   const pickerRows = useMemo(
     () =>
@@ -221,12 +211,6 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
           label: t('deliveryAddress.street'),
           value: selection.street,
           disabled: !selection.neighborhood,
-        },
-        {
-          key: 'building' as const,
-          label: t('deliveryAddress.buildingNo'),
-          value: selection.building,
-          disabled: !selection.street,
         },
       ] as const,
     [selection, t],
@@ -257,6 +241,23 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
       ))}
 
       <View style={styles.field}>
+        <Text style={styles.label}>{t('deliveryAddress.buildingNo')}</Text>
+        <TextInput
+          style={styles.noteInput}
+          value={selection.doorNumber}
+          onChangeText={(text) => {
+            setSelection((prev) => ({ ...prev, doorNumber: text }));
+            setValidated(null);
+            onChange(null);
+          }}
+          placeholder={t('deliveryAddress.doorPlaceholder')}
+          placeholderTextColor={GastroColorsLight.placeholder}
+          keyboardType="default"
+          maxLength={20}
+        />
+      </View>
+
+      <View style={styles.field}>
         <Text style={styles.label}>{t('deliveryAddress.noteOptional')}</Text>
         <TextInput
           style={styles.noteInput}
@@ -267,7 +268,7 @@ export function DeliveryAddressCascade({ value, onChange, onReadyChange }: Props
             onChange(null);
           }}
           onBlur={() => {
-            if (selection.building) void runValidate();
+            if (selection.street && selection.doorNumber.trim()) void runValidate();
           }}
           placeholder={t('deliveryAddress.notePlaceholder')}
           placeholderTextColor={GastroColorsLight.placeholder}

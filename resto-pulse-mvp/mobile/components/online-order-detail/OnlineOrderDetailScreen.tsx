@@ -241,7 +241,7 @@ export function OnlineOrderDetailScreen({
       const storedAddress = await readStoredDeliveryAddress().catch(() => null);
       const phone =
         contact.phone ?? (await readStoredOrderPhone().catch(() => null))?.trim() ?? '';
-      if (!storedAddress?.buildingNodeId) {
+      if (!storedAddress?.streetNodeId || !storedAddress.doorNumber?.trim()) {
         router.push(
           `/hesap/siparis-bilgileri?returnTo=${encodeURIComponent(`/online-siparis/${restaurant.id}`)}` as never,
         );
@@ -251,7 +251,8 @@ export function OnlineOrderDetailScreen({
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone,
-        delivery_building_node_id: storedAddress.buildingNodeId,
+        delivery_street_node_id: storedAddress.streetNodeId,
+        delivery_door_number: storedAddress.doorNumber,
         delivery_address_note: storedAddress.note,
         device_lat: deviceCoords?.lat,
         device_lng: deviceCoords?.lng,

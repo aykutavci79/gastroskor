@@ -52,3 +52,6 @@ scripts/bootstrap-admin.js
 
 # TÜRKPATENT referans görselleri (yerel pipeline; commit edilmez)
 resto-pulse-mvp/backend/app/data/turkpatent_refs/
+
+# NVI ham dump (seed JSON commit edilir)
+resto-pulse-mvp/backend/data/nvi-address/

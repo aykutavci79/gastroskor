@@ -384,7 +384,8 @@ export function listDeliveryAddressChildren(params?: {
 }
 
 export function validateDeliveryAddress(payload: {
-  building_node_id: number;
+  street_node_id: number;
+  door_number: string;
   address_note?: string;
   device_lat?: number;
   device_lng?: number;
@@ -403,7 +404,8 @@ export function submitRestaurantOrder(
   payload: {
     user_email: string;
     customer_phone: string;
-    delivery_building_node_id: number;
+    delivery_street_node_id: number;
+    delivery_door_number: string;
     delivery_address_note?: string;
     device_lat?: number;
     device_lng?: number;

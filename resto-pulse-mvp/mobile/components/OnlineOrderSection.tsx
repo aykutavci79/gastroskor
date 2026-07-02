@@ -322,7 +322,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
-        delivery_building_node_id: deliveryAddress.buildingNodeId,
+        delivery_street_node_id: deliveryAddress.streetNodeId,
+        delivery_door_number: deliveryAddress.doorNumber,
         delivery_address_note: deliveryAddress.note,
         device_lat: deviceCoords?.lat,
         device_lng: deviceCoords?.lng,
