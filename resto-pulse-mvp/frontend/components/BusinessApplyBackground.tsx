@@ -35,7 +35,7 @@ const FIGURES: Figure[] = [
   {
     src: '/images/business-apply/business-apply-owner-kebabci.png',
     alt: 'Kebapçı restoran sahibi el sıkışıyor',
-    quote: 'Afiyet olsun!',
+    quote: 'Anlaştık!',
     className: 'left-[-6%] top-[28%] w-[32%] max-w-[180px] sm:left-[0%] sm:top-[26%] sm:w-[20%] sm:max-w-[210px] lg:w-[18%] lg:max-w-[230px]',
     bubbleClassName: 'left-[52%] top-[4%]',
     width: 230,
@@ -44,7 +44,7 @@ const FIGURES: Figure[] = [
   {
     src: '/images/business-apply/business-apply-owner-cafe-hijab.png',
     alt: 'Kafe işletmecisi el sıkışıyor',
-    quote: 'Hoş geldiniz!',
+    quote: 'Memnunuz!',
     className: 'right-[-8%] top-[32%] w-[34%] max-w-[190px] sm:right-[0%] sm:top-[30%] sm:w-[21%] sm:max-w-[215px] lg:w-[19%] lg:max-w-[235px]',
     bubbleClassName: 'right-[50%] top-[3%] sm:right-[55%]',
     width: 235,
@@ -62,7 +62,7 @@ const FIGURES: Figure[] = [
   {
     src: '/images/business-apply/business-apply-owner-izgara.png',
     alt: 'Izgara restoranı sahibi el sıkışıyor',
-    quote: 'Kolay gelsin!',
+    quote: 'Tamamdır!',
     className: 'right-[-7%] top-[54%] w-[32%] max-w-[185px] sm:right-[1%] sm:top-[52%] sm:w-[20%] sm:max-w-[205px] lg:w-[18%] lg:max-w-[225px]',
     bubbleClassName: 'right-[52%] top-[4%]',
     width: 225,
@@ -80,7 +80,7 @@ const FIGURES: Figure[] = [
   {
     src: '/images/business-apply/business-apply-owner-pastane.png',
     alt: 'Pastane işletmecisi el sıkışıyor',
-    quote: 'Güle güle!',
+    quote: 'Teşekkür ederiz!',
     className: 'right-[-6%] bottom-[14%] w-[31%] max-w-[175px] sm:right-[2%] sm:bottom-[10%] sm:w-[19%] sm:max-w-[200px] lg:w-[17%] lg:max-w-[215px]',
     bubbleClassName: 'right-[48%] top-[3%]',
     width: 215,
@@ -89,7 +89,7 @@ const FIGURES: Figure[] = [
   {
     src: '/images/business-apply/business-apply-owner-lokanta.png',
     alt: 'Lokanta işletmecisi el sıkışıyor',
-    quote: 'Elinize sağlık!',
+    quote: 'Güzel oldu!',
     className: 'left-[-3%] bottom-[24%] hidden w-[28%] max-w-[160px] sm:block sm:left-[3%] sm:bottom-[22%] sm:w-[17%] sm:max-w-[185px] lg:w-[16%] lg:max-w-[200px]',
     bubbleClassName: 'left-[50%] top-[2%]',
     width: 200,
