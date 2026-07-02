@@ -66,9 +66,10 @@ async def submit_panel_application(
     google_place_id: str | None,
     google_place_name: str | None,
     applicant_notes: str | None,
-    contract_accepted: bool,
-    contract_postal_promised: bool,
-    tax_file: UploadFile,
+    contract_accepted: bool = False,
+    contract_postal_promised: bool = False,
+    kvkk_consent: bool = False,
+    tax_file: UploadFile | None = None,
 ) -> RestaurantPanelApplication:
     business_name = business_name.strip()
     contact_name = contact_name.strip()
@@ -76,6 +77,8 @@ async def submit_panel_application(
     phone = phone.strip()
     address = address.strip()
     city = (city or "Bursa").strip() or "Bursa"
+    place_id = (google_place_id or "").strip() or None
+    place_name = (google_place_name or "").strip() or None
 
     if len(business_name) < 2:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="İşletme adı gerekli.")
@@ -85,18 +88,33 @@ async def submit_panel_application(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Geçerli panel e-postası girin.")
     if len(phone) < 10:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Telefon gerekli.")
-    if len(address) < 5:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Adres gerekli.")
-    if not contract_accepted:
+    if not place_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Devam etmek için sözleşmeyi okuyup kabul etmelisiniz.",
+            detail="Google Maps üzerinden işletmenizi listeden seçin.",
         )
-    if not contract_postal_promised:
+    if not kvkk_consent:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="İmzalı sözleşmeyi posta ile göndereceğinizi onaylamalısınız.",
+            detail="Devam etmek için KVKK metnini onaylamalısınız.",
         )
+
+    is_full_application = tax_file is not None and (tax_file.filename or "").strip()
+    if is_full_application:
+        if len(address) < 5:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Adres gerekli.")
+        if not contract_accepted:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Devam etmek için sözleşmeyi okuyup kabul etmelisiniz.",
+            )
+        if not contract_postal_promised:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="İmzalı sözleşmeyi posta ile göndereceğinizi onaylamalısınız.",
+            )
+    elif len(address) < 3:
+        address = place_name or business_name
 
     pending = db.scalar(
         select(RestaurantPanelApplication).where(
@@ -110,9 +128,13 @@ async def submit_panel_application(
             detail="Bu e-posta ile bekleyen bir başvuru zaten var. destek@gastroskor.com.tr ile iletişime geçin.",
         )
 
-    raw = await tax_file.read()
-    content_type = (tax_file.content_type or "application/octet-stream").lower()
-    storage_key = save_business_document(data=raw, content_type=content_type)
+    storage_key: str | None = None
+    content_type: str | None = None
+    if is_full_application:
+        assert tax_file is not None
+        raw = await tax_file.read()
+        content_type = (tax_file.content_type or "application/octet-stream").lower()
+        storage_key = save_business_document(data=raw, content_type=content_type)
 
     now = _utcnow()
     application = RestaurantPanelApplication(
@@ -124,13 +146,13 @@ async def submit_panel_application(
         address=address,
         city=city,
         website=(website or "").strip() or None,
-        google_place_id=(google_place_id or "").strip() or None,
-        google_place_name=(google_place_name or "").strip() or None,
+        google_place_id=place_id,
+        google_place_name=place_name,
         tax_document_key=storage_key,
         tax_document_content_type=content_type,
-        contract_version=PANEL_CONTRACT_VERSION,
-        contract_accepted_at=now,
-        contract_postal_promised=contract_postal_promised,
+        contract_version=PANEL_CONTRACT_VERSION if is_full_application else None,
+        contract_accepted_at=now if is_full_application and contract_accepted else None,
+        contract_postal_promised=contract_postal_promised if is_full_application else False,
         applicant_notes=(applicant_notes or "").strip() or None,
     )
     db.add(application)
@@ -143,8 +165,9 @@ async def submit_panel_application(
 
 async def _notify_application_received(app: RestaurantPanelApplication) -> None:
     place_line = app.google_place_name or app.google_place_id or "—"
+    trial_lead = not app.tax_document_key
     admin_body = (
-        f"Yeni işletme paneli başvurusu\n\n"
+        f"Yeni işletme paneli başvurusu ({'deneme' if trial_lead else 'tam evrak'})\n\n"
         f"İşletme: {app.business_name}\n"
         f"Yetkili: {app.contact_name}\n"
         f"Panel e-posta: {app.panel_email}\n"
@@ -158,14 +181,24 @@ async def _notify_application_received(app: RestaurantPanelApplication) -> None:
         subject=f"[GastroSkor] Yeni panel başvurusu — {app.business_name}",
         body_text=admin_body,
     )
-    applicant_body = (
-        f"Merhaba {app.contact_name},\n\n"
-        f"{app.business_name} için GastroSkor restoran paneli başvurunuz alındı.\n"
-        f"İnceleme sonrası {app.panel_email} adresine bilgi verilecektir.\n\n"
-        f"Önemli: Başvuru sırasında kabul ettiğiniz sözleşmenin imzalı nüshasını deneme süresi bitmeden "
-        f"posta ile göndermeniz gerekir. Gönderim adresi onay e-postasında paylaşılır.\n\n"
-        f"Sorularınız için: {SUPPORT_EMAIL}"
-    )
+    if trial_lead:
+        applicant_body = (
+            f"Merhaba {app.contact_name},\n\n"
+            f"{app.business_name} için GastroSkor panel başvurunuz alındı.\n"
+            f"Onaylandığında 3 ay ücretsiz deneme süreniz başlar. Süre sonunda taahhütsüz ayrılabilirsiniz.\n"
+            f"Devam etmek isterseniz deneme bitiminde tam başvuru formunu doldurup gönderebilirsiniz.\n\n"
+            f"İnceleme sonrası {app.panel_email} adresine bilgi verilecektir.\n"
+            f"Sorularınız için: {SUPPORT_EMAIL}"
+        )
+    else:
+        applicant_body = (
+            f"Merhaba {app.contact_name},\n\n"
+            f"{app.business_name} için GastroSkor restoran paneli başvurunuz alındı.\n"
+            f"İnceleme sonrası {app.panel_email} adresine bilgi verilecektir.\n\n"
+            f"Önemli: Başvuru sırasında kabul ettiğiniz sözleşmenin imzalı nüshasını deneme süresi bitmeden "
+            f"posta ile göndermeniz gerekir. Gönderim adresi onay e-postasında paylaşılır.\n\n"
+            f"Sorularınız için: {SUPPORT_EMAIL}"
+        )
     await send_panel_email(
         to_email=app.panel_email,
         subject="GastroSkor panel başvurunuz alındı",
@@ -241,8 +274,14 @@ async def approve_panel_application(
         body_text=(
             f"Merhaba {app.contact_name},\n\n"
             f"{app.business_name} için panel erişiminiz açıldı. Google hesabınızla /panel adresine girebilirsiniz.\n\n"
-            f"İmzalı sözleşme gönderim adresi:\n{CONTRACT_POSTAL_ADDRESS}\n\n"
-            f"Deneme süresi bitmeden imzalı nüshayı iletmezseniz panel kapatılır."
+            + (
+                "3 ay ücretsiz deneme süreniz başladı. Süre sonunda taahhütsüz ayrılabilirsiniz.\n"
+                "Devam etmek isterseniz deneme bitiminde tam başvuru formunu (vergi levhası ve sözleşme) "
+                f"doldurup gönderebilirsiniz.\n\n"
+                if not app.tax_document_key
+                else f"İmzalı sözleşme gönderim adresi:\n{CONTRACT_POSTAL_ADDRESS}\n\n"
+                f"Deneme süresi bitmeden imzalı nüshayı iletmezseniz panel kapatılır.\n"
+            )
         ),
         cta_label="Panele git",
         cta_url="https://gastroskor.com.tr/panel",
@@ -306,8 +345,12 @@ async def _grant_ownership_from_application(
     ownership.panel_tier = "full"
     ownership.verified_at = now
     ownership.visit_completed_at = now
-    ownership.tax_document_note = f"Başvuru belgesi: {application.tax_document_key}"
-    ownership.contract_required = True
+    ownership.tax_document_note = (
+        f"Başvuru belgesi: {application.tax_document_key}"
+        if application.tax_document_key
+        else "3 ay deneme başvurusu — tam evrak süre sonunda istenecek."
+    )
+    ownership.contract_required = bool(application.tax_document_key)
     ownership.contract_electronic_accepted_at = application.contract_accepted_at
     ownership.contract_signed_received_at = None
     ownership.panel_application_id = application.id
@@ -377,8 +420,8 @@ def mark_contract_signed_received(
 
 def get_application_tax_document(application_id: UUID, db: Session) -> tuple[bytes, str, str]:
     app = db.get(RestaurantPanelApplication, application_id)
-    if not app:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Başvuru bulunamadı.")
+    if not app or not app.tax_document_key:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Başvuru belgesi yok.")
     data, content_type = read_business_document(app.tax_document_key)
     filename = document_download_name(app.tax_document_key, prefix=f"basvuru-{str(application_id)[:8]}")
     return data, content_type, filename
