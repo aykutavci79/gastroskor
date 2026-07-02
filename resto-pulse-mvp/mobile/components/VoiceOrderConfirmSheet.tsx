@@ -32,12 +32,11 @@ import {
 } from '@/lib/voice-order-stt-fix';
 import { ensureGastroPlaybackReady, gastroSpeakOrderConfirm, gastroStopSpeaking } from '@/lib/gastro-speak';
 import { applyOrderPhoneSendOtpResult, tryAutoVerifyOrderPhoneBypass } from '@/lib/order-phone-otp';
-import {
-  readStoredOrderAddress,
-  readStoredOrderPhone,
-  writeStoredOrderAddress,
-  writeStoredOrderPhone,
-} from '@/lib/order-contact-secure-storage';
+import { DeliveryAddressCascade } from '@/components/DeliveryAddressCascade';
+import { readStoredDeliveryAddress, writeStoredDeliveryAddress } from '@/lib/delivery-address-storage';
+import { resolveDeviceCoords } from '@/lib/device-location';
+import type { StoredDeliveryAddress } from '@/lib/delivery-address-types';
+import { readStoredOrderPhone, writeStoredOrderPhone } from '@/lib/order-contact-secure-storage';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
 import {
   formatVoiceOrderCommandSummary,
@@ -68,7 +67,8 @@ export function VoiceOrderConfirmSheet({
   const { t } = useTranslation();
   const posthog = useGastroPostHog();
   const insets = useSafeAreaInsets();
-  const [address, setAddress] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState<StoredDeliveryAddress | null>(null);
+  const [addressReady, setAddressReady] = useState(false);
   const [phone, setPhone] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [verifiedPhoneE164, setVerifiedPhoneE164] = useState<string | null>(null);
@@ -146,11 +146,14 @@ export function VoiceOrderConfirmSheet({
 
     void (async () => {
       const [storedAddress, storedPhone] = await Promise.all([
-        readStoredOrderAddress().catch(() => null),
+        readStoredDeliveryAddress().catch(() => null),
         readStoredOrderPhone().catch(() => null),
       ]);
       if (cancelled) return;
-      if (storedAddress) setAddress(storedAddress);
+      if (storedAddress) {
+        setDeliveryAddress(storedAddress);
+        setAddressReady(true);
+      }
       if (storedPhone) setPhone(storedPhone);
 
       const status = await getOrderPhoneStatus(userEmail).catch(() => null);
@@ -309,7 +312,7 @@ export function VoiceOrderConfirmSheet({
       setError(t('voice.phoneRequired'));
       return;
     }
-    if (address.trim().length < 10) {
+    if (!deliveryAddress || !addressReady) {
       setError(t('voice.addressRequired'));
       return;
     }
@@ -327,13 +330,18 @@ export function VoiceOrderConfirmSheet({
         .join(' ');
 
       await writeStoredOrderPhone(phone);
-      await writeStoredOrderAddress(address);
+      await writeStoredDeliveryAddress(deliveryAddress);
+      const deviceCoords = await resolveDeviceCoords({ requestPermission: true });
 
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
-        customer_address: address.trim(),
+        delivery_building_node_id: deliveryAddress.buildingNodeId,
+        delivery_address_note: deliveryAddress.note,
+        device_lat: deviceCoords?.lat,
+        device_lng: deviceCoords?.lng,
         note,
+        payment_method: 'cash',
         lines: activeRows.map((row) => ({
           menu_item_id: row.active!.menu_item_id,
           quantity: row.intent.quantity,
@@ -449,13 +457,14 @@ export function VoiceOrderConfirmSheet({
                 </View>
               ) : null}
 
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                placeholder={t('voice.addressPlaceholder')}
-                placeholderTextColor={GastroColors.muted}
-                style={styles.input}
-                multiline
+              <DeliveryAddressCascade
+                value={deliveryAddress}
+                onChange={(next) => {
+                  setDeliveryAddress(next);
+                  setAddressReady(next != null);
+                  if (next) void writeStoredDeliveryAddress(next);
+                }}
+                onReadyChange={setAddressReady}
               />
 
               <TextInput

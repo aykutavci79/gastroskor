@@ -295,6 +295,23 @@
     "reorderBtn": "Reorder",
     "ratedHint": "This order has been rated."
   },
+  "deliveryAddress": {
+    "lead": "Pick your delivery address from the official numbering list. If it is not listed, it is not registered yet.",
+    "cityBursa": "Bursa",
+    "district": "District",
+    "neighborhood": "Neighborhood",
+    "street": "Street",
+    "buildingNo": "Building no.",
+    "noteOptional": "Apartment / note (optional)",
+    "notePlaceholder": "e.g. Apt 3, buzzer name",
+    "selectPlaceholder": "Select…",
+    "loadError": "Could not load address list.",
+    "incomplete": "Select district, neighborhood, street and building number.",
+    "locationRequired": "Location permission required to verify your delivery address.",
+    "validateFailed": "Address could not be validated.",
+    "validating": "Matching address with your location…",
+    "emptyList": "No entries at this level — check the selection above."
+  },
   "phone": {
     "invalidPhone": "Enter a valid mobile number (e.g. 05xx xxx xx xx).",
     "smsSendFailed": "Failed to send SMS code.",

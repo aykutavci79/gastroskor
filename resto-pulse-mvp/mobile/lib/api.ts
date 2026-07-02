@@ -192,6 +192,8 @@ export async function listOnlineOrderRestaurants(params: {
   price_max?: number;
   max_distance_km?: number;
   user_email?: string;
+  dest_lat?: number;
+  dest_lng?: number;
 }): Promise<OnlineOrderOpenListResponse> {
   const minRating = Math.max(ONLINE_ORDER_MIN_RATING, params.min_rating ?? ONLINE_ORDER_MIN_RATING);
   const search = new URLSearchParams();
@@ -207,6 +209,8 @@ export async function listOnlineOrderRestaurants(params: {
   if (params.price_max != null) search.set('price_max', String(params.price_max));
   if (params.max_distance_km != null) search.set('max_distance_km', String(params.max_distance_km));
   if (params.user_email) search.set('user_email', params.user_email.trim().toLowerCase());
+  if (params.dest_lat != null) search.set('dest_lat', String(params.dest_lat));
+  if (params.dest_lng != null) search.set('dest_lng', String(params.dest_lng));
   const query = search.toString();
   try {
     return await request<OnlineOrderOpenListResponse>(
@@ -366,12 +370,43 @@ export function getUserOrder(userEmail: string, orderId: string) {
   );
 }
 
+export function listDeliveryAddressChildren(params?: {
+  parent_id?: number;
+  level?: 'admin' | 'building';
+}) {
+  const search = new URLSearchParams();
+  if (params?.parent_id != null) search.set('parent_id', String(params.parent_id));
+  if (params?.level) search.set('level', params.level);
+  const query = search.toString();
+  return request<import('@/lib/delivery-address-types').AddressNodeListResponse>(
+    `/delivery-address/bursa/children${query ? `?${query}` : ''}`,
+  );
+}
+
+export function validateDeliveryAddress(payload: {
+  building_node_id: number;
+  address_note?: string;
+  device_lat?: number;
+  device_lng?: number;
+}) {
+  return request<import('@/lib/delivery-address-types').DeliveryAddressValidateResponse>(
+    '/delivery-address/validate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function submitRestaurantOrder(
   restaurantId: string,
   payload: {
     user_email: string;
     customer_phone: string;
-    customer_address: string;
+    delivery_building_node_id: number;
+    delivery_address_note?: string;
+    device_lat?: number;
+    device_lng?: number;
     note?: string;
     payment_method: string;
     lines: Array<{ menu_item_id: string; quantity: number }>;

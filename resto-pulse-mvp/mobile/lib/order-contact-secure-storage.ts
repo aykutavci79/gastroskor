@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
+import { clearStoredDeliveryAddress } from '@/lib/delivery-address-storage';
+
 const PHONE_KEY = 'gastroskor.order.phone.v1';
 const ADDRESS_KEY = 'gastroskor.order.address.v1';
 const LEGACY_PHONE_KEY = 'gastroskor_order_phone';
@@ -78,5 +80,5 @@ export async function clearStoredOrderAddress(): Promise<void> {
 
 /** Cikis / hesap silme — cihazdaki siparis PII onbellegini temizle. */
 export async function clearStoredOrderContact(): Promise<void> {
-  await Promise.all([clearStoredOrderPhone(), clearStoredOrderAddress()]);
+  await Promise.all([clearStoredOrderPhone(), clearStoredOrderAddress(), clearStoredDeliveryAddress()]);
 }

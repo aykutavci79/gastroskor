@@ -34,10 +34,9 @@ import { loadOrderContactSnapshot } from '@/lib/order-contact-ready';
 import { resolveOnlineMenuDiscountPercent } from '@/lib/resolve-online-discount';
 import { resolveRatingBandVisual } from '@/lib/rating-band-visual';
 import { resolveCategoryVisual } from '@/lib/restaurant-category-visual';
-import {
-  readStoredOrderAddress,
-  readStoredOrderPhone,
-} from '@/lib/order-contact-secure-storage';
+import { readStoredDeliveryAddress } from '@/lib/delivery-address-storage';
+import { resolveDeviceCoords } from '@/lib/device-location';
+import { readStoredOrderPhone } from '@/lib/order-contact-secure-storage';
 import { estimateTravelMinutes, formatDistanceLabel } from '@/lib/travel-estimate';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead, OrderPaymentOption } from '@/lib/types';
 import {
@@ -239,20 +238,23 @@ export function OnlineOrderDetailScreen({
       source: 'online_order_detail',
     });
     try {
-      const address =
-        contact.address ?? (await readStoredOrderAddress().catch(() => null))?.trim() ?? '';
+      const storedAddress = await readStoredDeliveryAddress().catch(() => null);
       const phone =
         contact.phone ?? (await readStoredOrderPhone().catch(() => null))?.trim() ?? '';
-      if (address.length < 10) {
+      if (!storedAddress?.buildingNodeId) {
         router.push(
           `/hesap/siparis-bilgileri?returnTo=${encodeURIComponent(`/online-siparis/${restaurant.id}`)}` as never,
         );
         return;
       }
+      const deviceCoords = await resolveDeviceCoords({ requestPermission: true });
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone,
-        customer_address: address,
+        delivery_building_node_id: storedAddress.buildingNodeId,
+        delivery_address_note: storedAddress.note,
+        device_lat: deviceCoords?.lat,
+        device_lng: deviceCoords?.lng,
         note: note.trim() || undefined,
         payment_method: paymentMethod,
         lines: payloadLines,

@@ -1307,6 +1307,8 @@ def list_online_orders_open(
     price_max: float | None = Query(default=None, ge=0, le=99999, description="Butce tavanı TL"),
     max_distance_km: float | None = Query(default=None, ge=0, le=50, description="Maksimum mesafe km"),
     user_email: str | None = Query(default=None, min_length=3),
+    dest_lat: float | None = Query(default=None, ge=-90, le=90),
+    dest_lng: float | None = Query(default=None, ge=-180, le=180),
     db: Session = Depends(get_db),
 ):
     verified = resolve_soft_optional_viewer_email(viewer_email=user_email)
@@ -1326,6 +1328,8 @@ def list_online_orders_open(
             price_max=price_max,
             max_distance_km=max_distance_km,
             viewer_email=verified,
+            dest_lat=dest_lat,
+            dest_lng=dest_lng,
         )
         merge_check_in_counts_into_rows(db, items)
     except ProgrammingError as exc:
@@ -1696,7 +1700,10 @@ async def post_restaurant_order(
             restaurant_id=restaurant_id,
             user=user,
             customer_phone=payload.customer_phone,
-            customer_address=payload.customer_address,
+            delivery_building_node_id=payload.delivery_building_node_id,
+            delivery_address_note=payload.delivery_address_note,
+            device_lat=payload.device_lat,
+            device_lng=payload.device_lng,
             customer_name=payload.customer_name,
             note=payload.note,
             lines=[line.model_dump() for line in payload.lines],
@@ -2525,6 +2532,10 @@ router.include_router(kelime_sofrasi_router)
 from app.api.v1.reservation_routes import router as reservation_router
 
 router.include_router(reservation_router)
+
+from app.api.v1.delivery_address_routes import router as delivery_address_router
+
+router.include_router(delivery_address_router)
 
 from app.schemas.sofra_puzzle import SofraBulmacaImportPayload
 

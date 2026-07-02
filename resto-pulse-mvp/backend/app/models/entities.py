@@ -6,6 +6,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -564,10 +565,10 @@ class RestaurantPanelApplication(Base):
     website: Mapped[str | None] = mapped_column(String(500))
     google_place_id: Mapped[str | None] = mapped_column(String(255))
     google_place_name: Mapped[str | None] = mapped_column(String(255))
-    tax_document_key: Mapped[str] = mapped_column(String(512))
-    tax_document_content_type: Mapped[str] = mapped_column(String(80))
-    contract_version: Mapped[str] = mapped_column(String(40))
-    contract_accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tax_document_key: Mapped[str | None] = mapped_column(String(512))
+    tax_document_content_type: Mapped[str | None] = mapped_column(String(80))
+    contract_version: Mapped[str | None] = mapped_column(String(40))
+    contract_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     contract_postal_promised: Mapped[bool] = mapped_column(Boolean, default=True)
     applicant_notes: Mapped[str | None] = mapped_column(Text)
     admin_notes: Mapped[str | None] = mapped_column(Text)
@@ -756,6 +757,21 @@ class RestaurantOrderStatus(str, enum.Enum):
     rejected = "rejected"
 
 
+class AddressNodeCache(Base):
+    """Tradres adres dugumu onbellegi — kapı no koordinati dahil."""
+
+    __tablename__ = "address_node_cache"
+
+    tradres_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    parent_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    level: Mapped[str] = mapped_column(String(40))
+    name: Mapped[str] = mapped_column(String(255))
+    latitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
+    longitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
+    synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    geocoded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class RestaurantOrder(Base):
     __tablename__ = "restaurant_orders"
     __table_args__ = (
@@ -777,6 +793,10 @@ class RestaurantOrder(Base):
     customer_phone: Mapped[str] = mapped_column(String(32))
     customer_name: Mapped[str | None] = mapped_column(String(120))
     customer_address: Mapped[str | None] = mapped_column(Text)
+    delivery_building_node_id: Mapped[int | None] = mapped_column(BigInteger)
+    delivery_latitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
+    delivery_longitude: Mapped[float | None] = mapped_column(Numeric(10, 7))
+    delivery_address_note: Mapped[str | None] = mapped_column(String(120))
     order_day: Mapped[date | None] = mapped_column(Date, index=True)
     daily_no: Mapped[int | None] = mapped_column(Integer)
     reject_reason_code: Mapped[str | None] = mapped_column(String(40))

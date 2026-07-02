@@ -45,6 +45,7 @@ from app.services.restaurant_trust_rating import meets_online_order_trust_rating
 from app.services.phone_tr import normalize_tr_mobile
 from app.services.restaurant_menu import active_menu_items
 from app.services.restaurant_promo import subscription_allows_promo
+from app.services.delivery_address import DeliveryAddressError, resolve_delivery_address
 
 ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
 
@@ -258,7 +259,10 @@ def create_restaurant_order(
     restaurant_id: UUID,
     user: User,
     customer_phone: str,
-    customer_address: str,
+    delivery_building_node_id: int,
+    delivery_address_note: str | None,
+    device_lat: float | None,
+    device_lng: float | None,
     customer_name: str | None,
     note: str | None,
     lines: list[dict],
@@ -303,11 +307,17 @@ def create_restaurant_order(
             "Siparis vermek icin telefon numaranizi SMS ile dogrulayin.",
             code="phone_not_verified",
         )
-    clean_address = customer_address.strip()
-    if len(clean_address) < 10:
-        raise OrderError("Teslimat adresini girin (en az 10 karakter).")
-    if len(clean_address) > 500:
-        raise OrderError("Adres en fazla 500 karakter olabilir.")
+    try:
+        clean_address, delivery_lat, delivery_lng = resolve_delivery_address(
+            db,
+            building_node_id=delivery_building_node_id,
+            address_note=delivery_address_note,
+            device_lat=device_lat,
+            device_lng=device_lng,
+        )
+    except DeliveryAddressError as exc:
+        raise OrderError(str(exc), code=exc.code) from exc
+    clean_note_addr = (delivery_address_note or "").strip() or None
     display_name = (customer_name or user.nickname or user.full_name or "").strip() or None
     clean_note = (note or "").strip() or None
     try:
@@ -328,6 +338,10 @@ def create_restaurant_order(
         customer_phone=phone,
         customer_name=display_name,
         customer_address=clean_address,
+        delivery_building_node_id=delivery_building_node_id,
+        delivery_latitude=delivery_lat,
+        delivery_longitude=delivery_lng,
+        delivery_address_note=clean_note_addr,
         order_day=order_day,
         daily_no=daily_no,
         note=clean_note,

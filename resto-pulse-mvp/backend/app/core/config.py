@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     panel_admin_emails: str = ""
     # Mekan claim: SMS yerine admin onayi (pilot icin varsayilan acik)
     claim_admin_approval_only: bool = True
-    trial_days: int = 30
+    trial_days: int = 90
     default_ai_analysis_interval_days: int = 33
 
     price_panel_intro_tl: int = 399
@@ -178,6 +178,12 @@ class Settings(BaseSettings):
     exclude_tester_seeds_public: bool = True
     # Virgulle: bu e-postalar prod'da bile tester restoranlari gorur (E2E / ekip)
     internal_preview_emails: str = "tester-restoranlar@gastroskor.local"
+
+    # Teslimat adresi — Tradres + numarataj (Bursa pilot)
+    tradres_api_key: str | None = None
+    tradres_base_url: str | None = None
+    bursa_tradres_province_id: int = 16
+    delivery_address_gps_max_m: int = 400
 
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 

@@ -21,17 +21,16 @@ import { ensureArray } from '@/lib/ensure-array';
 import { coercePriceTl, formatPriceTl } from '@/lib/format-price-tl';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import {
-  readStoredOrderAddress,
   readStoredOrderPhone,
-  writeStoredOrderAddress,
   writeStoredOrderPhone,
 } from '@/lib/order-contact-secure-storage';
 import { normalizeTrMobileInput, formatTrMobileDisplay } from '@/lib/phone-tr';
 import type { Restaurant, RestaurantMenuItem, RestaurantOrderRead, OrderPaymentOption } from '@/lib/types';
-import {
-  DEFAULT_ORDER_PAYMENT_OPTIONS,
-  OrderPaymentMethodPicker,
-} from '@/components/OrderPaymentMethodPicker';
+import { DEFAULT_ORDER_PAYMENT_OPTIONS, OrderPaymentMethodPicker } from '@/components/OrderPaymentMethodPicker';
+import { DeliveryAddressCascade } from '@/components/DeliveryAddressCascade';
+import type { StoredDeliveryAddress } from '@/lib/delivery-address-types';
+import { readStoredDeliveryAddress, writeStoredDeliveryAddress } from '@/lib/delivery-address-storage';
+import { resolveDeviceCoords } from '@/lib/device-location';
 
 type LineState = {
   selected: boolean;
@@ -63,7 +62,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
   const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
-  const [address, setAddress] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState<StoredDeliveryAddress | null>(null);
+  const [addressReady, setAddressReady] = useState(false);
   const [note, setNote] = useState('');
   const [pendingOrder, setPendingOrder] = useState<RestaurantOrderRead | null>(null);
   const [rejectedOrder, setRejectedOrder] = useState<RestaurantOrderRead | null>(null);
@@ -149,10 +149,13 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
   }, [pendingOrder, rejectedOrder, refreshActive]);
 
   useEffect(() => {
-    void Promise.all([readStoredOrderPhone(), readStoredOrderAddress()])
+    void Promise.all([readStoredOrderPhone(), readStoredDeliveryAddress()])
       .then(([storedPhone, storedAddress]) => {
         if (storedPhone) setPhone(storedPhone);
-        if (storedAddress) setAddress(storedAddress);
+        if (storedAddress) {
+          setDeliveryAddress(storedAddress);
+          setAddressReady(true);
+        }
       })
       .catch(() => undefined);
   }, []);
@@ -297,8 +300,8 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
       );
       return;
     }
-    if (address.trim().length < 10) {
-      setError('Teslimat adresinizi yazin (mahalle, sokak, bina).');
+    if (!deliveryAddress || !addressReady) {
+      setError('Numarataj listesinden teslimat adresini secin.');
       return;
     }
     if (!paymentMethod) {
@@ -314,11 +317,15 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
     });
     try {
       await writeStoredOrderPhone(phone);
-      await writeStoredOrderAddress(address);
+      await writeStoredDeliveryAddress(deliveryAddress);
+      const deviceCoords = await resolveDeviceCoords({ requestPermission: true });
       const order = await submitRestaurantOrder(restaurant.id, {
         user_email: userEmail,
         customer_phone: phone.trim(),
-        customer_address: address.trim(),
+        delivery_building_node_id: deliveryAddress.buildingNodeId,
+        delivery_address_note: deliveryAddress.note,
+        device_lat: deviceCoords?.lat,
+        device_lng: deviceCoords?.lng,
         note: note.trim() || undefined,
         payment_method: paymentMethod,
         lines: payloadLines,
@@ -474,14 +481,14 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
         onLayout={(event) => {
           addressOffsetY.current = event.nativeEvent.layout.y;
         }}>
-        <TextInput
-          style={[styles.input, styles.noteInput]}
-          value={address}
-          onChangeText={setAddress}
-          onFocus={() => focusField(addressOffsetY.current)}
-          placeholder="Teslimat adresi (mahalle, sokak, bina, daire)"
-          placeholderTextColor={GastroColors.muted}
-          multiline
+        <DeliveryAddressCascade
+          value={deliveryAddress}
+          onChange={(next) => {
+            setDeliveryAddress(next);
+            setAddressReady(next != null);
+            if (next) void writeStoredDeliveryAddress(next);
+          }}
+          onReadyChange={setAddressReady}
         />
       </View>
       <View
@@ -516,7 +523,7 @@ export function OnlineOrderSection({ restaurant, userEmail, onOrderSent, onField
 
       <Pressable
         style={[styles.submitBtn, (submitting || selectedCount === 0) && styles.submitDisabled]}
-        disabled={submitting || selectedCount === 0 || !phoneMatchesVerified}
+        disabled={submitting || selectedCount === 0 || !phoneMatchesVerified || !addressReady}
         onPress={() => void onSubmit()}>
         {submitting ? (
           <ActivityIndicator color="#141414" />

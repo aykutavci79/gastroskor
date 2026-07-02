@@ -104,6 +104,23 @@
     "reorderBtn": "Tekrarla",
     "ratedHint": "Bu sipariş puanlandı."
   },
+  "deliveryAddress": {
+    "lead": "Numarataj listesinden teslimat adresini seç. Listede yoksa kayıtlı değildir.",
+    "cityBursa": "Bursa",
+    "district": "İlçe",
+    "neighborhood": "Mahalle",
+    "street": "Sokak / cadde",
+    "buildingNo": "Kapı no",
+    "noteOptional": "Daire / tarif (opsiyonel)",
+    "notePlaceholder": "Örn. Daire 3, zil Aykut",
+    "selectPlaceholder": "Seç…",
+    "loadError": "Adres listesi yüklenemedi.",
+    "incomplete": "İlçe, mahalle, sokak ve kapı no seç.",
+    "locationRequired": "Konum izni gerekli — teslimat adresinizi doğrulamak için.",
+    "validateFailed": "Adres doğrulanamadı.",
+    "validating": "Adres konumunuzla eşleştiriliyor…",
+    "emptyList": "Bu seviyede kayıt yok — üst seçimi kontrol edin."
+  },
   "phone": {
     "invalidPhone": "Geçerli bir cep telefonu girin (05xx xxx xx xx).",
     "smsSendFailed": "SMS kodu gönderilemedi.",

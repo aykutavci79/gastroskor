@@ -9,13 +9,14 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { DeliveryAddressCascade } from '@/components/DeliveryAddressCascade';
 import { GastroColorsLight } from '@/constants/theme';
 import { sendOrderPhoneOtp, verifyOrderPhoneOtp } from '@/lib/api';
+import type { StoredDeliveryAddress } from '@/lib/delivery-address-types';
+import { readStoredDeliveryAddress, writeStoredDeliveryAddress } from '@/lib/delivery-address-storage';
 import { applyOrderPhoneSendOtpResult } from '@/lib/order-phone-otp';
 import {
-  readStoredOrderAddress,
   readStoredOrderPhone,
-  writeStoredOrderAddress,
   writeStoredOrderPhone,
 } from '@/lib/order-contact-secure-storage';
 import { formatTrMobileDisplay, normalizeTrMobileInput } from '@/lib/phone-tr';
@@ -35,26 +36,36 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
   const [otpInfo, setOtpInfo] = useState<string | null>(null);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
-  const [address, setAddress] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState<StoredDeliveryAddress | null>(null);
+  const [addressReady, setAddressReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const normalizedPhone = useMemo(() => normalizeTrMobileInput(phone), [phone]);
   const phoneMatchesVerified = Boolean(
     phoneVerified && verifiedPhoneE164 && normalizedPhone === verifiedPhoneE164,
   );
-  const ready = phoneMatchesVerified && address.trim().length >= 10;
+  const ready = phoneMatchesVerified && addressReady;
 
   useEffect(() => {
     onReadyChange?.(ready);
   }, [ready, onReadyChange]);
 
   useEffect(() => {
-    void Promise.all([readStoredOrderPhone(), readStoredOrderAddress()])
+    void Promise.all([readStoredOrderPhone(), readStoredDeliveryAddress()])
       .then(([storedPhone, storedAddress]) => {
         if (storedPhone) setPhone(storedPhone);
-        if (storedAddress) setAddress(storedAddress);
+        if (storedAddress) {
+          setDeliveryAddress(storedAddress);
+          setAddressReady(true);
+        }
       })
       .catch(() => undefined);
+  }, []);
+
+  const onAddressChange = useCallback(async (next: StoredDeliveryAddress | null) => {
+    setDeliveryAddress(next);
+    setAddressReady(next != null);
+    if (next) await writeStoredDeliveryAddress(next);
   }, []);
 
   function onPhoneChange(value: string) {
@@ -95,7 +106,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
     } finally {
       setOtpSending(false);
     }
-  }, [normalizedPhone, phone, userEmail]);
+  }, [normalizedPhone, phone, userEmail, t]);
 
   const onVerifyOtp = useCallback(async () => {
     if (!userEmail) return;
@@ -120,27 +131,23 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
     } finally {
       setOtpVerifying(false);
     }
-  }, [otpCode, phone, userEmail]);
-
-  const persistAddress = useCallback(async () => {
-    await writeStoredOrderAddress(address);
-  }, [address]);
+  }, [otpCode, phone, userEmail, t]);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.lead}>{t("phone.description")}</Text>
+      <Text style={styles.lead}>{t('phone.description')}</Text>
 
-      <Text style={styles.label}>{t("phone.phoneLabel")}</Text>
+      <Text style={styles.label}>{t('phone.phoneLabel')}</Text>
       <TextInput
         style={styles.input}
         value={phone}
         onChangeText={onPhoneChange}
-        placeholder={t("phone.phonePlaceholder")}
+        placeholder={t('phone.phonePlaceholder')}
         placeholderTextColor={GastroColorsLight.placeholder}
         keyboardType="phone-pad"
       />
       {phoneMatchesVerified ? (
-        <Text style={styles.okHint}>{t("phone.verified")}</Text>
+        <Text style={styles.okHint}>{t('phone.verified')}</Text>
       ) : normalizedPhone ? (
         <View style={styles.otpBlock}>
           {otpInfo ? <Text style={styles.otpInfo}>{otpInfo}</Text> : null}
@@ -152,7 +159,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
               {otpSending ? (
                 <ActivityIndicator color={GastroColorsLight.text} />
               ) : (
-                <Text style={styles.ghostBtnText}>{t("phone.sendSmsBtn")}</Text>
+                <Text style={styles.ghostBtnText}>{t('phone.sendSmsBtn')}</Text>
               )}
             </Pressable>
           ) : (
@@ -161,7 +168,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
                 style={[styles.input, styles.otpInput]}
                 value={otpCode}
                 onChangeText={setOtpCode}
-                placeholder={t("phone.codePlaceholder")}
+                placeholder={t('phone.codePlaceholder')}
                 placeholderTextColor={GastroColorsLight.placeholder}
                 keyboardType="number-pad"
                 maxLength={6}
@@ -173,7 +180,7 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
                 {otpVerifying ? (
                   <ActivityIndicator color="#141414" />
                 ) : (
-                  <Text style={styles.accentBtnText}>{t("phone.verifyBtn")}</Text>
+                  <Text style={styles.accentBtnText}>{t('phone.verifyBtn')}</Text>
                 )}
               </Pressable>
             </View>
@@ -181,21 +188,14 @@ export function OrderContactSetupForm({ userEmail, onReadyChange }: Props) {
         </View>
       ) : null}
 
-      <Text style={styles.label}>{t("phone.addressLabel")}</Text>
-      <TextInput
-        style={[styles.input, styles.addressInput]}
-        value={address}
-        onChangeText={setAddress}
-        onBlur={() => void persistAddress()}
-        placeholder={t("phone.addressPlaceholder")}
-        placeholderTextColor={GastroColorsLight.placeholder}
-        multiline
+      <DeliveryAddressCascade
+        value={deliveryAddress}
+        onChange={(next) => void onAddressChange(next)}
+        onReadyChange={setAddressReady}
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      {ready ? (
-        <Text style={styles.okHint}>{t("phone.setupDone")}</Text>
-      ) : null}
+      {ready ? <Text style={styles.okHint}>{t('phone.setupDone')}</Text> : null}
     </View>
   );
 }
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     fontSize: 15,
   },
-  addressInput: { minHeight: 96, textAlignVertical: 'top' },
   okHint: { color: '#16A34A', fontSize: 13, fontWeight: '700' },
   otpBlock: { gap: 8 },
   otpInfo: { color: '#B45309', fontSize: 12, lineHeight: 17 },

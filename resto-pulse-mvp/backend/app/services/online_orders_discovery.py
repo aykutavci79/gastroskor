@@ -132,11 +132,14 @@ def list_online_order_restaurants(
     price_max: float | None = None,
     max_distance_km: float | None = None,
     viewer_email: str | None = None,
+    dest_lat: float | None = None,
+    dest_lng: float | None = None,
 ) -> list[dict]:
     category_slug = (category or "").strip().lower() or None
     limit = max(1, min(limit, 100))
     rating_floor = max(MIN_LIST_RATING, float(min_rating)) if min_rating is not None else MIN_LIST_RATING
     has_origin = origin_lat is not None and origin_lng is not None
+    has_dest = dest_lat is not None and dest_lng is not None
     city_filter = (city or "").strip()
     voice_groups: list[str] = []
     if voice_products:
@@ -227,6 +230,7 @@ def list_online_order_restaurants(
             continue
 
         distance_m: float | None = None
+        fee_distance_m: float | None = None
         if (
             has_origin
             and restaurant.latitude is not None
@@ -238,6 +242,15 @@ def list_online_order_restaurants(
                 restaurant.latitude,
                 restaurant.longitude,
             )
+        if has_dest and restaurant.latitude is not None and restaurant.longitude is not None:
+            fee_distance_m = haversine_meters(
+                dest_lat,
+                dest_lng,
+                restaurant.latitude,
+                restaurant.longitude,
+            )
+        elif distance_m is not None:
+            fee_distance_m = distance_m
 
         if distance_cap_m is not None:
             if distance_m is None or distance_m > distance_cap_m:
@@ -292,7 +305,7 @@ def list_online_order_restaurants(
                 "latitude": restaurant.latitude,
                 "longitude": restaurant.longitude,
                 "distance_meters": distance_m,
-                "delivery_fee_tl": resolve_delivery_fee_tl(distance_m),
+                "delivery_fee_tl": resolve_delivery_fee_tl(fee_distance_m),
                 "online_menu_discount_percent": discount_percent,
                 "voice_menu_matches": voice_matches,
                 "voice_search_token": voice_token,

@@ -18,7 +18,11 @@ class OrderPaymentOption(BaseModel):
 class RestaurantOrderCreate(BaseModel):
     user_email: str = Field(min_length=3)
     customer_phone: str = Field(min_length=10, max_length=32)
-    customer_address: str = Field(min_length=10, max_length=500)
+    customer_address: str | None = Field(default=None, min_length=10, max_length=500)
+    delivery_building_node_id: int = Field(ge=1)
+    delivery_address_note: str | None = Field(default=None, max_length=120)
+    device_lat: float | None = Field(default=None, ge=-90, le=90)
+    device_lng: float | None = Field(default=None, ge=-180, le=180)
     customer_name: str | None = Field(default=None, max_length=120)
     note: str | None = Field(default=None, max_length=500)
     payment_method: str = Field(min_length=2, max_length=40)
